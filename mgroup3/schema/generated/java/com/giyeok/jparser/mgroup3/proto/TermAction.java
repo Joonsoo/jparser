@@ -16,8 +16,8 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private TermAction() {
-    appends_ = java.util.Collections.emptyList();
-    startNodeProgresses_ = java.util.Collections.emptyList();
+    replaceAndAppends_ = java.util.Collections.emptyList();
+    replaceAndProgresses_ = java.util.Collections.emptyList();
   }
 
   @java.lang.Override
@@ -75,6 +75,12 @@ private static final long serialVersionUID = 0L;
     com.giyeok.jparser.mgroup3.proto.AppendMilestoneGroupOrBuilder getAppendOrBuilder();
   }
   /**
+   * <pre>
+   * (소문자는 milestone, 대문자는 mgroup을 나타낼 때)
+   * a -&gt; b -&gt; X 에서 X를 replace로 바꾸고 append를 붙여서
+   * a -&gt; b -&gt; replace -&gt; APPEND 가 된다
+   * </pre>
+   *
    * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup}
    */
   public static final class ReplaceAndAppendMilestoneGroup extends
@@ -338,6 +344,12 @@ private static final long serialVersionUID = 0L;
       return builder;
     }
     /**
+     * <pre>
+     * (소문자는 milestone, 대문자는 mgroup을 나타낼 때)
+     * a -&gt; b -&gt; X 에서 X를 replace로 바꾸고 append를 붙여서
+     * a -&gt; b -&gt; replace -&gt; APPEND 가 된다
+     * </pre>
+     *
      * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup}
      */
     public static final class Builder extends
@@ -813,21 +825,27 @@ private static final long serialVersionUID = 0L;
     int getReplaceGroupId();
 
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
      * @return Whether the acceptCondition field is set.
      */
     boolean hasAcceptCondition();
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
      * @return The acceptCondition.
      */
-    com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate getAcceptCondition();
+    com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet getAcceptCondition();
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
      */
-    com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplateOrBuilder getAcceptConditionOrBuilder();
+    com.giyeok.jparser.mgroup3.proto.AcceptConditionsSetOrBuilder getAcceptConditionOrBuilder();
   }
   /**
+   * <pre>
+   * a -&gt; b -&gt; X 에서 X를 replace_group_id로 바꿔서
+   * a -&gt; b -&gt; REPLACE_GROUP_ID 가 되고, 이 상태에서
+   * b -&gt; REPLACE_GROUP_ID 에 대한 tip edge action (및 이어지는 연쇄 작용)을 시작한다
+   * </pre>
+   *
    * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress}
    */
   public static final class ReplaceAndProgress extends
@@ -874,9 +892,9 @@ private static final long serialVersionUID = 0L;
     }
 
     public static final int ACCEPT_CONDITION_FIELD_NUMBER = 2;
-    private com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate acceptCondition_;
+    private com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet acceptCondition_;
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
      * @return Whether the acceptCondition field is set.
      */
     @java.lang.Override
@@ -884,19 +902,19 @@ private static final long serialVersionUID = 0L;
       return acceptCondition_ != null;
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
      * @return The acceptCondition.
      */
     @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate getAcceptCondition() {
-      return acceptCondition_ == null ? com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.getDefaultInstance() : acceptCondition_;
+    public com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet getAcceptCondition() {
+      return acceptCondition_ == null ? com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.getDefaultInstance() : acceptCondition_;
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
      */
     @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplateOrBuilder getAcceptConditionOrBuilder() {
-      return acceptCondition_ == null ? com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.getDefaultInstance() : acceptCondition_;
+    public com.giyeok.jparser.mgroup3.proto.AcceptConditionsSetOrBuilder getAcceptConditionOrBuilder() {
+      return acceptCondition_ == null ? com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.getDefaultInstance() : acceptCondition_;
     }
 
     private byte memoizedIsInitialized = -1;
@@ -1071,6 +1089,12 @@ private static final long serialVersionUID = 0L;
       return builder;
     }
     /**
+     * <pre>
+     * a -&gt; b -&gt; X 에서 X를 replace_group_id로 바꿔서
+     * a -&gt; b -&gt; REPLACE_GROUP_ID 가 되고, 이 상태에서
+     * b -&gt; REPLACE_GROUP_ID 에 대한 tip edge action (및 이어지는 연쇄 작용)을 시작한다
+     * </pre>
+     *
      * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress}
      */
     public static final class Builder extends
@@ -1258,31 +1282,31 @@ private static final long serialVersionUID = 0L;
         return this;
       }
 
-      private com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate acceptCondition_;
+      private com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet acceptCondition_;
       private com.google.protobuf.SingleFieldBuilderV3<
-          com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplateOrBuilder> acceptConditionBuilder_;
+          com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet, com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionsSetOrBuilder> acceptConditionBuilder_;
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
        * @return Whether the acceptCondition field is set.
        */
       public boolean hasAcceptCondition() {
         return ((bitField0_ & 0x00000002) != 0);
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
        * @return The acceptCondition.
        */
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate getAcceptCondition() {
+      public com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet getAcceptCondition() {
         if (acceptConditionBuilder_ == null) {
-          return acceptCondition_ == null ? com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.getDefaultInstance() : acceptCondition_;
+          return acceptCondition_ == null ? com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.getDefaultInstance() : acceptCondition_;
         } else {
           return acceptConditionBuilder_.getMessage();
         }
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
        */
-      public Builder setAcceptCondition(com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate value) {
+      public Builder setAcceptCondition(com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet value) {
         if (acceptConditionBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
@@ -1296,10 +1320,10 @@ private static final long serialVersionUID = 0L;
         return this;
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
        */
       public Builder setAcceptCondition(
-          com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.Builder builderForValue) {
+          com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.Builder builderForValue) {
         if (acceptConditionBuilder_ == null) {
           acceptCondition_ = builderForValue.build();
         } else {
@@ -1310,13 +1334,13 @@ private static final long serialVersionUID = 0L;
         return this;
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
        */
-      public Builder mergeAcceptCondition(com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate value) {
+      public Builder mergeAcceptCondition(com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet value) {
         if (acceptConditionBuilder_ == null) {
           if (((bitField0_ & 0x00000002) != 0) &&
             acceptCondition_ != null &&
-            acceptCondition_ != com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.getDefaultInstance()) {
+            acceptCondition_ != com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.getDefaultInstance()) {
             getAcceptConditionBuilder().mergeFrom(value);
           } else {
             acceptCondition_ = value;
@@ -1329,7 +1353,7 @@ private static final long serialVersionUID = 0L;
         return this;
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
        */
       public Builder clearAcceptCondition() {
         bitField0_ = (bitField0_ & ~0x00000002);
@@ -1342,33 +1366,33 @@ private static final long serialVersionUID = 0L;
         return this;
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
        */
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.Builder getAcceptConditionBuilder() {
+      public com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.Builder getAcceptConditionBuilder() {
         bitField0_ |= 0x00000002;
         onChanged();
         return getAcceptConditionFieldBuilder().getBuilder();
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
        */
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplateOrBuilder getAcceptConditionOrBuilder() {
+      public com.giyeok.jparser.mgroup3.proto.AcceptConditionsSetOrBuilder getAcceptConditionOrBuilder() {
         if (acceptConditionBuilder_ != null) {
           return acceptConditionBuilder_.getMessageOrBuilder();
         } else {
           return acceptCondition_ == null ?
-              com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.getDefaultInstance() : acceptCondition_;
+              com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.getDefaultInstance() : acceptCondition_;
         }
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
        */
       private com.google.protobuf.SingleFieldBuilderV3<
-          com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplateOrBuilder> 
+          com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet, com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionsSetOrBuilder> 
           getAcceptConditionFieldBuilder() {
         if (acceptConditionBuilder_ == null) {
           acceptConditionBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-              com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplateOrBuilder>(
+              com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet, com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionsSetOrBuilder>(
                   getAcceptCondition(),
                   getParentForChildren(),
                   isClean());
@@ -1440,86 +1464,86 @@ private static final long serialVersionUID = 0L;
 
   }
 
-  public static final int APPENDS_FIELD_NUMBER = 1;
+  public static final int REPLACE_AND_APPENDS_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
-  private java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup> appends_;
+  private java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup> replaceAndAppends_;
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
    */
   @java.lang.Override
-  public java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup> getAppendsList() {
-    return appends_;
+  public java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup> getReplaceAndAppendsList() {
+    return replaceAndAppends_;
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
    */
   @java.lang.Override
   public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroupOrBuilder> 
-      getAppendsOrBuilderList() {
-    return appends_;
+      getReplaceAndAppendsOrBuilderList() {
+    return replaceAndAppends_;
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
    */
   @java.lang.Override
-  public int getAppendsCount() {
-    return appends_.size();
+  public int getReplaceAndAppendsCount() {
+    return replaceAndAppends_.size();
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
    */
   @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup getAppends(int index) {
-    return appends_.get(index);
+  public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup getReplaceAndAppends(int index) {
+    return replaceAndAppends_.get(index);
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
    */
   @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroupOrBuilder getAppendsOrBuilder(
+  public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroupOrBuilder getReplaceAndAppendsOrBuilder(
       int index) {
-    return appends_.get(index);
+    return replaceAndAppends_.get(index);
   }
 
-  public static final int START_NODE_PROGRESSES_FIELD_NUMBER = 2;
+  public static final int REPLACE_AND_PROGRESSES_FIELD_NUMBER = 2;
   @SuppressWarnings("serial")
-  private java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress> startNodeProgresses_;
+  private java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress> replaceAndProgresses_;
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
    */
   @java.lang.Override
-  public java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress> getStartNodeProgressesList() {
-    return startNodeProgresses_;
+  public java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress> getReplaceAndProgressesList() {
+    return replaceAndProgresses_;
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
    */
   @java.lang.Override
   public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgressOrBuilder> 
-      getStartNodeProgressesOrBuilderList() {
-    return startNodeProgresses_;
+      getReplaceAndProgressesOrBuilderList() {
+    return replaceAndProgresses_;
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
    */
   @java.lang.Override
-  public int getStartNodeProgressesCount() {
-    return startNodeProgresses_.size();
+  public int getReplaceAndProgressesCount() {
+    return replaceAndProgresses_.size();
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
    */
   @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress getStartNodeProgresses(int index) {
-    return startNodeProgresses_.get(index);
+  public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress getReplaceAndProgresses(int index) {
+    return replaceAndProgresses_.get(index);
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
    */
   @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgressOrBuilder getStartNodeProgressesOrBuilder(
+  public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgressOrBuilder getReplaceAndProgressesOrBuilder(
       int index) {
-    return startNodeProgresses_.get(index);
+    return replaceAndProgresses_.get(index);
   }
 
   private byte memoizedIsInitialized = -1;
@@ -1536,11 +1560,11 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    for (int i = 0; i < appends_.size(); i++) {
-      output.writeMessage(1, appends_.get(i));
+    for (int i = 0; i < replaceAndAppends_.size(); i++) {
+      output.writeMessage(1, replaceAndAppends_.get(i));
     }
-    for (int i = 0; i < startNodeProgresses_.size(); i++) {
-      output.writeMessage(2, startNodeProgresses_.get(i));
+    for (int i = 0; i < replaceAndProgresses_.size(); i++) {
+      output.writeMessage(2, replaceAndProgresses_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -1551,13 +1575,13 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    for (int i = 0; i < appends_.size(); i++) {
+    for (int i = 0; i < replaceAndAppends_.size(); i++) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(1, appends_.get(i));
+        .computeMessageSize(1, replaceAndAppends_.get(i));
     }
-    for (int i = 0; i < startNodeProgresses_.size(); i++) {
+    for (int i = 0; i < replaceAndProgresses_.size(); i++) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(2, startNodeProgresses_.get(i));
+        .computeMessageSize(2, replaceAndProgresses_.get(i));
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -1574,10 +1598,10 @@ private static final long serialVersionUID = 0L;
     }
     com.giyeok.jparser.mgroup3.proto.TermAction other = (com.giyeok.jparser.mgroup3.proto.TermAction) obj;
 
-    if (!getAppendsList()
-        .equals(other.getAppendsList())) return false;
-    if (!getStartNodeProgressesList()
-        .equals(other.getStartNodeProgressesList())) return false;
+    if (!getReplaceAndAppendsList()
+        .equals(other.getReplaceAndAppendsList())) return false;
+    if (!getReplaceAndProgressesList()
+        .equals(other.getReplaceAndProgressesList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1589,13 +1613,13 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    if (getAppendsCount() > 0) {
-      hash = (37 * hash) + APPENDS_FIELD_NUMBER;
-      hash = (53 * hash) + getAppendsList().hashCode();
+    if (getReplaceAndAppendsCount() > 0) {
+      hash = (37 * hash) + REPLACE_AND_APPENDS_FIELD_NUMBER;
+      hash = (53 * hash) + getReplaceAndAppendsList().hashCode();
     }
-    if (getStartNodeProgressesCount() > 0) {
-      hash = (37 * hash) + START_NODE_PROGRESSES_FIELD_NUMBER;
-      hash = (53 * hash) + getStartNodeProgressesList().hashCode();
+    if (getReplaceAndProgressesCount() > 0) {
+      hash = (37 * hash) + REPLACE_AND_PROGRESSES_FIELD_NUMBER;
+      hash = (53 * hash) + getReplaceAndProgressesList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -1726,18 +1750,18 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      if (appendsBuilder_ == null) {
-        appends_ = java.util.Collections.emptyList();
+      if (replaceAndAppendsBuilder_ == null) {
+        replaceAndAppends_ = java.util.Collections.emptyList();
       } else {
-        appends_ = null;
-        appendsBuilder_.clear();
+        replaceAndAppends_ = null;
+        replaceAndAppendsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000001);
-      if (startNodeProgressesBuilder_ == null) {
-        startNodeProgresses_ = java.util.Collections.emptyList();
+      if (replaceAndProgressesBuilder_ == null) {
+        replaceAndProgresses_ = java.util.Collections.emptyList();
       } else {
-        startNodeProgresses_ = null;
-        startNodeProgressesBuilder_.clear();
+        replaceAndProgresses_ = null;
+        replaceAndProgressesBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000002);
       return this;
@@ -1773,23 +1797,23 @@ private static final long serialVersionUID = 0L;
     }
 
     private void buildPartialRepeatedFields(com.giyeok.jparser.mgroup3.proto.TermAction result) {
-      if (appendsBuilder_ == null) {
+      if (replaceAndAppendsBuilder_ == null) {
         if (((bitField0_ & 0x00000001) != 0)) {
-          appends_ = java.util.Collections.unmodifiableList(appends_);
+          replaceAndAppends_ = java.util.Collections.unmodifiableList(replaceAndAppends_);
           bitField0_ = (bitField0_ & ~0x00000001);
         }
-        result.appends_ = appends_;
+        result.replaceAndAppends_ = replaceAndAppends_;
       } else {
-        result.appends_ = appendsBuilder_.build();
+        result.replaceAndAppends_ = replaceAndAppendsBuilder_.build();
       }
-      if (startNodeProgressesBuilder_ == null) {
+      if (replaceAndProgressesBuilder_ == null) {
         if (((bitField0_ & 0x00000002) != 0)) {
-          startNodeProgresses_ = java.util.Collections.unmodifiableList(startNodeProgresses_);
+          replaceAndProgresses_ = java.util.Collections.unmodifiableList(replaceAndProgresses_);
           bitField0_ = (bitField0_ & ~0x00000002);
         }
-        result.startNodeProgresses_ = startNodeProgresses_;
+        result.replaceAndProgresses_ = replaceAndProgresses_;
       } else {
-        result.startNodeProgresses_ = startNodeProgressesBuilder_.build();
+        result.replaceAndProgresses_ = replaceAndProgressesBuilder_.build();
       }
     }
 
@@ -1809,55 +1833,55 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(com.giyeok.jparser.mgroup3.proto.TermAction other) {
       if (other == com.giyeok.jparser.mgroup3.proto.TermAction.getDefaultInstance()) return this;
-      if (appendsBuilder_ == null) {
-        if (!other.appends_.isEmpty()) {
-          if (appends_.isEmpty()) {
-            appends_ = other.appends_;
+      if (replaceAndAppendsBuilder_ == null) {
+        if (!other.replaceAndAppends_.isEmpty()) {
+          if (replaceAndAppends_.isEmpty()) {
+            replaceAndAppends_ = other.replaceAndAppends_;
             bitField0_ = (bitField0_ & ~0x00000001);
           } else {
-            ensureAppendsIsMutable();
-            appends_.addAll(other.appends_);
+            ensureReplaceAndAppendsIsMutable();
+            replaceAndAppends_.addAll(other.replaceAndAppends_);
           }
           onChanged();
         }
       } else {
-        if (!other.appends_.isEmpty()) {
-          if (appendsBuilder_.isEmpty()) {
-            appendsBuilder_.dispose();
-            appendsBuilder_ = null;
-            appends_ = other.appends_;
+        if (!other.replaceAndAppends_.isEmpty()) {
+          if (replaceAndAppendsBuilder_.isEmpty()) {
+            replaceAndAppendsBuilder_.dispose();
+            replaceAndAppendsBuilder_ = null;
+            replaceAndAppends_ = other.replaceAndAppends_;
             bitField0_ = (bitField0_ & ~0x00000001);
-            appendsBuilder_ = 
+            replaceAndAppendsBuilder_ = 
               com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
-                 getAppendsFieldBuilder() : null;
+                 getReplaceAndAppendsFieldBuilder() : null;
           } else {
-            appendsBuilder_.addAllMessages(other.appends_);
+            replaceAndAppendsBuilder_.addAllMessages(other.replaceAndAppends_);
           }
         }
       }
-      if (startNodeProgressesBuilder_ == null) {
-        if (!other.startNodeProgresses_.isEmpty()) {
-          if (startNodeProgresses_.isEmpty()) {
-            startNodeProgresses_ = other.startNodeProgresses_;
+      if (replaceAndProgressesBuilder_ == null) {
+        if (!other.replaceAndProgresses_.isEmpty()) {
+          if (replaceAndProgresses_.isEmpty()) {
+            replaceAndProgresses_ = other.replaceAndProgresses_;
             bitField0_ = (bitField0_ & ~0x00000002);
           } else {
-            ensureStartNodeProgressesIsMutable();
-            startNodeProgresses_.addAll(other.startNodeProgresses_);
+            ensureReplaceAndProgressesIsMutable();
+            replaceAndProgresses_.addAll(other.replaceAndProgresses_);
           }
           onChanged();
         }
       } else {
-        if (!other.startNodeProgresses_.isEmpty()) {
-          if (startNodeProgressesBuilder_.isEmpty()) {
-            startNodeProgressesBuilder_.dispose();
-            startNodeProgressesBuilder_ = null;
-            startNodeProgresses_ = other.startNodeProgresses_;
+        if (!other.replaceAndProgresses_.isEmpty()) {
+          if (replaceAndProgressesBuilder_.isEmpty()) {
+            replaceAndProgressesBuilder_.dispose();
+            replaceAndProgressesBuilder_ = null;
+            replaceAndProgresses_ = other.replaceAndProgresses_;
             bitField0_ = (bitField0_ & ~0x00000002);
-            startNodeProgressesBuilder_ = 
+            replaceAndProgressesBuilder_ = 
               com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
-                 getStartNodeProgressesFieldBuilder() : null;
+                 getReplaceAndProgressesFieldBuilder() : null;
           } else {
-            startNodeProgressesBuilder_.addAllMessages(other.startNodeProgresses_);
+            replaceAndProgressesBuilder_.addAllMessages(other.replaceAndProgresses_);
           }
         }
       }
@@ -1892,11 +1916,11 @@ private static final long serialVersionUID = 0L;
                   input.readMessage(
                       com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup.parser(),
                       extensionRegistry);
-              if (appendsBuilder_ == null) {
-                ensureAppendsIsMutable();
-                appends_.add(m);
+              if (replaceAndAppendsBuilder_ == null) {
+                ensureReplaceAndAppendsIsMutable();
+                replaceAndAppends_.add(m);
               } else {
-                appendsBuilder_.addMessage(m);
+                replaceAndAppendsBuilder_.addMessage(m);
               }
               break;
             } // case 10
@@ -1905,11 +1929,11 @@ private static final long serialVersionUID = 0L;
                   input.readMessage(
                       com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress.parser(),
                       extensionRegistry);
-              if (startNodeProgressesBuilder_ == null) {
-                ensureStartNodeProgressesIsMutable();
-                startNodeProgresses_.add(m);
+              if (replaceAndProgressesBuilder_ == null) {
+                ensureReplaceAndProgressesIsMutable();
+                replaceAndProgresses_.add(m);
               } else {
-                startNodeProgressesBuilder_.addMessage(m);
+                replaceAndProgressesBuilder_.addMessage(m);
               }
               break;
             } // case 18
@@ -1930,484 +1954,484 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup> appends_ =
+    private java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup> replaceAndAppends_ =
       java.util.Collections.emptyList();
-    private void ensureAppendsIsMutable() {
+    private void ensureReplaceAndAppendsIsMutable() {
       if (!((bitField0_ & 0x00000001) != 0)) {
-        appends_ = new java.util.ArrayList<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup>(appends_);
+        replaceAndAppends_ = new java.util.ArrayList<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup>(replaceAndAppends_);
         bitField0_ |= 0x00000001;
        }
     }
 
     private com.google.protobuf.RepeatedFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup.Builder, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroupOrBuilder> appendsBuilder_;
+        com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup.Builder, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroupOrBuilder> replaceAndAppendsBuilder_;
 
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
      */
-    public java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup> getAppendsList() {
-      if (appendsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(appends_);
+    public java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup> getReplaceAndAppendsList() {
+      if (replaceAndAppendsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(replaceAndAppends_);
       } else {
-        return appendsBuilder_.getMessageList();
+        return replaceAndAppendsBuilder_.getMessageList();
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
      */
-    public int getAppendsCount() {
-      if (appendsBuilder_ == null) {
-        return appends_.size();
+    public int getReplaceAndAppendsCount() {
+      if (replaceAndAppendsBuilder_ == null) {
+        return replaceAndAppends_.size();
       } else {
-        return appendsBuilder_.getCount();
+        return replaceAndAppendsBuilder_.getCount();
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup getAppends(int index) {
-      if (appendsBuilder_ == null) {
-        return appends_.get(index);
+    public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup getReplaceAndAppends(int index) {
+      if (replaceAndAppendsBuilder_ == null) {
+        return replaceAndAppends_.get(index);
       } else {
-        return appendsBuilder_.getMessage(index);
+        return replaceAndAppendsBuilder_.getMessage(index);
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
      */
-    public Builder setAppends(
+    public Builder setReplaceAndAppends(
         int index, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup value) {
-      if (appendsBuilder_ == null) {
+      if (replaceAndAppendsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureAppendsIsMutable();
-        appends_.set(index, value);
+        ensureReplaceAndAppendsIsMutable();
+        replaceAndAppends_.set(index, value);
         onChanged();
       } else {
-        appendsBuilder_.setMessage(index, value);
+        replaceAndAppendsBuilder_.setMessage(index, value);
       }
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
      */
-    public Builder setAppends(
+    public Builder setReplaceAndAppends(
         int index, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup.Builder builderForValue) {
-      if (appendsBuilder_ == null) {
-        ensureAppendsIsMutable();
-        appends_.set(index, builderForValue.build());
+      if (replaceAndAppendsBuilder_ == null) {
+        ensureReplaceAndAppendsIsMutable();
+        replaceAndAppends_.set(index, builderForValue.build());
         onChanged();
       } else {
-        appendsBuilder_.setMessage(index, builderForValue.build());
+        replaceAndAppendsBuilder_.setMessage(index, builderForValue.build());
       }
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
      */
-    public Builder addAppends(com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup value) {
-      if (appendsBuilder_ == null) {
+    public Builder addReplaceAndAppends(com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup value) {
+      if (replaceAndAppendsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureAppendsIsMutable();
-        appends_.add(value);
+        ensureReplaceAndAppendsIsMutable();
+        replaceAndAppends_.add(value);
         onChanged();
       } else {
-        appendsBuilder_.addMessage(value);
+        replaceAndAppendsBuilder_.addMessage(value);
       }
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
      */
-    public Builder addAppends(
+    public Builder addReplaceAndAppends(
         int index, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup value) {
-      if (appendsBuilder_ == null) {
+      if (replaceAndAppendsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureAppendsIsMutable();
-        appends_.add(index, value);
+        ensureReplaceAndAppendsIsMutable();
+        replaceAndAppends_.add(index, value);
         onChanged();
       } else {
-        appendsBuilder_.addMessage(index, value);
+        replaceAndAppendsBuilder_.addMessage(index, value);
       }
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
      */
-    public Builder addAppends(
+    public Builder addReplaceAndAppends(
         com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup.Builder builderForValue) {
-      if (appendsBuilder_ == null) {
-        ensureAppendsIsMutable();
-        appends_.add(builderForValue.build());
+      if (replaceAndAppendsBuilder_ == null) {
+        ensureReplaceAndAppendsIsMutable();
+        replaceAndAppends_.add(builderForValue.build());
         onChanged();
       } else {
-        appendsBuilder_.addMessage(builderForValue.build());
+        replaceAndAppendsBuilder_.addMessage(builderForValue.build());
       }
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
      */
-    public Builder addAppends(
+    public Builder addReplaceAndAppends(
         int index, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup.Builder builderForValue) {
-      if (appendsBuilder_ == null) {
-        ensureAppendsIsMutable();
-        appends_.add(index, builderForValue.build());
+      if (replaceAndAppendsBuilder_ == null) {
+        ensureReplaceAndAppendsIsMutable();
+        replaceAndAppends_.add(index, builderForValue.build());
         onChanged();
       } else {
-        appendsBuilder_.addMessage(index, builderForValue.build());
+        replaceAndAppendsBuilder_.addMessage(index, builderForValue.build());
       }
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
      */
-    public Builder addAllAppends(
+    public Builder addAllReplaceAndAppends(
         java.lang.Iterable<? extends com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup> values) {
-      if (appendsBuilder_ == null) {
-        ensureAppendsIsMutable();
+      if (replaceAndAppendsBuilder_ == null) {
+        ensureReplaceAndAppendsIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, appends_);
+            values, replaceAndAppends_);
         onChanged();
       } else {
-        appendsBuilder_.addAllMessages(values);
+        replaceAndAppendsBuilder_.addAllMessages(values);
       }
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
      */
-    public Builder clearAppends() {
-      if (appendsBuilder_ == null) {
-        appends_ = java.util.Collections.emptyList();
+    public Builder clearReplaceAndAppends() {
+      if (replaceAndAppendsBuilder_ == null) {
+        replaceAndAppends_ = java.util.Collections.emptyList();
         bitField0_ = (bitField0_ & ~0x00000001);
         onChanged();
       } else {
-        appendsBuilder_.clear();
+        replaceAndAppendsBuilder_.clear();
       }
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
      */
-    public Builder removeAppends(int index) {
-      if (appendsBuilder_ == null) {
-        ensureAppendsIsMutable();
-        appends_.remove(index);
+    public Builder removeReplaceAndAppends(int index) {
+      if (replaceAndAppendsBuilder_ == null) {
+        ensureReplaceAndAppendsIsMutable();
+        replaceAndAppends_.remove(index);
         onChanged();
       } else {
-        appendsBuilder_.remove(index);
+        replaceAndAppendsBuilder_.remove(index);
       }
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup.Builder getAppendsBuilder(
+    public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup.Builder getReplaceAndAppendsBuilder(
         int index) {
-      return getAppendsFieldBuilder().getBuilder(index);
+      return getReplaceAndAppendsFieldBuilder().getBuilder(index);
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroupOrBuilder getAppendsOrBuilder(
+    public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroupOrBuilder getReplaceAndAppendsOrBuilder(
         int index) {
-      if (appendsBuilder_ == null) {
-        return appends_.get(index);  } else {
-        return appendsBuilder_.getMessageOrBuilder(index);
+      if (replaceAndAppendsBuilder_ == null) {
+        return replaceAndAppends_.get(index);  } else {
+        return replaceAndAppendsBuilder_.getMessageOrBuilder(index);
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
      */
     public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroupOrBuilder> 
-         getAppendsOrBuilderList() {
-      if (appendsBuilder_ != null) {
-        return appendsBuilder_.getMessageOrBuilderList();
+         getReplaceAndAppendsOrBuilderList() {
+      if (replaceAndAppendsBuilder_ != null) {
+        return replaceAndAppendsBuilder_.getMessageOrBuilderList();
       } else {
-        return java.util.Collections.unmodifiableList(appends_);
+        return java.util.Collections.unmodifiableList(replaceAndAppends_);
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup.Builder addAppendsBuilder() {
-      return getAppendsFieldBuilder().addBuilder(
+    public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup.Builder addReplaceAndAppendsBuilder() {
+      return getReplaceAndAppendsFieldBuilder().addBuilder(
           com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup.getDefaultInstance());
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup.Builder addAppendsBuilder(
+    public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup.Builder addReplaceAndAppendsBuilder(
         int index) {
-      return getAppendsFieldBuilder().addBuilder(
+      return getReplaceAndAppendsFieldBuilder().addBuilder(
           index, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup.getDefaultInstance());
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
      */
     public java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup.Builder> 
-         getAppendsBuilderList() {
-      return getAppendsFieldBuilder().getBuilderList();
+         getReplaceAndAppendsBuilderList() {
+      return getReplaceAndAppendsFieldBuilder().getBuilderList();
     }
     private com.google.protobuf.RepeatedFieldBuilderV3<
         com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup.Builder, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroupOrBuilder> 
-        getAppendsFieldBuilder() {
-      if (appendsBuilder_ == null) {
-        appendsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+        getReplaceAndAppendsFieldBuilder() {
+      if (replaceAndAppendsBuilder_ == null) {
+        replaceAndAppendsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
             com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup.Builder, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroupOrBuilder>(
-                appends_,
+                replaceAndAppends_,
                 ((bitField0_ & 0x00000001) != 0),
                 getParentForChildren(),
                 isClean());
-        appends_ = null;
+        replaceAndAppends_ = null;
       }
-      return appendsBuilder_;
+      return replaceAndAppendsBuilder_;
     }
 
-    private java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress> startNodeProgresses_ =
+    private java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress> replaceAndProgresses_ =
       java.util.Collections.emptyList();
-    private void ensureStartNodeProgressesIsMutable() {
+    private void ensureReplaceAndProgressesIsMutable() {
       if (!((bitField0_ & 0x00000002) != 0)) {
-        startNodeProgresses_ = new java.util.ArrayList<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress>(startNodeProgresses_);
+        replaceAndProgresses_ = new java.util.ArrayList<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress>(replaceAndProgresses_);
         bitField0_ |= 0x00000002;
        }
     }
 
     private com.google.protobuf.RepeatedFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress.Builder, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgressOrBuilder> startNodeProgressesBuilder_;
+        com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress.Builder, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgressOrBuilder> replaceAndProgressesBuilder_;
 
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
      */
-    public java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress> getStartNodeProgressesList() {
-      if (startNodeProgressesBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(startNodeProgresses_);
+    public java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress> getReplaceAndProgressesList() {
+      if (replaceAndProgressesBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(replaceAndProgresses_);
       } else {
-        return startNodeProgressesBuilder_.getMessageList();
+        return replaceAndProgressesBuilder_.getMessageList();
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
      */
-    public int getStartNodeProgressesCount() {
-      if (startNodeProgressesBuilder_ == null) {
-        return startNodeProgresses_.size();
+    public int getReplaceAndProgressesCount() {
+      if (replaceAndProgressesBuilder_ == null) {
+        return replaceAndProgresses_.size();
       } else {
-        return startNodeProgressesBuilder_.getCount();
+        return replaceAndProgressesBuilder_.getCount();
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress getStartNodeProgresses(int index) {
-      if (startNodeProgressesBuilder_ == null) {
-        return startNodeProgresses_.get(index);
+    public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress getReplaceAndProgresses(int index) {
+      if (replaceAndProgressesBuilder_ == null) {
+        return replaceAndProgresses_.get(index);
       } else {
-        return startNodeProgressesBuilder_.getMessage(index);
+        return replaceAndProgressesBuilder_.getMessage(index);
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
      */
-    public Builder setStartNodeProgresses(
+    public Builder setReplaceAndProgresses(
         int index, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress value) {
-      if (startNodeProgressesBuilder_ == null) {
+      if (replaceAndProgressesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureStartNodeProgressesIsMutable();
-        startNodeProgresses_.set(index, value);
+        ensureReplaceAndProgressesIsMutable();
+        replaceAndProgresses_.set(index, value);
         onChanged();
       } else {
-        startNodeProgressesBuilder_.setMessage(index, value);
+        replaceAndProgressesBuilder_.setMessage(index, value);
       }
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
      */
-    public Builder setStartNodeProgresses(
+    public Builder setReplaceAndProgresses(
         int index, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress.Builder builderForValue) {
-      if (startNodeProgressesBuilder_ == null) {
-        ensureStartNodeProgressesIsMutable();
-        startNodeProgresses_.set(index, builderForValue.build());
+      if (replaceAndProgressesBuilder_ == null) {
+        ensureReplaceAndProgressesIsMutable();
+        replaceAndProgresses_.set(index, builderForValue.build());
         onChanged();
       } else {
-        startNodeProgressesBuilder_.setMessage(index, builderForValue.build());
+        replaceAndProgressesBuilder_.setMessage(index, builderForValue.build());
       }
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
      */
-    public Builder addStartNodeProgresses(com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress value) {
-      if (startNodeProgressesBuilder_ == null) {
+    public Builder addReplaceAndProgresses(com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress value) {
+      if (replaceAndProgressesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureStartNodeProgressesIsMutable();
-        startNodeProgresses_.add(value);
+        ensureReplaceAndProgressesIsMutable();
+        replaceAndProgresses_.add(value);
         onChanged();
       } else {
-        startNodeProgressesBuilder_.addMessage(value);
+        replaceAndProgressesBuilder_.addMessage(value);
       }
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
      */
-    public Builder addStartNodeProgresses(
+    public Builder addReplaceAndProgresses(
         int index, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress value) {
-      if (startNodeProgressesBuilder_ == null) {
+      if (replaceAndProgressesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureStartNodeProgressesIsMutable();
-        startNodeProgresses_.add(index, value);
+        ensureReplaceAndProgressesIsMutable();
+        replaceAndProgresses_.add(index, value);
         onChanged();
       } else {
-        startNodeProgressesBuilder_.addMessage(index, value);
+        replaceAndProgressesBuilder_.addMessage(index, value);
       }
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
      */
-    public Builder addStartNodeProgresses(
+    public Builder addReplaceAndProgresses(
         com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress.Builder builderForValue) {
-      if (startNodeProgressesBuilder_ == null) {
-        ensureStartNodeProgressesIsMutable();
-        startNodeProgresses_.add(builderForValue.build());
+      if (replaceAndProgressesBuilder_ == null) {
+        ensureReplaceAndProgressesIsMutable();
+        replaceAndProgresses_.add(builderForValue.build());
         onChanged();
       } else {
-        startNodeProgressesBuilder_.addMessage(builderForValue.build());
+        replaceAndProgressesBuilder_.addMessage(builderForValue.build());
       }
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
      */
-    public Builder addStartNodeProgresses(
+    public Builder addReplaceAndProgresses(
         int index, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress.Builder builderForValue) {
-      if (startNodeProgressesBuilder_ == null) {
-        ensureStartNodeProgressesIsMutable();
-        startNodeProgresses_.add(index, builderForValue.build());
+      if (replaceAndProgressesBuilder_ == null) {
+        ensureReplaceAndProgressesIsMutable();
+        replaceAndProgresses_.add(index, builderForValue.build());
         onChanged();
       } else {
-        startNodeProgressesBuilder_.addMessage(index, builderForValue.build());
+        replaceAndProgressesBuilder_.addMessage(index, builderForValue.build());
       }
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
      */
-    public Builder addAllStartNodeProgresses(
+    public Builder addAllReplaceAndProgresses(
         java.lang.Iterable<? extends com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress> values) {
-      if (startNodeProgressesBuilder_ == null) {
-        ensureStartNodeProgressesIsMutable();
+      if (replaceAndProgressesBuilder_ == null) {
+        ensureReplaceAndProgressesIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, startNodeProgresses_);
+            values, replaceAndProgresses_);
         onChanged();
       } else {
-        startNodeProgressesBuilder_.addAllMessages(values);
+        replaceAndProgressesBuilder_.addAllMessages(values);
       }
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
      */
-    public Builder clearStartNodeProgresses() {
-      if (startNodeProgressesBuilder_ == null) {
-        startNodeProgresses_ = java.util.Collections.emptyList();
+    public Builder clearReplaceAndProgresses() {
+      if (replaceAndProgressesBuilder_ == null) {
+        replaceAndProgresses_ = java.util.Collections.emptyList();
         bitField0_ = (bitField0_ & ~0x00000002);
         onChanged();
       } else {
-        startNodeProgressesBuilder_.clear();
+        replaceAndProgressesBuilder_.clear();
       }
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
      */
-    public Builder removeStartNodeProgresses(int index) {
-      if (startNodeProgressesBuilder_ == null) {
-        ensureStartNodeProgressesIsMutable();
-        startNodeProgresses_.remove(index);
+    public Builder removeReplaceAndProgresses(int index) {
+      if (replaceAndProgressesBuilder_ == null) {
+        ensureReplaceAndProgressesIsMutable();
+        replaceAndProgresses_.remove(index);
         onChanged();
       } else {
-        startNodeProgressesBuilder_.remove(index);
+        replaceAndProgressesBuilder_.remove(index);
       }
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress.Builder getStartNodeProgressesBuilder(
+    public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress.Builder getReplaceAndProgressesBuilder(
         int index) {
-      return getStartNodeProgressesFieldBuilder().getBuilder(index);
+      return getReplaceAndProgressesFieldBuilder().getBuilder(index);
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgressOrBuilder getStartNodeProgressesOrBuilder(
+    public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgressOrBuilder getReplaceAndProgressesOrBuilder(
         int index) {
-      if (startNodeProgressesBuilder_ == null) {
-        return startNodeProgresses_.get(index);  } else {
-        return startNodeProgressesBuilder_.getMessageOrBuilder(index);
+      if (replaceAndProgressesBuilder_ == null) {
+        return replaceAndProgresses_.get(index);  } else {
+        return replaceAndProgressesBuilder_.getMessageOrBuilder(index);
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
      */
     public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgressOrBuilder> 
-         getStartNodeProgressesOrBuilderList() {
-      if (startNodeProgressesBuilder_ != null) {
-        return startNodeProgressesBuilder_.getMessageOrBuilderList();
+         getReplaceAndProgressesOrBuilderList() {
+      if (replaceAndProgressesBuilder_ != null) {
+        return replaceAndProgressesBuilder_.getMessageOrBuilderList();
       } else {
-        return java.util.Collections.unmodifiableList(startNodeProgresses_);
+        return java.util.Collections.unmodifiableList(replaceAndProgresses_);
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress.Builder addStartNodeProgressesBuilder() {
-      return getStartNodeProgressesFieldBuilder().addBuilder(
+    public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress.Builder addReplaceAndProgressesBuilder() {
+      return getReplaceAndProgressesFieldBuilder().addBuilder(
           com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress.getDefaultInstance());
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress.Builder addStartNodeProgressesBuilder(
+    public com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress.Builder addReplaceAndProgressesBuilder(
         int index) {
-      return getStartNodeProgressesFieldBuilder().addBuilder(
+      return getReplaceAndProgressesFieldBuilder().addBuilder(
           index, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress.getDefaultInstance());
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
      */
     public java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress.Builder> 
-         getStartNodeProgressesBuilderList() {
-      return getStartNodeProgressesFieldBuilder().getBuilderList();
+         getReplaceAndProgressesBuilderList() {
+      return getReplaceAndProgressesFieldBuilder().getBuilderList();
     }
     private com.google.protobuf.RepeatedFieldBuilderV3<
         com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress.Builder, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgressOrBuilder> 
-        getStartNodeProgressesFieldBuilder() {
-      if (startNodeProgressesBuilder_ == null) {
-        startNodeProgressesBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+        getReplaceAndProgressesFieldBuilder() {
+      if (replaceAndProgressesBuilder_ == null) {
+        replaceAndProgressesBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
             com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress.Builder, com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgressOrBuilder>(
-                startNodeProgresses_,
+                replaceAndProgresses_,
                 ((bitField0_ & 0x00000002) != 0),
                 getParentForChildren(),
                 isClean());
-        startNodeProgresses_ = null;
+        replaceAndProgresses_ = null;
       }
-      return startNodeProgressesBuilder_;
+      return replaceAndProgressesBuilder_;
     }
     @java.lang.Override
     public final Builder setUnknownFields(

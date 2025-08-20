@@ -20,6 +20,11 @@ public final class Mgroup3ParserDataOuterClass {
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_PathRootsEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_PathRootsEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_MilestoneGroup_descriptor;
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
@@ -55,10 +60,10 @@ public final class Mgroup3ParserDataOuterClass {
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_MidEdgeActionPair_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_giyeok_jparser_mgroup3_proto_PathStarter_descriptor;
+    internal_static_com_giyeok_jparser_mgroup3_proto_PathRootInfo_descriptor;
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_com_giyeok_jparser_mgroup3_proto_PathStarter_fieldAccessorTable;
+      internal_static_com_giyeok_jparser_mgroup3_proto_PathRootInfo_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
     internal_static_com_giyeok_jparser_mgroup3_proto_TermAction_descriptor;
   static final 
@@ -90,50 +95,15 @@ public final class Mgroup3ParserDataOuterClass {
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_com_giyeok_jparser_mgroup3_proto_KernelTemplate_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionActionTemplate_descriptor;
+    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionsSet_descriptor;
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionActionTemplate_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_giyeok_jparser_mgroup3_proto_PathAcceptConditionTemplate_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_com_giyeok_jparser_mgroup3_proto_PathAcceptConditionTemplate_fieldAccessorTable;
+      internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionsSet_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
     internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_descriptor;
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_AndTemplate_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_AndTemplate_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_OrTemplate_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_OrTemplate_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_LookaheadTemplate_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_LookaheadTemplate_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_LongestTemplate_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_LongestTemplate_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_OnlyIfTemplate_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_OnlyIfTemplate_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_UnlessTemplate_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_UnlessTemplate_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -146,113 +116,84 @@ public final class Mgroup3ParserDataOuterClass {
       "\n\027Mgroup3ParserData.proto\022 com.giyeok.jp" +
       "arser.mgroup3.proto\032\022GrammarProto.proto\032" +
       "\024TermGroupProto.proto\032\033google/protobuf/e" +
-      "mpty.proto\"\257\014\n\021Mgroup3ParserData\0223\n\007gram" +
+      "mpty.proto\"\216\r\n\021Mgroup3ParserData\0223\n\007gram" +
       "mar\030\001 \001(\0132\".com.giyeok.jparser.proto.NGr" +
-      "ammar\022H\n\021initial_main_path\030\002 \001(\0132-.com.g" +
-      "iyeok.jparser.mgroup3.proto.PathStarter\022" +
-      "I\n\022initial_cond_paths\030\003 \003(\0132-.com.giyeok" +
-      ".jparser.mgroup3.proto.PathStarter\022b\n\020mi" +
-      "lestone_groups\030\004 \003(\0132H.com.giyeok.jparse" +
-      "r.mgroup3.proto.Mgroup3ParserData.Milest" +
-      "oneGroupsEntry\022Z\n\014term_actions\030\005 \003(\0132D.c" +
-      "om.giyeok.jparser.mgroup3.proto.Mgroup3P" +
-      "arserData.TermActionsEntry\022_\n\020tip_edge_a" +
-      "ctions\030\006 \003(\0132E.com.giyeok.jparser.mgroup" +
-      "3.proto.Mgroup3ParserData.TipEdgeActionP" +
-      "air\022_\n\020mid_edge_actions\030\007 \003(\0132E.com.giye" +
-      "ok.jparser.mgroup3.proto.Mgroup3ParserDa" +
-      "ta.MidEdgeActionPair\032S\n\016MilestoneGroup\022A" +
-      "\n\007kernels\030\001 \003(\01320.com.giyeok.jparser.mgr" +
-      "oup3.proto.KernelTemplate\032z\n\024MilestoneGr" +
-      "oupsEntry\022\013\n\003key\030\001 \001(\005\022Q\n\005value\030\002 \001(\0132B." +
-      "com.giyeok.jparser.mgroup3.proto.Mgroup3" +
-      "ParserData.MilestoneGroup:\0028\001\032\215\001\n\017TermGr" +
-      "oupAction\0227\n\nterm_group\030\001 \001(\0132#.com.giye" +
-      "ok.jparser.proto.TermGroup\022A\n\013term_actio" +
-      "n\030\002 \001(\0132,.com.giyeok.jparser.mgroup3.pro" +
-      "to.TermAction\032h\n\020TermGroupActions\022T\n\007act" +
-      "ions\030\001 \003(\0132C.com.giyeok.jparser.mgroup3." +
-      "proto.Mgroup3ParserData.TermGroupAction\032" +
-      "x\n\020TermActionsEntry\022\013\n\003key\030\001 \001(\005\022S\n\005valu" +
-      "e\030\002 \001(\0132D.com.giyeok.jparser.mgroup3.pro" +
-      "to.Mgroup3ParserData.TermGroupActions:\0028" +
-      "\001\032\256\001\n\021TipEdgeActionPair\022@\n\006pretip\030\001 \001(\0132" +
-      "0.com.giyeok.jparser.mgroup3.proto.Kerne" +
-      "lTemplate\022\024\n\014tip_group_id\030\002 \001(\005\022A\n\013edge_" +
-      "action\030\003 \001(\0132,.com.giyeok.jparser.mgroup" +
-      "3.proto.EdgeAction\032\327\001\n\021MidEdgeActionPair" +
-      "\022@\n\006pretip\030\001 \001(\01320.com.giyeok.jparser.mg" +
-      "roup3.proto.KernelTemplate\022=\n\003tip\030\002 \001(\0132" +
-      "0.com.giyeok.jparser.mgroup3.proto.Kerne" +
-      "lTemplate\022A\n\013edge_action\030\003 \001(\0132,.com.giy" +
-      "eok.jparser.mgroup3.proto.EdgeAction\"\210\001\n" +
-      "\013PathStarter\022F\n\014start_kernel\030\001 \001(\01320.com" +
-      ".giyeok.jparser.mgroup3.proto.KernelTemp" +
-      "late\022\026\n\016start_group_id\030\002 \001(\005\022\031\n\021start_is" +
-      "_finished\030\003 \001(\010\"\204\004\n\nTermAction\022\\\n\007append" +
-      "s\030\001 \003(\0132K.com.giyeok.jparser.mgroup3.pro" +
-      "to.TermAction.ReplaceAndAppendMilestoneG" +
-      "roup\022^\n\025start_node_progresses\030\002 \003(\0132?.co" +
-      "m.giyeok.jparser.mgroup3.proto.TermActio" +
-      "n.ReplaceAndProgress\032\253\001\n\036ReplaceAndAppen" +
-      "dMilestoneGroup\022A\n\007replace\030\001 \001(\01320.com.g" +
-      "iyeok.jparser.mgroup3.proto.KernelTempla" +
-      "te\022F\n\006append\030\002 \001(\01326.com.giyeok.jparser." +
-      "mgroup3.proto.AppendMilestoneGroup\032\211\001\n\022R" +
-      "eplaceAndProgress\022\030\n\020replace_group_id\030\001 " +
-      "\001(\005\022Y\n\020accept_condition\030\002 \001(\0132?.com.giye" +
-      "ok.jparser.mgroup3.proto.AcceptCondition" +
-      "ActionTemplate\"\203\001\n\024AppendMilestoneGroup\022" +
-      "\020\n\010group_id\030\001 \001(\005\022Y\n\020accept_condition\030\002 " +
-      "\001(\0132?.com.giyeok.jparser.mgroup3.proto.A" +
-      "cceptConditionActionTemplate\"\340\001\n\nEdgeAct" +
-      "ion\022W\n\027append_milestone_groups\030\001 \003(\01326.c" +
-      "om.giyeok.jparser.mgroup3.proto.AppendMi" +
-      "lestoneGroup\022a\n\023start_node_progress\030\002 \001(" +
-      "\0132?.com.giyeok.jparser.mgroup3.proto.Acc" +
-      "eptConditionActionTemplateH\000\210\001\001B\026\n\024_star" +
-      "t_node_progress\"4\n\016KernelTemplate\022\021\n\tsym" +
-      "bol_id\030\001 \001(\005\022\017\n\007pointer\030\002 \001(\005\"y\n\035AcceptC" +
-      "onditionActionTemplate\022X\n\021accept_conditi" +
-      "ons\030\001 \003(\0132=.com.giyeok.jparser.mgroup3.p" +
-      "roto.PathAcceptConditionTemplate\"\324\002\n\033Pat" +
-      "hAcceptConditionTemplate\022\021\n\007longest\030\001 \001(" +
-      "\010H\000\022H\n\017lookahead_found\030\002 \001(\0132-.com.giyeo" +
-      "k.jparser.mgroup3.proto.PathStarterH\000\022K\n" +
-      "\022lookahead_notfound\030\003 \001(\0132-.com.giyeok.j" +
-      "parser.mgroup3.proto.PathStarterH\000\022?\n\006ex" +
-      "cept\030\004 \001(\0132-.com.giyeok.jparser.mgroup3." +
-      "proto.PathStarterH\000\022=\n\004join\030\005 \001(\0132-.com." +
-      "giyeok.jparser.mgroup3.proto.PathStarter" +
-      "H\000B\013\n\tcondition\"\330\010\n\027AcceptConditionTempl" +
-      "ate\022(\n\006always\030\001 \001(\0132\026.google.protobuf.Em" +
-      "ptyH\000\022\'\n\005never\030\002 \001(\0132\026.google.protobuf.E" +
-      "mptyH\000\022T\n\003and\030\003 \001(\0132E.com.giyeok.jparser" +
-      ".mgroup3.proto.AcceptConditionTemplate.A" +
-      "ndTemplateH\000\022R\n\002or\030\004 \001(\0132D.com.giyeok.jp" +
-      "arser.mgroup3.proto.AcceptConditionTempl" +
-      "ate.OrTemplateH\000\022c\n\014lookahead_is\030\005 \001(\0132K" +
-      ".com.giyeok.jparser.mgroup3.proto.Accept" +
-      "ConditionTemplate.LookaheadTemplateH\000\022d\n" +
-      "\rlookahead_not\030\006 \001(\0132K.com.giyeok.jparse" +
-      "r.mgroup3.proto.AcceptConditionTemplate." +
-      "LookaheadTemplateH\000\022\\\n\007longest\030\007 \001(\0132I.c" +
-      "om.giyeok.jparser.mgroup3.proto.AcceptCo" +
-      "nditionTemplate.LongestTemplateH\000\022[\n\007onl" +
-      "y_if\030\010 \001(\0132H.com.giyeok.jparser.mgroup3." +
-      "proto.AcceptConditionTemplate.OnlyIfTemp" +
-      "lateH\000\022Z\n\006unless\030\t \001(\0132H.com.giyeok.jpar" +
-      "ser.mgroup3.proto.AcceptConditionTemplat" +
-      "e.UnlessTemplateH\000\032\\\n\013AndTemplate\022M\n\ncon" +
-      "ditions\030\001 \003(\01329.com.giyeok.jparser.mgrou" +
-      "p3.proto.AcceptConditionTemplate\032[\n\nOrTe" +
-      "mplate\022M\n\nconditions\030\001 \003(\01329.com.giyeok." +
-      "jparser.mgroup3.proto.AcceptConditionTem" +
-      "plate\032&\n\021LookaheadTemplate\022\021\n\tsymbol_id\030" +
-      "\001 \001(\005\032$\n\017LongestTemplate\022\021\n\tsymbol_id\030\001 " +
-      "\001(\005\032#\n\016OnlyIfTemplate\022\021\n\tsymbol_id\030\001 \001(\005" +
-      "\032#\n\016UnlessTemplate\022\021\n\tsymbol_id\030\001 \001(\005B\013\n" +
-      "\tconditionB\002P\001b\006proto3"
+      "ammar\022\027\n\017start_symbol_id\030\002 \001(\005\022\037\n\027initia" +
+      "l_cond_symbol_ids\030\003 \003(\005\022V\n\npath_roots\030\004 " +
+      "\003(\0132B.com.giyeok.jparser.mgroup3.proto.M" +
+      "group3ParserData.PathRootsEntry\022b\n\020miles" +
+      "tone_groups\030\005 \003(\0132H.com.giyeok.jparser.m" +
+      "group3.proto.Mgroup3ParserData.Milestone" +
+      "GroupsEntry\022Z\n\014term_actions\030\006 \003(\0132D.com." +
+      "giyeok.jparser.mgroup3.proto.Mgroup3Pars" +
+      "erData.TermActionsEntry\022_\n\020tip_edge_acti" +
+      "ons\030\007 \003(\0132E.com.giyeok.jparser.mgroup3.p" +
+      "roto.Mgroup3ParserData.TipEdgeActionPair" +
+      "\022_\n\020mid_edge_actions\030\010 \003(\0132E.com.giyeok." +
+      "jparser.mgroup3.proto.Mgroup3ParserData." +
+      "MidEdgeActionPair\032`\n\016PathRootsEntry\022\013\n\003k" +
+      "ey\030\001 \001(\005\022=\n\005value\030\002 \001(\0132..com.giyeok.jpa" +
+      "rser.mgroup3.proto.PathRootInfo:\0028\001\032S\n\016M" +
+      "ilestoneGroup\022A\n\007kernels\030\001 \003(\01320.com.giy" +
+      "eok.jparser.mgroup3.proto.KernelTemplate" +
+      "\032z\n\024MilestoneGroupsEntry\022\013\n\003key\030\001 \001(\005\022Q\n" +
+      "\005value\030\002 \001(\0132B.com.giyeok.jparser.mgroup" +
+      "3.proto.Mgroup3ParserData.MilestoneGroup" +
+      ":\0028\001\032\215\001\n\017TermGroupAction\0227\n\nterm_group\030\001" +
+      " \001(\0132#.com.giyeok.jparser.proto.TermGrou" +
+      "p\022A\n\013term_action\030\002 \001(\0132,.com.giyeok.jpar" +
+      "ser.mgroup3.proto.TermAction\032h\n\020TermGrou" +
+      "pActions\022T\n\007actions\030\001 \003(\0132C.com.giyeok.j" +
+      "parser.mgroup3.proto.Mgroup3ParserData.T" +
+      "ermGroupAction\032x\n\020TermActionsEntry\022\013\n\003ke" +
+      "y\030\001 \001(\005\022S\n\005value\030\002 \001(\0132D.com.giyeok.jpar" +
+      "ser.mgroup3.proto.Mgroup3ParserData.Term" +
+      "GroupActions:\0028\001\032\256\001\n\021TipEdgeActionPair\022@" +
+      "\n\006parent\030\001 \001(\01320.com.giyeok.jparser.mgro" +
+      "up3.proto.KernelTemplate\022\024\n\014tip_group_id" +
+      "\030\002 \001(\005\022A\n\013edge_action\030\003 \001(\0132,.com.giyeok" +
+      ".jparser.mgroup3.proto.EdgeAction\032\327\001\n\021Mi" +
+      "dEdgeActionPair\022@\n\006parent\030\001 \001(\01320.com.gi" +
+      "yeok.jparser.mgroup3.proto.KernelTemplat" +
+      "e\022=\n\003tip\030\002 \001(\01320.com.giyeok.jparser.mgro" +
+      "up3.proto.KernelTemplate\022A\n\013edge_action\030" +
+      "\003 \001(\0132,.com.giyeok.jparser.mgroup3.proto" +
+      ".EdgeAction\"\266\001\n\014PathRootInfo\022\021\n\tsymbol_i" +
+      "d\030\001 \001(\005\022\020\n\010group_id\030\002 \001(\005\022`\n\034self_finish" +
+      "_accept_condition\030\003 \001(\01325.com.giyeok.jpa" +
+      "rser.mgroup3.proto.AcceptConditionsSetH\000" +
+      "\210\001\001B\037\n\035_self_finish_accept_condition\"\206\004\n" +
+      "\nTermAction\022h\n\023replace_and_appends\030\001 \003(\013" +
+      "2K.com.giyeok.jparser.mgroup3.proto.Term" +
+      "Action.ReplaceAndAppendMilestoneGroup\022_\n" +
+      "\026replace_and_progresses\030\002 \003(\0132?.com.giye" +
+      "ok.jparser.mgroup3.proto.TermAction.Repl" +
+      "aceAndProgress\032\253\001\n\036ReplaceAndAppendMiles" +
+      "toneGroup\022A\n\007replace\030\001 \001(\01320.com.giyeok." +
+      "jparser.mgroup3.proto.KernelTemplate\022F\n\006" +
+      "append\030\002 \001(\01326.com.giyeok.jparser.mgroup" +
+      "3.proto.AppendMilestoneGroup\032\177\n\022ReplaceA" +
+      "ndProgress\022\030\n\020replace_group_id\030\001 \001(\005\022O\n\020" +
+      "accept_condition\030\002 \001(\01325.com.giyeok.jpar" +
+      "ser.mgroup3.proto.AcceptConditionsSet\"\234\001" +
+      "\n\024AppendMilestoneGroup\022\020\n\010group_id\030\001 \001(\005" +
+      "\022O\n\020accept_condition\030\002 \001(\01325.com.giyeok." +
+      "jparser.mgroup3.proto.AcceptConditionsSe" +
+      "t\022!\n\031observing_cond_symbol_ids\030\003 \003(\005\"\326\001\n" +
+      "\nEdgeAction\022W\n\027append_milestone_groups\030\001" +
+      " \003(\01326.com.giyeok.jparser.mgroup3.proto." +
+      "AppendMilestoneGroup\022W\n\023start_node_progr" +
+      "ess\030\002 \001(\01325.com.giyeok.jparser.mgroup3.p" +
+      "roto.AcceptConditionsSetH\000\210\001\001B\026\n\024_start_" +
+      "node_progress\"4\n\016KernelTemplate\022\021\n\tsymbo" +
+      "l_id\030\001 \001(\005\022\017\n\007pointer\030\002 \001(\005\"k\n\023AcceptCon" +
+      "ditionsSet\022T\n\021accept_conditions\030\001 \003(\01329." +
+      "com.giyeok.jparser.mgroup3.proto.AcceptC" +
+      "onditionTemplate\"\224\001\n\027AcceptConditionTemp" +
+      "late\022\021\n\007longest\030\001 \001(\005H\000\022\031\n\017lookahead_fou" +
+      "nd\030\002 \001(\005H\000\022\034\n\022lookahead_notfound\030\003 \001(\005H\000" +
+      "\022\020\n\006except\030\004 \001(\005H\000\022\016\n\004join\030\005 \001(\005H\000B\013\n\tco" +
+      "nditionB\002P\001b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -266,61 +207,67 @@ public final class Mgroup3ParserDataOuterClass {
     internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_descriptor,
-        new java.lang.String[] { "Grammar", "InitialMainPath", "InitialCondPaths", "MilestoneGroups", "TermActions", "TipEdgeActions", "MidEdgeActions", });
-    internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_MilestoneGroup_descriptor =
+        new java.lang.String[] { "Grammar", "StartSymbolId", "InitialCondSymbolIds", "PathRoots", "MilestoneGroups", "TermActions", "TipEdgeActions", "MidEdgeActions", });
+    internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_PathRootsEntry_descriptor =
       internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_descriptor.getNestedTypes().get(0);
+    internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_PathRootsEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_PathRootsEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
+    internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_MilestoneGroup_descriptor =
+      internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_descriptor.getNestedTypes().get(1);
     internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_MilestoneGroup_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_MilestoneGroup_descriptor,
         new java.lang.String[] { "Kernels", });
     internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_MilestoneGroupsEntry_descriptor =
-      internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_descriptor.getNestedTypes().get(1);
+      internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_descriptor.getNestedTypes().get(2);
     internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_MilestoneGroupsEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_MilestoneGroupsEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
     internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_TermGroupAction_descriptor =
-      internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_descriptor.getNestedTypes().get(2);
+      internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_descriptor.getNestedTypes().get(3);
     internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_TermGroupAction_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_TermGroupAction_descriptor,
         new java.lang.String[] { "TermGroup", "TermAction", });
     internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_TermGroupActions_descriptor =
-      internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_descriptor.getNestedTypes().get(3);
+      internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_descriptor.getNestedTypes().get(4);
     internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_TermGroupActions_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_TermGroupActions_descriptor,
         new java.lang.String[] { "Actions", });
     internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_TermActionsEntry_descriptor =
-      internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_descriptor.getNestedTypes().get(4);
+      internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_descriptor.getNestedTypes().get(5);
     internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_TermActionsEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_TermActionsEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
     internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_TipEdgeActionPair_descriptor =
-      internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_descriptor.getNestedTypes().get(5);
+      internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_descriptor.getNestedTypes().get(6);
     internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_TipEdgeActionPair_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_TipEdgeActionPair_descriptor,
-        new java.lang.String[] { "Pretip", "TipGroupId", "EdgeAction", });
+        new java.lang.String[] { "Parent", "TipGroupId", "EdgeAction", });
     internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_MidEdgeActionPair_descriptor =
-      internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_descriptor.getNestedTypes().get(6);
+      internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_descriptor.getNestedTypes().get(7);
     internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_MidEdgeActionPair_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_MidEdgeActionPair_descriptor,
-        new java.lang.String[] { "Pretip", "Tip", "EdgeAction", });
-    internal_static_com_giyeok_jparser_mgroup3_proto_PathStarter_descriptor =
+        new java.lang.String[] { "Parent", "Tip", "EdgeAction", });
+    internal_static_com_giyeok_jparser_mgroup3_proto_PathRootInfo_descriptor =
       getDescriptor().getMessageTypes().get(1);
-    internal_static_com_giyeok_jparser_mgroup3_proto_PathStarter_fieldAccessorTable = new
+    internal_static_com_giyeok_jparser_mgroup3_proto_PathRootInfo_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_com_giyeok_jparser_mgroup3_proto_PathStarter_descriptor,
-        new java.lang.String[] { "StartKernel", "StartGroupId", "StartIsFinished", });
+        internal_static_com_giyeok_jparser_mgroup3_proto_PathRootInfo_descriptor,
+        new java.lang.String[] { "SymbolId", "GroupId", "SelfFinishAcceptCondition", "SelfFinishAcceptCondition", });
     internal_static_com_giyeok_jparser_mgroup3_proto_TermAction_descriptor =
       getDescriptor().getMessageTypes().get(2);
     internal_static_com_giyeok_jparser_mgroup3_proto_TermAction_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup3_proto_TermAction_descriptor,
-        new java.lang.String[] { "Appends", "StartNodeProgresses", });
+        new java.lang.String[] { "ReplaceAndAppends", "ReplaceAndProgresses", });
     internal_static_com_giyeok_jparser_mgroup3_proto_TermAction_ReplaceAndAppendMilestoneGroup_descriptor =
       internal_static_com_giyeok_jparser_mgroup3_proto_TermAction_descriptor.getNestedTypes().get(0);
     internal_static_com_giyeok_jparser_mgroup3_proto_TermAction_ReplaceAndAppendMilestoneGroup_fieldAccessorTable = new
@@ -338,7 +285,7 @@ public final class Mgroup3ParserDataOuterClass {
     internal_static_com_giyeok_jparser_mgroup3_proto_AppendMilestoneGroup_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup3_proto_AppendMilestoneGroup_descriptor,
-        new java.lang.String[] { "GroupId", "AcceptCondition", });
+        new java.lang.String[] { "GroupId", "AcceptCondition", "ObservingCondSymbolIds", });
     internal_static_com_giyeok_jparser_mgroup3_proto_EdgeAction_descriptor =
       getDescriptor().getMessageTypes().get(4);
     internal_static_com_giyeok_jparser_mgroup3_proto_EdgeAction_fieldAccessorTable = new
@@ -351,60 +298,18 @@ public final class Mgroup3ParserDataOuterClass {
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup3_proto_KernelTemplate_descriptor,
         new java.lang.String[] { "SymbolId", "Pointer", });
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionActionTemplate_descriptor =
+    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionsSet_descriptor =
       getDescriptor().getMessageTypes().get(6);
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionActionTemplate_fieldAccessorTable = new
+    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionsSet_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionActionTemplate_descriptor,
+        internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionsSet_descriptor,
         new java.lang.String[] { "AcceptConditions", });
-    internal_static_com_giyeok_jparser_mgroup3_proto_PathAcceptConditionTemplate_descriptor =
-      getDescriptor().getMessageTypes().get(7);
-    internal_static_com_giyeok_jparser_mgroup3_proto_PathAcceptConditionTemplate_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_com_giyeok_jparser_mgroup3_proto_PathAcceptConditionTemplate_descriptor,
-        new java.lang.String[] { "Longest", "LookaheadFound", "LookaheadNotfound", "Except", "Join", "Condition", });
     internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_descriptor =
-      getDescriptor().getMessageTypes().get(8);
+      getDescriptor().getMessageTypes().get(7);
     internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_descriptor,
-        new java.lang.String[] { "Always", "Never", "And", "Or", "LookaheadIs", "LookaheadNot", "Longest", "OnlyIf", "Unless", "Condition", });
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_AndTemplate_descriptor =
-      internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_descriptor.getNestedTypes().get(0);
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_AndTemplate_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_AndTemplate_descriptor,
-        new java.lang.String[] { "Conditions", });
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_OrTemplate_descriptor =
-      internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_descriptor.getNestedTypes().get(1);
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_OrTemplate_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_OrTemplate_descriptor,
-        new java.lang.String[] { "Conditions", });
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_LookaheadTemplate_descriptor =
-      internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_descriptor.getNestedTypes().get(2);
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_LookaheadTemplate_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_LookaheadTemplate_descriptor,
-        new java.lang.String[] { "SymbolId", });
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_LongestTemplate_descriptor =
-      internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_descriptor.getNestedTypes().get(3);
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_LongestTemplate_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_LongestTemplate_descriptor,
-        new java.lang.String[] { "SymbolId", });
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_OnlyIfTemplate_descriptor =
-      internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_descriptor.getNestedTypes().get(4);
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_OnlyIfTemplate_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_OnlyIfTemplate_descriptor,
-        new java.lang.String[] { "SymbolId", });
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_UnlessTemplate_descriptor =
-      internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_descriptor.getNestedTypes().get(5);
-    internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_UnlessTemplate_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_UnlessTemplate_descriptor,
-        new java.lang.String[] { "SymbolId", });
+        new java.lang.String[] { "Longest", "LookaheadFound", "LookaheadNotfound", "Except", "Join", "Condition", });
     com.giyeok.jparser.proto.GrammarProto.getDescriptor();
     com.giyeok.jparser.proto.TermGroupProto.getDescriptor();
     com.google.protobuf.EmptyProto.getDescriptor();

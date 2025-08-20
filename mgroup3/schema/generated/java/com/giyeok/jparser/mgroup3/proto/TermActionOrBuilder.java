@@ -8,50 +8,50 @@ public interface TermActionOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
    */
   java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup> 
-      getAppendsList();
+      getReplaceAndAppendsList();
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
    */
-  com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup getAppends(int index);
+  com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup getReplaceAndAppends(int index);
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
    */
-  int getAppendsCount();
+  int getReplaceAndAppendsCount();
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
    */
   java.util.List<? extends com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroupOrBuilder> 
-      getAppendsOrBuilderList();
+      getReplaceAndAppendsOrBuilderList();
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup appends = 1;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup replace_and_appends = 1;</code>
    */
-  com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroupOrBuilder getAppendsOrBuilder(
+  com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroupOrBuilder getReplaceAndAppendsOrBuilder(
       int index);
 
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
    */
   java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress> 
-      getStartNodeProgressesList();
+      getReplaceAndProgressesList();
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
    */
-  com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress getStartNodeProgresses(int index);
+  com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress getReplaceAndProgresses(int index);
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
    */
-  int getStartNodeProgressesCount();
+  int getReplaceAndProgressesCount();
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
    */
   java.util.List<? extends com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgressOrBuilder> 
-      getStartNodeProgressesOrBuilderList();
+      getReplaceAndProgressesOrBuilderList();
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress start_node_progresses = 2;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgress replace_and_progresses = 2;</code>
    */
-  com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgressOrBuilder getStartNodeProgressesOrBuilder(
+  com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndProgressOrBuilder getReplaceAndProgressesOrBuilder(
       int index);
 }

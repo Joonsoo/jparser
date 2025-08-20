@@ -82,9 +82,9 @@ private static final long serialVersionUID = 0L;
   }
 
   public static final int START_NODE_PROGRESS_FIELD_NUMBER = 2;
-  private com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate startNodeProgress_;
+  private com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet startNodeProgress_;
   /**
-   * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate start_node_progress = 2;</code>
+   * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet start_node_progress = 2;</code>
    * @return Whether the startNodeProgress field is set.
    */
   @java.lang.Override
@@ -92,19 +92,19 @@ private static final long serialVersionUID = 0L;
     return ((bitField0_ & 0x00000001) != 0);
   }
   /**
-   * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate start_node_progress = 2;</code>
+   * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet start_node_progress = 2;</code>
    * @return The startNodeProgress.
    */
   @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate getStartNodeProgress() {
-    return startNodeProgress_ == null ? com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.getDefaultInstance() : startNodeProgress_;
+  public com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet getStartNodeProgress() {
+    return startNodeProgress_ == null ? com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.getDefaultInstance() : startNodeProgress_;
   }
   /**
-   * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate start_node_progress = 2;</code>
+   * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet start_node_progress = 2;</code>
    */
   @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplateOrBuilder getStartNodeProgressOrBuilder() {
-    return startNodeProgress_ == null ? com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.getDefaultInstance() : startNodeProgress_;
+  public com.giyeok.jparser.mgroup3.proto.AcceptConditionsSetOrBuilder getStartNodeProgressOrBuilder() {
+    return startNodeProgress_ == null ? com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.getDefaultInstance() : startNodeProgress_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -733,31 +733,31 @@ private static final long serialVersionUID = 0L;
       return appendMilestoneGroupsBuilder_;
     }
 
-    private com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate startNodeProgress_;
+    private com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet startNodeProgress_;
     private com.google.protobuf.SingleFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplateOrBuilder> startNodeProgressBuilder_;
+        com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet, com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionsSetOrBuilder> startNodeProgressBuilder_;
     /**
-     * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate start_node_progress = 2;</code>
+     * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet start_node_progress = 2;</code>
      * @return Whether the startNodeProgress field is set.
      */
     public boolean hasStartNodeProgress() {
       return ((bitField0_ & 0x00000002) != 0);
     }
     /**
-     * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate start_node_progress = 2;</code>
+     * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet start_node_progress = 2;</code>
      * @return The startNodeProgress.
      */
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate getStartNodeProgress() {
+    public com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet getStartNodeProgress() {
       if (startNodeProgressBuilder_ == null) {
-        return startNodeProgress_ == null ? com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.getDefaultInstance() : startNodeProgress_;
+        return startNodeProgress_ == null ? com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.getDefaultInstance() : startNodeProgress_;
       } else {
         return startNodeProgressBuilder_.getMessage();
       }
     }
     /**
-     * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate start_node_progress = 2;</code>
+     * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet start_node_progress = 2;</code>
      */
-    public Builder setStartNodeProgress(com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate value) {
+    public Builder setStartNodeProgress(com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet value) {
       if (startNodeProgressBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
@@ -771,10 +771,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate start_node_progress = 2;</code>
+     * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet start_node_progress = 2;</code>
      */
     public Builder setStartNodeProgress(
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.Builder builderForValue) {
+        com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.Builder builderForValue) {
       if (startNodeProgressBuilder_ == null) {
         startNodeProgress_ = builderForValue.build();
       } else {
@@ -785,13 +785,13 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate start_node_progress = 2;</code>
+     * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet start_node_progress = 2;</code>
      */
-    public Builder mergeStartNodeProgress(com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate value) {
+    public Builder mergeStartNodeProgress(com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet value) {
       if (startNodeProgressBuilder_ == null) {
         if (((bitField0_ & 0x00000002) != 0) &&
           startNodeProgress_ != null &&
-          startNodeProgress_ != com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.getDefaultInstance()) {
+          startNodeProgress_ != com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.getDefaultInstance()) {
           getStartNodeProgressBuilder().mergeFrom(value);
         } else {
           startNodeProgress_ = value;
@@ -804,7 +804,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate start_node_progress = 2;</code>
+     * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet start_node_progress = 2;</code>
      */
     public Builder clearStartNodeProgress() {
       bitField0_ = (bitField0_ & ~0x00000002);
@@ -817,33 +817,33 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate start_node_progress = 2;</code>
+     * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet start_node_progress = 2;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.Builder getStartNodeProgressBuilder() {
+    public com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.Builder getStartNodeProgressBuilder() {
       bitField0_ |= 0x00000002;
       onChanged();
       return getStartNodeProgressFieldBuilder().getBuilder();
     }
     /**
-     * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate start_node_progress = 2;</code>
+     * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet start_node_progress = 2;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplateOrBuilder getStartNodeProgressOrBuilder() {
+    public com.giyeok.jparser.mgroup3.proto.AcceptConditionsSetOrBuilder getStartNodeProgressOrBuilder() {
       if (startNodeProgressBuilder_ != null) {
         return startNodeProgressBuilder_.getMessageOrBuilder();
       } else {
         return startNodeProgress_ == null ?
-            com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.getDefaultInstance() : startNodeProgress_;
+            com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.getDefaultInstance() : startNodeProgress_;
       }
     }
     /**
-     * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate start_node_progress = 2;</code>
+     * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet start_node_progress = 2;</code>
      */
     private com.google.protobuf.SingleFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplateOrBuilder> 
+        com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet, com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionsSetOrBuilder> 
         getStartNodeProgressFieldBuilder() {
       if (startNodeProgressBuilder_ == null) {
         startNodeProgressBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-            com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplateOrBuilder>(
+            com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet, com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionsSetOrBuilder>(
                 getStartNodeProgress(),
                 getParentForChildren(),
                 isClean());

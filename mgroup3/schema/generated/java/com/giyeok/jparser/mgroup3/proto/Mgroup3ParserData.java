@@ -16,7 +16,7 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private Mgroup3ParserData() {
-    initialCondPaths_ = java.util.Collections.emptyList();
+    initialCondSymbolIds_ = emptyIntList();
     tipEdgeActions_ = java.util.Collections.emptyList();
     midEdgeActions_ = java.util.Collections.emptyList();
   }
@@ -39,8 +39,10 @@ private static final long serialVersionUID = 0L;
       int number) {
     switch (number) {
       case 4:
-        return internalGetMilestoneGroups();
+        return internalGetPathRoots();
       case 5:
+        return internalGetMilestoneGroups();
+      case 6:
         return internalGetTermActions();
       default:
         throw new RuntimeException(
@@ -2318,19 +2320,19 @@ private static final long serialVersionUID = 0L;
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
-     * @return Whether the pretip field is set.
+     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
+     * @return Whether the parent field is set.
      */
-    boolean hasPretip();
+    boolean hasParent();
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
-     * @return The pretip.
+     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
+     * @return The parent.
      */
-    com.giyeok.jparser.mgroup3.proto.KernelTemplate getPretip();
+    com.giyeok.jparser.mgroup3.proto.KernelTemplate getParent();
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
+     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
      */
-    com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder getPretipOrBuilder();
+    com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder getParentOrBuilder();
 
     /**
      * <code>int32 tip_group_id = 2;</code>
@@ -2388,30 +2390,30 @@ private static final long serialVersionUID = 0L;
               com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair.class, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair.Builder.class);
     }
 
-    public static final int PRETIP_FIELD_NUMBER = 1;
-    private com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip_;
+    public static final int PARENT_FIELD_NUMBER = 1;
+    private com.giyeok.jparser.mgroup3.proto.KernelTemplate parent_;
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
-     * @return Whether the pretip field is set.
+     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
+     * @return Whether the parent field is set.
      */
     @java.lang.Override
-    public boolean hasPretip() {
-      return pretip_ != null;
+    public boolean hasParent() {
+      return parent_ != null;
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
-     * @return The pretip.
+     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
+     * @return The parent.
      */
     @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.KernelTemplate getPretip() {
-      return pretip_ == null ? com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance() : pretip_;
+    public com.giyeok.jparser.mgroup3.proto.KernelTemplate getParent() {
+      return parent_ == null ? com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance() : parent_;
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
+     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
      */
     @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder getPretipOrBuilder() {
-      return pretip_ == null ? com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance() : pretip_;
+    public com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder getParentOrBuilder() {
+      return parent_ == null ? com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance() : parent_;
     }
 
     public static final int TIP_GROUP_ID_FIELD_NUMBER = 2;
@@ -2465,8 +2467,8 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      if (pretip_ != null) {
-        output.writeMessage(1, getPretip());
+      if (parent_ != null) {
+        output.writeMessage(1, getParent());
       }
       if (tipGroupId_ != 0) {
         output.writeInt32(2, tipGroupId_);
@@ -2483,9 +2485,9 @@ private static final long serialVersionUID = 0L;
       if (size != -1) return size;
 
       size = 0;
-      if (pretip_ != null) {
+      if (parent_ != null) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(1, getPretip());
+          .computeMessageSize(1, getParent());
       }
       if (tipGroupId_ != 0) {
         size += com.google.protobuf.CodedOutputStream
@@ -2510,10 +2512,10 @@ private static final long serialVersionUID = 0L;
       }
       com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair other = (com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair) obj;
 
-      if (hasPretip() != other.hasPretip()) return false;
-      if (hasPretip()) {
-        if (!getPretip()
-            .equals(other.getPretip())) return false;
+      if (hasParent() != other.hasParent()) return false;
+      if (hasParent()) {
+        if (!getParent()
+            .equals(other.getParent())) return false;
       }
       if (getTipGroupId()
           != other.getTipGroupId()) return false;
@@ -2533,9 +2535,9 @@ private static final long serialVersionUID = 0L;
       }
       int hash = 41;
       hash = (19 * hash) + getDescriptor().hashCode();
-      if (hasPretip()) {
-        hash = (37 * hash) + PRETIP_FIELD_NUMBER;
-        hash = (53 * hash) + getPretip().hashCode();
+      if (hasParent()) {
+        hash = (37 * hash) + PARENT_FIELD_NUMBER;
+        hash = (53 * hash) + getParent().hashCode();
       }
       hash = (37 * hash) + TIP_GROUP_ID_FIELD_NUMBER;
       hash = (53 * hash) + getTipGroupId();
@@ -2672,10 +2674,10 @@ private static final long serialVersionUID = 0L;
       public Builder clear() {
         super.clear();
         bitField0_ = 0;
-        pretip_ = null;
-        if (pretipBuilder_ != null) {
-          pretipBuilder_.dispose();
-          pretipBuilder_ = null;
+        parent_ = null;
+        if (parentBuilder_ != null) {
+          parentBuilder_.dispose();
+          parentBuilder_ = null;
         }
         tipGroupId_ = 0;
         edgeAction_ = null;
@@ -2717,9 +2719,9 @@ private static final long serialVersionUID = 0L;
       private void buildPartial0(com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair result) {
         int from_bitField0_ = bitField0_;
         if (((from_bitField0_ & 0x00000001) != 0)) {
-          result.pretip_ = pretipBuilder_ == null
-              ? pretip_
-              : pretipBuilder_.build();
+          result.parent_ = parentBuilder_ == null
+              ? parent_
+              : parentBuilder_.build();
         }
         if (((from_bitField0_ & 0x00000002) != 0)) {
           result.tipGroupId_ = tipGroupId_;
@@ -2743,8 +2745,8 @@ private static final long serialVersionUID = 0L;
 
       public Builder mergeFrom(com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair other) {
         if (other == com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair.getDefaultInstance()) return this;
-        if (other.hasPretip()) {
-          mergePretip(other.getPretip());
+        if (other.hasParent()) {
+          mergeParent(other.getParent());
         }
         if (other.getTipGroupId() != 0) {
           setTipGroupId(other.getTipGroupId());
@@ -2780,7 +2782,7 @@ private static final long serialVersionUID = 0L;
                 break;
               case 10: {
                 input.readMessage(
-                    getPretipFieldBuilder().getBuilder(),
+                    getParentFieldBuilder().getBuilder(),
                     extensionRegistry);
                 bitField0_ |= 0x00000001;
                 break;
@@ -2814,123 +2816,123 @@ private static final long serialVersionUID = 0L;
       }
       private int bitField0_;
 
-      private com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip_;
+      private com.giyeok.jparser.mgroup3.proto.KernelTemplate parent_;
       private com.google.protobuf.SingleFieldBuilderV3<
-          com.giyeok.jparser.mgroup3.proto.KernelTemplate, com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder, com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder> pretipBuilder_;
+          com.giyeok.jparser.mgroup3.proto.KernelTemplate, com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder, com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder> parentBuilder_;
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
-       * @return Whether the pretip field is set.
+       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
+       * @return Whether the parent field is set.
        */
-      public boolean hasPretip() {
+      public boolean hasParent() {
         return ((bitField0_ & 0x00000001) != 0);
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
-       * @return The pretip.
+       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
+       * @return The parent.
        */
-      public com.giyeok.jparser.mgroup3.proto.KernelTemplate getPretip() {
-        if (pretipBuilder_ == null) {
-          return pretip_ == null ? com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance() : pretip_;
+      public com.giyeok.jparser.mgroup3.proto.KernelTemplate getParent() {
+        if (parentBuilder_ == null) {
+          return parent_ == null ? com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance() : parent_;
         } else {
-          return pretipBuilder_.getMessage();
+          return parentBuilder_.getMessage();
         }
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
        */
-      public Builder setPretip(com.giyeok.jparser.mgroup3.proto.KernelTemplate value) {
-        if (pretipBuilder_ == null) {
+      public Builder setParent(com.giyeok.jparser.mgroup3.proto.KernelTemplate value) {
+        if (parentBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
           }
-          pretip_ = value;
+          parent_ = value;
         } else {
-          pretipBuilder_.setMessage(value);
+          parentBuilder_.setMessage(value);
         }
         bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
        */
-      public Builder setPretip(
+      public Builder setParent(
           com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder builderForValue) {
-        if (pretipBuilder_ == null) {
-          pretip_ = builderForValue.build();
+        if (parentBuilder_ == null) {
+          parent_ = builderForValue.build();
         } else {
-          pretipBuilder_.setMessage(builderForValue.build());
+          parentBuilder_.setMessage(builderForValue.build());
         }
         bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
        */
-      public Builder mergePretip(com.giyeok.jparser.mgroup3.proto.KernelTemplate value) {
-        if (pretipBuilder_ == null) {
+      public Builder mergeParent(com.giyeok.jparser.mgroup3.proto.KernelTemplate value) {
+        if (parentBuilder_ == null) {
           if (((bitField0_ & 0x00000001) != 0) &&
-            pretip_ != null &&
-            pretip_ != com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance()) {
-            getPretipBuilder().mergeFrom(value);
+            parent_ != null &&
+            parent_ != com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance()) {
+            getParentBuilder().mergeFrom(value);
           } else {
-            pretip_ = value;
+            parent_ = value;
           }
         } else {
-          pretipBuilder_.mergeFrom(value);
+          parentBuilder_.mergeFrom(value);
         }
         bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
        */
-      public Builder clearPretip() {
+      public Builder clearParent() {
         bitField0_ = (bitField0_ & ~0x00000001);
-        pretip_ = null;
-        if (pretipBuilder_ != null) {
-          pretipBuilder_.dispose();
-          pretipBuilder_ = null;
+        parent_ = null;
+        if (parentBuilder_ != null) {
+          parentBuilder_.dispose();
+          parentBuilder_ = null;
         }
         onChanged();
         return this;
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
        */
-      public com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder getPretipBuilder() {
+      public com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder getParentBuilder() {
         bitField0_ |= 0x00000001;
         onChanged();
-        return getPretipFieldBuilder().getBuilder();
+        return getParentFieldBuilder().getBuilder();
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
        */
-      public com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder getPretipOrBuilder() {
-        if (pretipBuilder_ != null) {
-          return pretipBuilder_.getMessageOrBuilder();
+      public com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder getParentOrBuilder() {
+        if (parentBuilder_ != null) {
+          return parentBuilder_.getMessageOrBuilder();
         } else {
-          return pretip_ == null ?
-              com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance() : pretip_;
+          return parent_ == null ?
+              com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance() : parent_;
         }
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilderV3<
           com.giyeok.jparser.mgroup3.proto.KernelTemplate, com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder, com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder> 
-          getPretipFieldBuilder() {
-        if (pretipBuilder_ == null) {
-          pretipBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+          getParentFieldBuilder() {
+        if (parentBuilder_ == null) {
+          parentBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
               com.giyeok.jparser.mgroup3.proto.KernelTemplate, com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder, com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder>(
-                  getPretip(),
+                  getParent(),
                   getParentForChildren(),
                   isClean());
-          pretip_ = null;
+          parent_ = null;
         }
-        return pretipBuilder_;
+        return parentBuilder_;
       }
 
       private int tipGroupId_ ;
@@ -3152,19 +3154,19 @@ private static final long serialVersionUID = 0L;
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
-     * @return Whether the pretip field is set.
+     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
+     * @return Whether the parent field is set.
      */
-    boolean hasPretip();
+    boolean hasParent();
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
-     * @return The pretip.
+     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
+     * @return The parent.
      */
-    com.giyeok.jparser.mgroup3.proto.KernelTemplate getPretip();
+    com.giyeok.jparser.mgroup3.proto.KernelTemplate getParent();
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
+     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
      */
-    com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder getPretipOrBuilder();
+    com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder getParentOrBuilder();
 
     /**
      * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate tip = 2;</code>
@@ -3231,30 +3233,30 @@ private static final long serialVersionUID = 0L;
               com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair.class, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair.Builder.class);
     }
 
-    public static final int PRETIP_FIELD_NUMBER = 1;
-    private com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip_;
+    public static final int PARENT_FIELD_NUMBER = 1;
+    private com.giyeok.jparser.mgroup3.proto.KernelTemplate parent_;
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
-     * @return Whether the pretip field is set.
+     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
+     * @return Whether the parent field is set.
      */
     @java.lang.Override
-    public boolean hasPretip() {
-      return pretip_ != null;
+    public boolean hasParent() {
+      return parent_ != null;
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
-     * @return The pretip.
+     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
+     * @return The parent.
      */
     @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.KernelTemplate getPretip() {
-      return pretip_ == null ? com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance() : pretip_;
+    public com.giyeok.jparser.mgroup3.proto.KernelTemplate getParent() {
+      return parent_ == null ? com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance() : parent_;
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
+     * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
      */
     @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder getPretipOrBuilder() {
-      return pretip_ == null ? com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance() : pretip_;
+    public com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder getParentOrBuilder() {
+      return parent_ == null ? com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance() : parent_;
     }
 
     public static final int TIP_FIELD_NUMBER = 2;
@@ -3323,8 +3325,8 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      if (pretip_ != null) {
-        output.writeMessage(1, getPretip());
+      if (parent_ != null) {
+        output.writeMessage(1, getParent());
       }
       if (tip_ != null) {
         output.writeMessage(2, getTip());
@@ -3341,9 +3343,9 @@ private static final long serialVersionUID = 0L;
       if (size != -1) return size;
 
       size = 0;
-      if (pretip_ != null) {
+      if (parent_ != null) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(1, getPretip());
+          .computeMessageSize(1, getParent());
       }
       if (tip_ != null) {
         size += com.google.protobuf.CodedOutputStream
@@ -3368,10 +3370,10 @@ private static final long serialVersionUID = 0L;
       }
       com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair other = (com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair) obj;
 
-      if (hasPretip() != other.hasPretip()) return false;
-      if (hasPretip()) {
-        if (!getPretip()
-            .equals(other.getPretip())) return false;
+      if (hasParent() != other.hasParent()) return false;
+      if (hasParent()) {
+        if (!getParent()
+            .equals(other.getParent())) return false;
       }
       if (hasTip() != other.hasTip()) return false;
       if (hasTip()) {
@@ -3394,9 +3396,9 @@ private static final long serialVersionUID = 0L;
       }
       int hash = 41;
       hash = (19 * hash) + getDescriptor().hashCode();
-      if (hasPretip()) {
-        hash = (37 * hash) + PRETIP_FIELD_NUMBER;
-        hash = (53 * hash) + getPretip().hashCode();
+      if (hasParent()) {
+        hash = (37 * hash) + PARENT_FIELD_NUMBER;
+        hash = (53 * hash) + getParent().hashCode();
       }
       if (hasTip()) {
         hash = (37 * hash) + TIP_FIELD_NUMBER;
@@ -3535,10 +3537,10 @@ private static final long serialVersionUID = 0L;
       public Builder clear() {
         super.clear();
         bitField0_ = 0;
-        pretip_ = null;
-        if (pretipBuilder_ != null) {
-          pretipBuilder_.dispose();
-          pretipBuilder_ = null;
+        parent_ = null;
+        if (parentBuilder_ != null) {
+          parentBuilder_.dispose();
+          parentBuilder_ = null;
         }
         tip_ = null;
         if (tipBuilder_ != null) {
@@ -3584,9 +3586,9 @@ private static final long serialVersionUID = 0L;
       private void buildPartial0(com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair result) {
         int from_bitField0_ = bitField0_;
         if (((from_bitField0_ & 0x00000001) != 0)) {
-          result.pretip_ = pretipBuilder_ == null
-              ? pretip_
-              : pretipBuilder_.build();
+          result.parent_ = parentBuilder_ == null
+              ? parent_
+              : parentBuilder_.build();
         }
         if (((from_bitField0_ & 0x00000002) != 0)) {
           result.tip_ = tipBuilder_ == null
@@ -3612,8 +3614,8 @@ private static final long serialVersionUID = 0L;
 
       public Builder mergeFrom(com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair other) {
         if (other == com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair.getDefaultInstance()) return this;
-        if (other.hasPretip()) {
-          mergePretip(other.getPretip());
+        if (other.hasParent()) {
+          mergeParent(other.getParent());
         }
         if (other.hasTip()) {
           mergeTip(other.getTip());
@@ -3649,7 +3651,7 @@ private static final long serialVersionUID = 0L;
                 break;
               case 10: {
                 input.readMessage(
-                    getPretipFieldBuilder().getBuilder(),
+                    getParentFieldBuilder().getBuilder(),
                     extensionRegistry);
                 bitField0_ |= 0x00000001;
                 break;
@@ -3685,123 +3687,123 @@ private static final long serialVersionUID = 0L;
       }
       private int bitField0_;
 
-      private com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip_;
+      private com.giyeok.jparser.mgroup3.proto.KernelTemplate parent_;
       private com.google.protobuf.SingleFieldBuilderV3<
-          com.giyeok.jparser.mgroup3.proto.KernelTemplate, com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder, com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder> pretipBuilder_;
+          com.giyeok.jparser.mgroup3.proto.KernelTemplate, com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder, com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder> parentBuilder_;
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
-       * @return Whether the pretip field is set.
+       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
+       * @return Whether the parent field is set.
        */
-      public boolean hasPretip() {
+      public boolean hasParent() {
         return ((bitField0_ & 0x00000001) != 0);
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
-       * @return The pretip.
+       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
+       * @return The parent.
        */
-      public com.giyeok.jparser.mgroup3.proto.KernelTemplate getPretip() {
-        if (pretipBuilder_ == null) {
-          return pretip_ == null ? com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance() : pretip_;
+      public com.giyeok.jparser.mgroup3.proto.KernelTemplate getParent() {
+        if (parentBuilder_ == null) {
+          return parent_ == null ? com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance() : parent_;
         } else {
-          return pretipBuilder_.getMessage();
+          return parentBuilder_.getMessage();
         }
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
        */
-      public Builder setPretip(com.giyeok.jparser.mgroup3.proto.KernelTemplate value) {
-        if (pretipBuilder_ == null) {
+      public Builder setParent(com.giyeok.jparser.mgroup3.proto.KernelTemplate value) {
+        if (parentBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
           }
-          pretip_ = value;
+          parent_ = value;
         } else {
-          pretipBuilder_.setMessage(value);
+          parentBuilder_.setMessage(value);
         }
         bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
        */
-      public Builder setPretip(
+      public Builder setParent(
           com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder builderForValue) {
-        if (pretipBuilder_ == null) {
-          pretip_ = builderForValue.build();
+        if (parentBuilder_ == null) {
+          parent_ = builderForValue.build();
         } else {
-          pretipBuilder_.setMessage(builderForValue.build());
+          parentBuilder_.setMessage(builderForValue.build());
         }
         bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
        */
-      public Builder mergePretip(com.giyeok.jparser.mgroup3.proto.KernelTemplate value) {
-        if (pretipBuilder_ == null) {
+      public Builder mergeParent(com.giyeok.jparser.mgroup3.proto.KernelTemplate value) {
+        if (parentBuilder_ == null) {
           if (((bitField0_ & 0x00000001) != 0) &&
-            pretip_ != null &&
-            pretip_ != com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance()) {
-            getPretipBuilder().mergeFrom(value);
+            parent_ != null &&
+            parent_ != com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance()) {
+            getParentBuilder().mergeFrom(value);
           } else {
-            pretip_ = value;
+            parent_ = value;
           }
         } else {
-          pretipBuilder_.mergeFrom(value);
+          parentBuilder_.mergeFrom(value);
         }
         bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
        */
-      public Builder clearPretip() {
+      public Builder clearParent() {
         bitField0_ = (bitField0_ & ~0x00000001);
-        pretip_ = null;
-        if (pretipBuilder_ != null) {
-          pretipBuilder_.dispose();
-          pretipBuilder_ = null;
+        parent_ = null;
+        if (parentBuilder_ != null) {
+          parentBuilder_.dispose();
+          parentBuilder_ = null;
         }
         onChanged();
         return this;
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
        */
-      public com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder getPretipBuilder() {
+      public com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder getParentBuilder() {
         bitField0_ |= 0x00000001;
         onChanged();
-        return getPretipFieldBuilder().getBuilder();
+        return getParentFieldBuilder().getBuilder();
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
        */
-      public com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder getPretipOrBuilder() {
-        if (pretipBuilder_ != null) {
-          return pretipBuilder_.getMessageOrBuilder();
+      public com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder getParentOrBuilder() {
+        if (parentBuilder_ != null) {
+          return parentBuilder_.getMessageOrBuilder();
         } else {
-          return pretip_ == null ?
-              com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance() : pretip_;
+          return parent_ == null ?
+              com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance() : parent_;
         }
       }
       /**
-       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate pretip = 1;</code>
+       * <code>.com.giyeok.jparser.mgroup3.proto.KernelTemplate parent = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilderV3<
           com.giyeok.jparser.mgroup3.proto.KernelTemplate, com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder, com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder> 
-          getPretipFieldBuilder() {
-        if (pretipBuilder_ == null) {
-          pretipBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+          getParentFieldBuilder() {
+        if (parentBuilder_ == null) {
+          parentBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
               com.giyeok.jparser.mgroup3.proto.KernelTemplate, com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder, com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder>(
-                  getPretip(),
+                  getParent(),
                   getParentForChildren(),
                   isClean());
-          pretip_ = null;
+          parent_ = null;
         }
-        return pretipBuilder_;
+        return parentBuilder_;
       }
 
       private com.giyeok.jparser.mgroup3.proto.KernelTemplate tip_;
@@ -4131,74 +4133,154 @@ private static final long serialVersionUID = 0L;
     return grammar_ == null ? com.giyeok.jparser.proto.GrammarProto.NGrammar.getDefaultInstance() : grammar_;
   }
 
-  public static final int INITIAL_MAIN_PATH_FIELD_NUMBER = 2;
-  private com.giyeok.jparser.mgroup3.proto.PathStarter initialMainPath_;
+  public static final int START_SYMBOL_ID_FIELD_NUMBER = 2;
+  private int startSymbolId_ = 0;
   /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.PathStarter initial_main_path = 2;</code>
-   * @return Whether the initialMainPath field is set.
+   * <code>int32 start_symbol_id = 2;</code>
+   * @return The startSymbolId.
    */
   @java.lang.Override
-  public boolean hasInitialMainPath() {
-    return initialMainPath_ != null;
-  }
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.PathStarter initial_main_path = 2;</code>
-   * @return The initialMainPath.
-   */
-  @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.PathStarter getInitialMainPath() {
-    return initialMainPath_ == null ? com.giyeok.jparser.mgroup3.proto.PathStarter.getDefaultInstance() : initialMainPath_;
-  }
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.PathStarter initial_main_path = 2;</code>
-   */
-  @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.PathStarterOrBuilder getInitialMainPathOrBuilder() {
-    return initialMainPath_ == null ? com.giyeok.jparser.mgroup3.proto.PathStarter.getDefaultInstance() : initialMainPath_;
+  public int getStartSymbolId() {
+    return startSymbolId_;
   }
 
-  public static final int INITIAL_COND_PATHS_FIELD_NUMBER = 3;
+  public static final int INITIAL_COND_SYMBOL_IDS_FIELD_NUMBER = 3;
   @SuppressWarnings("serial")
-  private java.util.List<com.giyeok.jparser.mgroup3.proto.PathStarter> initialCondPaths_;
+  private com.google.protobuf.Internal.IntList initialCondSymbolIds_;
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
+   * <pre>
+   * 문법 맨 앞에서 lookahead 심볼같은게 등장하는 경우에는 initial_cond_symbol_ids가 필요할듯
+   * </pre>
+   *
+   * <code>repeated int32 initial_cond_symbol_ids = 3;</code>
+   * @return A list containing the initialCondSymbolIds.
    */
   @java.lang.Override
-  public java.util.List<com.giyeok.jparser.mgroup3.proto.PathStarter> getInitialCondPathsList() {
-    return initialCondPaths_;
+  public java.util.List<java.lang.Integer>
+      getInitialCondSymbolIdsList() {
+    return initialCondSymbolIds_;
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
+   * <pre>
+   * 문법 맨 앞에서 lookahead 심볼같은게 등장하는 경우에는 initial_cond_symbol_ids가 필요할듯
+   * </pre>
+   *
+   * <code>repeated int32 initial_cond_symbol_ids = 3;</code>
+   * @return The count of initialCondSymbolIds.
    */
-  @java.lang.Override
-  public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.PathStarterOrBuilder> 
-      getInitialCondPathsOrBuilderList() {
-    return initialCondPaths_;
+  public int getInitialCondSymbolIdsCount() {
+    return initialCondSymbolIds_.size();
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
+   * <pre>
+   * 문법 맨 앞에서 lookahead 심볼같은게 등장하는 경우에는 initial_cond_symbol_ids가 필요할듯
+   * </pre>
+   *
+   * <code>repeated int32 initial_cond_symbol_ids = 3;</code>
+   * @param index The index of the element to return.
+   * @return The initialCondSymbolIds at the given index.
    */
-  @java.lang.Override
-  public int getInitialCondPathsCount() {
-    return initialCondPaths_.size();
+  public int getInitialCondSymbolIds(int index) {
+    return initialCondSymbolIds_.getInt(index);
+  }
+  private int initialCondSymbolIdsMemoizedSerializedSize = -1;
+
+  public static final int PATH_ROOTS_FIELD_NUMBER = 4;
+  private static final class PathRootsDefaultEntryHolder {
+    static final com.google.protobuf.MapEntry<
+        java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo> defaultEntry =
+            com.google.protobuf.MapEntry
+            .<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo>newDefaultInstance(
+                com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_Mgroup3ParserData_PathRootsEntry_descriptor, 
+                com.google.protobuf.WireFormat.FieldType.INT32,
+                0,
+                com.google.protobuf.WireFormat.FieldType.MESSAGE,
+                com.giyeok.jparser.mgroup3.proto.PathRootInfo.getDefaultInstance());
+  }
+  @SuppressWarnings("serial")
+  private com.google.protobuf.MapField<
+      java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo> pathRoots_;
+  private com.google.protobuf.MapField<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo>
+  internalGetPathRoots() {
+    if (pathRoots_ == null) {
+      return com.google.protobuf.MapField.emptyMapField(
+          PathRootsDefaultEntryHolder.defaultEntry);
+    }
+    return pathRoots_;
+  }
+  public int getPathRootsCount() {
+    return internalGetPathRoots().getMap().size();
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
+   * <pre>
+   * symbol id -&gt; path root
+   * </pre>
+   *
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.PathRootInfo&gt; path_roots = 4;</code>
    */
   @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.PathStarter getInitialCondPaths(int index) {
-    return initialCondPaths_.get(index);
+  public boolean containsPathRoots(
+      int key) {
+
+    return internalGetPathRoots().getMap().containsKey(key);
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
+   * Use {@link #getPathRootsMap()} instead.
    */
   @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.PathStarterOrBuilder getInitialCondPathsOrBuilder(
-      int index) {
-    return initialCondPaths_.get(index);
+  @java.lang.Deprecated
+  public java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo> getPathRoots() {
+    return getPathRootsMap();
+  }
+  /**
+   * <pre>
+   * symbol id -&gt; path root
+   * </pre>
+   *
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.PathRootInfo&gt; path_roots = 4;</code>
+   */
+  @java.lang.Override
+  public java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo> getPathRootsMap() {
+    return internalGetPathRoots().getMap();
+  }
+  /**
+   * <pre>
+   * symbol id -&gt; path root
+   * </pre>
+   *
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.PathRootInfo&gt; path_roots = 4;</code>
+   */
+  @java.lang.Override
+  public /* nullable */
+com.giyeok.jparser.mgroup3.proto.PathRootInfo getPathRootsOrDefault(
+      int key,
+      /* nullable */
+com.giyeok.jparser.mgroup3.proto.PathRootInfo defaultValue) {
+
+    java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo> map =
+        internalGetPathRoots().getMap();
+    return map.containsKey(key) ? map.get(key) : defaultValue;
+  }
+  /**
+   * <pre>
+   * symbol id -&gt; path root
+   * </pre>
+   *
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.PathRootInfo&gt; path_roots = 4;</code>
+   */
+  @java.lang.Override
+  public com.giyeok.jparser.mgroup3.proto.PathRootInfo getPathRootsOrThrow(
+      int key) {
+
+    java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo> map =
+        internalGetPathRoots().getMap();
+    if (!map.containsKey(key)) {
+      throw new java.lang.IllegalArgumentException();
+    }
+    return map.get(key);
   }
 
-  public static final int MILESTONE_GROUPS_FIELD_NUMBER = 4;
+  public static final int MILESTONE_GROUPS_FIELD_NUMBER = 5;
   private static final class MilestoneGroupsDefaultEntryHolder {
     static final com.google.protobuf.MapEntry<
         java.lang.Integer, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup> defaultEntry =
@@ -4225,7 +4307,7 @@ private static final long serialVersionUID = 0L;
     return internalGetMilestoneGroups().getMap().size();
   }
   /**
-   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 4;</code>
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 5;</code>
    */
   @java.lang.Override
   public boolean containsMilestoneGroups(
@@ -4242,14 +4324,14 @@ private static final long serialVersionUID = 0L;
     return getMilestoneGroupsMap();
   }
   /**
-   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 4;</code>
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 5;</code>
    */
   @java.lang.Override
   public java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup> getMilestoneGroupsMap() {
     return internalGetMilestoneGroups().getMap();
   }
   /**
-   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 4;</code>
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 5;</code>
    */
   @java.lang.Override
   public /* nullable */
@@ -4263,7 +4345,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup defaultValue) 
     return map.containsKey(key) ? map.get(key) : defaultValue;
   }
   /**
-   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 4;</code>
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 5;</code>
    */
   @java.lang.Override
   public com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup getMilestoneGroupsOrThrow(
@@ -4277,7 +4359,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup defaultValue) 
     return map.get(key);
   }
 
-  public static final int TERM_ACTIONS_FIELD_NUMBER = 5;
+  public static final int TERM_ACTIONS_FIELD_NUMBER = 6;
   private static final class TermActionsDefaultEntryHolder {
     static final com.google.protobuf.MapEntry<
         java.lang.Integer, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions> defaultEntry =
@@ -4304,7 +4386,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup defaultValue) 
     return internalGetTermActions().getMap().size();
   }
   /**
-   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 5;</code>
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 6;</code>
    */
   @java.lang.Override
   public boolean containsTermActions(
@@ -4321,14 +4403,14 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup defaultValue) 
     return getTermActionsMap();
   }
   /**
-   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 5;</code>
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 6;</code>
    */
   @java.lang.Override
   public java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions> getTermActionsMap() {
     return internalGetTermActions().getMap();
   }
   /**
-   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 5;</code>
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 6;</code>
    */
   @java.lang.Override
   public /* nullable */
@@ -4342,7 +4424,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
     return map.containsKey(key) ? map.get(key) : defaultValue;
   }
   /**
-   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 5;</code>
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 6;</code>
    */
   @java.lang.Override
   public com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions getTermActionsOrThrow(
@@ -4356,18 +4438,18 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
     return map.get(key);
   }
 
-  public static final int TIP_EDGE_ACTIONS_FIELD_NUMBER = 6;
+  public static final int TIP_EDGE_ACTIONS_FIELD_NUMBER = 7;
   @SuppressWarnings("serial")
   private java.util.List<com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair> tipEdgeActions_;
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
    */
   @java.lang.Override
   public java.util.List<com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair> getTipEdgeActionsList() {
     return tipEdgeActions_;
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
    */
   @java.lang.Override
   public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPairOrBuilder> 
@@ -4375,21 +4457,21 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
     return tipEdgeActions_;
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
    */
   @java.lang.Override
   public int getTipEdgeActionsCount() {
     return tipEdgeActions_.size();
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
    */
   @java.lang.Override
   public com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair getTipEdgeActions(int index) {
     return tipEdgeActions_.get(index);
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
    */
   @java.lang.Override
   public com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPairOrBuilder getTipEdgeActionsOrBuilder(
@@ -4397,18 +4479,18 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
     return tipEdgeActions_.get(index);
   }
 
-  public static final int MID_EDGE_ACTIONS_FIELD_NUMBER = 7;
+  public static final int MID_EDGE_ACTIONS_FIELD_NUMBER = 8;
   @SuppressWarnings("serial")
   private java.util.List<com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair> midEdgeActions_;
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
    */
   @java.lang.Override
   public java.util.List<com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair> getMidEdgeActionsList() {
     return midEdgeActions_;
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
    */
   @java.lang.Override
   public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPairOrBuilder> 
@@ -4416,21 +4498,21 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
     return midEdgeActions_;
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
    */
   @java.lang.Override
   public int getMidEdgeActionsCount() {
     return midEdgeActions_.size();
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
    */
   @java.lang.Override
   public com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair getMidEdgeActions(int index) {
     return midEdgeActions_.get(index);
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
    */
   @java.lang.Override
   public com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPairOrBuilder getMidEdgeActionsOrBuilder(
@@ -4452,32 +4534,43 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
+    getSerializedSize();
     if (grammar_ != null) {
       output.writeMessage(1, getGrammar());
     }
-    if (initialMainPath_ != null) {
-      output.writeMessage(2, getInitialMainPath());
+    if (startSymbolId_ != 0) {
+      output.writeInt32(2, startSymbolId_);
     }
-    for (int i = 0; i < initialCondPaths_.size(); i++) {
-      output.writeMessage(3, initialCondPaths_.get(i));
+    if (getInitialCondSymbolIdsList().size() > 0) {
+      output.writeUInt32NoTag(26);
+      output.writeUInt32NoTag(initialCondSymbolIdsMemoizedSerializedSize);
     }
+    for (int i = 0; i < initialCondSymbolIds_.size(); i++) {
+      output.writeInt32NoTag(initialCondSymbolIds_.getInt(i));
+    }
+    com.google.protobuf.GeneratedMessageV3
+      .serializeIntegerMapTo(
+        output,
+        internalGetPathRoots(),
+        PathRootsDefaultEntryHolder.defaultEntry,
+        4);
     com.google.protobuf.GeneratedMessageV3
       .serializeIntegerMapTo(
         output,
         internalGetMilestoneGroups(),
         MilestoneGroupsDefaultEntryHolder.defaultEntry,
-        4);
+        5);
     com.google.protobuf.GeneratedMessageV3
       .serializeIntegerMapTo(
         output,
         internalGetTermActions(),
         TermActionsDefaultEntryHolder.defaultEntry,
-        5);
+        6);
     for (int i = 0; i < tipEdgeActions_.size(); i++) {
-      output.writeMessage(6, tipEdgeActions_.get(i));
+      output.writeMessage(7, tipEdgeActions_.get(i));
     }
     for (int i = 0; i < midEdgeActions_.size(); i++) {
-      output.writeMessage(7, midEdgeActions_.get(i));
+      output.writeMessage(8, midEdgeActions_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -4492,13 +4585,33 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(1, getGrammar());
     }
-    if (initialMainPath_ != null) {
+    if (startSymbolId_ != 0) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(2, getInitialMainPath());
+        .computeInt32Size(2, startSymbolId_);
     }
-    for (int i = 0; i < initialCondPaths_.size(); i++) {
+    {
+      int dataSize = 0;
+      for (int i = 0; i < initialCondSymbolIds_.size(); i++) {
+        dataSize += com.google.protobuf.CodedOutputStream
+          .computeInt32SizeNoTag(initialCondSymbolIds_.getInt(i));
+      }
+      size += dataSize;
+      if (!getInitialCondSymbolIdsList().isEmpty()) {
+        size += 1;
+        size += com.google.protobuf.CodedOutputStream
+            .computeInt32SizeNoTag(dataSize);
+      }
+      initialCondSymbolIdsMemoizedSerializedSize = dataSize;
+    }
+    for (java.util.Map.Entry<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo> entry
+         : internalGetPathRoots().getMap().entrySet()) {
+      com.google.protobuf.MapEntry<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo>
+      pathRoots__ = PathRootsDefaultEntryHolder.defaultEntry.newBuilderForType()
+          .setKey(entry.getKey())
+          .setValue(entry.getValue())
+          .build();
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(3, initialCondPaths_.get(i));
+          .computeMessageSize(4, pathRoots__);
     }
     for (java.util.Map.Entry<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup> entry
          : internalGetMilestoneGroups().getMap().entrySet()) {
@@ -4508,7 +4621,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
           .setValue(entry.getValue())
           .build();
       size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(4, milestoneGroups__);
+          .computeMessageSize(5, milestoneGroups__);
     }
     for (java.util.Map.Entry<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions> entry
          : internalGetTermActions().getMap().entrySet()) {
@@ -4518,15 +4631,15 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
           .setValue(entry.getValue())
           .build();
       size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(5, termActions__);
+          .computeMessageSize(6, termActions__);
     }
     for (int i = 0; i < tipEdgeActions_.size(); i++) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(6, tipEdgeActions_.get(i));
+        .computeMessageSize(7, tipEdgeActions_.get(i));
     }
     for (int i = 0; i < midEdgeActions_.size(); i++) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(7, midEdgeActions_.get(i));
+        .computeMessageSize(8, midEdgeActions_.get(i));
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -4548,13 +4661,12 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       if (!getGrammar()
           .equals(other.getGrammar())) return false;
     }
-    if (hasInitialMainPath() != other.hasInitialMainPath()) return false;
-    if (hasInitialMainPath()) {
-      if (!getInitialMainPath()
-          .equals(other.getInitialMainPath())) return false;
-    }
-    if (!getInitialCondPathsList()
-        .equals(other.getInitialCondPathsList())) return false;
+    if (getStartSymbolId()
+        != other.getStartSymbolId()) return false;
+    if (!getInitialCondSymbolIdsList()
+        .equals(other.getInitialCondSymbolIdsList())) return false;
+    if (!internalGetPathRoots().equals(
+        other.internalGetPathRoots())) return false;
     if (!internalGetMilestoneGroups().equals(
         other.internalGetMilestoneGroups())) return false;
     if (!internalGetTermActions().equals(
@@ -4578,13 +4690,15 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       hash = (37 * hash) + GRAMMAR_FIELD_NUMBER;
       hash = (53 * hash) + getGrammar().hashCode();
     }
-    if (hasInitialMainPath()) {
-      hash = (37 * hash) + INITIAL_MAIN_PATH_FIELD_NUMBER;
-      hash = (53 * hash) + getInitialMainPath().hashCode();
+    hash = (37 * hash) + START_SYMBOL_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getStartSymbolId();
+    if (getInitialCondSymbolIdsCount() > 0) {
+      hash = (37 * hash) + INITIAL_COND_SYMBOL_IDS_FIELD_NUMBER;
+      hash = (53 * hash) + getInitialCondSymbolIdsList().hashCode();
     }
-    if (getInitialCondPathsCount() > 0) {
-      hash = (37 * hash) + INITIAL_COND_PATHS_FIELD_NUMBER;
-      hash = (53 * hash) + getInitialCondPathsList().hashCode();
+    if (!internalGetPathRoots().getMap().isEmpty()) {
+      hash = (37 * hash) + PATH_ROOTS_FIELD_NUMBER;
+      hash = (53 * hash) + internalGetPathRoots().hashCode();
     }
     if (!internalGetMilestoneGroups().getMap().isEmpty()) {
       hash = (37 * hash) + MILESTONE_GROUPS_FIELD_NUMBER;
@@ -4714,8 +4828,10 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
         int number) {
       switch (number) {
         case 4:
-          return internalGetMilestoneGroups();
+          return internalGetPathRoots();
         case 5:
+          return internalGetMilestoneGroups();
+        case 6:
           return internalGetTermActions();
         default:
           throw new RuntimeException(
@@ -4727,8 +4843,10 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
         int number) {
       switch (number) {
         case 4:
-          return internalGetMutableMilestoneGroups();
+          return internalGetMutablePathRoots();
         case 5:
+          return internalGetMutableMilestoneGroups();
+        case 6:
           return internalGetMutableTermActions();
         default:
           throw new RuntimeException(
@@ -4762,18 +4880,9 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
         grammarBuilder_.dispose();
         grammarBuilder_ = null;
       }
-      initialMainPath_ = null;
-      if (initialMainPathBuilder_ != null) {
-        initialMainPathBuilder_.dispose();
-        initialMainPathBuilder_ = null;
-      }
-      if (initialCondPathsBuilder_ == null) {
-        initialCondPaths_ = java.util.Collections.emptyList();
-      } else {
-        initialCondPaths_ = null;
-        initialCondPathsBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00000004);
+      startSymbolId_ = 0;
+      initialCondSymbolIds_ = emptyIntList();
+      internalGetMutablePathRoots().clear();
       internalGetMutableMilestoneGroups().clear();
       internalGetMutableTermActions().clear();
       if (tipEdgeActionsBuilder_ == null) {
@@ -4782,14 +4891,14 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
         tipEdgeActions_ = null;
         tipEdgeActionsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000040);
       if (midEdgeActionsBuilder_ == null) {
         midEdgeActions_ = java.util.Collections.emptyList();
       } else {
         midEdgeActions_ = null;
         midEdgeActionsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000080);
       return this;
     }
 
@@ -4823,28 +4932,24 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
     }
 
     private void buildPartialRepeatedFields(com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData result) {
-      if (initialCondPathsBuilder_ == null) {
-        if (((bitField0_ & 0x00000004) != 0)) {
-          initialCondPaths_ = java.util.Collections.unmodifiableList(initialCondPaths_);
-          bitField0_ = (bitField0_ & ~0x00000004);
-        }
-        result.initialCondPaths_ = initialCondPaths_;
-      } else {
-        result.initialCondPaths_ = initialCondPathsBuilder_.build();
+      if (((bitField0_ & 0x00000004) != 0)) {
+        initialCondSymbolIds_.makeImmutable();
+        bitField0_ = (bitField0_ & ~0x00000004);
       }
+      result.initialCondSymbolIds_ = initialCondSymbolIds_;
       if (tipEdgeActionsBuilder_ == null) {
-        if (((bitField0_ & 0x00000020) != 0)) {
+        if (((bitField0_ & 0x00000040) != 0)) {
           tipEdgeActions_ = java.util.Collections.unmodifiableList(tipEdgeActions_);
-          bitField0_ = (bitField0_ & ~0x00000020);
+          bitField0_ = (bitField0_ & ~0x00000040);
         }
         result.tipEdgeActions_ = tipEdgeActions_;
       } else {
         result.tipEdgeActions_ = tipEdgeActionsBuilder_.build();
       }
       if (midEdgeActionsBuilder_ == null) {
-        if (((bitField0_ & 0x00000040) != 0)) {
+        if (((bitField0_ & 0x00000080) != 0)) {
           midEdgeActions_ = java.util.Collections.unmodifiableList(midEdgeActions_);
-          bitField0_ = (bitField0_ & ~0x00000040);
+          bitField0_ = (bitField0_ & ~0x00000080);
         }
         result.midEdgeActions_ = midEdgeActions_;
       } else {
@@ -4860,15 +4965,17 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
             : grammarBuilder_.build();
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.initialMainPath_ = initialMainPathBuilder_ == null
-            ? initialMainPath_
-            : initialMainPathBuilder_.build();
+        result.startSymbolId_ = startSymbolId_;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.pathRoots_ = internalGetPathRoots();
+        result.pathRoots_.makeImmutable();
+      }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.milestoneGroups_ = internalGetMilestoneGroups();
         result.milestoneGroups_.makeImmutable();
       }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
+      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.termActions_ = internalGetTermActions();
         result.termActions_.makeImmutable();
       }
@@ -4889,46 +4996,33 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       if (other.hasGrammar()) {
         mergeGrammar(other.getGrammar());
       }
-      if (other.hasInitialMainPath()) {
-        mergeInitialMainPath(other.getInitialMainPath());
+      if (other.getStartSymbolId() != 0) {
+        setStartSymbolId(other.getStartSymbolId());
       }
-      if (initialCondPathsBuilder_ == null) {
-        if (!other.initialCondPaths_.isEmpty()) {
-          if (initialCondPaths_.isEmpty()) {
-            initialCondPaths_ = other.initialCondPaths_;
-            bitField0_ = (bitField0_ & ~0x00000004);
-          } else {
-            ensureInitialCondPathsIsMutable();
-            initialCondPaths_.addAll(other.initialCondPaths_);
-          }
-          onChanged();
+      if (!other.initialCondSymbolIds_.isEmpty()) {
+        if (initialCondSymbolIds_.isEmpty()) {
+          initialCondSymbolIds_ = other.initialCondSymbolIds_;
+          bitField0_ = (bitField0_ & ~0x00000004);
+        } else {
+          ensureInitialCondSymbolIdsIsMutable();
+          initialCondSymbolIds_.addAll(other.initialCondSymbolIds_);
         }
-      } else {
-        if (!other.initialCondPaths_.isEmpty()) {
-          if (initialCondPathsBuilder_.isEmpty()) {
-            initialCondPathsBuilder_.dispose();
-            initialCondPathsBuilder_ = null;
-            initialCondPaths_ = other.initialCondPaths_;
-            bitField0_ = (bitField0_ & ~0x00000004);
-            initialCondPathsBuilder_ = 
-              com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
-                 getInitialCondPathsFieldBuilder() : null;
-          } else {
-            initialCondPathsBuilder_.addAllMessages(other.initialCondPaths_);
-          }
-        }
+        onChanged();
       }
+      internalGetMutablePathRoots().mergeFrom(
+          other.internalGetPathRoots());
+      bitField0_ |= 0x00000008;
       internalGetMutableMilestoneGroups().mergeFrom(
           other.internalGetMilestoneGroups());
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       internalGetMutableTermActions().mergeFrom(
           other.internalGetTermActions());
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000020;
       if (tipEdgeActionsBuilder_ == null) {
         if (!other.tipEdgeActions_.isEmpty()) {
           if (tipEdgeActions_.isEmpty()) {
             tipEdgeActions_ = other.tipEdgeActions_;
-            bitField0_ = (bitField0_ & ~0x00000020);
+            bitField0_ = (bitField0_ & ~0x00000040);
           } else {
             ensureTipEdgeActionsIsMutable();
             tipEdgeActions_.addAll(other.tipEdgeActions_);
@@ -4941,7 +5035,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
             tipEdgeActionsBuilder_.dispose();
             tipEdgeActionsBuilder_ = null;
             tipEdgeActions_ = other.tipEdgeActions_;
-            bitField0_ = (bitField0_ & ~0x00000020);
+            bitField0_ = (bitField0_ & ~0x00000040);
             tipEdgeActionsBuilder_ = 
               com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
                  getTipEdgeActionsFieldBuilder() : null;
@@ -4954,7 +5048,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
         if (!other.midEdgeActions_.isEmpty()) {
           if (midEdgeActions_.isEmpty()) {
             midEdgeActions_ = other.midEdgeActions_;
-            bitField0_ = (bitField0_ & ~0x00000040);
+            bitField0_ = (bitField0_ & ~0x00000080);
           } else {
             ensureMidEdgeActionsIsMutable();
             midEdgeActions_.addAll(other.midEdgeActions_);
@@ -4967,7 +5061,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
             midEdgeActionsBuilder_.dispose();
             midEdgeActionsBuilder_ = null;
             midEdgeActions_ = other.midEdgeActions_;
-            bitField0_ = (bitField0_ & ~0x00000040);
+            bitField0_ = (bitField0_ & ~0x00000080);
             midEdgeActionsBuilder_ = 
               com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
                  getMidEdgeActionsFieldBuilder() : null;
@@ -5009,45 +5103,55 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
               bitField0_ |= 0x00000001;
               break;
             } // case 10
-            case 18: {
-              input.readMessage(
-                  getInitialMainPathFieldBuilder().getBuilder(),
-                  extensionRegistry);
+            case 16: {
+              startSymbolId_ = input.readInt32();
               bitField0_ |= 0x00000002;
               break;
-            } // case 18
+            } // case 16
+            case 24: {
+              int v = input.readInt32();
+              ensureInitialCondSymbolIdsIsMutable();
+              initialCondSymbolIds_.addInt(v);
+              break;
+            } // case 24
             case 26: {
-              com.giyeok.jparser.mgroup3.proto.PathStarter m =
-                  input.readMessage(
-                      com.giyeok.jparser.mgroup3.proto.PathStarter.parser(),
-                      extensionRegistry);
-              if (initialCondPathsBuilder_ == null) {
-                ensureInitialCondPathsIsMutable();
-                initialCondPaths_.add(m);
-              } else {
-                initialCondPathsBuilder_.addMessage(m);
+              int length = input.readRawVarint32();
+              int limit = input.pushLimit(length);
+              ensureInitialCondSymbolIdsIsMutable();
+              while (input.getBytesUntilLimit() > 0) {
+                initialCondSymbolIds_.addInt(input.readInt32());
               }
+              input.popLimit(limit);
               break;
             } // case 26
             case 34: {
+              com.google.protobuf.MapEntry<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo>
+              pathRoots__ = input.readMessage(
+                  PathRootsDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
+              internalGetMutablePathRoots().getMutableMap().put(
+                  pathRoots__.getKey(), pathRoots__.getValue());
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 34
+            case 42: {
               com.google.protobuf.MapEntry<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup>
               milestoneGroups__ = input.readMessage(
                   MilestoneGroupsDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
               internalGetMutableMilestoneGroups().getMutableMap().put(
                   milestoneGroups__.getKey(), milestoneGroups__.getValue());
-              bitField0_ |= 0x00000008;
+              bitField0_ |= 0x00000010;
               break;
-            } // case 34
-            case 42: {
+            } // case 42
+            case 50: {
               com.google.protobuf.MapEntry<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions>
               termActions__ = input.readMessage(
                   TermActionsDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
               internalGetMutableTermActions().getMutableMap().put(
                   termActions__.getKey(), termActions__.getValue());
-              bitField0_ |= 0x00000010;
+              bitField0_ |= 0x00000020;
               break;
-            } // case 42
-            case 50: {
+            } // case 50
+            case 58: {
               com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair m =
                   input.readMessage(
                       com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair.parser(),
@@ -5059,8 +5163,8 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
                 tipEdgeActionsBuilder_.addMessage(m);
               }
               break;
-            } // case 50
-            case 58: {
+            } // case 58
+            case 66: {
               com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair m =
                   input.readMessage(
                       com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair.parser(),
@@ -5072,7 +5176,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
                 midEdgeActionsBuilder_.addMessage(m);
               }
               break;
-            } // case 58
+            } // case 66
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -5209,363 +5313,300 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return grammarBuilder_;
     }
 
-    private com.giyeok.jparser.mgroup3.proto.PathStarter initialMainPath_;
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.PathStarter, com.giyeok.jparser.mgroup3.proto.PathStarter.Builder, com.giyeok.jparser.mgroup3.proto.PathStarterOrBuilder> initialMainPathBuilder_;
+    private int startSymbolId_ ;
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.PathStarter initial_main_path = 2;</code>
-     * @return Whether the initialMainPath field is set.
+     * <code>int32 start_symbol_id = 2;</code>
+     * @return The startSymbolId.
      */
-    public boolean hasInitialMainPath() {
-      return ((bitField0_ & 0x00000002) != 0);
+    @java.lang.Override
+    public int getStartSymbolId() {
+      return startSymbolId_;
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.PathStarter initial_main_path = 2;</code>
-     * @return The initialMainPath.
+     * <code>int32 start_symbol_id = 2;</code>
+     * @param value The startSymbolId to set.
+     * @return This builder for chaining.
      */
-    public com.giyeok.jparser.mgroup3.proto.PathStarter getInitialMainPath() {
-      if (initialMainPathBuilder_ == null) {
-        return initialMainPath_ == null ? com.giyeok.jparser.mgroup3.proto.PathStarter.getDefaultInstance() : initialMainPath_;
-      } else {
-        return initialMainPathBuilder_.getMessage();
-      }
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.PathStarter initial_main_path = 2;</code>
-     */
-    public Builder setInitialMainPath(com.giyeok.jparser.mgroup3.proto.PathStarter value) {
-      if (initialMainPathBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        initialMainPath_ = value;
-      } else {
-        initialMainPathBuilder_.setMessage(value);
-      }
+    public Builder setStartSymbolId(int value) {
+
+      startSymbolId_ = value;
       bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.PathStarter initial_main_path = 2;</code>
+     * <code>int32 start_symbol_id = 2;</code>
+     * @return This builder for chaining.
      */
-    public Builder setInitialMainPath(
-        com.giyeok.jparser.mgroup3.proto.PathStarter.Builder builderForValue) {
-      if (initialMainPathBuilder_ == null) {
-        initialMainPath_ = builderForValue.build();
-      } else {
-        initialMainPathBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.PathStarter initial_main_path = 2;</code>
-     */
-    public Builder mergeInitialMainPath(com.giyeok.jparser.mgroup3.proto.PathStarter value) {
-      if (initialMainPathBuilder_ == null) {
-        if (((bitField0_ & 0x00000002) != 0) &&
-          initialMainPath_ != null &&
-          initialMainPath_ != com.giyeok.jparser.mgroup3.proto.PathStarter.getDefaultInstance()) {
-          getInitialMainPathBuilder().mergeFrom(value);
-        } else {
-          initialMainPath_ = value;
-        }
-      } else {
-        initialMainPathBuilder_.mergeFrom(value);
-      }
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.PathStarter initial_main_path = 2;</code>
-     */
-    public Builder clearInitialMainPath() {
+    public Builder clearStartSymbolId() {
       bitField0_ = (bitField0_ & ~0x00000002);
-      initialMainPath_ = null;
-      if (initialMainPathBuilder_ != null) {
-        initialMainPathBuilder_.dispose();
-        initialMainPathBuilder_ = null;
-      }
+      startSymbolId_ = 0;
       onChanged();
       return this;
     }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.PathStarter initial_main_path = 2;</code>
-     */
-    public com.giyeok.jparser.mgroup3.proto.PathStarter.Builder getInitialMainPathBuilder() {
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return getInitialMainPathFieldBuilder().getBuilder();
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.PathStarter initial_main_path = 2;</code>
-     */
-    public com.giyeok.jparser.mgroup3.proto.PathStarterOrBuilder getInitialMainPathOrBuilder() {
-      if (initialMainPathBuilder_ != null) {
-        return initialMainPathBuilder_.getMessageOrBuilder();
-      } else {
-        return initialMainPath_ == null ?
-            com.giyeok.jparser.mgroup3.proto.PathStarter.getDefaultInstance() : initialMainPath_;
-      }
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.PathStarter initial_main_path = 2;</code>
-     */
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.PathStarter, com.giyeok.jparser.mgroup3.proto.PathStarter.Builder, com.giyeok.jparser.mgroup3.proto.PathStarterOrBuilder> 
-        getInitialMainPathFieldBuilder() {
-      if (initialMainPathBuilder_ == null) {
-        initialMainPathBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-            com.giyeok.jparser.mgroup3.proto.PathStarter, com.giyeok.jparser.mgroup3.proto.PathStarter.Builder, com.giyeok.jparser.mgroup3.proto.PathStarterOrBuilder>(
-                getInitialMainPath(),
-                getParentForChildren(),
-                isClean());
-        initialMainPath_ = null;
-      }
-      return initialMainPathBuilder_;
-    }
 
-    private java.util.List<com.giyeok.jparser.mgroup3.proto.PathStarter> initialCondPaths_ =
-      java.util.Collections.emptyList();
-    private void ensureInitialCondPathsIsMutable() {
+    private com.google.protobuf.Internal.IntList initialCondSymbolIds_ = emptyIntList();
+    private void ensureInitialCondSymbolIdsIsMutable() {
       if (!((bitField0_ & 0x00000004) != 0)) {
-        initialCondPaths_ = new java.util.ArrayList<com.giyeok.jparser.mgroup3.proto.PathStarter>(initialCondPaths_);
+        initialCondSymbolIds_ = mutableCopy(initialCondSymbolIds_);
         bitField0_ |= 0x00000004;
-       }
+      }
+    }
+    /**
+     * <pre>
+     * 문법 맨 앞에서 lookahead 심볼같은게 등장하는 경우에는 initial_cond_symbol_ids가 필요할듯
+     * </pre>
+     *
+     * <code>repeated int32 initial_cond_symbol_ids = 3;</code>
+     * @return A list containing the initialCondSymbolIds.
+     */
+    public java.util.List<java.lang.Integer>
+        getInitialCondSymbolIdsList() {
+      return ((bitField0_ & 0x00000004) != 0) ?
+               java.util.Collections.unmodifiableList(initialCondSymbolIds_) : initialCondSymbolIds_;
+    }
+    /**
+     * <pre>
+     * 문법 맨 앞에서 lookahead 심볼같은게 등장하는 경우에는 initial_cond_symbol_ids가 필요할듯
+     * </pre>
+     *
+     * <code>repeated int32 initial_cond_symbol_ids = 3;</code>
+     * @return The count of initialCondSymbolIds.
+     */
+    public int getInitialCondSymbolIdsCount() {
+      return initialCondSymbolIds_.size();
+    }
+    /**
+     * <pre>
+     * 문법 맨 앞에서 lookahead 심볼같은게 등장하는 경우에는 initial_cond_symbol_ids가 필요할듯
+     * </pre>
+     *
+     * <code>repeated int32 initial_cond_symbol_ids = 3;</code>
+     * @param index The index of the element to return.
+     * @return The initialCondSymbolIds at the given index.
+     */
+    public int getInitialCondSymbolIds(int index) {
+      return initialCondSymbolIds_.getInt(index);
+    }
+    /**
+     * <pre>
+     * 문법 맨 앞에서 lookahead 심볼같은게 등장하는 경우에는 initial_cond_symbol_ids가 필요할듯
+     * </pre>
+     *
+     * <code>repeated int32 initial_cond_symbol_ids = 3;</code>
+     * @param index The index to set the value at.
+     * @param value The initialCondSymbolIds to set.
+     * @return This builder for chaining.
+     */
+    public Builder setInitialCondSymbolIds(
+        int index, int value) {
+
+      ensureInitialCondSymbolIdsIsMutable();
+      initialCondSymbolIds_.setInt(index, value);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * 문법 맨 앞에서 lookahead 심볼같은게 등장하는 경우에는 initial_cond_symbol_ids가 필요할듯
+     * </pre>
+     *
+     * <code>repeated int32 initial_cond_symbol_ids = 3;</code>
+     * @param value The initialCondSymbolIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addInitialCondSymbolIds(int value) {
+
+      ensureInitialCondSymbolIdsIsMutable();
+      initialCondSymbolIds_.addInt(value);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * 문법 맨 앞에서 lookahead 심볼같은게 등장하는 경우에는 initial_cond_symbol_ids가 필요할듯
+     * </pre>
+     *
+     * <code>repeated int32 initial_cond_symbol_ids = 3;</code>
+     * @param values The initialCondSymbolIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllInitialCondSymbolIds(
+        java.lang.Iterable<? extends java.lang.Integer> values) {
+      ensureInitialCondSymbolIdsIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, initialCondSymbolIds_);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * 문법 맨 앞에서 lookahead 심볼같은게 등장하는 경우에는 initial_cond_symbol_ids가 필요할듯
+     * </pre>
+     *
+     * <code>repeated int32 initial_cond_symbol_ids = 3;</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearInitialCondSymbolIds() {
+      initialCondSymbolIds_ = emptyIntList();
+      bitField0_ = (bitField0_ & ~0x00000004);
+      onChanged();
+      return this;
     }
 
-    private com.google.protobuf.RepeatedFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.PathStarter, com.giyeok.jparser.mgroup3.proto.PathStarter.Builder, com.giyeok.jparser.mgroup3.proto.PathStarterOrBuilder> initialCondPathsBuilder_;
+    private com.google.protobuf.MapField<
+        java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo> pathRoots_;
+    private com.google.protobuf.MapField<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo>
+        internalGetPathRoots() {
+      if (pathRoots_ == null) {
+        return com.google.protobuf.MapField.emptyMapField(
+            PathRootsDefaultEntryHolder.defaultEntry);
+      }
+      return pathRoots_;
+    }
+    private com.google.protobuf.MapField<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo>
+        internalGetMutablePathRoots() {
+      if (pathRoots_ == null) {
+        pathRoots_ = com.google.protobuf.MapField.newMapField(
+            PathRootsDefaultEntryHolder.defaultEntry);
+      }
+      if (!pathRoots_.isMutable()) {
+        pathRoots_ = pathRoots_.copy();
+      }
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return pathRoots_;
+    }
+    public int getPathRootsCount() {
+      return internalGetPathRoots().getMap().size();
+    }
+    /**
+     * <pre>
+     * symbol id -&gt; path root
+     * </pre>
+     *
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.PathRootInfo&gt; path_roots = 4;</code>
+     */
+    @java.lang.Override
+    public boolean containsPathRoots(
+        int key) {
 
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
-     */
-    public java.util.List<com.giyeok.jparser.mgroup3.proto.PathStarter> getInitialCondPathsList() {
-      if (initialCondPathsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(initialCondPaths_);
-      } else {
-        return initialCondPathsBuilder_.getMessageList();
-      }
+      return internalGetPathRoots().getMap().containsKey(key);
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
+     * Use {@link #getPathRootsMap()} instead.
      */
-    public int getInitialCondPathsCount() {
-      if (initialCondPathsBuilder_ == null) {
-        return initialCondPaths_.size();
-      } else {
-        return initialCondPathsBuilder_.getCount();
-      }
+    @java.lang.Override
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo> getPathRoots() {
+      return getPathRootsMap();
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
+     * <pre>
+     * symbol id -&gt; path root
+     * </pre>
+     *
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.PathRootInfo&gt; path_roots = 4;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.PathStarter getInitialCondPaths(int index) {
-      if (initialCondPathsBuilder_ == null) {
-        return initialCondPaths_.get(index);
-      } else {
-        return initialCondPathsBuilder_.getMessage(index);
-      }
+    @java.lang.Override
+    public java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo> getPathRootsMap() {
+      return internalGetPathRoots().getMap();
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
+     * <pre>
+     * symbol id -&gt; path root
+     * </pre>
+     *
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.PathRootInfo&gt; path_roots = 4;</code>
      */
-    public Builder setInitialCondPaths(
-        int index, com.giyeok.jparser.mgroup3.proto.PathStarter value) {
-      if (initialCondPathsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureInitialCondPathsIsMutable();
-        initialCondPaths_.set(index, value);
-        onChanged();
-      } else {
-        initialCondPathsBuilder_.setMessage(index, value);
+    @java.lang.Override
+    public /* nullable */
+com.giyeok.jparser.mgroup3.proto.PathRootInfo getPathRootsOrDefault(
+        int key,
+        /* nullable */
+com.giyeok.jparser.mgroup3.proto.PathRootInfo defaultValue) {
+
+      java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo> map =
+          internalGetPathRoots().getMap();
+      return map.containsKey(key) ? map.get(key) : defaultValue;
+    }
+    /**
+     * <pre>
+     * symbol id -&gt; path root
+     * </pre>
+     *
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.PathRootInfo&gt; path_roots = 4;</code>
+     */
+    @java.lang.Override
+    public com.giyeok.jparser.mgroup3.proto.PathRootInfo getPathRootsOrThrow(
+        int key) {
+
+      java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo> map =
+          internalGetPathRoots().getMap();
+      if (!map.containsKey(key)) {
+        throw new java.lang.IllegalArgumentException();
       }
+      return map.get(key);
+    }
+    public Builder clearPathRoots() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      internalGetMutablePathRoots().getMutableMap()
+          .clear();
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
+     * <pre>
+     * symbol id -&gt; path root
+     * </pre>
+     *
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.PathRootInfo&gt; path_roots = 4;</code>
      */
-    public Builder setInitialCondPaths(
-        int index, com.giyeok.jparser.mgroup3.proto.PathStarter.Builder builderForValue) {
-      if (initialCondPathsBuilder_ == null) {
-        ensureInitialCondPathsIsMutable();
-        initialCondPaths_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        initialCondPathsBuilder_.setMessage(index, builderForValue.build());
-      }
+    public Builder removePathRoots(
+        int key) {
+
+      internalGetMutablePathRoots().getMutableMap()
+          .remove(key);
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
+     * Use alternate mutation accessors instead.
      */
-    public Builder addInitialCondPaths(com.giyeok.jparser.mgroup3.proto.PathStarter value) {
-      if (initialCondPathsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureInitialCondPathsIsMutable();
-        initialCondPaths_.add(value);
-        onChanged();
-      } else {
-        initialCondPathsBuilder_.addMessage(value);
-      }
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo>
+        getMutablePathRoots() {
+      bitField0_ |= 0x00000008;
+      return internalGetMutablePathRoots().getMutableMap();
+    }
+    /**
+     * <pre>
+     * symbol id -&gt; path root
+     * </pre>
+     *
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.PathRootInfo&gt; path_roots = 4;</code>
+     */
+    public Builder putPathRoots(
+        int key,
+        com.giyeok.jparser.mgroup3.proto.PathRootInfo value) {
+
+      if (value == null) { throw new NullPointerException("map value"); }
+      internalGetMutablePathRoots().getMutableMap()
+          .put(key, value);
+      bitField0_ |= 0x00000008;
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
+     * <pre>
+     * symbol id -&gt; path root
+     * </pre>
+     *
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.PathRootInfo&gt; path_roots = 4;</code>
      */
-    public Builder addInitialCondPaths(
-        int index, com.giyeok.jparser.mgroup3.proto.PathStarter value) {
-      if (initialCondPathsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureInitialCondPathsIsMutable();
-        initialCondPaths_.add(index, value);
-        onChanged();
-      } else {
-        initialCondPathsBuilder_.addMessage(index, value);
-      }
+    public Builder putAllPathRoots(
+        java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo> values) {
+      internalGetMutablePathRoots().getMutableMap()
+          .putAll(values);
+      bitField0_ |= 0x00000008;
       return this;
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
-     */
-    public Builder addInitialCondPaths(
-        com.giyeok.jparser.mgroup3.proto.PathStarter.Builder builderForValue) {
-      if (initialCondPathsBuilder_ == null) {
-        ensureInitialCondPathsIsMutable();
-        initialCondPaths_.add(builderForValue.build());
-        onChanged();
-      } else {
-        initialCondPathsBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
-     */
-    public Builder addInitialCondPaths(
-        int index, com.giyeok.jparser.mgroup3.proto.PathStarter.Builder builderForValue) {
-      if (initialCondPathsBuilder_ == null) {
-        ensureInitialCondPathsIsMutable();
-        initialCondPaths_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        initialCondPathsBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
-     */
-    public Builder addAllInitialCondPaths(
-        java.lang.Iterable<? extends com.giyeok.jparser.mgroup3.proto.PathStarter> values) {
-      if (initialCondPathsBuilder_ == null) {
-        ensureInitialCondPathsIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, initialCondPaths_);
-        onChanged();
-      } else {
-        initialCondPathsBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
-     */
-    public Builder clearInitialCondPaths() {
-      if (initialCondPathsBuilder_ == null) {
-        initialCondPaths_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000004);
-        onChanged();
-      } else {
-        initialCondPathsBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
-     */
-    public Builder removeInitialCondPaths(int index) {
-      if (initialCondPathsBuilder_ == null) {
-        ensureInitialCondPathsIsMutable();
-        initialCondPaths_.remove(index);
-        onChanged();
-      } else {
-        initialCondPathsBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
-     */
-    public com.giyeok.jparser.mgroup3.proto.PathStarter.Builder getInitialCondPathsBuilder(
-        int index) {
-      return getInitialCondPathsFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
-     */
-    public com.giyeok.jparser.mgroup3.proto.PathStarterOrBuilder getInitialCondPathsOrBuilder(
-        int index) {
-      if (initialCondPathsBuilder_ == null) {
-        return initialCondPaths_.get(index);  } else {
-        return initialCondPathsBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
-     */
-    public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.PathStarterOrBuilder> 
-         getInitialCondPathsOrBuilderList() {
-      if (initialCondPathsBuilder_ != null) {
-        return initialCondPathsBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(initialCondPaths_);
-      }
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
-     */
-    public com.giyeok.jparser.mgroup3.proto.PathStarter.Builder addInitialCondPathsBuilder() {
-      return getInitialCondPathsFieldBuilder().addBuilder(
-          com.giyeok.jparser.mgroup3.proto.PathStarter.getDefaultInstance());
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
-     */
-    public com.giyeok.jparser.mgroup3.proto.PathStarter.Builder addInitialCondPathsBuilder(
-        int index) {
-      return getInitialCondPathsFieldBuilder().addBuilder(
-          index, com.giyeok.jparser.mgroup3.proto.PathStarter.getDefaultInstance());
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
-     */
-    public java.util.List<com.giyeok.jparser.mgroup3.proto.PathStarter.Builder> 
-         getInitialCondPathsBuilderList() {
-      return getInitialCondPathsFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.PathStarter, com.giyeok.jparser.mgroup3.proto.PathStarter.Builder, com.giyeok.jparser.mgroup3.proto.PathStarterOrBuilder> 
-        getInitialCondPathsFieldBuilder() {
-      if (initialCondPathsBuilder_ == null) {
-        initialCondPathsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
-            com.giyeok.jparser.mgroup3.proto.PathStarter, com.giyeok.jparser.mgroup3.proto.PathStarter.Builder, com.giyeok.jparser.mgroup3.proto.PathStarterOrBuilder>(
-                initialCondPaths_,
-                ((bitField0_ & 0x00000004) != 0),
-                getParentForChildren(),
-                isClean());
-        initialCondPaths_ = null;
-      }
-      return initialCondPathsBuilder_;
     }
 
     private com.google.protobuf.MapField<
@@ -5587,7 +5628,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       if (!milestoneGroups_.isMutable()) {
         milestoneGroups_ = milestoneGroups_.copy();
       }
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       onChanged();
       return milestoneGroups_;
     }
@@ -5595,7 +5636,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return internalGetMilestoneGroups().getMap().size();
     }
     /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 4;</code>
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 5;</code>
      */
     @java.lang.Override
     public boolean containsMilestoneGroups(
@@ -5612,14 +5653,14 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return getMilestoneGroupsMap();
     }
     /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 4;</code>
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 5;</code>
      */
     @java.lang.Override
     public java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup> getMilestoneGroupsMap() {
       return internalGetMilestoneGroups().getMap();
     }
     /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 4;</code>
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 5;</code>
      */
     @java.lang.Override
     public /* nullable */
@@ -5633,7 +5674,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup defaultValue) 
       return map.containsKey(key) ? map.get(key) : defaultValue;
     }
     /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 4;</code>
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 5;</code>
      */
     @java.lang.Override
     public com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup getMilestoneGroupsOrThrow(
@@ -5647,13 +5688,13 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup defaultValue) 
       return map.get(key);
     }
     public Builder clearMilestoneGroups() {
-      bitField0_ = (bitField0_ & ~0x00000008);
+      bitField0_ = (bitField0_ & ~0x00000010);
       internalGetMutableMilestoneGroups().getMutableMap()
           .clear();
       return this;
     }
     /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 4;</code>
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 5;</code>
      */
     public Builder removeMilestoneGroups(
         int key) {
@@ -5668,11 +5709,11 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup defaultValue) 
     @java.lang.Deprecated
     public java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup>
         getMutableMilestoneGroups() {
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       return internalGetMutableMilestoneGroups().getMutableMap();
     }
     /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 4;</code>
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 5;</code>
      */
     public Builder putMilestoneGroups(
         int key,
@@ -5681,17 +5722,17 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup defaultValue) 
       if (value == null) { throw new NullPointerException("map value"); }
       internalGetMutableMilestoneGroups().getMutableMap()
           .put(key, value);
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       return this;
     }
     /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 4;</code>
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 5;</code>
      */
     public Builder putAllMilestoneGroups(
         java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup> values) {
       internalGetMutableMilestoneGroups().getMutableMap()
           .putAll(values);
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       return this;
     }
 
@@ -5714,7 +5755,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup defaultValue) 
       if (!termActions_.isMutable()) {
         termActions_ = termActions_.copy();
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000020;
       onChanged();
       return termActions_;
     }
@@ -5722,7 +5763,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup defaultValue) 
       return internalGetTermActions().getMap().size();
     }
     /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 5;</code>
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 6;</code>
      */
     @java.lang.Override
     public boolean containsTermActions(
@@ -5739,14 +5780,14 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup defaultValue) 
       return getTermActionsMap();
     }
     /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 5;</code>
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 6;</code>
      */
     @java.lang.Override
     public java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions> getTermActionsMap() {
       return internalGetTermActions().getMap();
     }
     /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 5;</code>
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 6;</code>
      */
     @java.lang.Override
     public /* nullable */
@@ -5760,7 +5801,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return map.containsKey(key) ? map.get(key) : defaultValue;
     }
     /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 5;</code>
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 6;</code>
      */
     @java.lang.Override
     public com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions getTermActionsOrThrow(
@@ -5774,13 +5815,13 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return map.get(key);
     }
     public Builder clearTermActions() {
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000020);
       internalGetMutableTermActions().getMutableMap()
           .clear();
       return this;
     }
     /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 5;</code>
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 6;</code>
      */
     public Builder removeTermActions(
         int key) {
@@ -5795,11 +5836,11 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
     @java.lang.Deprecated
     public java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions>
         getMutableTermActions() {
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000020;
       return internalGetMutableTermActions().getMutableMap();
     }
     /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 5;</code>
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 6;</code>
      */
     public Builder putTermActions(
         int key,
@@ -5808,26 +5849,26 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       if (value == null) { throw new NullPointerException("map value"); }
       internalGetMutableTermActions().getMutableMap()
           .put(key, value);
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000020;
       return this;
     }
     /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 5;</code>
+     * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 6;</code>
      */
     public Builder putAllTermActions(
         java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions> values) {
       internalGetMutableTermActions().getMutableMap()
           .putAll(values);
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000020;
       return this;
     }
 
     private java.util.List<com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair> tipEdgeActions_ =
       java.util.Collections.emptyList();
     private void ensureTipEdgeActionsIsMutable() {
-      if (!((bitField0_ & 0x00000020) != 0)) {
+      if (!((bitField0_ & 0x00000040) != 0)) {
         tipEdgeActions_ = new java.util.ArrayList<com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair>(tipEdgeActions_);
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000040;
        }
     }
 
@@ -5835,7 +5876,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
         com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair.Builder, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPairOrBuilder> tipEdgeActionsBuilder_;
 
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
      */
     public java.util.List<com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair> getTipEdgeActionsList() {
       if (tipEdgeActionsBuilder_ == null) {
@@ -5845,7 +5886,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
      */
     public int getTipEdgeActionsCount() {
       if (tipEdgeActionsBuilder_ == null) {
@@ -5855,7 +5896,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
      */
     public com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair getTipEdgeActions(int index) {
       if (tipEdgeActionsBuilder_ == null) {
@@ -5865,7 +5906,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
      */
     public Builder setTipEdgeActions(
         int index, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair value) {
@@ -5882,7 +5923,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
      */
     public Builder setTipEdgeActions(
         int index, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair.Builder builderForValue) {
@@ -5896,7 +5937,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
      */
     public Builder addTipEdgeActions(com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair value) {
       if (tipEdgeActionsBuilder_ == null) {
@@ -5912,7 +5953,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
      */
     public Builder addTipEdgeActions(
         int index, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair value) {
@@ -5929,7 +5970,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
      */
     public Builder addTipEdgeActions(
         com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair.Builder builderForValue) {
@@ -5943,7 +5984,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
      */
     public Builder addTipEdgeActions(
         int index, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair.Builder builderForValue) {
@@ -5957,7 +5998,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
      */
     public Builder addAllTipEdgeActions(
         java.lang.Iterable<? extends com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair> values) {
@@ -5972,12 +6013,12 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
      */
     public Builder clearTipEdgeActions() {
       if (tipEdgeActionsBuilder_ == null) {
         tipEdgeActions_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000020);
+        bitField0_ = (bitField0_ & ~0x00000040);
         onChanged();
       } else {
         tipEdgeActionsBuilder_.clear();
@@ -5985,7 +6026,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
      */
     public Builder removeTipEdgeActions(int index) {
       if (tipEdgeActionsBuilder_ == null) {
@@ -5998,14 +6039,14 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
      */
     public com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair.Builder getTipEdgeActionsBuilder(
         int index) {
       return getTipEdgeActionsFieldBuilder().getBuilder(index);
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
      */
     public com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPairOrBuilder getTipEdgeActionsOrBuilder(
         int index) {
@@ -6015,7 +6056,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
      */
     public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPairOrBuilder> 
          getTipEdgeActionsOrBuilderList() {
@@ -6026,14 +6067,14 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
      */
     public com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair.Builder addTipEdgeActionsBuilder() {
       return getTipEdgeActionsFieldBuilder().addBuilder(
           com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair.getDefaultInstance());
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
      */
     public com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair.Builder addTipEdgeActionsBuilder(
         int index) {
@@ -6041,7 +6082,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
           index, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair.getDefaultInstance());
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
      */
     public java.util.List<com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair.Builder> 
          getTipEdgeActionsBuilderList() {
@@ -6054,7 +6095,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
         tipEdgeActionsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
             com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair.Builder, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPairOrBuilder>(
                 tipEdgeActions_,
-                ((bitField0_ & 0x00000020) != 0),
+                ((bitField0_ & 0x00000040) != 0),
                 getParentForChildren(),
                 isClean());
         tipEdgeActions_ = null;
@@ -6065,9 +6106,9 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
     private java.util.List<com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair> midEdgeActions_ =
       java.util.Collections.emptyList();
     private void ensureMidEdgeActionsIsMutable() {
-      if (!((bitField0_ & 0x00000040) != 0)) {
+      if (!((bitField0_ & 0x00000080) != 0)) {
         midEdgeActions_ = new java.util.ArrayList<com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair>(midEdgeActions_);
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000080;
        }
     }
 
@@ -6075,7 +6116,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
         com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair.Builder, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPairOrBuilder> midEdgeActionsBuilder_;
 
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     public java.util.List<com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair> getMidEdgeActionsList() {
       if (midEdgeActionsBuilder_ == null) {
@@ -6085,7 +6126,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     public int getMidEdgeActionsCount() {
       if (midEdgeActionsBuilder_ == null) {
@@ -6095,7 +6136,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     public com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair getMidEdgeActions(int index) {
       if (midEdgeActionsBuilder_ == null) {
@@ -6105,7 +6146,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     public Builder setMidEdgeActions(
         int index, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair value) {
@@ -6122,7 +6163,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     public Builder setMidEdgeActions(
         int index, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair.Builder builderForValue) {
@@ -6136,7 +6177,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     public Builder addMidEdgeActions(com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair value) {
       if (midEdgeActionsBuilder_ == null) {
@@ -6152,7 +6193,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     public Builder addMidEdgeActions(
         int index, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair value) {
@@ -6169,7 +6210,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     public Builder addMidEdgeActions(
         com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair.Builder builderForValue) {
@@ -6183,7 +6224,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     public Builder addMidEdgeActions(
         int index, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair.Builder builderForValue) {
@@ -6197,7 +6238,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     public Builder addAllMidEdgeActions(
         java.lang.Iterable<? extends com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair> values) {
@@ -6212,12 +6253,12 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     public Builder clearMidEdgeActions() {
       if (midEdgeActionsBuilder_ == null) {
         midEdgeActions_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000040);
+        bitField0_ = (bitField0_ & ~0x00000080);
         onChanged();
       } else {
         midEdgeActionsBuilder_.clear();
@@ -6225,7 +6266,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     public Builder removeMidEdgeActions(int index) {
       if (midEdgeActionsBuilder_ == null) {
@@ -6238,14 +6279,14 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     public com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair.Builder getMidEdgeActionsBuilder(
         int index) {
       return getMidEdgeActionsFieldBuilder().getBuilder(index);
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     public com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPairOrBuilder getMidEdgeActionsOrBuilder(
         int index) {
@@ -6255,7 +6296,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPairOrBuilder> 
          getMidEdgeActionsOrBuilderList() {
@@ -6266,14 +6307,14 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     public com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair.Builder addMidEdgeActionsBuilder() {
       return getMidEdgeActionsFieldBuilder().addBuilder(
           com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair.getDefaultInstance());
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     public com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair.Builder addMidEdgeActionsBuilder(
         int index) {
@@ -6281,7 +6322,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
           index, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair.getDefaultInstance());
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     public java.util.List<com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair.Builder> 
          getMidEdgeActionsBuilderList() {
@@ -6294,7 +6335,7 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue
         midEdgeActionsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
             com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair.Builder, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPairOrBuilder>(
                 midEdgeActions_,
-                ((bitField0_ & 0x00000040) != 0),
+                ((bitField0_ & 0x00000080) != 0),
                 getParentForChildren(),
                 isClean());
         midEdgeActions_ = null;

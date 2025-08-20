@@ -16,6 +16,7 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private AppendMilestoneGroup() {
+    observingCondSymbolIds_ = emptyIntList();
   }
 
   @java.lang.Override
@@ -50,9 +51,9 @@ private static final long serialVersionUID = 0L;
   }
 
   public static final int ACCEPT_CONDITION_FIELD_NUMBER = 2;
-  private com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate acceptCondition_;
+  private com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet acceptCondition_;
   /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
    * @return Whether the acceptCondition field is set.
    */
   @java.lang.Override
@@ -60,20 +61,49 @@ private static final long serialVersionUID = 0L;
     return acceptCondition_ != null;
   }
   /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
    * @return The acceptCondition.
    */
   @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate getAcceptCondition() {
-    return acceptCondition_ == null ? com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.getDefaultInstance() : acceptCondition_;
+  public com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet getAcceptCondition() {
+    return acceptCondition_ == null ? com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.getDefaultInstance() : acceptCondition_;
   }
   /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
    */
   @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplateOrBuilder getAcceptConditionOrBuilder() {
-    return acceptCondition_ == null ? com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.getDefaultInstance() : acceptCondition_;
+  public com.giyeok.jparser.mgroup3.proto.AcceptConditionsSetOrBuilder getAcceptConditionOrBuilder() {
+    return acceptCondition_ == null ? com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.getDefaultInstance() : acceptCondition_;
   }
+
+  public static final int OBSERVING_COND_SYMBOL_IDS_FIELD_NUMBER = 3;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.Internal.IntList observingCondSymbolIds_;
+  /**
+   * <code>repeated int32 observing_cond_symbol_ids = 3;</code>
+   * @return A list containing the observingCondSymbolIds.
+   */
+  @java.lang.Override
+  public java.util.List<java.lang.Integer>
+      getObservingCondSymbolIdsList() {
+    return observingCondSymbolIds_;
+  }
+  /**
+   * <code>repeated int32 observing_cond_symbol_ids = 3;</code>
+   * @return The count of observingCondSymbolIds.
+   */
+  public int getObservingCondSymbolIdsCount() {
+    return observingCondSymbolIds_.size();
+  }
+  /**
+   * <code>repeated int32 observing_cond_symbol_ids = 3;</code>
+   * @param index The index of the element to return.
+   * @return The observingCondSymbolIds at the given index.
+   */
+  public int getObservingCondSymbolIds(int index) {
+    return observingCondSymbolIds_.getInt(index);
+  }
+  private int observingCondSymbolIdsMemoizedSerializedSize = -1;
 
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
@@ -89,11 +119,19 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
+    getSerializedSize();
     if (groupId_ != 0) {
       output.writeInt32(1, groupId_);
     }
     if (acceptCondition_ != null) {
       output.writeMessage(2, getAcceptCondition());
+    }
+    if (getObservingCondSymbolIdsList().size() > 0) {
+      output.writeUInt32NoTag(26);
+      output.writeUInt32NoTag(observingCondSymbolIdsMemoizedSerializedSize);
+    }
+    for (int i = 0; i < observingCondSymbolIds_.size(); i++) {
+      output.writeInt32NoTag(observingCondSymbolIds_.getInt(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -111,6 +149,20 @@ private static final long serialVersionUID = 0L;
     if (acceptCondition_ != null) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(2, getAcceptCondition());
+    }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < observingCondSymbolIds_.size(); i++) {
+        dataSize += com.google.protobuf.CodedOutputStream
+          .computeInt32SizeNoTag(observingCondSymbolIds_.getInt(i));
+      }
+      size += dataSize;
+      if (!getObservingCondSymbolIdsList().isEmpty()) {
+        size += 1;
+        size += com.google.protobuf.CodedOutputStream
+            .computeInt32SizeNoTag(dataSize);
+      }
+      observingCondSymbolIdsMemoizedSerializedSize = dataSize;
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -134,6 +186,8 @@ private static final long serialVersionUID = 0L;
       if (!getAcceptCondition()
           .equals(other.getAcceptCondition())) return false;
     }
+    if (!getObservingCondSymbolIdsList()
+        .equals(other.getObservingCondSymbolIdsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -150,6 +204,10 @@ private static final long serialVersionUID = 0L;
     if (hasAcceptCondition()) {
       hash = (37 * hash) + ACCEPT_CONDITION_FIELD_NUMBER;
       hash = (53 * hash) + getAcceptCondition().hashCode();
+    }
+    if (getObservingCondSymbolIdsCount() > 0) {
+      hash = (37 * hash) + OBSERVING_COND_SYMBOL_IDS_FIELD_NUMBER;
+      hash = (53 * hash) + getObservingCondSymbolIdsList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -286,6 +344,7 @@ private static final long serialVersionUID = 0L;
         acceptConditionBuilder_.dispose();
         acceptConditionBuilder_ = null;
       }
+      observingCondSymbolIds_ = emptyIntList();
       return this;
     }
 
@@ -312,9 +371,18 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public com.giyeok.jparser.mgroup3.proto.AppendMilestoneGroup buildPartial() {
       com.giyeok.jparser.mgroup3.proto.AppendMilestoneGroup result = new com.giyeok.jparser.mgroup3.proto.AppendMilestoneGroup(this);
+      buildPartialRepeatedFields(result);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
+    }
+
+    private void buildPartialRepeatedFields(com.giyeok.jparser.mgroup3.proto.AppendMilestoneGroup result) {
+      if (((bitField0_ & 0x00000004) != 0)) {
+        observingCondSymbolIds_.makeImmutable();
+        bitField0_ = (bitField0_ & ~0x00000004);
+      }
+      result.observingCondSymbolIds_ = observingCondSymbolIds_;
     }
 
     private void buildPartial0(com.giyeok.jparser.mgroup3.proto.AppendMilestoneGroup result) {
@@ -346,6 +414,16 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasAcceptCondition()) {
         mergeAcceptCondition(other.getAcceptCondition());
+      }
+      if (!other.observingCondSymbolIds_.isEmpty()) {
+        if (observingCondSymbolIds_.isEmpty()) {
+          observingCondSymbolIds_ = other.observingCondSymbolIds_;
+          bitField0_ = (bitField0_ & ~0x00000004);
+        } else {
+          ensureObservingCondSymbolIdsIsMutable();
+          observingCondSymbolIds_.addAll(other.observingCondSymbolIds_);
+        }
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -385,6 +463,22 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 18
+            case 24: {
+              int v = input.readInt32();
+              ensureObservingCondSymbolIdsIsMutable();
+              observingCondSymbolIds_.addInt(v);
+              break;
+            } // case 24
+            case 26: {
+              int length = input.readRawVarint32();
+              int limit = input.pushLimit(length);
+              ensureObservingCondSymbolIdsIsMutable();
+              while (input.getBytesUntilLimit() > 0) {
+                observingCondSymbolIds_.addInt(input.readInt32());
+              }
+              input.popLimit(limit);
+              break;
+            } // case 26
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -434,31 +528,31 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate acceptCondition_;
+    private com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet acceptCondition_;
     private com.google.protobuf.SingleFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplateOrBuilder> acceptConditionBuilder_;
+        com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet, com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionsSetOrBuilder> acceptConditionBuilder_;
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
      * @return Whether the acceptCondition field is set.
      */
     public boolean hasAcceptCondition() {
       return ((bitField0_ & 0x00000002) != 0);
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
      * @return The acceptCondition.
      */
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate getAcceptCondition() {
+    public com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet getAcceptCondition() {
       if (acceptConditionBuilder_ == null) {
-        return acceptCondition_ == null ? com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.getDefaultInstance() : acceptCondition_;
+        return acceptCondition_ == null ? com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.getDefaultInstance() : acceptCondition_;
       } else {
         return acceptConditionBuilder_.getMessage();
       }
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
      */
-    public Builder setAcceptCondition(com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate value) {
+    public Builder setAcceptCondition(com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet value) {
       if (acceptConditionBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
@@ -472,10 +566,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
      */
     public Builder setAcceptCondition(
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.Builder builderForValue) {
+        com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.Builder builderForValue) {
       if (acceptConditionBuilder_ == null) {
         acceptCondition_ = builderForValue.build();
       } else {
@@ -486,13 +580,13 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
      */
-    public Builder mergeAcceptCondition(com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate value) {
+    public Builder mergeAcceptCondition(com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet value) {
       if (acceptConditionBuilder_ == null) {
         if (((bitField0_ & 0x00000002) != 0) &&
           acceptCondition_ != null &&
-          acceptCondition_ != com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.getDefaultInstance()) {
+          acceptCondition_ != com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.getDefaultInstance()) {
           getAcceptConditionBuilder().mergeFrom(value);
         } else {
           acceptCondition_ = value;
@@ -505,7 +599,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
      */
     public Builder clearAcceptCondition() {
       bitField0_ = (bitField0_ & ~0x00000002);
@@ -518,39 +612,120 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.Builder getAcceptConditionBuilder() {
+    public com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.Builder getAcceptConditionBuilder() {
       bitField0_ |= 0x00000002;
       onChanged();
       return getAcceptConditionFieldBuilder().getBuilder();
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplateOrBuilder getAcceptConditionOrBuilder() {
+    public com.giyeok.jparser.mgroup3.proto.AcceptConditionsSetOrBuilder getAcceptConditionOrBuilder() {
       if (acceptConditionBuilder_ != null) {
         return acceptConditionBuilder_.getMessageOrBuilder();
       } else {
         return acceptCondition_ == null ?
-            com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.getDefaultInstance() : acceptCondition_;
+            com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.getDefaultInstance() : acceptCondition_;
       }
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
      */
     private com.google.protobuf.SingleFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplateOrBuilder> 
+        com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet, com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionsSetOrBuilder> 
         getAcceptConditionFieldBuilder() {
       if (acceptConditionBuilder_ == null) {
         acceptConditionBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-            com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplateOrBuilder>(
+            com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet, com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionsSetOrBuilder>(
                 getAcceptCondition(),
                 getParentForChildren(),
                 isClean());
         acceptCondition_ = null;
       }
       return acceptConditionBuilder_;
+    }
+
+    private com.google.protobuf.Internal.IntList observingCondSymbolIds_ = emptyIntList();
+    private void ensureObservingCondSymbolIdsIsMutable() {
+      if (!((bitField0_ & 0x00000004) != 0)) {
+        observingCondSymbolIds_ = mutableCopy(observingCondSymbolIds_);
+        bitField0_ |= 0x00000004;
+      }
+    }
+    /**
+     * <code>repeated int32 observing_cond_symbol_ids = 3;</code>
+     * @return A list containing the observingCondSymbolIds.
+     */
+    public java.util.List<java.lang.Integer>
+        getObservingCondSymbolIdsList() {
+      return ((bitField0_ & 0x00000004) != 0) ?
+               java.util.Collections.unmodifiableList(observingCondSymbolIds_) : observingCondSymbolIds_;
+    }
+    /**
+     * <code>repeated int32 observing_cond_symbol_ids = 3;</code>
+     * @return The count of observingCondSymbolIds.
+     */
+    public int getObservingCondSymbolIdsCount() {
+      return observingCondSymbolIds_.size();
+    }
+    /**
+     * <code>repeated int32 observing_cond_symbol_ids = 3;</code>
+     * @param index The index of the element to return.
+     * @return The observingCondSymbolIds at the given index.
+     */
+    public int getObservingCondSymbolIds(int index) {
+      return observingCondSymbolIds_.getInt(index);
+    }
+    /**
+     * <code>repeated int32 observing_cond_symbol_ids = 3;</code>
+     * @param index The index to set the value at.
+     * @param value The observingCondSymbolIds to set.
+     * @return This builder for chaining.
+     */
+    public Builder setObservingCondSymbolIds(
+        int index, int value) {
+
+      ensureObservingCondSymbolIdsIsMutable();
+      observingCondSymbolIds_.setInt(index, value);
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>repeated int32 observing_cond_symbol_ids = 3;</code>
+     * @param value The observingCondSymbolIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addObservingCondSymbolIds(int value) {
+
+      ensureObservingCondSymbolIdsIsMutable();
+      observingCondSymbolIds_.addInt(value);
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>repeated int32 observing_cond_symbol_ids = 3;</code>
+     * @param values The observingCondSymbolIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllObservingCondSymbolIds(
+        java.lang.Iterable<? extends java.lang.Integer> values) {
+      ensureObservingCondSymbolIdsIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, observingCondSymbolIds_);
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>repeated int32 observing_cond_symbol_ids = 3;</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearObservingCondSymbolIds() {
+      observingCondSymbolIds_ = emptyIntList();
+      bitField0_ = (bitField0_ & ~0x00000004);
+      onChanged();
+      return this;
     }
     @java.lang.Override
     public final Builder setUnknownFields(

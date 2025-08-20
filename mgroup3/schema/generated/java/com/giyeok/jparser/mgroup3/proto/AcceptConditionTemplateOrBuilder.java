@@ -8,139 +8,101 @@ public interface AcceptConditionTemplateOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
-   * <code>.google.protobuf.Empty always = 1;</code>
-   * @return Whether the always field is set.
-   */
-  boolean hasAlways();
-  /**
-   * <code>.google.protobuf.Empty always = 1;</code>
-   * @return The always.
-   */
-  com.google.protobuf.Empty getAlways();
-  /**
-   * <code>.google.protobuf.Empty always = 1;</code>
-   */
-  com.google.protobuf.EmptyOrBuilder getAlwaysOrBuilder();
-
-  /**
-   * <code>.google.protobuf.Empty never = 2;</code>
-   * @return Whether the never field is set.
-   */
-  boolean hasNever();
-  /**
-   * <code>.google.protobuf.Empty never = 2;</code>
-   * @return The never.
-   */
-  com.google.protobuf.Empty getNever();
-  /**
-   * <code>.google.protobuf.Empty never = 2;</code>
-   */
-  com.google.protobuf.EmptyOrBuilder getNeverOrBuilder();
-
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate and = 3;</code>
-   * @return Whether the and field is set.
-   */
-  boolean hasAnd();
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate and = 3;</code>
-   * @return The and.
-   */
-  com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate getAnd();
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate and = 3;</code>
-   */
-  com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplateOrBuilder getAndOrBuilder();
-
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate or = 4;</code>
-   * @return Whether the or field is set.
-   */
-  boolean hasOr();
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate or = 4;</code>
-   * @return The or.
-   */
-  com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate getOr();
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate or = 4;</code>
-   */
-  com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplateOrBuilder getOrOrBuilder();
-
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_is = 5;</code>
-   * @return Whether the lookaheadIs field is set.
-   */
-  boolean hasLookaheadIs();
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_is = 5;</code>
-   * @return The lookaheadIs.
-   */
-  com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate getLookaheadIs();
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_is = 5;</code>
-   */
-  com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplateOrBuilder getLookaheadIsOrBuilder();
-
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_not = 6;</code>
-   * @return Whether the lookaheadNot field is set.
-   */
-  boolean hasLookaheadNot();
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_not = 6;</code>
-   * @return The lookaheadNot.
-   */
-  com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate getLookaheadNot();
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_not = 6;</code>
-   */
-  com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplateOrBuilder getLookaheadNotOrBuilder();
-
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate longest = 7;</code>
+   * <pre>
+   * longest 심볼의 PathStarter로부터 만들어진 경로가 이후에 finish되는 경우가 있으면 이번 path는 invalidate한다
+   * (정확히는, longest 심볼의 PathStarter로부터 만들어진 경로가 이후에 finish되면 그 때 조건의 negation을 and로 붙인다)
+   * </pre>
+   *
+   * <code>int32 longest = 1;</code>
    * @return Whether the longest field is set.
    */
   boolean hasLongest();
   /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate longest = 7;</code>
+   * <pre>
+   * longest 심볼의 PathStarter로부터 만들어진 경로가 이후에 finish되는 경우가 있으면 이번 path는 invalidate한다
+   * (정확히는, longest 심볼의 PathStarter로부터 만들어진 경로가 이후에 finish되면 그 때 조건의 negation을 and로 붙인다)
+   * </pre>
+   *
+   * <code>int32 longest = 1;</code>
    * @return The longest.
    */
-  com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate getLongest();
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate longest = 7;</code>
-   */
-  com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplateOrBuilder getLongestOrBuilder();
+  int getLongest();
 
   /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 8;</code>
-   * @return Whether the onlyIf field is set.
+   * <pre>
+   * lookahead_found 심볼의 PathStarter로부터 만들어진 경로가 finish되어야만 이번 path도 valid하다
+   * </pre>
+   *
+   * <code>int32 lookahead_found = 2;</code>
+   * @return Whether the lookaheadFound field is set.
    */
-  boolean hasOnlyIf();
+  boolean hasLookaheadFound();
   /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 8;</code>
-   * @return The onlyIf.
+   * <pre>
+   * lookahead_found 심볼의 PathStarter로부터 만들어진 경로가 finish되어야만 이번 path도 valid하다
+   * </pre>
+   *
+   * <code>int32 lookahead_found = 2;</code>
+   * @return The lookaheadFound.
    */
-  com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate getOnlyIf();
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 8;</code>
-   */
-  com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplateOrBuilder getOnlyIfOrBuilder();
+  int getLookaheadFound();
 
   /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate unless = 9;</code>
-   * @return Whether the unless field is set.
+   * <pre>
+   * lookahead_notfound 심볼의 PathStarter로부터 만들어진 경로가 finish되면 이번 path는 invalidate한다
+   * </pre>
+   *
+   * <code>int32 lookahead_notfound = 3;</code>
+   * @return Whether the lookaheadNotfound field is set.
    */
-  boolean hasUnless();
+  boolean hasLookaheadNotfound();
   /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate unless = 9;</code>
-   * @return The unless.
+   * <pre>
+   * lookahead_notfound 심볼의 PathStarter로부터 만들어진 경로가 finish되면 이번 path는 invalidate한다
+   * </pre>
+   *
+   * <code>int32 lookahead_notfound = 3;</code>
+   * @return The lookaheadNotfound.
    */
-  com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate getUnless();
+  int getLookaheadNotfound();
+
   /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate unless = 9;</code>
+   * <pre>
+   * except 심볼의 PathStarter로부터 만들어진 경로가 finish되는 시점에는 이번 path는 invalid하다
+   * </pre>
+   *
+   * <code>int32 except = 4;</code>
+   * @return Whether the except field is set.
    */
-  com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplateOrBuilder getUnlessOrBuilder();
+  boolean hasExcept();
+  /**
+   * <pre>
+   * except 심볼의 PathStarter로부터 만들어진 경로가 finish되는 시점에는 이번 path는 invalid하다
+   * </pre>
+   *
+   * <code>int32 except = 4;</code>
+   * @return The except.
+   */
+  int getExcept();
+
+  /**
+   * <pre>
+   * join 심볼의 PathStarter로부터 만들어진 경로가 finish되는 시점에만 이번 path가 valid하다
+   * </pre>
+   *
+   * <code>int32 join = 5;</code>
+   * @return Whether the join field is set.
+   */
+  boolean hasJoin();
+  /**
+   * <pre>
+   * join 심볼의 PathStarter로부터 만들어진 경로가 finish되는 시점에만 이번 path가 valid하다
+   * </pre>
+   *
+   * <code>int32 join = 5;</code>
+   * @return The join.
+   */
+  int getJoin();
 
   com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.ConditionCase getConditionCase();
 }

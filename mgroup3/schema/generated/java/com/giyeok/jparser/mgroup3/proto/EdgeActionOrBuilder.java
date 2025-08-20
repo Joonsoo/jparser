@@ -32,17 +32,17 @@ public interface EdgeActionOrBuilder extends
       int index);
 
   /**
-   * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate start_node_progress = 2;</code>
+   * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet start_node_progress = 2;</code>
    * @return Whether the startNodeProgress field is set.
    */
   boolean hasStartNodeProgress();
   /**
-   * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate start_node_progress = 2;</code>
+   * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet start_node_progress = 2;</code>
    * @return The startNodeProgress.
    */
-  com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate getStartNodeProgress();
+  com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet getStartNodeProgress();
   /**
-   * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate start_node_progress = 2;</code>
+   * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet start_node_progress = 2;</code>
    */
-  com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplateOrBuilder getStartNodeProgressOrBuilder();
+  com.giyeok.jparser.mgroup3.proto.AcceptConditionsSetOrBuilder getStartNodeProgressOrBuilder();
 }

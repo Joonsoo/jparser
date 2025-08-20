@@ -14,17 +14,34 @@ public interface AppendMilestoneGroupOrBuilder extends
   int getGroupId();
 
   /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
    * @return Whether the acceptCondition field is set.
    */
   boolean hasAcceptCondition();
   /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
    * @return The acceptCondition.
    */
-  com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate getAcceptCondition();
+  com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet getAcceptCondition();
   /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate accept_condition = 2;</code>
+   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>
    */
-  com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplateOrBuilder getAcceptConditionOrBuilder();
+  com.giyeok.jparser.mgroup3.proto.AcceptConditionsSetOrBuilder getAcceptConditionOrBuilder();
+
+  /**
+   * <code>repeated int32 observing_cond_symbol_ids = 3;</code>
+   * @return A list containing the observingCondSymbolIds.
+   */
+  java.util.List<java.lang.Integer> getObservingCondSymbolIdsList();
+  /**
+   * <code>repeated int32 observing_cond_symbol_ids = 3;</code>
+   * @return The count of observingCondSymbolIds.
+   */
+  int getObservingCondSymbolIdsCount();
+  /**
+   * <code>repeated int32 observing_cond_symbol_ids = 3;</code>
+   * @param index The index of the element to return.
+   * @return The observingCondSymbolIds at the given index.
+   */
+  int getObservingCondSymbolIds(int index);
 }

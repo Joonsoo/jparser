@@ -38,3365 +38,17 @@ private static final long serialVersionUID = 0L;
             com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.class, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder.class);
   }
 
-  public interface AndTemplateOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate)
-      com.google.protobuf.MessageOrBuilder {
-
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-     */
-    java.util.List<com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate> 
-        getConditionsList();
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-     */
-    com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate getConditions(int index);
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-     */
-    int getConditionsCount();
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-     */
-    java.util.List<? extends com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder> 
-        getConditionsOrBuilderList();
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-     */
-    com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder getConditionsOrBuilder(
-        int index);
-  }
-  /**
-   * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate}
-   */
-  public static final class AndTemplate extends
-      com.google.protobuf.GeneratedMessageV3 implements
-      // @@protoc_insertion_point(message_implements:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate)
-      AndTemplateOrBuilder {
-  private static final long serialVersionUID = 0L;
-    // Use AndTemplate.newBuilder() to construct.
-    private AndTemplate(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
-      super(builder);
-    }
-    private AndTemplate() {
-      conditions_ = java.util.Collections.emptyList();
-    }
-
-    @java.lang.Override
-    @SuppressWarnings({"unused"})
-    protected java.lang.Object newInstance(
-        UnusedPrivateParameter unused) {
-      return new AndTemplate();
-    }
-
-    public static final com.google.protobuf.Descriptors.Descriptor
-        getDescriptor() {
-      return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_AndTemplate_descriptor;
-    }
-
-    @java.lang.Override
-    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-        internalGetFieldAccessorTable() {
-      return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_AndTemplate_fieldAccessorTable
-          .ensureFieldAccessorsInitialized(
-              com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate.class, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate.Builder.class);
-    }
-
-    public static final int CONDITIONS_FIELD_NUMBER = 1;
-    @SuppressWarnings("serial")
-    private java.util.List<com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate> conditions_;
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-     */
-    @java.lang.Override
-    public java.util.List<com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate> getConditionsList() {
-      return conditions_;
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-     */
-    @java.lang.Override
-    public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder> 
-        getConditionsOrBuilderList() {
-      return conditions_;
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-     */
-    @java.lang.Override
-    public int getConditionsCount() {
-      return conditions_.size();
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate getConditions(int index) {
-      return conditions_.get(index);
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder getConditionsOrBuilder(
-        int index) {
-      return conditions_.get(index);
-    }
-
-    private byte memoizedIsInitialized = -1;
-    @java.lang.Override
-    public final boolean isInitialized() {
-      byte isInitialized = memoizedIsInitialized;
-      if (isInitialized == 1) return true;
-      if (isInitialized == 0) return false;
-
-      memoizedIsInitialized = 1;
-      return true;
-    }
-
-    @java.lang.Override
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
-                        throws java.io.IOException {
-      for (int i = 0; i < conditions_.size(); i++) {
-        output.writeMessage(1, conditions_.get(i));
-      }
-      getUnknownFields().writeTo(output);
-    }
-
-    @java.lang.Override
-    public int getSerializedSize() {
-      int size = memoizedSize;
-      if (size != -1) return size;
-
-      size = 0;
-      for (int i = 0; i < conditions_.size(); i++) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(1, conditions_.get(i));
-      }
-      size += getUnknownFields().getSerializedSize();
-      memoizedSize = size;
-      return size;
-    }
-
-    @java.lang.Override
-    public boolean equals(final java.lang.Object obj) {
-      if (obj == this) {
-       return true;
-      }
-      if (!(obj instanceof com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate)) {
-        return super.equals(obj);
-      }
-      com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate other = (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate) obj;
-
-      if (!getConditionsList()
-          .equals(other.getConditionsList())) return false;
-      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
-      return true;
-    }
-
-    @java.lang.Override
-    public int hashCode() {
-      if (memoizedHashCode != 0) {
-        return memoizedHashCode;
-      }
-      int hash = 41;
-      hash = (19 * hash) + getDescriptor().hashCode();
-      if (getConditionsCount() > 0) {
-        hash = (37 * hash) + CONDITIONS_FIELD_NUMBER;
-        hash = (53 * hash) + getConditionsList().hashCode();
-      }
-      hash = (29 * hash) + getUnknownFields().hashCode();
-      memoizedHashCode = hash;
-      return hash;
-    }
-
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate parseFrom(
-        java.nio.ByteBuffer data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate parseFrom(
-        java.nio.ByteBuffer data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate parseFrom(
-        byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate parseFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate parseFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate parseDelimitedFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseDelimitedWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate parseDelimitedFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate parseFrom(
-        com.google.protobuf.CodedInputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input, extensionRegistry);
-    }
-
-    @java.lang.Override
-    public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder() {
-      return DEFAULT_INSTANCE.toBuilder();
-    }
-    public static Builder newBuilder(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate prototype) {
-      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
-    }
-    @java.lang.Override
-    public Builder toBuilder() {
-      return this == DEFAULT_INSTANCE
-          ? new Builder() : new Builder().mergeFrom(this);
-    }
-
-    @java.lang.Override
-    protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
-      Builder builder = new Builder(parent);
-      return builder;
-    }
-    /**
-     * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate}
-     */
-    public static final class Builder extends
-        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
-        // @@protoc_insertion_point(builder_implements:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate)
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplateOrBuilder {
-      public static final com.google.protobuf.Descriptors.Descriptor
-          getDescriptor() {
-        return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_AndTemplate_descriptor;
-      }
-
-      @java.lang.Override
-      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-          internalGetFieldAccessorTable() {
-        return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_AndTemplate_fieldAccessorTable
-            .ensureFieldAccessorsInitialized(
-                com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate.class, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate.Builder.class);
-      }
-
-      // Construct using com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate.newBuilder()
-      private Builder() {
-
-      }
-
-      private Builder(
-          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
-        super(parent);
-
-      }
-      @java.lang.Override
-      public Builder clear() {
-        super.clear();
-        bitField0_ = 0;
-        if (conditionsBuilder_ == null) {
-          conditions_ = java.util.Collections.emptyList();
-        } else {
-          conditions_ = null;
-          conditionsBuilder_.clear();
-        }
-        bitField0_ = (bitField0_ & ~0x00000001);
-        return this;
-      }
-
-      @java.lang.Override
-      public com.google.protobuf.Descriptors.Descriptor
-          getDescriptorForType() {
-        return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_AndTemplate_descriptor;
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate getDefaultInstanceForType() {
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate.getDefaultInstance();
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate build() {
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate result = buildPartial();
-        if (!result.isInitialized()) {
-          throw newUninitializedMessageException(result);
-        }
-        return result;
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate buildPartial() {
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate result = new com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate(this);
-        buildPartialRepeatedFields(result);
-        if (bitField0_ != 0) { buildPartial0(result); }
-        onBuilt();
-        return result;
-      }
-
-      private void buildPartialRepeatedFields(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate result) {
-        if (conditionsBuilder_ == null) {
-          if (((bitField0_ & 0x00000001) != 0)) {
-            conditions_ = java.util.Collections.unmodifiableList(conditions_);
-            bitField0_ = (bitField0_ & ~0x00000001);
-          }
-          result.conditions_ = conditions_;
-        } else {
-          result.conditions_ = conditionsBuilder_.build();
-        }
-      }
-
-      private void buildPartial0(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate result) {
-        int from_bitField0_ = bitField0_;
-      }
-
-      @java.lang.Override
-      public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate) {
-          return mergeFrom((com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate)other);
-        } else {
-          super.mergeFrom(other);
-          return this;
-        }
-      }
-
-      public Builder mergeFrom(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate other) {
-        if (other == com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate.getDefaultInstance()) return this;
-        if (conditionsBuilder_ == null) {
-          if (!other.conditions_.isEmpty()) {
-            if (conditions_.isEmpty()) {
-              conditions_ = other.conditions_;
-              bitField0_ = (bitField0_ & ~0x00000001);
-            } else {
-              ensureConditionsIsMutable();
-              conditions_.addAll(other.conditions_);
-            }
-            onChanged();
-          }
-        } else {
-          if (!other.conditions_.isEmpty()) {
-            if (conditionsBuilder_.isEmpty()) {
-              conditionsBuilder_.dispose();
-              conditionsBuilder_ = null;
-              conditions_ = other.conditions_;
-              bitField0_ = (bitField0_ & ~0x00000001);
-              conditionsBuilder_ = 
-                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
-                   getConditionsFieldBuilder() : null;
-            } else {
-              conditionsBuilder_.addAllMessages(other.conditions_);
-            }
-          }
-        }
-        this.mergeUnknownFields(other.getUnknownFields());
-        onChanged();
-        return this;
-      }
-
-      @java.lang.Override
-      public final boolean isInitialized() {
-        return true;
-      }
-
-      @java.lang.Override
-      public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws java.io.IOException {
-        if (extensionRegistry == null) {
-          throw new java.lang.NullPointerException();
-        }
-        try {
-          boolean done = false;
-          while (!done) {
-            int tag = input.readTag();
-            switch (tag) {
-              case 0:
-                done = true;
-                break;
-              case 10: {
-                com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate m =
-                    input.readMessage(
-                        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.parser(),
-                        extensionRegistry);
-                if (conditionsBuilder_ == null) {
-                  ensureConditionsIsMutable();
-                  conditions_.add(m);
-                } else {
-                  conditionsBuilder_.addMessage(m);
-                }
-                break;
-              } // case 10
-              default: {
-                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
-                  done = true; // was an endgroup tag
-                }
-                break;
-              } // default:
-            } // switch (tag)
-          } // while (!done)
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          throw e.unwrapIOException();
-        } finally {
-          onChanged();
-        } // finally
-        return this;
-      }
-      private int bitField0_;
-
-      private java.util.List<com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate> conditions_ =
-        java.util.Collections.emptyList();
-      private void ensureConditionsIsMutable() {
-        if (!((bitField0_ & 0x00000001) != 0)) {
-          conditions_ = new java.util.ArrayList<com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate>(conditions_);
-          bitField0_ |= 0x00000001;
-         }
-      }
-
-      private com.google.protobuf.RepeatedFieldBuilderV3<
-          com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder> conditionsBuilder_;
-
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public java.util.List<com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate> getConditionsList() {
-        if (conditionsBuilder_ == null) {
-          return java.util.Collections.unmodifiableList(conditions_);
-        } else {
-          return conditionsBuilder_.getMessageList();
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public int getConditionsCount() {
-        if (conditionsBuilder_ == null) {
-          return conditions_.size();
-        } else {
-          return conditionsBuilder_.getCount();
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate getConditions(int index) {
-        if (conditionsBuilder_ == null) {
-          return conditions_.get(index);
-        } else {
-          return conditionsBuilder_.getMessage(index);
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public Builder setConditions(
-          int index, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate value) {
-        if (conditionsBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
-          ensureConditionsIsMutable();
-          conditions_.set(index, value);
-          onChanged();
-        } else {
-          conditionsBuilder_.setMessage(index, value);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public Builder setConditions(
-          int index, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder builderForValue) {
-        if (conditionsBuilder_ == null) {
-          ensureConditionsIsMutable();
-          conditions_.set(index, builderForValue.build());
-          onChanged();
-        } else {
-          conditionsBuilder_.setMessage(index, builderForValue.build());
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public Builder addConditions(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate value) {
-        if (conditionsBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
-          ensureConditionsIsMutable();
-          conditions_.add(value);
-          onChanged();
-        } else {
-          conditionsBuilder_.addMessage(value);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public Builder addConditions(
-          int index, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate value) {
-        if (conditionsBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
-          ensureConditionsIsMutable();
-          conditions_.add(index, value);
-          onChanged();
-        } else {
-          conditionsBuilder_.addMessage(index, value);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public Builder addConditions(
-          com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder builderForValue) {
-        if (conditionsBuilder_ == null) {
-          ensureConditionsIsMutable();
-          conditions_.add(builderForValue.build());
-          onChanged();
-        } else {
-          conditionsBuilder_.addMessage(builderForValue.build());
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public Builder addConditions(
-          int index, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder builderForValue) {
-        if (conditionsBuilder_ == null) {
-          ensureConditionsIsMutable();
-          conditions_.add(index, builderForValue.build());
-          onChanged();
-        } else {
-          conditionsBuilder_.addMessage(index, builderForValue.build());
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public Builder addAllConditions(
-          java.lang.Iterable<? extends com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate> values) {
-        if (conditionsBuilder_ == null) {
-          ensureConditionsIsMutable();
-          com.google.protobuf.AbstractMessageLite.Builder.addAll(
-              values, conditions_);
-          onChanged();
-        } else {
-          conditionsBuilder_.addAllMessages(values);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public Builder clearConditions() {
-        if (conditionsBuilder_ == null) {
-          conditions_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000001);
-          onChanged();
-        } else {
-          conditionsBuilder_.clear();
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public Builder removeConditions(int index) {
-        if (conditionsBuilder_ == null) {
-          ensureConditionsIsMutable();
-          conditions_.remove(index);
-          onChanged();
-        } else {
-          conditionsBuilder_.remove(index);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder getConditionsBuilder(
-          int index) {
-        return getConditionsFieldBuilder().getBuilder(index);
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder getConditionsOrBuilder(
-          int index) {
-        if (conditionsBuilder_ == null) {
-          return conditions_.get(index);  } else {
-          return conditionsBuilder_.getMessageOrBuilder(index);
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder> 
-           getConditionsOrBuilderList() {
-        if (conditionsBuilder_ != null) {
-          return conditionsBuilder_.getMessageOrBuilderList();
-        } else {
-          return java.util.Collections.unmodifiableList(conditions_);
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder addConditionsBuilder() {
-        return getConditionsFieldBuilder().addBuilder(
-            com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.getDefaultInstance());
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder addConditionsBuilder(
-          int index) {
-        return getConditionsFieldBuilder().addBuilder(
-            index, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.getDefaultInstance());
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public java.util.List<com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder> 
-           getConditionsBuilderList() {
-        return getConditionsFieldBuilder().getBuilderList();
-      }
-      private com.google.protobuf.RepeatedFieldBuilderV3<
-          com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder> 
-          getConditionsFieldBuilder() {
-        if (conditionsBuilder_ == null) {
-          conditionsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
-              com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder>(
-                  conditions_,
-                  ((bitField0_ & 0x00000001) != 0),
-                  getParentForChildren(),
-                  isClean());
-          conditions_ = null;
-        }
-        return conditionsBuilder_;
-      }
-      @java.lang.Override
-      public final Builder setUnknownFields(
-          final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFields(unknownFields);
-      }
-
-      @java.lang.Override
-      public final Builder mergeUnknownFields(
-          final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.mergeUnknownFields(unknownFields);
-      }
-
-
-      // @@protoc_insertion_point(builder_scope:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate)
-    }
-
-    // @@protoc_insertion_point(class_scope:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate)
-    private static final com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate DEFAULT_INSTANCE;
-    static {
-      DEFAULT_INSTANCE = new com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate();
-    }
-
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate getDefaultInstance() {
-      return DEFAULT_INSTANCE;
-    }
-
-    private static final com.google.protobuf.Parser<AndTemplate>
-        PARSER = new com.google.protobuf.AbstractParser<AndTemplate>() {
-      @java.lang.Override
-      public AndTemplate parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        Builder builder = newBuilder();
-        try {
-          builder.mergeFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          throw e.setUnfinishedMessage(builder.buildPartial());
-        } catch (com.google.protobuf.UninitializedMessageException e) {
-          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
-        } catch (java.io.IOException e) {
-          throw new com.google.protobuf.InvalidProtocolBufferException(e)
-              .setUnfinishedMessage(builder.buildPartial());
-        }
-        return builder.buildPartial();
-      }
-    };
-
-    public static com.google.protobuf.Parser<AndTemplate> parser() {
-      return PARSER;
-    }
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<AndTemplate> getParserForType() {
-      return PARSER;
-    }
-
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate getDefaultInstanceForType() {
-      return DEFAULT_INSTANCE;
-    }
-
-  }
-
-  public interface OrTemplateOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate)
-      com.google.protobuf.MessageOrBuilder {
-
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-     */
-    java.util.List<com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate> 
-        getConditionsList();
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-     */
-    com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate getConditions(int index);
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-     */
-    int getConditionsCount();
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-     */
-    java.util.List<? extends com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder> 
-        getConditionsOrBuilderList();
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-     */
-    com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder getConditionsOrBuilder(
-        int index);
-  }
-  /**
-   * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate}
-   */
-  public static final class OrTemplate extends
-      com.google.protobuf.GeneratedMessageV3 implements
-      // @@protoc_insertion_point(message_implements:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate)
-      OrTemplateOrBuilder {
-  private static final long serialVersionUID = 0L;
-    // Use OrTemplate.newBuilder() to construct.
-    private OrTemplate(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
-      super(builder);
-    }
-    private OrTemplate() {
-      conditions_ = java.util.Collections.emptyList();
-    }
-
-    @java.lang.Override
-    @SuppressWarnings({"unused"})
-    protected java.lang.Object newInstance(
-        UnusedPrivateParameter unused) {
-      return new OrTemplate();
-    }
-
-    public static final com.google.protobuf.Descriptors.Descriptor
-        getDescriptor() {
-      return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_OrTemplate_descriptor;
-    }
-
-    @java.lang.Override
-    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-        internalGetFieldAccessorTable() {
-      return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_OrTemplate_fieldAccessorTable
-          .ensureFieldAccessorsInitialized(
-              com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate.class, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate.Builder.class);
-    }
-
-    public static final int CONDITIONS_FIELD_NUMBER = 1;
-    @SuppressWarnings("serial")
-    private java.util.List<com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate> conditions_;
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-     */
-    @java.lang.Override
-    public java.util.List<com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate> getConditionsList() {
-      return conditions_;
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-     */
-    @java.lang.Override
-    public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder> 
-        getConditionsOrBuilderList() {
-      return conditions_;
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-     */
-    @java.lang.Override
-    public int getConditionsCount() {
-      return conditions_.size();
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate getConditions(int index) {
-      return conditions_.get(index);
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder getConditionsOrBuilder(
-        int index) {
-      return conditions_.get(index);
-    }
-
-    private byte memoizedIsInitialized = -1;
-    @java.lang.Override
-    public final boolean isInitialized() {
-      byte isInitialized = memoizedIsInitialized;
-      if (isInitialized == 1) return true;
-      if (isInitialized == 0) return false;
-
-      memoizedIsInitialized = 1;
-      return true;
-    }
-
-    @java.lang.Override
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
-                        throws java.io.IOException {
-      for (int i = 0; i < conditions_.size(); i++) {
-        output.writeMessage(1, conditions_.get(i));
-      }
-      getUnknownFields().writeTo(output);
-    }
-
-    @java.lang.Override
-    public int getSerializedSize() {
-      int size = memoizedSize;
-      if (size != -1) return size;
-
-      size = 0;
-      for (int i = 0; i < conditions_.size(); i++) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(1, conditions_.get(i));
-      }
-      size += getUnknownFields().getSerializedSize();
-      memoizedSize = size;
-      return size;
-    }
-
-    @java.lang.Override
-    public boolean equals(final java.lang.Object obj) {
-      if (obj == this) {
-       return true;
-      }
-      if (!(obj instanceof com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate)) {
-        return super.equals(obj);
-      }
-      com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate other = (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate) obj;
-
-      if (!getConditionsList()
-          .equals(other.getConditionsList())) return false;
-      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
-      return true;
-    }
-
-    @java.lang.Override
-    public int hashCode() {
-      if (memoizedHashCode != 0) {
-        return memoizedHashCode;
-      }
-      int hash = 41;
-      hash = (19 * hash) + getDescriptor().hashCode();
-      if (getConditionsCount() > 0) {
-        hash = (37 * hash) + CONDITIONS_FIELD_NUMBER;
-        hash = (53 * hash) + getConditionsList().hashCode();
-      }
-      hash = (29 * hash) + getUnknownFields().hashCode();
-      memoizedHashCode = hash;
-      return hash;
-    }
-
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate parseFrom(
-        java.nio.ByteBuffer data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate parseFrom(
-        java.nio.ByteBuffer data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate parseFrom(
-        byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate parseFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate parseFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate parseDelimitedFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseDelimitedWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate parseDelimitedFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate parseFrom(
-        com.google.protobuf.CodedInputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input, extensionRegistry);
-    }
-
-    @java.lang.Override
-    public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder() {
-      return DEFAULT_INSTANCE.toBuilder();
-    }
-    public static Builder newBuilder(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate prototype) {
-      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
-    }
-    @java.lang.Override
-    public Builder toBuilder() {
-      return this == DEFAULT_INSTANCE
-          ? new Builder() : new Builder().mergeFrom(this);
-    }
-
-    @java.lang.Override
-    protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
-      Builder builder = new Builder(parent);
-      return builder;
-    }
-    /**
-     * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate}
-     */
-    public static final class Builder extends
-        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
-        // @@protoc_insertion_point(builder_implements:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate)
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplateOrBuilder {
-      public static final com.google.protobuf.Descriptors.Descriptor
-          getDescriptor() {
-        return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_OrTemplate_descriptor;
-      }
-
-      @java.lang.Override
-      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-          internalGetFieldAccessorTable() {
-        return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_OrTemplate_fieldAccessorTable
-            .ensureFieldAccessorsInitialized(
-                com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate.class, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate.Builder.class);
-      }
-
-      // Construct using com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate.newBuilder()
-      private Builder() {
-
-      }
-
-      private Builder(
-          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
-        super(parent);
-
-      }
-      @java.lang.Override
-      public Builder clear() {
-        super.clear();
-        bitField0_ = 0;
-        if (conditionsBuilder_ == null) {
-          conditions_ = java.util.Collections.emptyList();
-        } else {
-          conditions_ = null;
-          conditionsBuilder_.clear();
-        }
-        bitField0_ = (bitField0_ & ~0x00000001);
-        return this;
-      }
-
-      @java.lang.Override
-      public com.google.protobuf.Descriptors.Descriptor
-          getDescriptorForType() {
-        return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_OrTemplate_descriptor;
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate getDefaultInstanceForType() {
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate.getDefaultInstance();
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate build() {
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate result = buildPartial();
-        if (!result.isInitialized()) {
-          throw newUninitializedMessageException(result);
-        }
-        return result;
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate buildPartial() {
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate result = new com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate(this);
-        buildPartialRepeatedFields(result);
-        if (bitField0_ != 0) { buildPartial0(result); }
-        onBuilt();
-        return result;
-      }
-
-      private void buildPartialRepeatedFields(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate result) {
-        if (conditionsBuilder_ == null) {
-          if (((bitField0_ & 0x00000001) != 0)) {
-            conditions_ = java.util.Collections.unmodifiableList(conditions_);
-            bitField0_ = (bitField0_ & ~0x00000001);
-          }
-          result.conditions_ = conditions_;
-        } else {
-          result.conditions_ = conditionsBuilder_.build();
-        }
-      }
-
-      private void buildPartial0(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate result) {
-        int from_bitField0_ = bitField0_;
-      }
-
-      @java.lang.Override
-      public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate) {
-          return mergeFrom((com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate)other);
-        } else {
-          super.mergeFrom(other);
-          return this;
-        }
-      }
-
-      public Builder mergeFrom(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate other) {
-        if (other == com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate.getDefaultInstance()) return this;
-        if (conditionsBuilder_ == null) {
-          if (!other.conditions_.isEmpty()) {
-            if (conditions_.isEmpty()) {
-              conditions_ = other.conditions_;
-              bitField0_ = (bitField0_ & ~0x00000001);
-            } else {
-              ensureConditionsIsMutable();
-              conditions_.addAll(other.conditions_);
-            }
-            onChanged();
-          }
-        } else {
-          if (!other.conditions_.isEmpty()) {
-            if (conditionsBuilder_.isEmpty()) {
-              conditionsBuilder_.dispose();
-              conditionsBuilder_ = null;
-              conditions_ = other.conditions_;
-              bitField0_ = (bitField0_ & ~0x00000001);
-              conditionsBuilder_ = 
-                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
-                   getConditionsFieldBuilder() : null;
-            } else {
-              conditionsBuilder_.addAllMessages(other.conditions_);
-            }
-          }
-        }
-        this.mergeUnknownFields(other.getUnknownFields());
-        onChanged();
-        return this;
-      }
-
-      @java.lang.Override
-      public final boolean isInitialized() {
-        return true;
-      }
-
-      @java.lang.Override
-      public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws java.io.IOException {
-        if (extensionRegistry == null) {
-          throw new java.lang.NullPointerException();
-        }
-        try {
-          boolean done = false;
-          while (!done) {
-            int tag = input.readTag();
-            switch (tag) {
-              case 0:
-                done = true;
-                break;
-              case 10: {
-                com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate m =
-                    input.readMessage(
-                        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.parser(),
-                        extensionRegistry);
-                if (conditionsBuilder_ == null) {
-                  ensureConditionsIsMutable();
-                  conditions_.add(m);
-                } else {
-                  conditionsBuilder_.addMessage(m);
-                }
-                break;
-              } // case 10
-              default: {
-                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
-                  done = true; // was an endgroup tag
-                }
-                break;
-              } // default:
-            } // switch (tag)
-          } // while (!done)
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          throw e.unwrapIOException();
-        } finally {
-          onChanged();
-        } // finally
-        return this;
-      }
-      private int bitField0_;
-
-      private java.util.List<com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate> conditions_ =
-        java.util.Collections.emptyList();
-      private void ensureConditionsIsMutable() {
-        if (!((bitField0_ & 0x00000001) != 0)) {
-          conditions_ = new java.util.ArrayList<com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate>(conditions_);
-          bitField0_ |= 0x00000001;
-         }
-      }
-
-      private com.google.protobuf.RepeatedFieldBuilderV3<
-          com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder> conditionsBuilder_;
-
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public java.util.List<com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate> getConditionsList() {
-        if (conditionsBuilder_ == null) {
-          return java.util.Collections.unmodifiableList(conditions_);
-        } else {
-          return conditionsBuilder_.getMessageList();
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public int getConditionsCount() {
-        if (conditionsBuilder_ == null) {
-          return conditions_.size();
-        } else {
-          return conditionsBuilder_.getCount();
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate getConditions(int index) {
-        if (conditionsBuilder_ == null) {
-          return conditions_.get(index);
-        } else {
-          return conditionsBuilder_.getMessage(index);
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public Builder setConditions(
-          int index, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate value) {
-        if (conditionsBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
-          ensureConditionsIsMutable();
-          conditions_.set(index, value);
-          onChanged();
-        } else {
-          conditionsBuilder_.setMessage(index, value);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public Builder setConditions(
-          int index, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder builderForValue) {
-        if (conditionsBuilder_ == null) {
-          ensureConditionsIsMutable();
-          conditions_.set(index, builderForValue.build());
-          onChanged();
-        } else {
-          conditionsBuilder_.setMessage(index, builderForValue.build());
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public Builder addConditions(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate value) {
-        if (conditionsBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
-          ensureConditionsIsMutable();
-          conditions_.add(value);
-          onChanged();
-        } else {
-          conditionsBuilder_.addMessage(value);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public Builder addConditions(
-          int index, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate value) {
-        if (conditionsBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
-          ensureConditionsIsMutable();
-          conditions_.add(index, value);
-          onChanged();
-        } else {
-          conditionsBuilder_.addMessage(index, value);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public Builder addConditions(
-          com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder builderForValue) {
-        if (conditionsBuilder_ == null) {
-          ensureConditionsIsMutable();
-          conditions_.add(builderForValue.build());
-          onChanged();
-        } else {
-          conditionsBuilder_.addMessage(builderForValue.build());
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public Builder addConditions(
-          int index, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder builderForValue) {
-        if (conditionsBuilder_ == null) {
-          ensureConditionsIsMutable();
-          conditions_.add(index, builderForValue.build());
-          onChanged();
-        } else {
-          conditionsBuilder_.addMessage(index, builderForValue.build());
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public Builder addAllConditions(
-          java.lang.Iterable<? extends com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate> values) {
-        if (conditionsBuilder_ == null) {
-          ensureConditionsIsMutable();
-          com.google.protobuf.AbstractMessageLite.Builder.addAll(
-              values, conditions_);
-          onChanged();
-        } else {
-          conditionsBuilder_.addAllMessages(values);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public Builder clearConditions() {
-        if (conditionsBuilder_ == null) {
-          conditions_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000001);
-          onChanged();
-        } else {
-          conditionsBuilder_.clear();
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public Builder removeConditions(int index) {
-        if (conditionsBuilder_ == null) {
-          ensureConditionsIsMutable();
-          conditions_.remove(index);
-          onChanged();
-        } else {
-          conditionsBuilder_.remove(index);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder getConditionsBuilder(
-          int index) {
-        return getConditionsFieldBuilder().getBuilder(index);
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder getConditionsOrBuilder(
-          int index) {
-        if (conditionsBuilder_ == null) {
-          return conditions_.get(index);  } else {
-          return conditionsBuilder_.getMessageOrBuilder(index);
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder> 
-           getConditionsOrBuilderList() {
-        if (conditionsBuilder_ != null) {
-          return conditionsBuilder_.getMessageOrBuilderList();
-        } else {
-          return java.util.Collections.unmodifiableList(conditions_);
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder addConditionsBuilder() {
-        return getConditionsFieldBuilder().addBuilder(
-            com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.getDefaultInstance());
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder addConditionsBuilder(
-          int index) {
-        return getConditionsFieldBuilder().addBuilder(
-            index, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.getDefaultInstance());
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate conditions = 1;</code>
-       */
-      public java.util.List<com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder> 
-           getConditionsBuilderList() {
-        return getConditionsFieldBuilder().getBuilderList();
-      }
-      private com.google.protobuf.RepeatedFieldBuilderV3<
-          com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder> 
-          getConditionsFieldBuilder() {
-        if (conditionsBuilder_ == null) {
-          conditionsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
-              com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder>(
-                  conditions_,
-                  ((bitField0_ & 0x00000001) != 0),
-                  getParentForChildren(),
-                  isClean());
-          conditions_ = null;
-        }
-        return conditionsBuilder_;
-      }
-      @java.lang.Override
-      public final Builder setUnknownFields(
-          final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFields(unknownFields);
-      }
-
-      @java.lang.Override
-      public final Builder mergeUnknownFields(
-          final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.mergeUnknownFields(unknownFields);
-      }
-
-
-      // @@protoc_insertion_point(builder_scope:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate)
-    }
-
-    // @@protoc_insertion_point(class_scope:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate)
-    private static final com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate DEFAULT_INSTANCE;
-    static {
-      DEFAULT_INSTANCE = new com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate();
-    }
-
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate getDefaultInstance() {
-      return DEFAULT_INSTANCE;
-    }
-
-    private static final com.google.protobuf.Parser<OrTemplate>
-        PARSER = new com.google.protobuf.AbstractParser<OrTemplate>() {
-      @java.lang.Override
-      public OrTemplate parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        Builder builder = newBuilder();
-        try {
-          builder.mergeFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          throw e.setUnfinishedMessage(builder.buildPartial());
-        } catch (com.google.protobuf.UninitializedMessageException e) {
-          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
-        } catch (java.io.IOException e) {
-          throw new com.google.protobuf.InvalidProtocolBufferException(e)
-              .setUnfinishedMessage(builder.buildPartial());
-        }
-        return builder.buildPartial();
-      }
-    };
-
-    public static com.google.protobuf.Parser<OrTemplate> parser() {
-      return PARSER;
-    }
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<OrTemplate> getParserForType() {
-      return PARSER;
-    }
-
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate getDefaultInstanceForType() {
-      return DEFAULT_INSTANCE;
-    }
-
-  }
-
-  public interface LookaheadTemplateOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate)
-      com.google.protobuf.MessageOrBuilder {
-
-    /**
-     * <pre>
-     *    bool from_next_gen = 2;
-     * </pre>
-     *
-     * <code>int32 symbol_id = 1;</code>
-     * @return The symbolId.
-     */
-    int getSymbolId();
-  }
-  /**
-   * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate}
-   */
-  public static final class LookaheadTemplate extends
-      com.google.protobuf.GeneratedMessageV3 implements
-      // @@protoc_insertion_point(message_implements:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate)
-      LookaheadTemplateOrBuilder {
-  private static final long serialVersionUID = 0L;
-    // Use LookaheadTemplate.newBuilder() to construct.
-    private LookaheadTemplate(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
-      super(builder);
-    }
-    private LookaheadTemplate() {
-    }
-
-    @java.lang.Override
-    @SuppressWarnings({"unused"})
-    protected java.lang.Object newInstance(
-        UnusedPrivateParameter unused) {
-      return new LookaheadTemplate();
-    }
-
-    public static final com.google.protobuf.Descriptors.Descriptor
-        getDescriptor() {
-      return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_LookaheadTemplate_descriptor;
-    }
-
-    @java.lang.Override
-    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-        internalGetFieldAccessorTable() {
-      return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_LookaheadTemplate_fieldAccessorTable
-          .ensureFieldAccessorsInitialized(
-              com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.class, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.Builder.class);
-    }
-
-    public static final int SYMBOL_ID_FIELD_NUMBER = 1;
-    private int symbolId_ = 0;
-    /**
-     * <pre>
-     *    bool from_next_gen = 2;
-     * </pre>
-     *
-     * <code>int32 symbol_id = 1;</code>
-     * @return The symbolId.
-     */
-    @java.lang.Override
-    public int getSymbolId() {
-      return symbolId_;
-    }
-
-    private byte memoizedIsInitialized = -1;
-    @java.lang.Override
-    public final boolean isInitialized() {
-      byte isInitialized = memoizedIsInitialized;
-      if (isInitialized == 1) return true;
-      if (isInitialized == 0) return false;
-
-      memoizedIsInitialized = 1;
-      return true;
-    }
-
-    @java.lang.Override
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
-                        throws java.io.IOException {
-      if (symbolId_ != 0) {
-        output.writeInt32(1, symbolId_);
-      }
-      getUnknownFields().writeTo(output);
-    }
-
-    @java.lang.Override
-    public int getSerializedSize() {
-      int size = memoizedSize;
-      if (size != -1) return size;
-
-      size = 0;
-      if (symbolId_ != 0) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(1, symbolId_);
-      }
-      size += getUnknownFields().getSerializedSize();
-      memoizedSize = size;
-      return size;
-    }
-
-    @java.lang.Override
-    public boolean equals(final java.lang.Object obj) {
-      if (obj == this) {
-       return true;
-      }
-      if (!(obj instanceof com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate)) {
-        return super.equals(obj);
-      }
-      com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate other = (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate) obj;
-
-      if (getSymbolId()
-          != other.getSymbolId()) return false;
-      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
-      return true;
-    }
-
-    @java.lang.Override
-    public int hashCode() {
-      if (memoizedHashCode != 0) {
-        return memoizedHashCode;
-      }
-      int hash = 41;
-      hash = (19 * hash) + getDescriptor().hashCode();
-      hash = (37 * hash) + SYMBOL_ID_FIELD_NUMBER;
-      hash = (53 * hash) + getSymbolId();
-      hash = (29 * hash) + getUnknownFields().hashCode();
-      memoizedHashCode = hash;
-      return hash;
-    }
-
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate parseFrom(
-        java.nio.ByteBuffer data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate parseFrom(
-        java.nio.ByteBuffer data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate parseFrom(
-        byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate parseFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate parseFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate parseDelimitedFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseDelimitedWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate parseDelimitedFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate parseFrom(
-        com.google.protobuf.CodedInputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input, extensionRegistry);
-    }
-
-    @java.lang.Override
-    public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder() {
-      return DEFAULT_INSTANCE.toBuilder();
-    }
-    public static Builder newBuilder(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate prototype) {
-      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
-    }
-    @java.lang.Override
-    public Builder toBuilder() {
-      return this == DEFAULT_INSTANCE
-          ? new Builder() : new Builder().mergeFrom(this);
-    }
-
-    @java.lang.Override
-    protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
-      Builder builder = new Builder(parent);
-      return builder;
-    }
-    /**
-     * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate}
-     */
-    public static final class Builder extends
-        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
-        // @@protoc_insertion_point(builder_implements:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate)
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplateOrBuilder {
-      public static final com.google.protobuf.Descriptors.Descriptor
-          getDescriptor() {
-        return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_LookaheadTemplate_descriptor;
-      }
-
-      @java.lang.Override
-      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-          internalGetFieldAccessorTable() {
-        return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_LookaheadTemplate_fieldAccessorTable
-            .ensureFieldAccessorsInitialized(
-                com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.class, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.Builder.class);
-      }
-
-      // Construct using com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.newBuilder()
-      private Builder() {
-
-      }
-
-      private Builder(
-          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
-        super(parent);
-
-      }
-      @java.lang.Override
-      public Builder clear() {
-        super.clear();
-        bitField0_ = 0;
-        symbolId_ = 0;
-        return this;
-      }
-
-      @java.lang.Override
-      public com.google.protobuf.Descriptors.Descriptor
-          getDescriptorForType() {
-        return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_LookaheadTemplate_descriptor;
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate getDefaultInstanceForType() {
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.getDefaultInstance();
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate build() {
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate result = buildPartial();
-        if (!result.isInitialized()) {
-          throw newUninitializedMessageException(result);
-        }
-        return result;
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate buildPartial() {
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate result = new com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate(this);
-        if (bitField0_ != 0) { buildPartial0(result); }
-        onBuilt();
-        return result;
-      }
-
-      private void buildPartial0(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate result) {
-        int from_bitField0_ = bitField0_;
-        if (((from_bitField0_ & 0x00000001) != 0)) {
-          result.symbolId_ = symbolId_;
-        }
-      }
-
-      @java.lang.Override
-      public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate) {
-          return mergeFrom((com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate)other);
-        } else {
-          super.mergeFrom(other);
-          return this;
-        }
-      }
-
-      public Builder mergeFrom(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate other) {
-        if (other == com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.getDefaultInstance()) return this;
-        if (other.getSymbolId() != 0) {
-          setSymbolId(other.getSymbolId());
-        }
-        this.mergeUnknownFields(other.getUnknownFields());
-        onChanged();
-        return this;
-      }
-
-      @java.lang.Override
-      public final boolean isInitialized() {
-        return true;
-      }
-
-      @java.lang.Override
-      public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws java.io.IOException {
-        if (extensionRegistry == null) {
-          throw new java.lang.NullPointerException();
-        }
-        try {
-          boolean done = false;
-          while (!done) {
-            int tag = input.readTag();
-            switch (tag) {
-              case 0:
-                done = true;
-                break;
-              case 8: {
-                symbolId_ = input.readInt32();
-                bitField0_ |= 0x00000001;
-                break;
-              } // case 8
-              default: {
-                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
-                  done = true; // was an endgroup tag
-                }
-                break;
-              } // default:
-            } // switch (tag)
-          } // while (!done)
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          throw e.unwrapIOException();
-        } finally {
-          onChanged();
-        } // finally
-        return this;
-      }
-      private int bitField0_;
-
-      private int symbolId_ ;
-      /**
-       * <pre>
-       *    bool from_next_gen = 2;
-       * </pre>
-       *
-       * <code>int32 symbol_id = 1;</code>
-       * @return The symbolId.
-       */
-      @java.lang.Override
-      public int getSymbolId() {
-        return symbolId_;
-      }
-      /**
-       * <pre>
-       *    bool from_next_gen = 2;
-       * </pre>
-       *
-       * <code>int32 symbol_id = 1;</code>
-       * @param value The symbolId to set.
-       * @return This builder for chaining.
-       */
-      public Builder setSymbolId(int value) {
-
-        symbolId_ = value;
-        bitField0_ |= 0x00000001;
-        onChanged();
-        return this;
-      }
-      /**
-       * <pre>
-       *    bool from_next_gen = 2;
-       * </pre>
-       *
-       * <code>int32 symbol_id = 1;</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearSymbolId() {
-        bitField0_ = (bitField0_ & ~0x00000001);
-        symbolId_ = 0;
-        onChanged();
-        return this;
-      }
-      @java.lang.Override
-      public final Builder setUnknownFields(
-          final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFields(unknownFields);
-      }
-
-      @java.lang.Override
-      public final Builder mergeUnknownFields(
-          final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.mergeUnknownFields(unknownFields);
-      }
-
-
-      // @@protoc_insertion_point(builder_scope:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate)
-    }
-
-    // @@protoc_insertion_point(class_scope:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate)
-    private static final com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate DEFAULT_INSTANCE;
-    static {
-      DEFAULT_INSTANCE = new com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate();
-    }
-
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate getDefaultInstance() {
-      return DEFAULT_INSTANCE;
-    }
-
-    private static final com.google.protobuf.Parser<LookaheadTemplate>
-        PARSER = new com.google.protobuf.AbstractParser<LookaheadTemplate>() {
-      @java.lang.Override
-      public LookaheadTemplate parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        Builder builder = newBuilder();
-        try {
-          builder.mergeFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          throw e.setUnfinishedMessage(builder.buildPartial());
-        } catch (com.google.protobuf.UninitializedMessageException e) {
-          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
-        } catch (java.io.IOException e) {
-          throw new com.google.protobuf.InvalidProtocolBufferException(e)
-              .setUnfinishedMessage(builder.buildPartial());
-        }
-        return builder.buildPartial();
-      }
-    };
-
-    public static com.google.protobuf.Parser<LookaheadTemplate> parser() {
-      return PARSER;
-    }
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<LookaheadTemplate> getParserForType() {
-      return PARSER;
-    }
-
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate getDefaultInstanceForType() {
-      return DEFAULT_INSTANCE;
-    }
-
-  }
-
-  public interface LongestTemplateOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate)
-      com.google.protobuf.MessageOrBuilder {
-
-    /**
-     * <pre>
-     *    bool from_next_gen = 2;
-     * </pre>
-     *
-     * <code>int32 symbol_id = 1;</code>
-     * @return The symbolId.
-     */
-    int getSymbolId();
-  }
-  /**
-   * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate}
-   */
-  public static final class LongestTemplate extends
-      com.google.protobuf.GeneratedMessageV3 implements
-      // @@protoc_insertion_point(message_implements:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate)
-      LongestTemplateOrBuilder {
-  private static final long serialVersionUID = 0L;
-    // Use LongestTemplate.newBuilder() to construct.
-    private LongestTemplate(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
-      super(builder);
-    }
-    private LongestTemplate() {
-    }
-
-    @java.lang.Override
-    @SuppressWarnings({"unused"})
-    protected java.lang.Object newInstance(
-        UnusedPrivateParameter unused) {
-      return new LongestTemplate();
-    }
-
-    public static final com.google.protobuf.Descriptors.Descriptor
-        getDescriptor() {
-      return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_LongestTemplate_descriptor;
-    }
-
-    @java.lang.Override
-    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-        internalGetFieldAccessorTable() {
-      return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_LongestTemplate_fieldAccessorTable
-          .ensureFieldAccessorsInitialized(
-              com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate.class, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate.Builder.class);
-    }
-
-    public static final int SYMBOL_ID_FIELD_NUMBER = 1;
-    private int symbolId_ = 0;
-    /**
-     * <pre>
-     *    bool from_next_gen = 2;
-     * </pre>
-     *
-     * <code>int32 symbol_id = 1;</code>
-     * @return The symbolId.
-     */
-    @java.lang.Override
-    public int getSymbolId() {
-      return symbolId_;
-    }
-
-    private byte memoizedIsInitialized = -1;
-    @java.lang.Override
-    public final boolean isInitialized() {
-      byte isInitialized = memoizedIsInitialized;
-      if (isInitialized == 1) return true;
-      if (isInitialized == 0) return false;
-
-      memoizedIsInitialized = 1;
-      return true;
-    }
-
-    @java.lang.Override
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
-                        throws java.io.IOException {
-      if (symbolId_ != 0) {
-        output.writeInt32(1, symbolId_);
-      }
-      getUnknownFields().writeTo(output);
-    }
-
-    @java.lang.Override
-    public int getSerializedSize() {
-      int size = memoizedSize;
-      if (size != -1) return size;
-
-      size = 0;
-      if (symbolId_ != 0) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(1, symbolId_);
-      }
-      size += getUnknownFields().getSerializedSize();
-      memoizedSize = size;
-      return size;
-    }
-
-    @java.lang.Override
-    public boolean equals(final java.lang.Object obj) {
-      if (obj == this) {
-       return true;
-      }
-      if (!(obj instanceof com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate)) {
-        return super.equals(obj);
-      }
-      com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate other = (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate) obj;
-
-      if (getSymbolId()
-          != other.getSymbolId()) return false;
-      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
-      return true;
-    }
-
-    @java.lang.Override
-    public int hashCode() {
-      if (memoizedHashCode != 0) {
-        return memoizedHashCode;
-      }
-      int hash = 41;
-      hash = (19 * hash) + getDescriptor().hashCode();
-      hash = (37 * hash) + SYMBOL_ID_FIELD_NUMBER;
-      hash = (53 * hash) + getSymbolId();
-      hash = (29 * hash) + getUnknownFields().hashCode();
-      memoizedHashCode = hash;
-      return hash;
-    }
-
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate parseFrom(
-        java.nio.ByteBuffer data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate parseFrom(
-        java.nio.ByteBuffer data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate parseFrom(
-        byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate parseFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate parseFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate parseDelimitedFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseDelimitedWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate parseDelimitedFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate parseFrom(
-        com.google.protobuf.CodedInputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input, extensionRegistry);
-    }
-
-    @java.lang.Override
-    public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder() {
-      return DEFAULT_INSTANCE.toBuilder();
-    }
-    public static Builder newBuilder(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate prototype) {
-      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
-    }
-    @java.lang.Override
-    public Builder toBuilder() {
-      return this == DEFAULT_INSTANCE
-          ? new Builder() : new Builder().mergeFrom(this);
-    }
-
-    @java.lang.Override
-    protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
-      Builder builder = new Builder(parent);
-      return builder;
-    }
-    /**
-     * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate}
-     */
-    public static final class Builder extends
-        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
-        // @@protoc_insertion_point(builder_implements:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate)
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplateOrBuilder {
-      public static final com.google.protobuf.Descriptors.Descriptor
-          getDescriptor() {
-        return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_LongestTemplate_descriptor;
-      }
-
-      @java.lang.Override
-      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-          internalGetFieldAccessorTable() {
-        return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_LongestTemplate_fieldAccessorTable
-            .ensureFieldAccessorsInitialized(
-                com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate.class, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate.Builder.class);
-      }
-
-      // Construct using com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate.newBuilder()
-      private Builder() {
-
-      }
-
-      private Builder(
-          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
-        super(parent);
-
-      }
-      @java.lang.Override
-      public Builder clear() {
-        super.clear();
-        bitField0_ = 0;
-        symbolId_ = 0;
-        return this;
-      }
-
-      @java.lang.Override
-      public com.google.protobuf.Descriptors.Descriptor
-          getDescriptorForType() {
-        return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_LongestTemplate_descriptor;
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate getDefaultInstanceForType() {
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate.getDefaultInstance();
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate build() {
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate result = buildPartial();
-        if (!result.isInitialized()) {
-          throw newUninitializedMessageException(result);
-        }
-        return result;
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate buildPartial() {
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate result = new com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate(this);
-        if (bitField0_ != 0) { buildPartial0(result); }
-        onBuilt();
-        return result;
-      }
-
-      private void buildPartial0(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate result) {
-        int from_bitField0_ = bitField0_;
-        if (((from_bitField0_ & 0x00000001) != 0)) {
-          result.symbolId_ = symbolId_;
-        }
-      }
-
-      @java.lang.Override
-      public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate) {
-          return mergeFrom((com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate)other);
-        } else {
-          super.mergeFrom(other);
-          return this;
-        }
-      }
-
-      public Builder mergeFrom(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate other) {
-        if (other == com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate.getDefaultInstance()) return this;
-        if (other.getSymbolId() != 0) {
-          setSymbolId(other.getSymbolId());
-        }
-        this.mergeUnknownFields(other.getUnknownFields());
-        onChanged();
-        return this;
-      }
-
-      @java.lang.Override
-      public final boolean isInitialized() {
-        return true;
-      }
-
-      @java.lang.Override
-      public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws java.io.IOException {
-        if (extensionRegistry == null) {
-          throw new java.lang.NullPointerException();
-        }
-        try {
-          boolean done = false;
-          while (!done) {
-            int tag = input.readTag();
-            switch (tag) {
-              case 0:
-                done = true;
-                break;
-              case 8: {
-                symbolId_ = input.readInt32();
-                bitField0_ |= 0x00000001;
-                break;
-              } // case 8
-              default: {
-                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
-                  done = true; // was an endgroup tag
-                }
-                break;
-              } // default:
-            } // switch (tag)
-          } // while (!done)
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          throw e.unwrapIOException();
-        } finally {
-          onChanged();
-        } // finally
-        return this;
-      }
-      private int bitField0_;
-
-      private int symbolId_ ;
-      /**
-       * <pre>
-       *    bool from_next_gen = 2;
-       * </pre>
-       *
-       * <code>int32 symbol_id = 1;</code>
-       * @return The symbolId.
-       */
-      @java.lang.Override
-      public int getSymbolId() {
-        return symbolId_;
-      }
-      /**
-       * <pre>
-       *    bool from_next_gen = 2;
-       * </pre>
-       *
-       * <code>int32 symbol_id = 1;</code>
-       * @param value The symbolId to set.
-       * @return This builder for chaining.
-       */
-      public Builder setSymbolId(int value) {
-
-        symbolId_ = value;
-        bitField0_ |= 0x00000001;
-        onChanged();
-        return this;
-      }
-      /**
-       * <pre>
-       *    bool from_next_gen = 2;
-       * </pre>
-       *
-       * <code>int32 symbol_id = 1;</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearSymbolId() {
-        bitField0_ = (bitField0_ & ~0x00000001);
-        symbolId_ = 0;
-        onChanged();
-        return this;
-      }
-      @java.lang.Override
-      public final Builder setUnknownFields(
-          final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFields(unknownFields);
-      }
-
-      @java.lang.Override
-      public final Builder mergeUnknownFields(
-          final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.mergeUnknownFields(unknownFields);
-      }
-
-
-      // @@protoc_insertion_point(builder_scope:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate)
-    }
-
-    // @@protoc_insertion_point(class_scope:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate)
-    private static final com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate DEFAULT_INSTANCE;
-    static {
-      DEFAULT_INSTANCE = new com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate();
-    }
-
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate getDefaultInstance() {
-      return DEFAULT_INSTANCE;
-    }
-
-    private static final com.google.protobuf.Parser<LongestTemplate>
-        PARSER = new com.google.protobuf.AbstractParser<LongestTemplate>() {
-      @java.lang.Override
-      public LongestTemplate parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        Builder builder = newBuilder();
-        try {
-          builder.mergeFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          throw e.setUnfinishedMessage(builder.buildPartial());
-        } catch (com.google.protobuf.UninitializedMessageException e) {
-          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
-        } catch (java.io.IOException e) {
-          throw new com.google.protobuf.InvalidProtocolBufferException(e)
-              .setUnfinishedMessage(builder.buildPartial());
-        }
-        return builder.buildPartial();
-      }
-    };
-
-    public static com.google.protobuf.Parser<LongestTemplate> parser() {
-      return PARSER;
-    }
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<LongestTemplate> getParserForType() {
-      return PARSER;
-    }
-
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate getDefaultInstanceForType() {
-      return DEFAULT_INSTANCE;
-    }
-
-  }
-
-  public interface OnlyIfTemplateOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate)
-      com.google.protobuf.MessageOrBuilder {
-
-    /**
-     * <pre>
-     *    bool from_next_gen = 2;
-     * </pre>
-     *
-     * <code>int32 symbol_id = 1;</code>
-     * @return The symbolId.
-     */
-    int getSymbolId();
-  }
-  /**
-   * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate}
-   */
-  public static final class OnlyIfTemplate extends
-      com.google.protobuf.GeneratedMessageV3 implements
-      // @@protoc_insertion_point(message_implements:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate)
-      OnlyIfTemplateOrBuilder {
-  private static final long serialVersionUID = 0L;
-    // Use OnlyIfTemplate.newBuilder() to construct.
-    private OnlyIfTemplate(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
-      super(builder);
-    }
-    private OnlyIfTemplate() {
-    }
-
-    @java.lang.Override
-    @SuppressWarnings({"unused"})
-    protected java.lang.Object newInstance(
-        UnusedPrivateParameter unused) {
-      return new OnlyIfTemplate();
-    }
-
-    public static final com.google.protobuf.Descriptors.Descriptor
-        getDescriptor() {
-      return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_OnlyIfTemplate_descriptor;
-    }
-
-    @java.lang.Override
-    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-        internalGetFieldAccessorTable() {
-      return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_OnlyIfTemplate_fieldAccessorTable
-          .ensureFieldAccessorsInitialized(
-              com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate.class, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate.Builder.class);
-    }
-
-    public static final int SYMBOL_ID_FIELD_NUMBER = 1;
-    private int symbolId_ = 0;
-    /**
-     * <pre>
-     *    bool from_next_gen = 2;
-     * </pre>
-     *
-     * <code>int32 symbol_id = 1;</code>
-     * @return The symbolId.
-     */
-    @java.lang.Override
-    public int getSymbolId() {
-      return symbolId_;
-    }
-
-    private byte memoizedIsInitialized = -1;
-    @java.lang.Override
-    public final boolean isInitialized() {
-      byte isInitialized = memoizedIsInitialized;
-      if (isInitialized == 1) return true;
-      if (isInitialized == 0) return false;
-
-      memoizedIsInitialized = 1;
-      return true;
-    }
-
-    @java.lang.Override
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
-                        throws java.io.IOException {
-      if (symbolId_ != 0) {
-        output.writeInt32(1, symbolId_);
-      }
-      getUnknownFields().writeTo(output);
-    }
-
-    @java.lang.Override
-    public int getSerializedSize() {
-      int size = memoizedSize;
-      if (size != -1) return size;
-
-      size = 0;
-      if (symbolId_ != 0) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(1, symbolId_);
-      }
-      size += getUnknownFields().getSerializedSize();
-      memoizedSize = size;
-      return size;
-    }
-
-    @java.lang.Override
-    public boolean equals(final java.lang.Object obj) {
-      if (obj == this) {
-       return true;
-      }
-      if (!(obj instanceof com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate)) {
-        return super.equals(obj);
-      }
-      com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate other = (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate) obj;
-
-      if (getSymbolId()
-          != other.getSymbolId()) return false;
-      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
-      return true;
-    }
-
-    @java.lang.Override
-    public int hashCode() {
-      if (memoizedHashCode != 0) {
-        return memoizedHashCode;
-      }
-      int hash = 41;
-      hash = (19 * hash) + getDescriptor().hashCode();
-      hash = (37 * hash) + SYMBOL_ID_FIELD_NUMBER;
-      hash = (53 * hash) + getSymbolId();
-      hash = (29 * hash) + getUnknownFields().hashCode();
-      memoizedHashCode = hash;
-      return hash;
-    }
-
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate parseFrom(
-        java.nio.ByteBuffer data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate parseFrom(
-        java.nio.ByteBuffer data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate parseFrom(
-        byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate parseFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate parseFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate parseDelimitedFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseDelimitedWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate parseDelimitedFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate parseFrom(
-        com.google.protobuf.CodedInputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input, extensionRegistry);
-    }
-
-    @java.lang.Override
-    public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder() {
-      return DEFAULT_INSTANCE.toBuilder();
-    }
-    public static Builder newBuilder(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate prototype) {
-      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
-    }
-    @java.lang.Override
-    public Builder toBuilder() {
-      return this == DEFAULT_INSTANCE
-          ? new Builder() : new Builder().mergeFrom(this);
-    }
-
-    @java.lang.Override
-    protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
-      Builder builder = new Builder(parent);
-      return builder;
-    }
-    /**
-     * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate}
-     */
-    public static final class Builder extends
-        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
-        // @@protoc_insertion_point(builder_implements:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate)
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplateOrBuilder {
-      public static final com.google.protobuf.Descriptors.Descriptor
-          getDescriptor() {
-        return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_OnlyIfTemplate_descriptor;
-      }
-
-      @java.lang.Override
-      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-          internalGetFieldAccessorTable() {
-        return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_OnlyIfTemplate_fieldAccessorTable
-            .ensureFieldAccessorsInitialized(
-                com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate.class, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate.Builder.class);
-      }
-
-      // Construct using com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate.newBuilder()
-      private Builder() {
-
-      }
-
-      private Builder(
-          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
-        super(parent);
-
-      }
-      @java.lang.Override
-      public Builder clear() {
-        super.clear();
-        bitField0_ = 0;
-        symbolId_ = 0;
-        return this;
-      }
-
-      @java.lang.Override
-      public com.google.protobuf.Descriptors.Descriptor
-          getDescriptorForType() {
-        return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_OnlyIfTemplate_descriptor;
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate getDefaultInstanceForType() {
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate.getDefaultInstance();
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate build() {
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate result = buildPartial();
-        if (!result.isInitialized()) {
-          throw newUninitializedMessageException(result);
-        }
-        return result;
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate buildPartial() {
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate result = new com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate(this);
-        if (bitField0_ != 0) { buildPartial0(result); }
-        onBuilt();
-        return result;
-      }
-
-      private void buildPartial0(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate result) {
-        int from_bitField0_ = bitField0_;
-        if (((from_bitField0_ & 0x00000001) != 0)) {
-          result.symbolId_ = symbolId_;
-        }
-      }
-
-      @java.lang.Override
-      public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate) {
-          return mergeFrom((com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate)other);
-        } else {
-          super.mergeFrom(other);
-          return this;
-        }
-      }
-
-      public Builder mergeFrom(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate other) {
-        if (other == com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate.getDefaultInstance()) return this;
-        if (other.getSymbolId() != 0) {
-          setSymbolId(other.getSymbolId());
-        }
-        this.mergeUnknownFields(other.getUnknownFields());
-        onChanged();
-        return this;
-      }
-
-      @java.lang.Override
-      public final boolean isInitialized() {
-        return true;
-      }
-
-      @java.lang.Override
-      public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws java.io.IOException {
-        if (extensionRegistry == null) {
-          throw new java.lang.NullPointerException();
-        }
-        try {
-          boolean done = false;
-          while (!done) {
-            int tag = input.readTag();
-            switch (tag) {
-              case 0:
-                done = true;
-                break;
-              case 8: {
-                symbolId_ = input.readInt32();
-                bitField0_ |= 0x00000001;
-                break;
-              } // case 8
-              default: {
-                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
-                  done = true; // was an endgroup tag
-                }
-                break;
-              } // default:
-            } // switch (tag)
-          } // while (!done)
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          throw e.unwrapIOException();
-        } finally {
-          onChanged();
-        } // finally
-        return this;
-      }
-      private int bitField0_;
-
-      private int symbolId_ ;
-      /**
-       * <pre>
-       *    bool from_next_gen = 2;
-       * </pre>
-       *
-       * <code>int32 symbol_id = 1;</code>
-       * @return The symbolId.
-       */
-      @java.lang.Override
-      public int getSymbolId() {
-        return symbolId_;
-      }
-      /**
-       * <pre>
-       *    bool from_next_gen = 2;
-       * </pre>
-       *
-       * <code>int32 symbol_id = 1;</code>
-       * @param value The symbolId to set.
-       * @return This builder for chaining.
-       */
-      public Builder setSymbolId(int value) {
-
-        symbolId_ = value;
-        bitField0_ |= 0x00000001;
-        onChanged();
-        return this;
-      }
-      /**
-       * <pre>
-       *    bool from_next_gen = 2;
-       * </pre>
-       *
-       * <code>int32 symbol_id = 1;</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearSymbolId() {
-        bitField0_ = (bitField0_ & ~0x00000001);
-        symbolId_ = 0;
-        onChanged();
-        return this;
-      }
-      @java.lang.Override
-      public final Builder setUnknownFields(
-          final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFields(unknownFields);
-      }
-
-      @java.lang.Override
-      public final Builder mergeUnknownFields(
-          final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.mergeUnknownFields(unknownFields);
-      }
-
-
-      // @@protoc_insertion_point(builder_scope:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate)
-    }
-
-    // @@protoc_insertion_point(class_scope:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate)
-    private static final com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate DEFAULT_INSTANCE;
-    static {
-      DEFAULT_INSTANCE = new com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate();
-    }
-
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate getDefaultInstance() {
-      return DEFAULT_INSTANCE;
-    }
-
-    private static final com.google.protobuf.Parser<OnlyIfTemplate>
-        PARSER = new com.google.protobuf.AbstractParser<OnlyIfTemplate>() {
-      @java.lang.Override
-      public OnlyIfTemplate parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        Builder builder = newBuilder();
-        try {
-          builder.mergeFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          throw e.setUnfinishedMessage(builder.buildPartial());
-        } catch (com.google.protobuf.UninitializedMessageException e) {
-          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
-        } catch (java.io.IOException e) {
-          throw new com.google.protobuf.InvalidProtocolBufferException(e)
-              .setUnfinishedMessage(builder.buildPartial());
-        }
-        return builder.buildPartial();
-      }
-    };
-
-    public static com.google.protobuf.Parser<OnlyIfTemplate> parser() {
-      return PARSER;
-    }
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<OnlyIfTemplate> getParserForType() {
-      return PARSER;
-    }
-
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate getDefaultInstanceForType() {
-      return DEFAULT_INSTANCE;
-    }
-
-  }
-
-  public interface UnlessTemplateOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate)
-      com.google.protobuf.MessageOrBuilder {
-
-    /**
-     * <pre>
-     *    bool from_next_gen = 2;
-     * </pre>
-     *
-     * <code>int32 symbol_id = 1;</code>
-     * @return The symbolId.
-     */
-    int getSymbolId();
-  }
-  /**
-   * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate}
-   */
-  public static final class UnlessTemplate extends
-      com.google.protobuf.GeneratedMessageV3 implements
-      // @@protoc_insertion_point(message_implements:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate)
-      UnlessTemplateOrBuilder {
-  private static final long serialVersionUID = 0L;
-    // Use UnlessTemplate.newBuilder() to construct.
-    private UnlessTemplate(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
-      super(builder);
-    }
-    private UnlessTemplate() {
-    }
-
-    @java.lang.Override
-    @SuppressWarnings({"unused"})
-    protected java.lang.Object newInstance(
-        UnusedPrivateParameter unused) {
-      return new UnlessTemplate();
-    }
-
-    public static final com.google.protobuf.Descriptors.Descriptor
-        getDescriptor() {
-      return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_UnlessTemplate_descriptor;
-    }
-
-    @java.lang.Override
-    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-        internalGetFieldAccessorTable() {
-      return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_UnlessTemplate_fieldAccessorTable
-          .ensureFieldAccessorsInitialized(
-              com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate.class, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate.Builder.class);
-    }
-
-    public static final int SYMBOL_ID_FIELD_NUMBER = 1;
-    private int symbolId_ = 0;
-    /**
-     * <pre>
-     *    bool from_next_gen = 2;
-     * </pre>
-     *
-     * <code>int32 symbol_id = 1;</code>
-     * @return The symbolId.
-     */
-    @java.lang.Override
-    public int getSymbolId() {
-      return symbolId_;
-    }
-
-    private byte memoizedIsInitialized = -1;
-    @java.lang.Override
-    public final boolean isInitialized() {
-      byte isInitialized = memoizedIsInitialized;
-      if (isInitialized == 1) return true;
-      if (isInitialized == 0) return false;
-
-      memoizedIsInitialized = 1;
-      return true;
-    }
-
-    @java.lang.Override
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
-                        throws java.io.IOException {
-      if (symbolId_ != 0) {
-        output.writeInt32(1, symbolId_);
-      }
-      getUnknownFields().writeTo(output);
-    }
-
-    @java.lang.Override
-    public int getSerializedSize() {
-      int size = memoizedSize;
-      if (size != -1) return size;
-
-      size = 0;
-      if (symbolId_ != 0) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(1, symbolId_);
-      }
-      size += getUnknownFields().getSerializedSize();
-      memoizedSize = size;
-      return size;
-    }
-
-    @java.lang.Override
-    public boolean equals(final java.lang.Object obj) {
-      if (obj == this) {
-       return true;
-      }
-      if (!(obj instanceof com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate)) {
-        return super.equals(obj);
-      }
-      com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate other = (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate) obj;
-
-      if (getSymbolId()
-          != other.getSymbolId()) return false;
-      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
-      return true;
-    }
-
-    @java.lang.Override
-    public int hashCode() {
-      if (memoizedHashCode != 0) {
-        return memoizedHashCode;
-      }
-      int hash = 41;
-      hash = (19 * hash) + getDescriptor().hashCode();
-      hash = (37 * hash) + SYMBOL_ID_FIELD_NUMBER;
-      hash = (53 * hash) + getSymbolId();
-      hash = (29 * hash) + getUnknownFields().hashCode();
-      memoizedHashCode = hash;
-      return hash;
-    }
-
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate parseFrom(
-        java.nio.ByteBuffer data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate parseFrom(
-        java.nio.ByteBuffer data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate parseFrom(
-        byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate parseFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate parseFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate parseDelimitedFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseDelimitedWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate parseDelimitedFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate parseFrom(
-        com.google.protobuf.CodedInputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input, extensionRegistry);
-    }
-
-    @java.lang.Override
-    public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder() {
-      return DEFAULT_INSTANCE.toBuilder();
-    }
-    public static Builder newBuilder(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate prototype) {
-      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
-    }
-    @java.lang.Override
-    public Builder toBuilder() {
-      return this == DEFAULT_INSTANCE
-          ? new Builder() : new Builder().mergeFrom(this);
-    }
-
-    @java.lang.Override
-    protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
-      Builder builder = new Builder(parent);
-      return builder;
-    }
-    /**
-     * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate}
-     */
-    public static final class Builder extends
-        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
-        // @@protoc_insertion_point(builder_implements:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate)
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplateOrBuilder {
-      public static final com.google.protobuf.Descriptors.Descriptor
-          getDescriptor() {
-        return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_UnlessTemplate_descriptor;
-      }
-
-      @java.lang.Override
-      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-          internalGetFieldAccessorTable() {
-        return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_UnlessTemplate_fieldAccessorTable
-            .ensureFieldAccessorsInitialized(
-                com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate.class, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate.Builder.class);
-      }
-
-      // Construct using com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate.newBuilder()
-      private Builder() {
-
-      }
-
-      private Builder(
-          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
-        super(parent);
-
-      }
-      @java.lang.Override
-      public Builder clear() {
-        super.clear();
-        bitField0_ = 0;
-        symbolId_ = 0;
-        return this;
-      }
-
-      @java.lang.Override
-      public com.google.protobuf.Descriptors.Descriptor
-          getDescriptorForType() {
-        return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionTemplate_UnlessTemplate_descriptor;
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate getDefaultInstanceForType() {
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate.getDefaultInstance();
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate build() {
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate result = buildPartial();
-        if (!result.isInitialized()) {
-          throw newUninitializedMessageException(result);
-        }
-        return result;
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate buildPartial() {
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate result = new com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate(this);
-        if (bitField0_ != 0) { buildPartial0(result); }
-        onBuilt();
-        return result;
-      }
-
-      private void buildPartial0(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate result) {
-        int from_bitField0_ = bitField0_;
-        if (((from_bitField0_ & 0x00000001) != 0)) {
-          result.symbolId_ = symbolId_;
-        }
-      }
-
-      @java.lang.Override
-      public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate) {
-          return mergeFrom((com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate)other);
-        } else {
-          super.mergeFrom(other);
-          return this;
-        }
-      }
-
-      public Builder mergeFrom(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate other) {
-        if (other == com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate.getDefaultInstance()) return this;
-        if (other.getSymbolId() != 0) {
-          setSymbolId(other.getSymbolId());
-        }
-        this.mergeUnknownFields(other.getUnknownFields());
-        onChanged();
-        return this;
-      }
-
-      @java.lang.Override
-      public final boolean isInitialized() {
-        return true;
-      }
-
-      @java.lang.Override
-      public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws java.io.IOException {
-        if (extensionRegistry == null) {
-          throw new java.lang.NullPointerException();
-        }
-        try {
-          boolean done = false;
-          while (!done) {
-            int tag = input.readTag();
-            switch (tag) {
-              case 0:
-                done = true;
-                break;
-              case 8: {
-                symbolId_ = input.readInt32();
-                bitField0_ |= 0x00000001;
-                break;
-              } // case 8
-              default: {
-                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
-                  done = true; // was an endgroup tag
-                }
-                break;
-              } // default:
-            } // switch (tag)
-          } // while (!done)
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          throw e.unwrapIOException();
-        } finally {
-          onChanged();
-        } // finally
-        return this;
-      }
-      private int bitField0_;
-
-      private int symbolId_ ;
-      /**
-       * <pre>
-       *    bool from_next_gen = 2;
-       * </pre>
-       *
-       * <code>int32 symbol_id = 1;</code>
-       * @return The symbolId.
-       */
-      @java.lang.Override
-      public int getSymbolId() {
-        return symbolId_;
-      }
-      /**
-       * <pre>
-       *    bool from_next_gen = 2;
-       * </pre>
-       *
-       * <code>int32 symbol_id = 1;</code>
-       * @param value The symbolId to set.
-       * @return This builder for chaining.
-       */
-      public Builder setSymbolId(int value) {
-
-        symbolId_ = value;
-        bitField0_ |= 0x00000001;
-        onChanged();
-        return this;
-      }
-      /**
-       * <pre>
-       *    bool from_next_gen = 2;
-       * </pre>
-       *
-       * <code>int32 symbol_id = 1;</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearSymbolId() {
-        bitField0_ = (bitField0_ & ~0x00000001);
-        symbolId_ = 0;
-        onChanged();
-        return this;
-      }
-      @java.lang.Override
-      public final Builder setUnknownFields(
-          final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFields(unknownFields);
-      }
-
-      @java.lang.Override
-      public final Builder mergeUnknownFields(
-          final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.mergeUnknownFields(unknownFields);
-      }
-
-
-      // @@protoc_insertion_point(builder_scope:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate)
-    }
-
-    // @@protoc_insertion_point(class_scope:com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate)
-    private static final com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate DEFAULT_INSTANCE;
-    static {
-      DEFAULT_INSTANCE = new com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate();
-    }
-
-    public static com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate getDefaultInstance() {
-      return DEFAULT_INSTANCE;
-    }
-
-    private static final com.google.protobuf.Parser<UnlessTemplate>
-        PARSER = new com.google.protobuf.AbstractParser<UnlessTemplate>() {
-      @java.lang.Override
-      public UnlessTemplate parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        Builder builder = newBuilder();
-        try {
-          builder.mergeFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          throw e.setUnfinishedMessage(builder.buildPartial());
-        } catch (com.google.protobuf.UninitializedMessageException e) {
-          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
-        } catch (java.io.IOException e) {
-          throw new com.google.protobuf.InvalidProtocolBufferException(e)
-              .setUnfinishedMessage(builder.buildPartial());
-        }
-        return builder.buildPartial();
-      }
-    };
-
-    public static com.google.protobuf.Parser<UnlessTemplate> parser() {
-      return PARSER;
-    }
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<UnlessTemplate> getParserForType() {
-      return PARSER;
-    }
-
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate getDefaultInstanceForType() {
-      return DEFAULT_INSTANCE;
-    }
-
-  }
-
   private int conditionCase_ = 0;
   @SuppressWarnings("serial")
   private java.lang.Object condition_;
   public enum ConditionCase
       implements com.google.protobuf.Internal.EnumLite,
           com.google.protobuf.AbstractMessage.InternalOneOfEnum {
-    ALWAYS(1),
-    NEVER(2),
-    AND(3),
-    OR(4),
-    LOOKAHEAD_IS(5),
-    LOOKAHEAD_NOT(6),
-    LONGEST(7),
-    ONLY_IF(8),
-    UNLESS(9),
+    LONGEST(1),
+    LOOKAHEAD_FOUND(2),
+    LOOKAHEAD_NOTFOUND(3),
+    EXCEPT(4),
+    JOIN(5),
     CONDITION_NOT_SET(0);
     private final int value;
     private ConditionCase(int value) {
@@ -3414,15 +66,11 @@ private static final long serialVersionUID = 0L;
 
     public static ConditionCase forNumber(int value) {
       switch (value) {
-        case 1: return ALWAYS;
-        case 2: return NEVER;
-        case 3: return AND;
-        case 4: return OR;
-        case 5: return LOOKAHEAD_IS;
-        case 6: return LOOKAHEAD_NOT;
-        case 7: return LONGEST;
-        case 8: return ONLY_IF;
-        case 9: return UNLESS;
+        case 1: return LONGEST;
+        case 2: return LOOKAHEAD_FOUND;
+        case 3: return LOOKAHEAD_NOTFOUND;
+        case 4: return EXCEPT;
+        case 5: return JOIN;
         case 0: return CONDITION_NOT_SET;
         default: return null;
       }
@@ -3438,283 +86,151 @@ private static final long serialVersionUID = 0L;
         conditionCase_);
   }
 
-  public static final int ALWAYS_FIELD_NUMBER = 1;
+  public static final int LONGEST_FIELD_NUMBER = 1;
   /**
-   * <code>.google.protobuf.Empty always = 1;</code>
-   * @return Whether the always field is set.
-   */
-  @java.lang.Override
-  public boolean hasAlways() {
-    return conditionCase_ == 1;
-  }
-  /**
-   * <code>.google.protobuf.Empty always = 1;</code>
-   * @return The always.
-   */
-  @java.lang.Override
-  public com.google.protobuf.Empty getAlways() {
-    if (conditionCase_ == 1) {
-       return (com.google.protobuf.Empty) condition_;
-    }
-    return com.google.protobuf.Empty.getDefaultInstance();
-  }
-  /**
-   * <code>.google.protobuf.Empty always = 1;</code>
-   */
-  @java.lang.Override
-  public com.google.protobuf.EmptyOrBuilder getAlwaysOrBuilder() {
-    if (conditionCase_ == 1) {
-       return (com.google.protobuf.Empty) condition_;
-    }
-    return com.google.protobuf.Empty.getDefaultInstance();
-  }
-
-  public static final int NEVER_FIELD_NUMBER = 2;
-  /**
-   * <code>.google.protobuf.Empty never = 2;</code>
-   * @return Whether the never field is set.
-   */
-  @java.lang.Override
-  public boolean hasNever() {
-    return conditionCase_ == 2;
-  }
-  /**
-   * <code>.google.protobuf.Empty never = 2;</code>
-   * @return The never.
-   */
-  @java.lang.Override
-  public com.google.protobuf.Empty getNever() {
-    if (conditionCase_ == 2) {
-       return (com.google.protobuf.Empty) condition_;
-    }
-    return com.google.protobuf.Empty.getDefaultInstance();
-  }
-  /**
-   * <code>.google.protobuf.Empty never = 2;</code>
-   */
-  @java.lang.Override
-  public com.google.protobuf.EmptyOrBuilder getNeverOrBuilder() {
-    if (conditionCase_ == 2) {
-       return (com.google.protobuf.Empty) condition_;
-    }
-    return com.google.protobuf.Empty.getDefaultInstance();
-  }
-
-  public static final int AND_FIELD_NUMBER = 3;
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate and = 3;</code>
-   * @return Whether the and field is set.
-   */
-  @java.lang.Override
-  public boolean hasAnd() {
-    return conditionCase_ == 3;
-  }
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate and = 3;</code>
-   * @return The and.
-   */
-  @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate getAnd() {
-    if (conditionCase_ == 3) {
-       return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate) condition_;
-    }
-    return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate.getDefaultInstance();
-  }
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate and = 3;</code>
-   */
-  @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplateOrBuilder getAndOrBuilder() {
-    if (conditionCase_ == 3) {
-       return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate) condition_;
-    }
-    return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate.getDefaultInstance();
-  }
-
-  public static final int OR_FIELD_NUMBER = 4;
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate or = 4;</code>
-   * @return Whether the or field is set.
-   */
-  @java.lang.Override
-  public boolean hasOr() {
-    return conditionCase_ == 4;
-  }
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate or = 4;</code>
-   * @return The or.
-   */
-  @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate getOr() {
-    if (conditionCase_ == 4) {
-       return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate) condition_;
-    }
-    return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate.getDefaultInstance();
-  }
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate or = 4;</code>
-   */
-  @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplateOrBuilder getOrOrBuilder() {
-    if (conditionCase_ == 4) {
-       return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate) condition_;
-    }
-    return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate.getDefaultInstance();
-  }
-
-  public static final int LOOKAHEAD_IS_FIELD_NUMBER = 5;
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_is = 5;</code>
-   * @return Whether the lookaheadIs field is set.
-   */
-  @java.lang.Override
-  public boolean hasLookaheadIs() {
-    return conditionCase_ == 5;
-  }
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_is = 5;</code>
-   * @return The lookaheadIs.
-   */
-  @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate getLookaheadIs() {
-    if (conditionCase_ == 5) {
-       return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate) condition_;
-    }
-    return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.getDefaultInstance();
-  }
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_is = 5;</code>
-   */
-  @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplateOrBuilder getLookaheadIsOrBuilder() {
-    if (conditionCase_ == 5) {
-       return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate) condition_;
-    }
-    return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.getDefaultInstance();
-  }
-
-  public static final int LOOKAHEAD_NOT_FIELD_NUMBER = 6;
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_not = 6;</code>
-   * @return Whether the lookaheadNot field is set.
-   */
-  @java.lang.Override
-  public boolean hasLookaheadNot() {
-    return conditionCase_ == 6;
-  }
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_not = 6;</code>
-   * @return The lookaheadNot.
-   */
-  @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate getLookaheadNot() {
-    if (conditionCase_ == 6) {
-       return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate) condition_;
-    }
-    return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.getDefaultInstance();
-  }
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_not = 6;</code>
-   */
-  @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplateOrBuilder getLookaheadNotOrBuilder() {
-    if (conditionCase_ == 6) {
-       return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate) condition_;
-    }
-    return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.getDefaultInstance();
-  }
-
-  public static final int LONGEST_FIELD_NUMBER = 7;
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate longest = 7;</code>
+   * <pre>
+   * longest 심볼의 PathStarter로부터 만들어진 경로가 이후에 finish되는 경우가 있으면 이번 path는 invalidate한다
+   * (정확히는, longest 심볼의 PathStarter로부터 만들어진 경로가 이후에 finish되면 그 때 조건의 negation을 and로 붙인다)
+   * </pre>
+   *
+   * <code>int32 longest = 1;</code>
    * @return Whether the longest field is set.
    */
   @java.lang.Override
   public boolean hasLongest() {
-    return conditionCase_ == 7;
+    return conditionCase_ == 1;
   }
   /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate longest = 7;</code>
+   * <pre>
+   * longest 심볼의 PathStarter로부터 만들어진 경로가 이후에 finish되는 경우가 있으면 이번 path는 invalidate한다
+   * (정확히는, longest 심볼의 PathStarter로부터 만들어진 경로가 이후에 finish되면 그 때 조건의 negation을 and로 붙인다)
+   * </pre>
+   *
+   * <code>int32 longest = 1;</code>
    * @return The longest.
    */
   @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate getLongest() {
-    if (conditionCase_ == 7) {
-       return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate) condition_;
+  public int getLongest() {
+    if (conditionCase_ == 1) {
+      return (java.lang.Integer) condition_;
     }
-    return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate.getDefaultInstance();
-  }
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate longest = 7;</code>
-   */
-  @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplateOrBuilder getLongestOrBuilder() {
-    if (conditionCase_ == 7) {
-       return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate) condition_;
-    }
-    return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate.getDefaultInstance();
+    return 0;
   }
 
-  public static final int ONLY_IF_FIELD_NUMBER = 8;
+  public static final int LOOKAHEAD_FOUND_FIELD_NUMBER = 2;
   /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 8;</code>
-   * @return Whether the onlyIf field is set.
+   * <pre>
+   * lookahead_found 심볼의 PathStarter로부터 만들어진 경로가 finish되어야만 이번 path도 valid하다
+   * </pre>
+   *
+   * <code>int32 lookahead_found = 2;</code>
+   * @return Whether the lookaheadFound field is set.
    */
   @java.lang.Override
-  public boolean hasOnlyIf() {
-    return conditionCase_ == 8;
+  public boolean hasLookaheadFound() {
+    return conditionCase_ == 2;
   }
   /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 8;</code>
-   * @return The onlyIf.
+   * <pre>
+   * lookahead_found 심볼의 PathStarter로부터 만들어진 경로가 finish되어야만 이번 path도 valid하다
+   * </pre>
+   *
+   * <code>int32 lookahead_found = 2;</code>
+   * @return The lookaheadFound.
    */
   @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate getOnlyIf() {
-    if (conditionCase_ == 8) {
-       return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate) condition_;
+  public int getLookaheadFound() {
+    if (conditionCase_ == 2) {
+      return (java.lang.Integer) condition_;
     }
-    return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate.getDefaultInstance();
-  }
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 8;</code>
-   */
-  @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplateOrBuilder getOnlyIfOrBuilder() {
-    if (conditionCase_ == 8) {
-       return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate) condition_;
-    }
-    return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate.getDefaultInstance();
+    return 0;
   }
 
-  public static final int UNLESS_FIELD_NUMBER = 9;
+  public static final int LOOKAHEAD_NOTFOUND_FIELD_NUMBER = 3;
   /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate unless = 9;</code>
-   * @return Whether the unless field is set.
+   * <pre>
+   * lookahead_notfound 심볼의 PathStarter로부터 만들어진 경로가 finish되면 이번 path는 invalidate한다
+   * </pre>
+   *
+   * <code>int32 lookahead_notfound = 3;</code>
+   * @return Whether the lookaheadNotfound field is set.
    */
   @java.lang.Override
-  public boolean hasUnless() {
-    return conditionCase_ == 9;
+  public boolean hasLookaheadNotfound() {
+    return conditionCase_ == 3;
   }
   /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate unless = 9;</code>
-   * @return The unless.
+   * <pre>
+   * lookahead_notfound 심볼의 PathStarter로부터 만들어진 경로가 finish되면 이번 path는 invalidate한다
+   * </pre>
+   *
+   * <code>int32 lookahead_notfound = 3;</code>
+   * @return The lookaheadNotfound.
    */
   @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate getUnless() {
-    if (conditionCase_ == 9) {
-       return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate) condition_;
+  public int getLookaheadNotfound() {
+    if (conditionCase_ == 3) {
+      return (java.lang.Integer) condition_;
     }
-    return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate.getDefaultInstance();
+    return 0;
+  }
+
+  public static final int EXCEPT_FIELD_NUMBER = 4;
+  /**
+   * <pre>
+   * except 심볼의 PathStarter로부터 만들어진 경로가 finish되는 시점에는 이번 path는 invalid하다
+   * </pre>
+   *
+   * <code>int32 except = 4;</code>
+   * @return Whether the except field is set.
+   */
+  @java.lang.Override
+  public boolean hasExcept() {
+    return conditionCase_ == 4;
   }
   /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate unless = 9;</code>
+   * <pre>
+   * except 심볼의 PathStarter로부터 만들어진 경로가 finish되는 시점에는 이번 path는 invalid하다
+   * </pre>
+   *
+   * <code>int32 except = 4;</code>
+   * @return The except.
    */
   @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplateOrBuilder getUnlessOrBuilder() {
-    if (conditionCase_ == 9) {
-       return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate) condition_;
+  public int getExcept() {
+    if (conditionCase_ == 4) {
+      return (java.lang.Integer) condition_;
     }
-    return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate.getDefaultInstance();
+    return 0;
+  }
+
+  public static final int JOIN_FIELD_NUMBER = 5;
+  /**
+   * <pre>
+   * join 심볼의 PathStarter로부터 만들어진 경로가 finish되는 시점에만 이번 path가 valid하다
+   * </pre>
+   *
+   * <code>int32 join = 5;</code>
+   * @return Whether the join field is set.
+   */
+  @java.lang.Override
+  public boolean hasJoin() {
+    return conditionCase_ == 5;
+  }
+  /**
+   * <pre>
+   * join 심볼의 PathStarter로부터 만들어진 경로가 finish되는 시점에만 이번 path가 valid하다
+   * </pre>
+   *
+   * <code>int32 join = 5;</code>
+   * @return The join.
+   */
+  @java.lang.Override
+  public int getJoin() {
+    if (conditionCase_ == 5) {
+      return (java.lang.Integer) condition_;
+    }
+    return 0;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -3732,31 +248,24 @@ private static final long serialVersionUID = 0L;
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
     if (conditionCase_ == 1) {
-      output.writeMessage(1, (com.google.protobuf.Empty) condition_);
+      output.writeInt32(
+          1, (int)((java.lang.Integer) condition_));
     }
     if (conditionCase_ == 2) {
-      output.writeMessage(2, (com.google.protobuf.Empty) condition_);
+      output.writeInt32(
+          2, (int)((java.lang.Integer) condition_));
     }
     if (conditionCase_ == 3) {
-      output.writeMessage(3, (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate) condition_);
+      output.writeInt32(
+          3, (int)((java.lang.Integer) condition_));
     }
     if (conditionCase_ == 4) {
-      output.writeMessage(4, (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate) condition_);
+      output.writeInt32(
+          4, (int)((java.lang.Integer) condition_));
     }
     if (conditionCase_ == 5) {
-      output.writeMessage(5, (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate) condition_);
-    }
-    if (conditionCase_ == 6) {
-      output.writeMessage(6, (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate) condition_);
-    }
-    if (conditionCase_ == 7) {
-      output.writeMessage(7, (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate) condition_);
-    }
-    if (conditionCase_ == 8) {
-      output.writeMessage(8, (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate) condition_);
-    }
-    if (conditionCase_ == 9) {
-      output.writeMessage(9, (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate) condition_);
+      output.writeInt32(
+          5, (int)((java.lang.Integer) condition_));
     }
     getUnknownFields().writeTo(output);
   }
@@ -3769,39 +278,28 @@ private static final long serialVersionUID = 0L;
     size = 0;
     if (conditionCase_ == 1) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(1, (com.google.protobuf.Empty) condition_);
+        .computeInt32Size(
+            1, (int)((java.lang.Integer) condition_));
     }
     if (conditionCase_ == 2) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(2, (com.google.protobuf.Empty) condition_);
+        .computeInt32Size(
+            2, (int)((java.lang.Integer) condition_));
     }
     if (conditionCase_ == 3) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(3, (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate) condition_);
+        .computeInt32Size(
+            3, (int)((java.lang.Integer) condition_));
     }
     if (conditionCase_ == 4) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(4, (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate) condition_);
+        .computeInt32Size(
+            4, (int)((java.lang.Integer) condition_));
     }
     if (conditionCase_ == 5) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(5, (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate) condition_);
-    }
-    if (conditionCase_ == 6) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(6, (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate) condition_);
-    }
-    if (conditionCase_ == 7) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(7, (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate) condition_);
-    }
-    if (conditionCase_ == 8) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(8, (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate) condition_);
-    }
-    if (conditionCase_ == 9) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(9, (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate) condition_);
+        .computeInt32Size(
+            5, (int)((java.lang.Integer) condition_));
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -3821,40 +319,24 @@ private static final long serialVersionUID = 0L;
     if (!getConditionCase().equals(other.getConditionCase())) return false;
     switch (conditionCase_) {
       case 1:
-        if (!getAlways()
-            .equals(other.getAlways())) return false;
+        if (getLongest()
+            != other.getLongest()) return false;
         break;
       case 2:
-        if (!getNever()
-            .equals(other.getNever())) return false;
+        if (getLookaheadFound()
+            != other.getLookaheadFound()) return false;
         break;
       case 3:
-        if (!getAnd()
-            .equals(other.getAnd())) return false;
+        if (getLookaheadNotfound()
+            != other.getLookaheadNotfound()) return false;
         break;
       case 4:
-        if (!getOr()
-            .equals(other.getOr())) return false;
+        if (getExcept()
+            != other.getExcept()) return false;
         break;
       case 5:
-        if (!getLookaheadIs()
-            .equals(other.getLookaheadIs())) return false;
-        break;
-      case 6:
-        if (!getLookaheadNot()
-            .equals(other.getLookaheadNot())) return false;
-        break;
-      case 7:
-        if (!getLongest()
-            .equals(other.getLongest())) return false;
-        break;
-      case 8:
-        if (!getOnlyIf()
-            .equals(other.getOnlyIf())) return false;
-        break;
-      case 9:
-        if (!getUnless()
-            .equals(other.getUnless())) return false;
+        if (getJoin()
+            != other.getJoin()) return false;
         break;
       case 0:
       default:
@@ -3872,40 +354,24 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     switch (conditionCase_) {
       case 1:
-        hash = (37 * hash) + ALWAYS_FIELD_NUMBER;
-        hash = (53 * hash) + getAlways().hashCode();
+        hash = (37 * hash) + LONGEST_FIELD_NUMBER;
+        hash = (53 * hash) + getLongest();
         break;
       case 2:
-        hash = (37 * hash) + NEVER_FIELD_NUMBER;
-        hash = (53 * hash) + getNever().hashCode();
+        hash = (37 * hash) + LOOKAHEAD_FOUND_FIELD_NUMBER;
+        hash = (53 * hash) + getLookaheadFound();
         break;
       case 3:
-        hash = (37 * hash) + AND_FIELD_NUMBER;
-        hash = (53 * hash) + getAnd().hashCode();
+        hash = (37 * hash) + LOOKAHEAD_NOTFOUND_FIELD_NUMBER;
+        hash = (53 * hash) + getLookaheadNotfound();
         break;
       case 4:
-        hash = (37 * hash) + OR_FIELD_NUMBER;
-        hash = (53 * hash) + getOr().hashCode();
+        hash = (37 * hash) + EXCEPT_FIELD_NUMBER;
+        hash = (53 * hash) + getExcept();
         break;
       case 5:
-        hash = (37 * hash) + LOOKAHEAD_IS_FIELD_NUMBER;
-        hash = (53 * hash) + getLookaheadIs().hashCode();
-        break;
-      case 6:
-        hash = (37 * hash) + LOOKAHEAD_NOT_FIELD_NUMBER;
-        hash = (53 * hash) + getLookaheadNot().hashCode();
-        break;
-      case 7:
-        hash = (37 * hash) + LONGEST_FIELD_NUMBER;
-        hash = (53 * hash) + getLongest().hashCode();
-        break;
-      case 8:
-        hash = (37 * hash) + ONLY_IF_FIELD_NUMBER;
-        hash = (53 * hash) + getOnlyIf().hashCode();
-        break;
-      case 9:
-        hash = (37 * hash) + UNLESS_FIELD_NUMBER;
-        hash = (53 * hash) + getUnless().hashCode();
+        hash = (37 * hash) + JOIN_FIELD_NUMBER;
+        hash = (53 * hash) + getJoin();
         break;
       case 0:
       default:
@@ -4039,33 +505,6 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      if (alwaysBuilder_ != null) {
-        alwaysBuilder_.clear();
-      }
-      if (neverBuilder_ != null) {
-        neverBuilder_.clear();
-      }
-      if (andBuilder_ != null) {
-        andBuilder_.clear();
-      }
-      if (orBuilder_ != null) {
-        orBuilder_.clear();
-      }
-      if (lookaheadIsBuilder_ != null) {
-        lookaheadIsBuilder_.clear();
-      }
-      if (lookaheadNotBuilder_ != null) {
-        lookaheadNotBuilder_.clear();
-      }
-      if (longestBuilder_ != null) {
-        longestBuilder_.clear();
-      }
-      if (onlyIfBuilder_ != null) {
-        onlyIfBuilder_.clear();
-      }
-      if (unlessBuilder_ != null) {
-        unlessBuilder_.clear();
-      }
       conditionCase_ = 0;
       condition_ = null;
       return this;
@@ -4107,42 +546,6 @@ private static final long serialVersionUID = 0L;
     private void buildPartialOneofs(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate result) {
       result.conditionCase_ = conditionCase_;
       result.condition_ = this.condition_;
-      if (conditionCase_ == 1 &&
-          alwaysBuilder_ != null) {
-        result.condition_ = alwaysBuilder_.build();
-      }
-      if (conditionCase_ == 2 &&
-          neverBuilder_ != null) {
-        result.condition_ = neverBuilder_.build();
-      }
-      if (conditionCase_ == 3 &&
-          andBuilder_ != null) {
-        result.condition_ = andBuilder_.build();
-      }
-      if (conditionCase_ == 4 &&
-          orBuilder_ != null) {
-        result.condition_ = orBuilder_.build();
-      }
-      if (conditionCase_ == 5 &&
-          lookaheadIsBuilder_ != null) {
-        result.condition_ = lookaheadIsBuilder_.build();
-      }
-      if (conditionCase_ == 6 &&
-          lookaheadNotBuilder_ != null) {
-        result.condition_ = lookaheadNotBuilder_.build();
-      }
-      if (conditionCase_ == 7 &&
-          longestBuilder_ != null) {
-        result.condition_ = longestBuilder_.build();
-      }
-      if (conditionCase_ == 8 &&
-          onlyIfBuilder_ != null) {
-        result.condition_ = onlyIfBuilder_.build();
-      }
-      if (conditionCase_ == 9 &&
-          unlessBuilder_ != null) {
-        result.condition_ = unlessBuilder_.build();
-      }
     }
 
     @java.lang.Override
@@ -4158,40 +561,24 @@ private static final long serialVersionUID = 0L;
     public Builder mergeFrom(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate other) {
       if (other == com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.getDefaultInstance()) return this;
       switch (other.getConditionCase()) {
-        case ALWAYS: {
-          mergeAlways(other.getAlways());
-          break;
-        }
-        case NEVER: {
-          mergeNever(other.getNever());
-          break;
-        }
-        case AND: {
-          mergeAnd(other.getAnd());
-          break;
-        }
-        case OR: {
-          mergeOr(other.getOr());
-          break;
-        }
-        case LOOKAHEAD_IS: {
-          mergeLookaheadIs(other.getLookaheadIs());
-          break;
-        }
-        case LOOKAHEAD_NOT: {
-          mergeLookaheadNot(other.getLookaheadNot());
-          break;
-        }
         case LONGEST: {
-          mergeLongest(other.getLongest());
+          setLongest(other.getLongest());
           break;
         }
-        case ONLY_IF: {
-          mergeOnlyIf(other.getOnlyIf());
+        case LOOKAHEAD_FOUND: {
+          setLookaheadFound(other.getLookaheadFound());
           break;
         }
-        case UNLESS: {
-          mergeUnless(other.getUnless());
+        case LOOKAHEAD_NOTFOUND: {
+          setLookaheadNotfound(other.getLookaheadNotfound());
+          break;
+        }
+        case EXCEPT: {
+          setExcept(other.getExcept());
+          break;
+        }
+        case JOIN: {
+          setJoin(other.getJoin());
           break;
         }
         case CONDITION_NOT_SET: {
@@ -4224,69 +611,31 @@ private static final long serialVersionUID = 0L;
             case 0:
               done = true;
               break;
-            case 10: {
-              input.readMessage(
-                  getAlwaysFieldBuilder().getBuilder(),
-                  extensionRegistry);
+            case 8: {
+              condition_ = input.readInt32();
               conditionCase_ = 1;
               break;
-            } // case 10
-            case 18: {
-              input.readMessage(
-                  getNeverFieldBuilder().getBuilder(),
-                  extensionRegistry);
+            } // case 8
+            case 16: {
+              condition_ = input.readInt32();
               conditionCase_ = 2;
               break;
-            } // case 18
-            case 26: {
-              input.readMessage(
-                  getAndFieldBuilder().getBuilder(),
-                  extensionRegistry);
+            } // case 16
+            case 24: {
+              condition_ = input.readInt32();
               conditionCase_ = 3;
               break;
-            } // case 26
-            case 34: {
-              input.readMessage(
-                  getOrFieldBuilder().getBuilder(),
-                  extensionRegistry);
+            } // case 24
+            case 32: {
+              condition_ = input.readInt32();
               conditionCase_ = 4;
               break;
-            } // case 34
-            case 42: {
-              input.readMessage(
-                  getLookaheadIsFieldBuilder().getBuilder(),
-                  extensionRegistry);
+            } // case 32
+            case 40: {
+              condition_ = input.readInt32();
               conditionCase_ = 5;
               break;
-            } // case 42
-            case 50: {
-              input.readMessage(
-                  getLookaheadNotFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              conditionCase_ = 6;
-              break;
-            } // case 50
-            case 58: {
-              input.readMessage(
-                  getLongestFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              conditionCase_ = 7;
-              break;
-            } // case 58
-            case 66: {
-              input.readMessage(
-                  getOnlyIfFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              conditionCase_ = 8;
-              break;
-            } // case 66
-            case 74: {
-              input.readMessage(
-                  getUnlessFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              conditionCase_ = 9;
-              break;
-            } // case 74
+            } // case 40
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -4319,1282 +668,298 @@ private static final long serialVersionUID = 0L;
 
     private int bitField0_;
 
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.google.protobuf.Empty, com.google.protobuf.Empty.Builder, com.google.protobuf.EmptyOrBuilder> alwaysBuilder_;
     /**
-     * <code>.google.protobuf.Empty always = 1;</code>
-     * @return Whether the always field is set.
+     * <pre>
+     * longest 심볼의 PathStarter로부터 만들어진 경로가 이후에 finish되는 경우가 있으면 이번 path는 invalidate한다
+     * (정확히는, longest 심볼의 PathStarter로부터 만들어진 경로가 이후에 finish되면 그 때 조건의 negation을 and로 붙인다)
+     * </pre>
+     *
+     * <code>int32 longest = 1;</code>
+     * @return Whether the longest field is set.
      */
-    @java.lang.Override
-    public boolean hasAlways() {
+    public boolean hasLongest() {
       return conditionCase_ == 1;
     }
     /**
-     * <code>.google.protobuf.Empty always = 1;</code>
-     * @return The always.
+     * <pre>
+     * longest 심볼의 PathStarter로부터 만들어진 경로가 이후에 finish되는 경우가 있으면 이번 path는 invalidate한다
+     * (정확히는, longest 심볼의 PathStarter로부터 만들어진 경로가 이후에 finish되면 그 때 조건의 negation을 and로 붙인다)
+     * </pre>
+     *
+     * <code>int32 longest = 1;</code>
+     * @return The longest.
      */
-    @java.lang.Override
-    public com.google.protobuf.Empty getAlways() {
-      if (alwaysBuilder_ == null) {
-        if (conditionCase_ == 1) {
-          return (com.google.protobuf.Empty) condition_;
-        }
-        return com.google.protobuf.Empty.getDefaultInstance();
-      } else {
-        if (conditionCase_ == 1) {
-          return alwaysBuilder_.getMessage();
-        }
-        return com.google.protobuf.Empty.getDefaultInstance();
+    public int getLongest() {
+      if (conditionCase_ == 1) {
+        return (java.lang.Integer) condition_;
       }
+      return 0;
     }
     /**
-     * <code>.google.protobuf.Empty always = 1;</code>
+     * <pre>
+     * longest 심볼의 PathStarter로부터 만들어진 경로가 이후에 finish되는 경우가 있으면 이번 path는 invalidate한다
+     * (정확히는, longest 심볼의 PathStarter로부터 만들어진 경로가 이후에 finish되면 그 때 조건의 negation을 and로 붙인다)
+     * </pre>
+     *
+     * <code>int32 longest = 1;</code>
+     * @param value The longest to set.
+     * @return This builder for chaining.
      */
-    public Builder setAlways(com.google.protobuf.Empty value) {
-      if (alwaysBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        condition_ = value;
-        onChanged();
-      } else {
-        alwaysBuilder_.setMessage(value);
-      }
+    public Builder setLongest(int value) {
+
       conditionCase_ = 1;
-      return this;
-    }
-    /**
-     * <code>.google.protobuf.Empty always = 1;</code>
-     */
-    public Builder setAlways(
-        com.google.protobuf.Empty.Builder builderForValue) {
-      if (alwaysBuilder_ == null) {
-        condition_ = builderForValue.build();
-        onChanged();
-      } else {
-        alwaysBuilder_.setMessage(builderForValue.build());
-      }
-      conditionCase_ = 1;
-      return this;
-    }
-    /**
-     * <code>.google.protobuf.Empty always = 1;</code>
-     */
-    public Builder mergeAlways(com.google.protobuf.Empty value) {
-      if (alwaysBuilder_ == null) {
-        if (conditionCase_ == 1 &&
-            condition_ != com.google.protobuf.Empty.getDefaultInstance()) {
-          condition_ = com.google.protobuf.Empty.newBuilder((com.google.protobuf.Empty) condition_)
-              .mergeFrom(value).buildPartial();
-        } else {
-          condition_ = value;
-        }
-        onChanged();
-      } else {
-        if (conditionCase_ == 1) {
-          alwaysBuilder_.mergeFrom(value);
-        } else {
-          alwaysBuilder_.setMessage(value);
-        }
-      }
-      conditionCase_ = 1;
-      return this;
-    }
-    /**
-     * <code>.google.protobuf.Empty always = 1;</code>
-     */
-    public Builder clearAlways() {
-      if (alwaysBuilder_ == null) {
-        if (conditionCase_ == 1) {
-          conditionCase_ = 0;
-          condition_ = null;
-          onChanged();
-        }
-      } else {
-        if (conditionCase_ == 1) {
-          conditionCase_ = 0;
-          condition_ = null;
-        }
-        alwaysBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <code>.google.protobuf.Empty always = 1;</code>
-     */
-    public com.google.protobuf.Empty.Builder getAlwaysBuilder() {
-      return getAlwaysFieldBuilder().getBuilder();
-    }
-    /**
-     * <code>.google.protobuf.Empty always = 1;</code>
-     */
-    @java.lang.Override
-    public com.google.protobuf.EmptyOrBuilder getAlwaysOrBuilder() {
-      if ((conditionCase_ == 1) && (alwaysBuilder_ != null)) {
-        return alwaysBuilder_.getMessageOrBuilder();
-      } else {
-        if (conditionCase_ == 1) {
-          return (com.google.protobuf.Empty) condition_;
-        }
-        return com.google.protobuf.Empty.getDefaultInstance();
-      }
-    }
-    /**
-     * <code>.google.protobuf.Empty always = 1;</code>
-     */
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.google.protobuf.Empty, com.google.protobuf.Empty.Builder, com.google.protobuf.EmptyOrBuilder> 
-        getAlwaysFieldBuilder() {
-      if (alwaysBuilder_ == null) {
-        if (!(conditionCase_ == 1)) {
-          condition_ = com.google.protobuf.Empty.getDefaultInstance();
-        }
-        alwaysBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-            com.google.protobuf.Empty, com.google.protobuf.Empty.Builder, com.google.protobuf.EmptyOrBuilder>(
-                (com.google.protobuf.Empty) condition_,
-                getParentForChildren(),
-                isClean());
-        condition_ = null;
-      }
-      conditionCase_ = 1;
+      condition_ = value;
       onChanged();
-      return alwaysBuilder_;
+      return this;
+    }
+    /**
+     * <pre>
+     * longest 심볼의 PathStarter로부터 만들어진 경로가 이후에 finish되는 경우가 있으면 이번 path는 invalidate한다
+     * (정확히는, longest 심볼의 PathStarter로부터 만들어진 경로가 이후에 finish되면 그 때 조건의 negation을 and로 붙인다)
+     * </pre>
+     *
+     * <code>int32 longest = 1;</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearLongest() {
+      if (conditionCase_ == 1) {
+        conditionCase_ = 0;
+        condition_ = null;
+        onChanged();
+      }
+      return this;
     }
 
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.google.protobuf.Empty, com.google.protobuf.Empty.Builder, com.google.protobuf.EmptyOrBuilder> neverBuilder_;
     /**
-     * <code>.google.protobuf.Empty never = 2;</code>
-     * @return Whether the never field is set.
+     * <pre>
+     * lookahead_found 심볼의 PathStarter로부터 만들어진 경로가 finish되어야만 이번 path도 valid하다
+     * </pre>
+     *
+     * <code>int32 lookahead_found = 2;</code>
+     * @return Whether the lookaheadFound field is set.
      */
-    @java.lang.Override
-    public boolean hasNever() {
+    public boolean hasLookaheadFound() {
       return conditionCase_ == 2;
     }
     /**
-     * <code>.google.protobuf.Empty never = 2;</code>
-     * @return The never.
+     * <pre>
+     * lookahead_found 심볼의 PathStarter로부터 만들어진 경로가 finish되어야만 이번 path도 valid하다
+     * </pre>
+     *
+     * <code>int32 lookahead_found = 2;</code>
+     * @return The lookaheadFound.
      */
-    @java.lang.Override
-    public com.google.protobuf.Empty getNever() {
-      if (neverBuilder_ == null) {
-        if (conditionCase_ == 2) {
-          return (com.google.protobuf.Empty) condition_;
-        }
-        return com.google.protobuf.Empty.getDefaultInstance();
-      } else {
-        if (conditionCase_ == 2) {
-          return neverBuilder_.getMessage();
-        }
-        return com.google.protobuf.Empty.getDefaultInstance();
+    public int getLookaheadFound() {
+      if (conditionCase_ == 2) {
+        return (java.lang.Integer) condition_;
       }
+      return 0;
     }
     /**
-     * <code>.google.protobuf.Empty never = 2;</code>
+     * <pre>
+     * lookahead_found 심볼의 PathStarter로부터 만들어진 경로가 finish되어야만 이번 path도 valid하다
+     * </pre>
+     *
+     * <code>int32 lookahead_found = 2;</code>
+     * @param value The lookaheadFound to set.
+     * @return This builder for chaining.
      */
-    public Builder setNever(com.google.protobuf.Empty value) {
-      if (neverBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        condition_ = value;
-        onChanged();
-      } else {
-        neverBuilder_.setMessage(value);
-      }
+    public Builder setLookaheadFound(int value) {
+
       conditionCase_ = 2;
-      return this;
-    }
-    /**
-     * <code>.google.protobuf.Empty never = 2;</code>
-     */
-    public Builder setNever(
-        com.google.protobuf.Empty.Builder builderForValue) {
-      if (neverBuilder_ == null) {
-        condition_ = builderForValue.build();
-        onChanged();
-      } else {
-        neverBuilder_.setMessage(builderForValue.build());
-      }
-      conditionCase_ = 2;
-      return this;
-    }
-    /**
-     * <code>.google.protobuf.Empty never = 2;</code>
-     */
-    public Builder mergeNever(com.google.protobuf.Empty value) {
-      if (neverBuilder_ == null) {
-        if (conditionCase_ == 2 &&
-            condition_ != com.google.protobuf.Empty.getDefaultInstance()) {
-          condition_ = com.google.protobuf.Empty.newBuilder((com.google.protobuf.Empty) condition_)
-              .mergeFrom(value).buildPartial();
-        } else {
-          condition_ = value;
-        }
-        onChanged();
-      } else {
-        if (conditionCase_ == 2) {
-          neverBuilder_.mergeFrom(value);
-        } else {
-          neverBuilder_.setMessage(value);
-        }
-      }
-      conditionCase_ = 2;
-      return this;
-    }
-    /**
-     * <code>.google.protobuf.Empty never = 2;</code>
-     */
-    public Builder clearNever() {
-      if (neverBuilder_ == null) {
-        if (conditionCase_ == 2) {
-          conditionCase_ = 0;
-          condition_ = null;
-          onChanged();
-        }
-      } else {
-        if (conditionCase_ == 2) {
-          conditionCase_ = 0;
-          condition_ = null;
-        }
-        neverBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <code>.google.protobuf.Empty never = 2;</code>
-     */
-    public com.google.protobuf.Empty.Builder getNeverBuilder() {
-      return getNeverFieldBuilder().getBuilder();
-    }
-    /**
-     * <code>.google.protobuf.Empty never = 2;</code>
-     */
-    @java.lang.Override
-    public com.google.protobuf.EmptyOrBuilder getNeverOrBuilder() {
-      if ((conditionCase_ == 2) && (neverBuilder_ != null)) {
-        return neverBuilder_.getMessageOrBuilder();
-      } else {
-        if (conditionCase_ == 2) {
-          return (com.google.protobuf.Empty) condition_;
-        }
-        return com.google.protobuf.Empty.getDefaultInstance();
-      }
-    }
-    /**
-     * <code>.google.protobuf.Empty never = 2;</code>
-     */
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.google.protobuf.Empty, com.google.protobuf.Empty.Builder, com.google.protobuf.EmptyOrBuilder> 
-        getNeverFieldBuilder() {
-      if (neverBuilder_ == null) {
-        if (!(conditionCase_ == 2)) {
-          condition_ = com.google.protobuf.Empty.getDefaultInstance();
-        }
-        neverBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-            com.google.protobuf.Empty, com.google.protobuf.Empty.Builder, com.google.protobuf.EmptyOrBuilder>(
-                (com.google.protobuf.Empty) condition_,
-                getParentForChildren(),
-                isClean());
-        condition_ = null;
-      }
-      conditionCase_ = 2;
+      condition_ = value;
       onChanged();
-      return neverBuilder_;
+      return this;
+    }
+    /**
+     * <pre>
+     * lookahead_found 심볼의 PathStarter로부터 만들어진 경로가 finish되어야만 이번 path도 valid하다
+     * </pre>
+     *
+     * <code>int32 lookahead_found = 2;</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearLookaheadFound() {
+      if (conditionCase_ == 2) {
+        conditionCase_ = 0;
+        condition_ = null;
+        onChanged();
+      }
+      return this;
     }
 
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplateOrBuilder> andBuilder_;
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate and = 3;</code>
-     * @return Whether the and field is set.
+     * <pre>
+     * lookahead_notfound 심볼의 PathStarter로부터 만들어진 경로가 finish되면 이번 path는 invalidate한다
+     * </pre>
+     *
+     * <code>int32 lookahead_notfound = 3;</code>
+     * @return Whether the lookaheadNotfound field is set.
      */
-    @java.lang.Override
-    public boolean hasAnd() {
+    public boolean hasLookaheadNotfound() {
       return conditionCase_ == 3;
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate and = 3;</code>
-     * @return The and.
+     * <pre>
+     * lookahead_notfound 심볼의 PathStarter로부터 만들어진 경로가 finish되면 이번 path는 invalidate한다
+     * </pre>
+     *
+     * <code>int32 lookahead_notfound = 3;</code>
+     * @return The lookaheadNotfound.
      */
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate getAnd() {
-      if (andBuilder_ == null) {
-        if (conditionCase_ == 3) {
-          return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate) condition_;
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate.getDefaultInstance();
-      } else {
-        if (conditionCase_ == 3) {
-          return andBuilder_.getMessage();
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate.getDefaultInstance();
+    public int getLookaheadNotfound() {
+      if (conditionCase_ == 3) {
+        return (java.lang.Integer) condition_;
       }
+      return 0;
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate and = 3;</code>
+     * <pre>
+     * lookahead_notfound 심볼의 PathStarter로부터 만들어진 경로가 finish되면 이번 path는 invalidate한다
+     * </pre>
+     *
+     * <code>int32 lookahead_notfound = 3;</code>
+     * @param value The lookaheadNotfound to set.
+     * @return This builder for chaining.
      */
-    public Builder setAnd(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate value) {
-      if (andBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        condition_ = value;
-        onChanged();
-      } else {
-        andBuilder_.setMessage(value);
-      }
+    public Builder setLookaheadNotfound(int value) {
+
       conditionCase_ = 3;
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate and = 3;</code>
-     */
-    public Builder setAnd(
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate.Builder builderForValue) {
-      if (andBuilder_ == null) {
-        condition_ = builderForValue.build();
-        onChanged();
-      } else {
-        andBuilder_.setMessage(builderForValue.build());
-      }
-      conditionCase_ = 3;
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate and = 3;</code>
-     */
-    public Builder mergeAnd(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate value) {
-      if (andBuilder_ == null) {
-        if (conditionCase_ == 3 &&
-            condition_ != com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate.getDefaultInstance()) {
-          condition_ = com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate.newBuilder((com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate) condition_)
-              .mergeFrom(value).buildPartial();
-        } else {
-          condition_ = value;
-        }
-        onChanged();
-      } else {
-        if (conditionCase_ == 3) {
-          andBuilder_.mergeFrom(value);
-        } else {
-          andBuilder_.setMessage(value);
-        }
-      }
-      conditionCase_ = 3;
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate and = 3;</code>
-     */
-    public Builder clearAnd() {
-      if (andBuilder_ == null) {
-        if (conditionCase_ == 3) {
-          conditionCase_ = 0;
-          condition_ = null;
-          onChanged();
-        }
-      } else {
-        if (conditionCase_ == 3) {
-          conditionCase_ = 0;
-          condition_ = null;
-        }
-        andBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate and = 3;</code>
-     */
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate.Builder getAndBuilder() {
-      return getAndFieldBuilder().getBuilder();
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate and = 3;</code>
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplateOrBuilder getAndOrBuilder() {
-      if ((conditionCase_ == 3) && (andBuilder_ != null)) {
-        return andBuilder_.getMessageOrBuilder();
-      } else {
-        if (conditionCase_ == 3) {
-          return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate) condition_;
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate.getDefaultInstance();
-      }
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate and = 3;</code>
-     */
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplateOrBuilder> 
-        getAndFieldBuilder() {
-      if (andBuilder_ == null) {
-        if (!(conditionCase_ == 3)) {
-          condition_ = com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate.getDefaultInstance();
-        }
-        andBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-            com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplateOrBuilder>(
-                (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.AndTemplate) condition_,
-                getParentForChildren(),
-                isClean());
-        condition_ = null;
-      }
-      conditionCase_ = 3;
+      condition_ = value;
       onChanged();
-      return andBuilder_;
+      return this;
+    }
+    /**
+     * <pre>
+     * lookahead_notfound 심볼의 PathStarter로부터 만들어진 경로가 finish되면 이번 path는 invalidate한다
+     * </pre>
+     *
+     * <code>int32 lookahead_notfound = 3;</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearLookaheadNotfound() {
+      if (conditionCase_ == 3) {
+        conditionCase_ = 0;
+        condition_ = null;
+        onChanged();
+      }
+      return this;
     }
 
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplateOrBuilder> orBuilder_;
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate or = 4;</code>
-     * @return Whether the or field is set.
+     * <pre>
+     * except 심볼의 PathStarter로부터 만들어진 경로가 finish되는 시점에는 이번 path는 invalid하다
+     * </pre>
+     *
+     * <code>int32 except = 4;</code>
+     * @return Whether the except field is set.
      */
-    @java.lang.Override
-    public boolean hasOr() {
+    public boolean hasExcept() {
       return conditionCase_ == 4;
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate or = 4;</code>
-     * @return The or.
+     * <pre>
+     * except 심볼의 PathStarter로부터 만들어진 경로가 finish되는 시점에는 이번 path는 invalid하다
+     * </pre>
+     *
+     * <code>int32 except = 4;</code>
+     * @return The except.
      */
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate getOr() {
-      if (orBuilder_ == null) {
-        if (conditionCase_ == 4) {
-          return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate) condition_;
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate.getDefaultInstance();
-      } else {
-        if (conditionCase_ == 4) {
-          return orBuilder_.getMessage();
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate.getDefaultInstance();
+    public int getExcept() {
+      if (conditionCase_ == 4) {
+        return (java.lang.Integer) condition_;
       }
+      return 0;
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate or = 4;</code>
+     * <pre>
+     * except 심볼의 PathStarter로부터 만들어진 경로가 finish되는 시점에는 이번 path는 invalid하다
+     * </pre>
+     *
+     * <code>int32 except = 4;</code>
+     * @param value The except to set.
+     * @return This builder for chaining.
      */
-    public Builder setOr(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate value) {
-      if (orBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        condition_ = value;
-        onChanged();
-      } else {
-        orBuilder_.setMessage(value);
-      }
+    public Builder setExcept(int value) {
+
       conditionCase_ = 4;
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate or = 4;</code>
-     */
-    public Builder setOr(
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate.Builder builderForValue) {
-      if (orBuilder_ == null) {
-        condition_ = builderForValue.build();
-        onChanged();
-      } else {
-        orBuilder_.setMessage(builderForValue.build());
-      }
-      conditionCase_ = 4;
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate or = 4;</code>
-     */
-    public Builder mergeOr(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate value) {
-      if (orBuilder_ == null) {
-        if (conditionCase_ == 4 &&
-            condition_ != com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate.getDefaultInstance()) {
-          condition_ = com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate.newBuilder((com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate) condition_)
-              .mergeFrom(value).buildPartial();
-        } else {
-          condition_ = value;
-        }
-        onChanged();
-      } else {
-        if (conditionCase_ == 4) {
-          orBuilder_.mergeFrom(value);
-        } else {
-          orBuilder_.setMessage(value);
-        }
-      }
-      conditionCase_ = 4;
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate or = 4;</code>
-     */
-    public Builder clearOr() {
-      if (orBuilder_ == null) {
-        if (conditionCase_ == 4) {
-          conditionCase_ = 0;
-          condition_ = null;
-          onChanged();
-        }
-      } else {
-        if (conditionCase_ == 4) {
-          conditionCase_ = 0;
-          condition_ = null;
-        }
-        orBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate or = 4;</code>
-     */
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate.Builder getOrBuilder() {
-      return getOrFieldBuilder().getBuilder();
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate or = 4;</code>
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplateOrBuilder getOrOrBuilder() {
-      if ((conditionCase_ == 4) && (orBuilder_ != null)) {
-        return orBuilder_.getMessageOrBuilder();
-      } else {
-        if (conditionCase_ == 4) {
-          return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate) condition_;
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate.getDefaultInstance();
-      }
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate or = 4;</code>
-     */
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplateOrBuilder> 
-        getOrFieldBuilder() {
-      if (orBuilder_ == null) {
-        if (!(conditionCase_ == 4)) {
-          condition_ = com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate.getDefaultInstance();
-        }
-        orBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-            com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplateOrBuilder>(
-                (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OrTemplate) condition_,
-                getParentForChildren(),
-                isClean());
-        condition_ = null;
-      }
-      conditionCase_ = 4;
+      condition_ = value;
       onChanged();
-      return orBuilder_;
+      return this;
+    }
+    /**
+     * <pre>
+     * except 심볼의 PathStarter로부터 만들어진 경로가 finish되는 시점에는 이번 path는 invalid하다
+     * </pre>
+     *
+     * <code>int32 except = 4;</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearExcept() {
+      if (conditionCase_ == 4) {
+        conditionCase_ = 0;
+        condition_ = null;
+        onChanged();
+      }
+      return this;
     }
 
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplateOrBuilder> lookaheadIsBuilder_;
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_is = 5;</code>
-     * @return Whether the lookaheadIs field is set.
+     * <pre>
+     * join 심볼의 PathStarter로부터 만들어진 경로가 finish되는 시점에만 이번 path가 valid하다
+     * </pre>
+     *
+     * <code>int32 join = 5;</code>
+     * @return Whether the join field is set.
      */
-    @java.lang.Override
-    public boolean hasLookaheadIs() {
+    public boolean hasJoin() {
       return conditionCase_ == 5;
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_is = 5;</code>
-     * @return The lookaheadIs.
+     * <pre>
+     * join 심볼의 PathStarter로부터 만들어진 경로가 finish되는 시점에만 이번 path가 valid하다
+     * </pre>
+     *
+     * <code>int32 join = 5;</code>
+     * @return The join.
      */
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate getLookaheadIs() {
-      if (lookaheadIsBuilder_ == null) {
-        if (conditionCase_ == 5) {
-          return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate) condition_;
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.getDefaultInstance();
-      } else {
-        if (conditionCase_ == 5) {
-          return lookaheadIsBuilder_.getMessage();
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.getDefaultInstance();
+    public int getJoin() {
+      if (conditionCase_ == 5) {
+        return (java.lang.Integer) condition_;
       }
+      return 0;
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_is = 5;</code>
+     * <pre>
+     * join 심볼의 PathStarter로부터 만들어진 경로가 finish되는 시점에만 이번 path가 valid하다
+     * </pre>
+     *
+     * <code>int32 join = 5;</code>
+     * @param value The join to set.
+     * @return This builder for chaining.
      */
-    public Builder setLookaheadIs(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate value) {
-      if (lookaheadIsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        condition_ = value;
-        onChanged();
-      } else {
-        lookaheadIsBuilder_.setMessage(value);
-      }
-      conditionCase_ = 5;
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_is = 5;</code>
-     */
-    public Builder setLookaheadIs(
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.Builder builderForValue) {
-      if (lookaheadIsBuilder_ == null) {
-        condition_ = builderForValue.build();
-        onChanged();
-      } else {
-        lookaheadIsBuilder_.setMessage(builderForValue.build());
-      }
-      conditionCase_ = 5;
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_is = 5;</code>
-     */
-    public Builder mergeLookaheadIs(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate value) {
-      if (lookaheadIsBuilder_ == null) {
-        if (conditionCase_ == 5 &&
-            condition_ != com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.getDefaultInstance()) {
-          condition_ = com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.newBuilder((com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate) condition_)
-              .mergeFrom(value).buildPartial();
-        } else {
-          condition_ = value;
-        }
-        onChanged();
-      } else {
-        if (conditionCase_ == 5) {
-          lookaheadIsBuilder_.mergeFrom(value);
-        } else {
-          lookaheadIsBuilder_.setMessage(value);
-        }
-      }
-      conditionCase_ = 5;
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_is = 5;</code>
-     */
-    public Builder clearLookaheadIs() {
-      if (lookaheadIsBuilder_ == null) {
-        if (conditionCase_ == 5) {
-          conditionCase_ = 0;
-          condition_ = null;
-          onChanged();
-        }
-      } else {
-        if (conditionCase_ == 5) {
-          conditionCase_ = 0;
-          condition_ = null;
-        }
-        lookaheadIsBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_is = 5;</code>
-     */
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.Builder getLookaheadIsBuilder() {
-      return getLookaheadIsFieldBuilder().getBuilder();
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_is = 5;</code>
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplateOrBuilder getLookaheadIsOrBuilder() {
-      if ((conditionCase_ == 5) && (lookaheadIsBuilder_ != null)) {
-        return lookaheadIsBuilder_.getMessageOrBuilder();
-      } else {
-        if (conditionCase_ == 5) {
-          return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate) condition_;
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.getDefaultInstance();
-      }
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_is = 5;</code>
-     */
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplateOrBuilder> 
-        getLookaheadIsFieldBuilder() {
-      if (lookaheadIsBuilder_ == null) {
-        if (!(conditionCase_ == 5)) {
-          condition_ = com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.getDefaultInstance();
-        }
-        lookaheadIsBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-            com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplateOrBuilder>(
-                (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate) condition_,
-                getParentForChildren(),
-                isClean());
-        condition_ = null;
-      }
-      conditionCase_ = 5;
-      onChanged();
-      return lookaheadIsBuilder_;
-    }
+    public Builder setJoin(int value) {
 
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplateOrBuilder> lookaheadNotBuilder_;
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_not = 6;</code>
-     * @return Whether the lookaheadNot field is set.
-     */
-    @java.lang.Override
-    public boolean hasLookaheadNot() {
-      return conditionCase_ == 6;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_not = 6;</code>
-     * @return The lookaheadNot.
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate getLookaheadNot() {
-      if (lookaheadNotBuilder_ == null) {
-        if (conditionCase_ == 6) {
-          return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate) condition_;
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.getDefaultInstance();
-      } else {
-        if (conditionCase_ == 6) {
-          return lookaheadNotBuilder_.getMessage();
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.getDefaultInstance();
-      }
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_not = 6;</code>
-     */
-    public Builder setLookaheadNot(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate value) {
-      if (lookaheadNotBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        condition_ = value;
-        onChanged();
-      } else {
-        lookaheadNotBuilder_.setMessage(value);
-      }
-      conditionCase_ = 6;
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_not = 6;</code>
-     */
-    public Builder setLookaheadNot(
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.Builder builderForValue) {
-      if (lookaheadNotBuilder_ == null) {
-        condition_ = builderForValue.build();
-        onChanged();
-      } else {
-        lookaheadNotBuilder_.setMessage(builderForValue.build());
-      }
-      conditionCase_ = 6;
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_not = 6;</code>
-     */
-    public Builder mergeLookaheadNot(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate value) {
-      if (lookaheadNotBuilder_ == null) {
-        if (conditionCase_ == 6 &&
-            condition_ != com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.getDefaultInstance()) {
-          condition_ = com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.newBuilder((com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate) condition_)
-              .mergeFrom(value).buildPartial();
-        } else {
-          condition_ = value;
-        }
-        onChanged();
-      } else {
-        if (conditionCase_ == 6) {
-          lookaheadNotBuilder_.mergeFrom(value);
-        } else {
-          lookaheadNotBuilder_.setMessage(value);
-        }
-      }
-      conditionCase_ = 6;
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_not = 6;</code>
-     */
-    public Builder clearLookaheadNot() {
-      if (lookaheadNotBuilder_ == null) {
-        if (conditionCase_ == 6) {
-          conditionCase_ = 0;
-          condition_ = null;
-          onChanged();
-        }
-      } else {
-        if (conditionCase_ == 6) {
-          conditionCase_ = 0;
-          condition_ = null;
-        }
-        lookaheadNotBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_not = 6;</code>
-     */
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.Builder getLookaheadNotBuilder() {
-      return getLookaheadNotFieldBuilder().getBuilder();
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_not = 6;</code>
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplateOrBuilder getLookaheadNotOrBuilder() {
-      if ((conditionCase_ == 6) && (lookaheadNotBuilder_ != null)) {
-        return lookaheadNotBuilder_.getMessageOrBuilder();
-      } else {
-        if (conditionCase_ == 6) {
-          return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate) condition_;
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.getDefaultInstance();
-      }
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate lookahead_not = 6;</code>
-     */
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplateOrBuilder> 
-        getLookaheadNotFieldBuilder() {
-      if (lookaheadNotBuilder_ == null) {
-        if (!(conditionCase_ == 6)) {
-          condition_ = com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.getDefaultInstance();
-        }
-        lookaheadNotBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-            com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplateOrBuilder>(
-                (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LookaheadTemplate) condition_,
-                getParentForChildren(),
-                isClean());
-        condition_ = null;
-      }
-      conditionCase_ = 6;
+      conditionCase_ = 5;
+      condition_ = value;
       onChanged();
-      return lookaheadNotBuilder_;
-    }
-
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplateOrBuilder> longestBuilder_;
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate longest = 7;</code>
-     * @return Whether the longest field is set.
-     */
-    @java.lang.Override
-    public boolean hasLongest() {
-      return conditionCase_ == 7;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate longest = 7;</code>
-     * @return The longest.
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate getLongest() {
-      if (longestBuilder_ == null) {
-        if (conditionCase_ == 7) {
-          return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate) condition_;
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate.getDefaultInstance();
-      } else {
-        if (conditionCase_ == 7) {
-          return longestBuilder_.getMessage();
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate.getDefaultInstance();
-      }
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate longest = 7;</code>
-     */
-    public Builder setLongest(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate value) {
-      if (longestBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        condition_ = value;
-        onChanged();
-      } else {
-        longestBuilder_.setMessage(value);
-      }
-      conditionCase_ = 7;
       return this;
     }
     /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate longest = 7;</code>
+     * <pre>
+     * join 심볼의 PathStarter로부터 만들어진 경로가 finish되는 시점에만 이번 path가 valid하다
+     * </pre>
+     *
+     * <code>int32 join = 5;</code>
+     * @return This builder for chaining.
      */
-    public Builder setLongest(
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate.Builder builderForValue) {
-      if (longestBuilder_ == null) {
-        condition_ = builderForValue.build();
-        onChanged();
-      } else {
-        longestBuilder_.setMessage(builderForValue.build());
-      }
-      conditionCase_ = 7;
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate longest = 7;</code>
-     */
-    public Builder mergeLongest(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate value) {
-      if (longestBuilder_ == null) {
-        if (conditionCase_ == 7 &&
-            condition_ != com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate.getDefaultInstance()) {
-          condition_ = com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate.newBuilder((com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate) condition_)
-              .mergeFrom(value).buildPartial();
-        } else {
-          condition_ = value;
-        }
-        onChanged();
-      } else {
-        if (conditionCase_ == 7) {
-          longestBuilder_.mergeFrom(value);
-        } else {
-          longestBuilder_.setMessage(value);
-        }
-      }
-      conditionCase_ = 7;
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate longest = 7;</code>
-     */
-    public Builder clearLongest() {
-      if (longestBuilder_ == null) {
-        if (conditionCase_ == 7) {
-          conditionCase_ = 0;
-          condition_ = null;
-          onChanged();
-        }
-      } else {
-        if (conditionCase_ == 7) {
-          conditionCase_ = 0;
-          condition_ = null;
-        }
-        longestBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate longest = 7;</code>
-     */
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate.Builder getLongestBuilder() {
-      return getLongestFieldBuilder().getBuilder();
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate longest = 7;</code>
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplateOrBuilder getLongestOrBuilder() {
-      if ((conditionCase_ == 7) && (longestBuilder_ != null)) {
-        return longestBuilder_.getMessageOrBuilder();
-      } else {
-        if (conditionCase_ == 7) {
-          return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate) condition_;
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate.getDefaultInstance();
-      }
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate longest = 7;</code>
-     */
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplateOrBuilder> 
-        getLongestFieldBuilder() {
-      if (longestBuilder_ == null) {
-        if (!(conditionCase_ == 7)) {
-          condition_ = com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate.getDefaultInstance();
-        }
-        longestBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-            com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplateOrBuilder>(
-                (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.LongestTemplate) condition_,
-                getParentForChildren(),
-                isClean());
+    public Builder clearJoin() {
+      if (conditionCase_ == 5) {
+        conditionCase_ = 0;
         condition_ = null;
-      }
-      conditionCase_ = 7;
-      onChanged();
-      return longestBuilder_;
-    }
-
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplateOrBuilder> onlyIfBuilder_;
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 8;</code>
-     * @return Whether the onlyIf field is set.
-     */
-    @java.lang.Override
-    public boolean hasOnlyIf() {
-      return conditionCase_ == 8;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 8;</code>
-     * @return The onlyIf.
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate getOnlyIf() {
-      if (onlyIfBuilder_ == null) {
-        if (conditionCase_ == 8) {
-          return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate) condition_;
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate.getDefaultInstance();
-      } else {
-        if (conditionCase_ == 8) {
-          return onlyIfBuilder_.getMessage();
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate.getDefaultInstance();
-      }
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 8;</code>
-     */
-    public Builder setOnlyIf(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate value) {
-      if (onlyIfBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        condition_ = value;
         onChanged();
-      } else {
-        onlyIfBuilder_.setMessage(value);
-      }
-      conditionCase_ = 8;
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 8;</code>
-     */
-    public Builder setOnlyIf(
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate.Builder builderForValue) {
-      if (onlyIfBuilder_ == null) {
-        condition_ = builderForValue.build();
-        onChanged();
-      } else {
-        onlyIfBuilder_.setMessage(builderForValue.build());
-      }
-      conditionCase_ = 8;
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 8;</code>
-     */
-    public Builder mergeOnlyIf(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate value) {
-      if (onlyIfBuilder_ == null) {
-        if (conditionCase_ == 8 &&
-            condition_ != com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate.getDefaultInstance()) {
-          condition_ = com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate.newBuilder((com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate) condition_)
-              .mergeFrom(value).buildPartial();
-        } else {
-          condition_ = value;
-        }
-        onChanged();
-      } else {
-        if (conditionCase_ == 8) {
-          onlyIfBuilder_.mergeFrom(value);
-        } else {
-          onlyIfBuilder_.setMessage(value);
-        }
-      }
-      conditionCase_ = 8;
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 8;</code>
-     */
-    public Builder clearOnlyIf() {
-      if (onlyIfBuilder_ == null) {
-        if (conditionCase_ == 8) {
-          conditionCase_ = 0;
-          condition_ = null;
-          onChanged();
-        }
-      } else {
-        if (conditionCase_ == 8) {
-          conditionCase_ = 0;
-          condition_ = null;
-        }
-        onlyIfBuilder_.clear();
       }
       return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 8;</code>
-     */
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate.Builder getOnlyIfBuilder() {
-      return getOnlyIfFieldBuilder().getBuilder();
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 8;</code>
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplateOrBuilder getOnlyIfOrBuilder() {
-      if ((conditionCase_ == 8) && (onlyIfBuilder_ != null)) {
-        return onlyIfBuilder_.getMessageOrBuilder();
-      } else {
-        if (conditionCase_ == 8) {
-          return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate) condition_;
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate.getDefaultInstance();
-      }
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 8;</code>
-     */
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplateOrBuilder> 
-        getOnlyIfFieldBuilder() {
-      if (onlyIfBuilder_ == null) {
-        if (!(conditionCase_ == 8)) {
-          condition_ = com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate.getDefaultInstance();
-        }
-        onlyIfBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-            com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplateOrBuilder>(
-                (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.OnlyIfTemplate) condition_,
-                getParentForChildren(),
-                isClean());
-        condition_ = null;
-      }
-      conditionCase_ = 8;
-      onChanged();
-      return onlyIfBuilder_;
-    }
-
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplateOrBuilder> unlessBuilder_;
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate unless = 9;</code>
-     * @return Whether the unless field is set.
-     */
-    @java.lang.Override
-    public boolean hasUnless() {
-      return conditionCase_ == 9;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate unless = 9;</code>
-     * @return The unless.
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate getUnless() {
-      if (unlessBuilder_ == null) {
-        if (conditionCase_ == 9) {
-          return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate) condition_;
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate.getDefaultInstance();
-      } else {
-        if (conditionCase_ == 9) {
-          return unlessBuilder_.getMessage();
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate.getDefaultInstance();
-      }
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate unless = 9;</code>
-     */
-    public Builder setUnless(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate value) {
-      if (unlessBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        condition_ = value;
-        onChanged();
-      } else {
-        unlessBuilder_.setMessage(value);
-      }
-      conditionCase_ = 9;
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate unless = 9;</code>
-     */
-    public Builder setUnless(
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate.Builder builderForValue) {
-      if (unlessBuilder_ == null) {
-        condition_ = builderForValue.build();
-        onChanged();
-      } else {
-        unlessBuilder_.setMessage(builderForValue.build());
-      }
-      conditionCase_ = 9;
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate unless = 9;</code>
-     */
-    public Builder mergeUnless(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate value) {
-      if (unlessBuilder_ == null) {
-        if (conditionCase_ == 9 &&
-            condition_ != com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate.getDefaultInstance()) {
-          condition_ = com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate.newBuilder((com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate) condition_)
-              .mergeFrom(value).buildPartial();
-        } else {
-          condition_ = value;
-        }
-        onChanged();
-      } else {
-        if (conditionCase_ == 9) {
-          unlessBuilder_.mergeFrom(value);
-        } else {
-          unlessBuilder_.setMessage(value);
-        }
-      }
-      conditionCase_ = 9;
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate unless = 9;</code>
-     */
-    public Builder clearUnless() {
-      if (unlessBuilder_ == null) {
-        if (conditionCase_ == 9) {
-          conditionCase_ = 0;
-          condition_ = null;
-          onChanged();
-        }
-      } else {
-        if (conditionCase_ == 9) {
-          conditionCase_ = 0;
-          condition_ = null;
-        }
-        unlessBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate unless = 9;</code>
-     */
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate.Builder getUnlessBuilder() {
-      return getUnlessFieldBuilder().getBuilder();
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate unless = 9;</code>
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplateOrBuilder getUnlessOrBuilder() {
-      if ((conditionCase_ == 9) && (unlessBuilder_ != null)) {
-        return unlessBuilder_.getMessageOrBuilder();
-      } else {
-        if (conditionCase_ == 9) {
-          return (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate) condition_;
-        }
-        return com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate.getDefaultInstance();
-      }
-    }
-    /**
-     * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate unless = 9;</code>
-     */
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplateOrBuilder> 
-        getUnlessFieldBuilder() {
-      if (unlessBuilder_ == null) {
-        if (!(conditionCase_ == 9)) {
-          condition_ = com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate.getDefaultInstance();
-        }
-        unlessBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-            com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplateOrBuilder>(
-                (com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.UnlessTemplate) condition_,
-                getParentForChildren(),
-                isClean());
-        condition_ = null;
-      }
-      conditionCase_ = 9;
-      onChanged();
-      return unlessBuilder_;
     }
     @java.lang.Override
     public final Builder setUnknownFields(

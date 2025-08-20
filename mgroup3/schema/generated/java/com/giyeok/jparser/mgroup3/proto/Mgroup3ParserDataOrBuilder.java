@@ -23,50 +23,100 @@ public interface Mgroup3ParserDataOrBuilder extends
   com.giyeok.jparser.proto.GrammarProto.NGrammarOrBuilder getGrammarOrBuilder();
 
   /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.PathStarter initial_main_path = 2;</code>
-   * @return Whether the initialMainPath field is set.
+   * <code>int32 start_symbol_id = 2;</code>
+   * @return The startSymbolId.
    */
-  boolean hasInitialMainPath();
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.PathStarter initial_main_path = 2;</code>
-   * @return The initialMainPath.
-   */
-  com.giyeok.jparser.mgroup3.proto.PathStarter getInitialMainPath();
-  /**
-   * <code>.com.giyeok.jparser.mgroup3.proto.PathStarter initial_main_path = 2;</code>
-   */
-  com.giyeok.jparser.mgroup3.proto.PathStarterOrBuilder getInitialMainPathOrBuilder();
+  int getStartSymbolId();
 
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
+   * <pre>
+   * 문법 맨 앞에서 lookahead 심볼같은게 등장하는 경우에는 initial_cond_symbol_ids가 필요할듯
+   * </pre>
+   *
+   * <code>repeated int32 initial_cond_symbol_ids = 3;</code>
+   * @return A list containing the initialCondSymbolIds.
    */
-  java.util.List<com.giyeok.jparser.mgroup3.proto.PathStarter> 
-      getInitialCondPathsList();
+  java.util.List<java.lang.Integer> getInitialCondSymbolIdsList();
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
+   * <pre>
+   * 문법 맨 앞에서 lookahead 심볼같은게 등장하는 경우에는 initial_cond_symbol_ids가 필요할듯
+   * </pre>
+   *
+   * <code>repeated int32 initial_cond_symbol_ids = 3;</code>
+   * @return The count of initialCondSymbolIds.
    */
-  com.giyeok.jparser.mgroup3.proto.PathStarter getInitialCondPaths(int index);
+  int getInitialCondSymbolIdsCount();
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
+   * <pre>
+   * 문법 맨 앞에서 lookahead 심볼같은게 등장하는 경우에는 initial_cond_symbol_ids가 필요할듯
+   * </pre>
+   *
+   * <code>repeated int32 initial_cond_symbol_ids = 3;</code>
+   * @param index The index of the element to return.
+   * @return The initialCondSymbolIds at the given index.
    */
-  int getInitialCondPathsCount();
-  /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
-   */
-  java.util.List<? extends com.giyeok.jparser.mgroup3.proto.PathStarterOrBuilder> 
-      getInitialCondPathsOrBuilderList();
-  /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathStarter initial_cond_paths = 3;</code>
-   */
-  com.giyeok.jparser.mgroup3.proto.PathStarterOrBuilder getInitialCondPathsOrBuilder(
-      int index);
+  int getInitialCondSymbolIds(int index);
 
   /**
-   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 4;</code>
+   * <pre>
+   * symbol id -&gt; path root
+   * </pre>
+   *
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.PathRootInfo&gt; path_roots = 4;</code>
+   */
+  int getPathRootsCount();
+  /**
+   * <pre>
+   * symbol id -&gt; path root
+   * </pre>
+   *
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.PathRootInfo&gt; path_roots = 4;</code>
+   */
+  boolean containsPathRoots(
+      int key);
+  /**
+   * Use {@link #getPathRootsMap()} instead.
+   */
+  @java.lang.Deprecated
+  java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo>
+  getPathRoots();
+  /**
+   * <pre>
+   * symbol id -&gt; path root
+   * </pre>
+   *
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.PathRootInfo&gt; path_roots = 4;</code>
+   */
+  java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.PathRootInfo>
+  getPathRootsMap();
+  /**
+   * <pre>
+   * symbol id -&gt; path root
+   * </pre>
+   *
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.PathRootInfo&gt; path_roots = 4;</code>
+   */
+  /* nullable */
+com.giyeok.jparser.mgroup3.proto.PathRootInfo getPathRootsOrDefault(
+      int key,
+      /* nullable */
+com.giyeok.jparser.mgroup3.proto.PathRootInfo defaultValue);
+  /**
+   * <pre>
+   * symbol id -&gt; path root
+   * </pre>
+   *
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.PathRootInfo&gt; path_roots = 4;</code>
+   */
+  com.giyeok.jparser.mgroup3.proto.PathRootInfo getPathRootsOrThrow(
+      int key);
+
+  /**
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 5;</code>
    */
   int getMilestoneGroupsCount();
   /**
-   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 4;</code>
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 5;</code>
    */
   boolean containsMilestoneGroups(
       int key);
@@ -77,12 +127,12 @@ public interface Mgroup3ParserDataOrBuilder extends
   java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup>
   getMilestoneGroups();
   /**
-   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 4;</code>
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 5;</code>
    */
   java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup>
   getMilestoneGroupsMap();
   /**
-   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 4;</code>
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 5;</code>
    */
   /* nullable */
 com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup getMilestoneGroupsOrDefault(
@@ -90,17 +140,17 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup getMilestoneGr
       /* nullable */
 com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup defaultValue);
   /**
-   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 4;</code>
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup&gt; milestone_groups = 5;</code>
    */
   com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup getMilestoneGroupsOrThrow(
       int key);
 
   /**
-   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 5;</code>
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 6;</code>
    */
   int getTermActionsCount();
   /**
-   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 5;</code>
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 6;</code>
    */
   boolean containsTermActions(
       int key);
@@ -111,12 +161,12 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MilestoneGroup defaultValue);
   java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions>
   getTermActions();
   /**
-   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 5;</code>
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 6;</code>
    */
   java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions>
   getTermActionsMap();
   /**
-   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 5;</code>
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 6;</code>
    */
   /* nullable */
 com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions getTermActionsOrDefault(
@@ -124,55 +174,55 @@ com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions getTermActio
       /* nullable */
 com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions defaultValue);
   /**
-   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 5;</code>
+   * <code>map&lt;int32, .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions&gt; term_actions = 6;</code>
    */
   com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TermGroupActions getTermActionsOrThrow(
       int key);
 
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
    */
   java.util.List<com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair> 
       getTipEdgeActionsList();
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
    */
   com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair getTipEdgeActions(int index);
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
    */
   int getTipEdgeActionsCount();
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
    */
   java.util.List<? extends com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPairOrBuilder> 
       getTipEdgeActionsOrBuilderList();
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 6;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPair tip_edge_actions = 7;</code>
    */
   com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.TipEdgeActionPairOrBuilder getTipEdgeActionsOrBuilder(
       int index);
 
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
    */
   java.util.List<com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair> 
       getMidEdgeActionsList();
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
    */
   com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair getMidEdgeActions(int index);
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
    */
   int getMidEdgeActionsCount();
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
    */
   java.util.List<? extends com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPairOrBuilder> 
       getMidEdgeActionsOrBuilderList();
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
    */
   com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData.MidEdgeActionPairOrBuilder getMidEdgeActionsOrBuilder(
       int index);

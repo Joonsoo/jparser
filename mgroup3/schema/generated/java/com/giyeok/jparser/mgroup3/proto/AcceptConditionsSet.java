@@ -5,21 +5,22 @@ package com.giyeok.jparser.mgroup3.proto;
 
 /**
  * <pre>
- * TODO: accept condition에서 이 accept condition 때문에 생겨나는 path들, 연관 path에 대한 정보를 저장
+ * AcceptCondition 여러개를 and 조건으로 모은 것
+ * 파서 제너레이션 과정에선 negation이 등장하지 않으므로 or도 등장하지 않는다
  * </pre>
  *
- * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate}
+ * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet}
  */
-public final class AcceptConditionActionTemplate extends
+public final class AcceptConditionsSet extends
     com.google.protobuf.GeneratedMessageV3 implements
-    // @@protoc_insertion_point(message_implements:com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate)
-    AcceptConditionActionTemplateOrBuilder {
+    // @@protoc_insertion_point(message_implements:com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet)
+    AcceptConditionsSetOrBuilder {
 private static final long serialVersionUID = 0L;
-  // Use AcceptConditionActionTemplate.newBuilder() to construct.
-  private AcceptConditionActionTemplate(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+  // Use AcceptConditionsSet.newBuilder() to construct.
+  private AcceptConditionsSet(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
     super(builder);
   }
-  private AcceptConditionActionTemplate() {
+  private AcceptConditionsSet() {
     acceptConditions_ = java.util.Collections.emptyList();
   }
 
@@ -27,59 +28,59 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings({"unused"})
   protected java.lang.Object newInstance(
       UnusedPrivateParameter unused) {
-    return new AcceptConditionActionTemplate();
+    return new AcceptConditionsSet();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
       getDescriptor() {
-    return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionActionTemplate_descriptor;
+    return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionsSet_descriptor;
   }
 
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internalGetFieldAccessorTable() {
-    return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionActionTemplate_fieldAccessorTable
+    return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionsSet_fieldAccessorTable
         .ensureFieldAccessorsInitialized(
-            com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.class, com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.Builder.class);
+            com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.class, com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.Builder.class);
   }
 
   public static final int ACCEPT_CONDITIONS_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
-  private java.util.List<com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate> acceptConditions_;
+  private java.util.List<com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate> acceptConditions_;
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
    */
   @java.lang.Override
-  public java.util.List<com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate> getAcceptConditionsList() {
+  public java.util.List<com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate> getAcceptConditionsList() {
     return acceptConditions_;
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
    */
   @java.lang.Override
-  public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplateOrBuilder> 
+  public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder> 
       getAcceptConditionsOrBuilderList() {
     return acceptConditions_;
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
    */
   @java.lang.Override
   public int getAcceptConditionsCount() {
     return acceptConditions_.size();
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
    */
   @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate getAcceptConditions(int index) {
+  public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate getAcceptConditions(int index) {
     return acceptConditions_.get(index);
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
    */
   @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplateOrBuilder getAcceptConditionsOrBuilder(
+  public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder getAcceptConditionsOrBuilder(
       int index) {
     return acceptConditions_.get(index);
   }
@@ -124,10 +125,10 @@ private static final long serialVersionUID = 0L;
     if (obj == this) {
      return true;
     }
-    if (!(obj instanceof com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate)) {
+    if (!(obj instanceof com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet)) {
       return super.equals(obj);
     }
-    com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate other = (com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate) obj;
+    com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet other = (com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet) obj;
 
     if (!getAcceptConditionsList()
         .equals(other.getAcceptConditionsList())) return false;
@@ -151,69 +152,69 @@ private static final long serialVersionUID = 0L;
     return hash;
   }
 
-  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate parseFrom(
+  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet parseFrom(
       java.nio.ByteBuffer data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate parseFrom(
+  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet parseFrom(
       java.nio.ByteBuffer data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate parseFrom(
+  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet parseFrom(
       com.google.protobuf.ByteString data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate parseFrom(
+  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet parseFrom(
       com.google.protobuf.ByteString data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate parseFrom(byte[] data)
+  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet parseFrom(byte[] data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate parseFrom(
+  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet parseFrom(
       byte[] data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate parseFrom(java.io.InputStream input)
+  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet parseFrom(java.io.InputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessageV3
         .parseWithIOException(PARSER, input);
   }
-  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate parseFrom(
+  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet parseFrom(
       java.io.InputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessageV3
         .parseWithIOException(PARSER, input, extensionRegistry);
   }
-  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate parseDelimitedFrom(java.io.InputStream input)
+  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet parseDelimitedFrom(java.io.InputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessageV3
         .parseDelimitedWithIOException(PARSER, input);
   }
-  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate parseDelimitedFrom(
+  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet parseDelimitedFrom(
       java.io.InputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessageV3
         .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
   }
-  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate parseFrom(
+  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet parseFrom(
       com.google.protobuf.CodedInputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessageV3
         .parseWithIOException(PARSER, input);
   }
-  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate parseFrom(
+  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet parseFrom(
       com.google.protobuf.CodedInputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
@@ -226,7 +227,7 @@ private static final long serialVersionUID = 0L;
   public static Builder newBuilder() {
     return DEFAULT_INSTANCE.toBuilder();
   }
-  public static Builder newBuilder(com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate prototype) {
+  public static Builder newBuilder(com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet prototype) {
     return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
   }
   @java.lang.Override
@@ -243,29 +244,30 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * TODO: accept condition에서 이 accept condition 때문에 생겨나는 path들, 연관 path에 대한 정보를 저장
+   * AcceptCondition 여러개를 and 조건으로 모은 것
+   * 파서 제너레이션 과정에선 negation이 등장하지 않으므로 or도 등장하지 않는다
    * </pre>
    *
-   * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate}
+   * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet}
    */
   public static final class Builder extends
       com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
-      // @@protoc_insertion_point(builder_implements:com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate)
-      com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplateOrBuilder {
+      // @@protoc_insertion_point(builder_implements:com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet)
+      com.giyeok.jparser.mgroup3.proto.AcceptConditionsSetOrBuilder {
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionActionTemplate_descriptor;
+      return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionsSet_descriptor;
     }
 
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionActionTemplate_fieldAccessorTable
+      return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionsSet_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-              com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.class, com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.Builder.class);
+              com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.class, com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.Builder.class);
     }
 
-    // Construct using com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.newBuilder()
+    // Construct using com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.newBuilder()
     private Builder() {
 
     }
@@ -292,17 +294,17 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public com.google.protobuf.Descriptors.Descriptor
         getDescriptorForType() {
-      return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionActionTemplate_descriptor;
+      return com.giyeok.jparser.mgroup3.proto.Mgroup3ParserDataOuterClass.internal_static_com_giyeok_jparser_mgroup3_proto_AcceptConditionsSet_descriptor;
     }
 
     @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate getDefaultInstanceForType() {
-      return com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.getDefaultInstance();
+    public com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet getDefaultInstanceForType() {
+      return com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.getDefaultInstance();
     }
 
     @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate build() {
-      com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate result = buildPartial();
+    public com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet build() {
+      com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet result = buildPartial();
       if (!result.isInitialized()) {
         throw newUninitializedMessageException(result);
       }
@@ -310,15 +312,15 @@ private static final long serialVersionUID = 0L;
     }
 
     @java.lang.Override
-    public com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate buildPartial() {
-      com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate result = new com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate(this);
+    public com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet buildPartial() {
+      com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet result = new com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet(this);
       buildPartialRepeatedFields(result);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
     }
 
-    private void buildPartialRepeatedFields(com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate result) {
+    private void buildPartialRepeatedFields(com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet result) {
       if (acceptConditionsBuilder_ == null) {
         if (((bitField0_ & 0x00000001) != 0)) {
           acceptConditions_ = java.util.Collections.unmodifiableList(acceptConditions_);
@@ -330,22 +332,22 @@ private static final long serialVersionUID = 0L;
       }
     }
 
-    private void buildPartial0(com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate result) {
+    private void buildPartial0(com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet result) {
       int from_bitField0_ = bitField0_;
     }
 
     @java.lang.Override
     public Builder mergeFrom(com.google.protobuf.Message other) {
-      if (other instanceof com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate) {
-        return mergeFrom((com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate)other);
+      if (other instanceof com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet) {
+        return mergeFrom((com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet)other);
       } else {
         super.mergeFrom(other);
         return this;
       }
     }
 
-    public Builder mergeFrom(com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate other) {
-      if (other == com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate.getDefaultInstance()) return this;
+    public Builder mergeFrom(com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet other) {
+      if (other == com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet.getDefaultInstance()) return this;
       if (acceptConditionsBuilder_ == null) {
         if (!other.acceptConditions_.isEmpty()) {
           if (acceptConditions_.isEmpty()) {
@@ -399,9 +401,9 @@ private static final long serialVersionUID = 0L;
               done = true;
               break;
             case 10: {
-              com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate m =
+              com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate m =
                   input.readMessage(
-                      com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate.parser(),
+                      com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.parser(),
                       extensionRegistry);
               if (acceptConditionsBuilder_ == null) {
                 ensureAcceptConditionsIsMutable();
@@ -428,22 +430,22 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private java.util.List<com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate> acceptConditions_ =
+    private java.util.List<com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate> acceptConditions_ =
       java.util.Collections.emptyList();
     private void ensureAcceptConditionsIsMutable() {
       if (!((bitField0_ & 0x00000001) != 0)) {
-        acceptConditions_ = new java.util.ArrayList<com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate>(acceptConditions_);
+        acceptConditions_ = new java.util.ArrayList<com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate>(acceptConditions_);
         bitField0_ |= 0x00000001;
        }
     }
 
     private com.google.protobuf.RepeatedFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate, com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplateOrBuilder> acceptConditionsBuilder_;
+        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder> acceptConditionsBuilder_;
 
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
      */
-    public java.util.List<com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate> getAcceptConditionsList() {
+    public java.util.List<com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate> getAcceptConditionsList() {
       if (acceptConditionsBuilder_ == null) {
         return java.util.Collections.unmodifiableList(acceptConditions_);
       } else {
@@ -451,7 +453,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
      */
     public int getAcceptConditionsCount() {
       if (acceptConditionsBuilder_ == null) {
@@ -461,9 +463,9 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate getAcceptConditions(int index) {
+    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate getAcceptConditions(int index) {
       if (acceptConditionsBuilder_ == null) {
         return acceptConditions_.get(index);
       } else {
@@ -471,10 +473,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
      */
     public Builder setAcceptConditions(
-        int index, com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate value) {
+        int index, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate value) {
       if (acceptConditionsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
@@ -488,10 +490,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
      */
     public Builder setAcceptConditions(
-        int index, com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate.Builder builderForValue) {
+        int index, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder builderForValue) {
       if (acceptConditionsBuilder_ == null) {
         ensureAcceptConditionsIsMutable();
         acceptConditions_.set(index, builderForValue.build());
@@ -502,9 +504,9 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
      */
-    public Builder addAcceptConditions(com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate value) {
+    public Builder addAcceptConditions(com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate value) {
       if (acceptConditionsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
@@ -518,10 +520,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
      */
     public Builder addAcceptConditions(
-        int index, com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate value) {
+        int index, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate value) {
       if (acceptConditionsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
@@ -535,10 +537,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
      */
     public Builder addAcceptConditions(
-        com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate.Builder builderForValue) {
+        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder builderForValue) {
       if (acceptConditionsBuilder_ == null) {
         ensureAcceptConditionsIsMutable();
         acceptConditions_.add(builderForValue.build());
@@ -549,10 +551,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
      */
     public Builder addAcceptConditions(
-        int index, com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate.Builder builderForValue) {
+        int index, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder builderForValue) {
       if (acceptConditionsBuilder_ == null) {
         ensureAcceptConditionsIsMutable();
         acceptConditions_.add(index, builderForValue.build());
@@ -563,10 +565,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
      */
     public Builder addAllAcceptConditions(
-        java.lang.Iterable<? extends com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate> values) {
+        java.lang.Iterable<? extends com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate> values) {
       if (acceptConditionsBuilder_ == null) {
         ensureAcceptConditionsIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
@@ -578,7 +580,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
      */
     public Builder clearAcceptConditions() {
       if (acceptConditionsBuilder_ == null) {
@@ -591,7 +593,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
      */
     public Builder removeAcceptConditions(int index) {
       if (acceptConditionsBuilder_ == null) {
@@ -604,16 +606,16 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate.Builder getAcceptConditionsBuilder(
+    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder getAcceptConditionsBuilder(
         int index) {
       return getAcceptConditionsFieldBuilder().getBuilder(index);
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplateOrBuilder getAcceptConditionsOrBuilder(
+    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder getAcceptConditionsOrBuilder(
         int index) {
       if (acceptConditionsBuilder_ == null) {
         return acceptConditions_.get(index);  } else {
@@ -621,9 +623,9 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
      */
-    public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplateOrBuilder> 
+    public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder> 
          getAcceptConditionsOrBuilderList() {
       if (acceptConditionsBuilder_ != null) {
         return acceptConditionsBuilder_.getMessageOrBuilderList();
@@ -632,33 +634,33 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate.Builder addAcceptConditionsBuilder() {
+    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder addAcceptConditionsBuilder() {
       return getAcceptConditionsFieldBuilder().addBuilder(
-          com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate.getDefaultInstance());
+          com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.getDefaultInstance());
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate.Builder addAcceptConditionsBuilder(
+    public com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder addAcceptConditionsBuilder(
         int index) {
       return getAcceptConditionsFieldBuilder().addBuilder(
-          index, com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate.getDefaultInstance());
+          index, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.getDefaultInstance());
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate accept_conditions = 1;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate accept_conditions = 1;</code>
      */
-    public java.util.List<com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate.Builder> 
+    public java.util.List<com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder> 
          getAcceptConditionsBuilderList() {
       return getAcceptConditionsFieldBuilder().getBuilderList();
     }
     private com.google.protobuf.RepeatedFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate, com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplateOrBuilder> 
+        com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder> 
         getAcceptConditionsFieldBuilder() {
       if (acceptConditionsBuilder_ == null) {
         acceptConditionsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
-            com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate, com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.PathAcceptConditionTemplateOrBuilder>(
+            com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate.Builder, com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder>(
                 acceptConditions_,
                 ((bitField0_ & 0x00000001) != 0),
                 getParentForChildren(),
@@ -680,23 +682,23 @@ private static final long serialVersionUID = 0L;
     }
 
 
-    // @@protoc_insertion_point(builder_scope:com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate)
+    // @@protoc_insertion_point(builder_scope:com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet)
   }
 
-  // @@protoc_insertion_point(class_scope:com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate)
-  private static final com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate DEFAULT_INSTANCE;
+  // @@protoc_insertion_point(class_scope:com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet)
+  private static final com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet DEFAULT_INSTANCE;
   static {
-    DEFAULT_INSTANCE = new com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate();
+    DEFAULT_INSTANCE = new com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet();
   }
 
-  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate getDefaultInstance() {
+  public static com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet getDefaultInstance() {
     return DEFAULT_INSTANCE;
   }
 
-  private static final com.google.protobuf.Parser<AcceptConditionActionTemplate>
-      PARSER = new com.google.protobuf.AbstractParser<AcceptConditionActionTemplate>() {
+  private static final com.google.protobuf.Parser<AcceptConditionsSet>
+      PARSER = new com.google.protobuf.AbstractParser<AcceptConditionsSet>() {
     @java.lang.Override
-    public AcceptConditionActionTemplate parsePartialFrom(
+    public AcceptConditionsSet parsePartialFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -715,17 +717,17 @@ private static final long serialVersionUID = 0L;
     }
   };
 
-  public static com.google.protobuf.Parser<AcceptConditionActionTemplate> parser() {
+  public static com.google.protobuf.Parser<AcceptConditionsSet> parser() {
     return PARSER;
   }
 
   @java.lang.Override
-  public com.google.protobuf.Parser<AcceptConditionActionTemplate> getParserForType() {
+  public com.google.protobuf.Parser<AcceptConditionsSet> getParserForType() {
     return PARSER;
   }
 
   @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.AcceptConditionActionTemplate getDefaultInstanceForType() {
+  public com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet getDefaultInstanceForType() {
     return DEFAULT_INSTANCE;
   }
 
