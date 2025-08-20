@@ -1,0 +1,135 @@
+syntax = "proto3";
+
+package com.giyeok.jparser.mgroup3.proto;
+
+import "GrammarProto.proto";
+import "TermGroupProto.proto";
+import "google/protobuf/empty.proto";
+
+option java_multiple_files = true;
+
+message Mgroup3ParserData {
+  com.giyeok.jparser.proto.NGrammar grammar = 1;
+
+  PathStarter initial_main_path = 2;
+  repeated PathStarter initial_cond_paths = 3;
+
+  message MilestoneGroup {
+    repeated KernelTemplate kernels = 1;
+  }
+  map<int32, MilestoneGroup> milestone_groups = 4;
+
+  message TermGroupAction {
+    com.giyeok.jparser.proto.TermGroup term_group = 1;
+    TermAction term_action = 2;
+  }
+  message TermGroupActions {
+    repeated TermGroupAction actions = 1;
+  }
+  map<int32, TermGroupActions> term_actions = 5;
+
+  message TipEdgeActionPair {
+    KernelTemplate pretip = 1;
+    int32 tip_group_id = 2;
+    EdgeAction edge_action = 3;
+  }
+  repeated TipEdgeActionPair tip_edge_actions = 6;
+
+  message MidEdgeActionPair {
+    KernelTemplate pretip = 1;
+    KernelTemplate tip = 2;
+    EdgeAction edge_action = 3;
+  }
+  repeated MidEdgeActionPair mid_edge_actions = 7;
+}
+
+message PathStarter {
+  KernelTemplate start_kernel = 1;
+  int32 start_group_id = 2;
+  bool start_is_finished = 3;
+}
+
+message TermAction {
+  message ReplaceAndAppendMilestoneGroup {
+    KernelTemplate replace = 1;
+    AppendMilestoneGroup append = 2;
+  }
+  repeated ReplaceAndAppendMilestoneGroup appends = 1;
+
+  message ReplaceAndProgress {
+    int32 replace_group_id = 1;
+    AcceptConditionActionTemplate accept_condition = 2;
+  }
+  repeated ReplaceAndProgress start_node_progresses = 2;
+}
+
+message AppendMilestoneGroup {
+  int32 group_id = 1;
+  AcceptConditionActionTemplate accept_condition = 2;
+}
+
+message EdgeAction {
+  repeated AppendMilestoneGroup append_milestone_groups = 1;
+  optional AcceptConditionActionTemplate start_node_progress = 2;
+}
+
+message KernelTemplate {
+  int32 symbol_id = 1;
+  int32 pointer = 2;
+}
+
+// TODO: accept condition에서 이 accept condition 때문에 생겨나는 path들, 연관 path에 대한 정보를 저장
+message AcceptConditionActionTemplate {
+  repeated PathAcceptConditionTemplate accept_conditions = 1;
+}
+
+message PathAcceptConditionTemplate {
+  oneof condition {
+    // 현재 path가 이후에 다시 finish되는 경우가 있으면 이번 path는 invalidate한다
+    bool longest = 1;
+    // PathStarter로 만들어진 경로가 finish되어야만 이번 path도 valid하다
+    PathStarter lookahead_found = 2;
+    // PathStarter로 만들어진 경로가 finish되면 이번 path는 invalidate한다
+    PathStarter lookahead_notfound = 3;
+    // PathStarter로 만들어진 경로가 finish되는 시점에는 이번 path는 invalid하다
+    PathStarter except = 4;
+    // PathStarter로 만들어진 경로가 finish되는 시점에만 이번 path가 valid하다
+    PathStarter join = 5;
+  }
+}
+
+message AcceptConditionTemplate {
+  message AndTemplate {
+    repeated AcceptConditionTemplate conditions = 1;
+  }
+  message OrTemplate {
+    repeated AcceptConditionTemplate conditions = 1;
+  }
+  message LookaheadTemplate {
+    int32 symbol_id = 1;
+    //    bool from_next_gen = 2;
+  }
+  message LongestTemplate {
+    int32 symbol_id = 1;
+    //    bool from_next_gen = 2;
+  }
+  message OnlyIfTemplate {
+    int32 symbol_id = 1;
+    //    bool from_next_gen = 2;
+  }
+  message UnlessTemplate {
+    int32 symbol_id = 1;
+    //    bool from_next_gen = 2;
+  }
+  oneof condition {
+    google.protobuf.Empty always = 1;
+    google.protobuf.Empty never = 2;
+    AndTemplate and = 3;
+    OrTemplate or = 4;
+    LookaheadTemplate lookahead_is = 5;
+    LookaheadTemplate lookahead_not = 6;
+    LongestTemplate longest = 7;
+    OnlyIfTemplate only_if = 8;
+    UnlessTemplate unless = 9;
+  }
+}

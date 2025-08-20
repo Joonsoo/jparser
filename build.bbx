@@ -7,12 +7,12 @@ from bibix.plugins import java
 from bibix.plugins import scala
 from bibix.plugins import protobuf
 from bibix.plugins import scalatest
-from bibix.plugins import ktjvm
+from bibix.plugins import ktjvm2 as ktjvm
 from bibix.plugins import jar
 from bibix.plugins import zip
 import git("https://github.com/Joonsoo/gviz.git") as gviz
 
-kotlinVersion = "1.9.20"
+kotlinVersion = "2.2.0"
 var ktjvm.sdkVersion = kotlinVersion
 var ktjvm.compilerVersion = kotlinVersion
 
@@ -224,6 +224,48 @@ mgroup2 {
   )
 }
 
+mgroup3 {
+  parserDataSchema {
+    schema = protobuf.schema(
+      srcs = ["mgroup3/schema/proto/Mgroup3ParserData.proto"],
+      deps = [base.proto.schema],
+    )
+
+    javacode = protobuf.java(schema)
+
+    action generate {
+      file.clearDirectory("mgroup3/schema/generated/java")
+      file.copyDirectory(javacode.rootDir, "mgroup3/schema/generated/java")
+    }
+
+    javalib = java.library(
+      srcs = glob("mgroup3/schema/generated/java/**.java"),
+      deps = [base.proto.javalib],
+    )
+  }
+
+  parserData = ktjvm.library(
+    srcs = glob("mgroup3/schema/kotlin/**.kt"),
+    deps = [parserDataSchema.javalib],
+  )
+
+  gen = ktjvm.library(
+    srcs = glob("mgroup3/gen/kotlin/**.kt"),
+    deps = [parserData],
+  )
+
+  parser = ktjvm.library(
+    srcs = glob("mgroup3/parser/kotlin/**.kt"),
+    deps = [parserData],
+  )
+
+  test = ktjvm.library(
+    srcs = glob("mgroup3/test/kotlin/**.kt"),
+    resources = glob("mgroup3/test/resources/**"),
+    deps = [parserData, gen, parser, ...testDeps],
+  )
+}
+
 examples {
   // naive는 metalang3가 없던 시절, naive 파서 테스트용으로 정의된 문법과 예제들
   naiveExamples = scala.library(
@@ -345,9 +387,9 @@ examples {
     file.copyFile(zip.gzip(generate.asdl.parserData), "examples/generated/resources")
     file.copyFile(zip.gzip(generate.asdlTrimmed.parserData), "examples/generated/resources")
     file.copyDirectory(generate.asdlTrimmed.srcsRoot, "examples/generated/kotlin")
-    file.copyFile(zip.gzip(generate.j1mg2.parserData), "examples/generated/resources")
-    file.copyFile(zip.gzip(generate.j1mg2trimmed.parserData), "examples/generated/resources")
-    file.copyDirectory(generate.j1mg2trimmed.srcsRoot, "examples/generated/kotlin")
+    // file.copyFile(zip.gzip(generate.j1mg2.parserData), "examples/generated/resources")
+    // file.copyFile(zip.gzip(generate.j1mg2trimmed.parserData), "examples/generated/resources")
+    // file.copyDirectory(generate.j1mg2trimmed.srcsRoot, "examples/generated/kotlin")
   }
 }
 

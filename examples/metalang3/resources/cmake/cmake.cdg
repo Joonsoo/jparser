@@ -1,0 +1,115 @@
+cmake_file = (WS file_element (ElemDelim file_element)*)? WS {$0{[$1] + $2} ?: []}
+
+file_element: FileElement = command_invocation
+command_invocation: CmdInvocation
+ = identifier-("if" | "elseif" | "else" | "endif") WS '(' (WS arguments)? WS ')' {CommandInvocation(id=$0, args=$3)}
+ | identifier&("if" | "elseif" | "else" | "endif") WS '(' (WS condition)? WS ')' {IfCommandInvocation(id=$0, cond=$3)}
+identifier = <'A-Za-z_' 'A-Za-z0-9_\-'* {Identifier(name=str($0, $1))}>
+arguments = argument (WS argument)* {Arguments(args=[$0] + $1)}
+argument: Argument = bracket_argument | quoted_argument | unquoted_argument | '(' (WS arguments)? WS ')' {ArgsGroup(body=$1)}
+// 원래는 `unquoted_argument = !bracket_open <unquoted_element+> {UnquotedElems(elems=$0)}` 로 하고 싶은데, jparser 문제로 !가 잘 안되는 상태
+
+condition: IfCondition = un_condition
+ | condition WS "AND"&identifier WS un_condition {LogicalOp(op: %LogicalOps=%AND, lhs=$0, rhs=$4)}
+ | condition WS "OR"&identifier WS un_condition {LogicalOp(%OR, $0, $4)}
+un_condition: IfUnCondition = bintest_condition
+ | "NOT"&identifier WS bintest_condition {LogicalNot(operand=$2)}
+bintest_condition: IfBinTestCondition = untest_condition
+ | untest_condition WS "EQUAL"&identifier WS untest_condition {BintestOp(op: %BintestOps=%EQUAL, lhs=$0, rhs=$4)}
+ | untest_condition WS "LESS"&identifier WS untest_condition {BintestOp(%LESS, $0, $4)}
+ | untest_condition WS "LESS_EQUAL"&identifier WS untest_condition {BintestOp(%LESS_EQUAL, $0, $4)}
+ | untest_condition WS "GREATER"&identifier WS untest_condition {BintestOp(%GREATER, $0, $4)}
+ | untest_condition WS "GREATER_EQUAL"&identifier WS untest_condition {BintestOp(%GREATER_EQUAL, $0, $4)}
+ | untest_condition WS "STREQUAL"&identifier WS untest_condition {BintestOp(%STREQUAL, $0, $4)}
+ | untest_condition WS "STRLESS"&identifier WS untest_condition {BintestOp(%STRLESS, $0, $4)}
+ | untest_condition WS "STRLESS_EQUAL"&identifier WS untest_condition {BintestOp(%STRLESS_EQUAL, $0, $4)}
+ | untest_condition WS "STRGREATER"&identifier WS untest_condition {BintestOp(%STRGREATER, $0, $4)}
+ | untest_condition WS "STRGREATER_EQUAL"&identifier WS untest_condition {BintestOp(%STRGREATER_EQUAL, $0, $4)}
+ | untest_condition WS "VERSION_EQUAL"&identifier WS untest_condition {BintestOp(%VERSION_EQUAL, $0, $4)}
+ | untest_condition WS "VERSION_LESS"&identifier WS untest_condition {BintestOp(%VERSION_LESS, $0, $4)}
+ | untest_condition WS "VERSION_LESS_EQUAL"&identifier WS untest_condition {BintestOp(%VERSION_LESS_EQUAL, $0, $4)}
+ | untest_condition WS "VERSION_GREATER"&identifier WS untest_condition {BintestOp(%VERSION_GREATER, $0, $4)}
+ | untest_condition WS "VERSION_GREATER_EQUAL"&identifier WS untest_condition {BintestOp(%VERSION_GREATER_EQUAL, $0, $4)}
+ | untest_condition WS "PATH_EQUAL"&identifier WS untest_condition {BintestOp(%PATH_EQUAL, $0, $4)}
+ | untest_condition WS "IN_LIST"&identifier WS untest_condition {BintestOp(%IN_LIST, $0, $4)}
+ | untest_condition WS "IS_NEWER_THAN"&identifier WS untest_condition {BintestOp(%IS_NEWER_THAN, $0, $4)}
+ | untest_condition WS "MATCHES"&identifier WS untest_condition {BintestOp(%MATCHES, $0, $4)}
+untest_condition: IfUnTestCondition = prim_condition
+ | "COMMAND"&identifier WS prim_condition {UntestOp(op: %UntestOps=%COMMAND, operand=$2)}
+ | "POLICY"&identifier WS prim_condition {UntestOp(op: %UntestOps=%POLICY, operand=$2)}
+ | "TARGET"&identifier WS prim_condition {UntestOp(op: %UntestOps=%TARGET, operand=$2)}
+ | "TEST"&identifier WS prim_condition {UntestOp(op: %UntestOps=%TEST, operand=$2)}
+ | "EXISTS"&identifier WS prim_condition {UntestOp(op: %UntestOps=%EXISTS, operand=$2)}
+ | "IS_READABLE"&identifier WS prim_condition {UntestOp(op: %UntestOps=%IS_READABLE, operand=$2)}
+ | "IS_WRITABLE"&identifier WS prim_condition {UntestOp(op: %UntestOps=%IS_WRITABLE, operand=$2)}
+ | "IS_EXECUTABLE"&identifier WS prim_condition {UntestOp(op: %UntestOps=%IS_EXECUTABLE, operand=$2)}
+ | "IS_DIRECTORY"&identifier WS prim_condition {UntestOp(op: %UntestOps=%IS_DIRECTORY, operand=$2)}
+ | "IS_SYMLINK"&identifier WS prim_condition {UntestOp(op: %UntestOps=%IS_SYMLINK, operand=$2)}
+ | "IS_ABSOLUTE"&identifier WS prim_condition {UntestOp(op: %UntestOps=%IS_ABSOLUTE, operand=$2)}
+ | "DEFINED"&identifier WS prim_condition {UntestOp(op: %UntestOps=%DEFINED, operand=$2)}
+prim_condition: IfPrimCondition = bracket_argument | quoted_argument
+ | unquoted_argument-if_keyword
+ | '(' WS ')' {EmptyParen()}
+ | '(' WS condition WS ')' {IfConditionParen(cond=$2)}
+
+if_keyword = "NOT" | "AND" | "OR" | "COMMAND" | "POLICY" | "TARGET" | "DEFINED"
+ | "EXISTS" | "IS_READABLE" | "IS_WRITABLE" | "IS_EXECUTABLE" | "IS_NEWER_THAN" | "IS_DIRECTORY" | "IS_SYMLINK" | "IS_ABSOLUTE"
+ | "MATCHES" | "LESS" | "GREATER" | "EQUAL" | "LESS_EQUAL" | "GREATER_EQUAL"
+ | "STRLESS" | "STRGREATER" | "STREQUAL" | "STRLESS_EQUAL" | "STRGREATER_EQUAL"
+ | "VERSION_LESS" | "VERSION_GREATER" | "VERSION_EQUAL" | "VERSION_LESS_EQUAL" | "VERSION_GREATER_EQUAL"
+ | "PATH_EQUAL"
+
+bracket_argument
+ = bracket_open_0 ((. !bracket_close_0 $0)* . {str($0, $1)})? bracket_close_0 {BracketArgument(contents=$1 ?: "")}
+ | bracket_open_1 ((. !bracket_close_1 $0)* . {str($0, $1)})? bracket_close_1 {BracketArgument(contents=$1 ?: "")}
+ | bracket_open_2 ((. !bracket_close_2 $0)* . {str($0, $1)})? bracket_close_2 {BracketArgument(contents=$1 ?: "")}
+ | bracket_open_3 ((. !bracket_close_3 $0)* . {str($0, $1)})? bracket_close_3 {BracketArgument(contents=$1 ?: "")}
+ | bracket_open_4 ((. !bracket_close_4 $0)* . {str($0, $1)})? bracket_close_4 {BracketArgument(contents=$1 ?: "")}
+ | bracket_open_5 ((. !bracket_close_5 $0)* . {str($0, $1)})? bracket_close_5 {BracketArgument(contents=$1 ?: "")}
+bracket_open_0 = "[["
+bracket_close_0 = "]]"
+bracket_open_1 = "[=["
+bracket_close_1 = "]=]"
+bracket_open_2 = "[==["
+bracket_close_2 = "]==]"
+bracket_open_3 = "[===["
+bracket_close_3 = "]===]"
+bracket_open_4 = "[====["
+bracket_close_4 = "]====]"
+bracket_open_5 = "[=====["
+bracket_close_5 = "]=====]"
+bracket_open = bracket_open_0 {""} | bracket_open_1 {""} | bracket_open_2 {""} | bracket_open_3 {""} | bracket_open_4 {""} | bracket_open_5 {""}
+
+quoted_argument = '"' quoted_element* '"' {QuotedArgument(elems=$1)}
+quoted_element: QuotedElem = <(.-'\\"$')+ {QuotedChars(c=str($0))}>
+ | escape_encoded
+ | '\\' .-'A-Za-z0-9;\n' {EscapeIdentity(code=$1)}
+ | quoted_continuation
+ | variable_reference
+ | generator_expr
+ | '$' !'{<' {Dollar()}
+quoted_continuation = '\\' '\n' {QuotedContinuation()}
+
+unquoted_argument: UnquotedArgument = !bracket_open <unquoted_element+> {UnquotedElems(elems=$1)}
+unquoted_element: UnquotedElem = <(.-' \n\r\t()#"\\$')+ {UnquotedChars(c=str($0))}>
+ | variable_reference
+ | generator_expr
+ | escape_sequence
+
+variable_reference = '$' identifier? '{' WS variable_namegen+ WS '}' {VariableReference(scope=$1, name=$4)}
+variable_namegen: VariableNameGen = identifier | variable_reference
+
+generator_expr = '$' '<' generator_func (':' generator_args)? '>' {GeneratorExpression(func=$2, args=$3)}
+generator_func: GeneratorFunc = identifier | generator_expr
+generator_args = generator_arg (',' generator_arg)* {[$0] + $1}
+generator_arg: GeneratorArg = generator_unquoted_element | quoted_argument | variable_reference | generator_expr
+generator_unquoted_element = <(.-' \n\r\t()#"\\$,>')+ {UnquotedChars(c=str($0))}>
+
+escape_sequence: EscapeSequence = escape_identity | escape_encoded
+escape_identity = '\\' .-'A-Za-z0-9;' {EscapeIdentity(code=$1)}
+escape_encoded = '\\' 'trn;' {EscapeEncoded(code=$1)}
+
+WS = (' \n\r\t' | line_comment)*
+line_comment = '#' (.-'\n')* ('\n' | EOF)
+ElemDelim = ' \r\t'* ('\n' | line_comment) WS
+EOF = !.
