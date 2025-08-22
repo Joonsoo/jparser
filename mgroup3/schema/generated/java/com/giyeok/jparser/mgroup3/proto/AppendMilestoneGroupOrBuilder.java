@@ -8,10 +8,10 @@ public interface AppendMilestoneGroupOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
-   * <code>int32 group_id = 1;</code>
-   * @return The groupId.
+   * <code>int32 milestone_group_id = 1;</code>
+   * @return The milestoneGroupId.
    */
-  int getGroupId();
+  int getMilestoneGroupId();
 
   /**
    * <code>.com.giyeok.jparser.mgroup3.proto.AcceptConditionsSet accept_condition = 2;</code>

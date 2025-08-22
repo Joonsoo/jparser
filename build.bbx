@@ -251,7 +251,11 @@ mgroup3 {
 
   gen = ktjvm.library(
     srcs = glob("mgroup3/gen/kotlin/**.kt"),
-    deps = [parserData, base.main],
+    deps = [
+      parserData,
+      base.main,
+      maven.artifact("com.google.guava", "guava", "33.4.8-jre"),
+    ],
   )
 
   parser = ktjvm.library(

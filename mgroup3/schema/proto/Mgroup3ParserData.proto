@@ -51,8 +51,8 @@ message PathRootInfo {
   // start symbol은 항상 atomic symbol.
   // kernel은 (symbol_id, 0)일 것
   int32 symbol_id = 1;
-  int32 group_id = 2;
-  // start symbol이 finish되는 경우
+  int32 milestone_group_id = 2;
+  // start symbol이 처음 derive될 때부터 finish되는 경우
   optional AcceptConditionsSet self_finish_accept_condition = 3;
 }
 
@@ -70,14 +70,14 @@ message TermAction {
   // a -> b -> REPLACE_GROUP_ID 가 되고, 이 상태에서
   // b -> REPLACE_GROUP_ID 에 대한 tip edge action (및 이어지는 연쇄 작용)을 시작한다
   message ReplaceAndProgress {
-    int32 replace_group_id = 1;
+    int32 replace_milestone_group_id = 1;
     AcceptConditionsSet accept_condition = 2;
   }
   repeated ReplaceAndProgress replace_and_progresses = 2;
 }
 
 message AppendMilestoneGroup {
-  int32 group_id = 1;
+  int32 milestone_group_id = 1;
   AcceptConditionsSet accept_condition = 2;
   repeated int32 observing_cond_symbol_ids = 3;
 }

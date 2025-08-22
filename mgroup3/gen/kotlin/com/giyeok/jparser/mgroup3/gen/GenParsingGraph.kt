@@ -37,7 +37,13 @@ class GenParsingGraph(
   }
 
   fun addProgressedTo(start: GenNode, end: GenNode, acceptConditions: Set<GenAcceptCondition>) {
-    TODO()
+    val prev = progressedTo[start]
+    if (prev == null) {
+      progressedTo[start] = Pair(end, acceptConditions)
+    } else {
+      check(end == prev.first)
+      progressedTo[start] = Pair(end, acceptConditions + prev.second)
+    }
   }
 }
 

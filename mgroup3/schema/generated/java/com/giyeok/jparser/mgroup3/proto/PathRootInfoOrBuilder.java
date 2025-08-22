@@ -19,10 +19,10 @@ public interface PathRootInfoOrBuilder extends
   int getSymbolId();
 
   /**
-   * <code>int32 group_id = 2;</code>
-   * @return The groupId.
+   * <code>int32 milestone_group_id = 2;</code>
+   * @return The milestoneGroupId.
    */
-  int getGroupId();
+  int getMilestoneGroupId();
 
   /**
    * <pre>

@@ -55,15 +55,15 @@ private static final long serialVersionUID = 0L;
     return symbolId_;
   }
 
-  public static final int GROUP_ID_FIELD_NUMBER = 2;
-  private int groupId_ = 0;
+  public static final int MILESTONE_GROUP_ID_FIELD_NUMBER = 2;
+  private int milestoneGroupId_ = 0;
   /**
-   * <code>int32 group_id = 2;</code>
-   * @return The groupId.
+   * <code>int32 milestone_group_id = 2;</code>
+   * @return The milestoneGroupId.
    */
   @java.lang.Override
-  public int getGroupId() {
-    return groupId_;
+  public int getMilestoneGroupId() {
+    return milestoneGroupId_;
   }
 
   public static final int SELF_FINISH_ACCEPT_CONDITION_FIELD_NUMBER = 3;
@@ -121,8 +121,8 @@ private static final long serialVersionUID = 0L;
     if (symbolId_ != 0) {
       output.writeInt32(1, symbolId_);
     }
-    if (groupId_ != 0) {
-      output.writeInt32(2, groupId_);
+    if (milestoneGroupId_ != 0) {
+      output.writeInt32(2, milestoneGroupId_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(3, getSelfFinishAcceptCondition());
@@ -140,9 +140,9 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(1, symbolId_);
     }
-    if (groupId_ != 0) {
+    if (milestoneGroupId_ != 0) {
       size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(2, groupId_);
+        .computeInt32Size(2, milestoneGroupId_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -165,8 +165,8 @@ private static final long serialVersionUID = 0L;
 
     if (getSymbolId()
         != other.getSymbolId()) return false;
-    if (getGroupId()
-        != other.getGroupId()) return false;
+    if (getMilestoneGroupId()
+        != other.getMilestoneGroupId()) return false;
     if (hasSelfFinishAcceptCondition() != other.hasSelfFinishAcceptCondition()) return false;
     if (hasSelfFinishAcceptCondition()) {
       if (!getSelfFinishAcceptCondition()
@@ -185,8 +185,8 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + SYMBOL_ID_FIELD_NUMBER;
     hash = (53 * hash) + getSymbolId();
-    hash = (37 * hash) + GROUP_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getGroupId();
+    hash = (37 * hash) + MILESTONE_GROUP_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getMilestoneGroupId();
     if (hasSelfFinishAcceptCondition()) {
       hash = (37 * hash) + SELF_FINISH_ACCEPT_CONDITION_FIELD_NUMBER;
       hash = (53 * hash) + getSelfFinishAcceptCondition().hashCode();
@@ -327,7 +327,7 @@ private static final long serialVersionUID = 0L;
       super.clear();
       bitField0_ = 0;
       symbolId_ = 0;
-      groupId_ = 0;
+      milestoneGroupId_ = 0;
       selfFinishAcceptCondition_ = null;
       if (selfFinishAcceptConditionBuilder_ != null) {
         selfFinishAcceptConditionBuilder_.dispose();
@@ -370,7 +370,7 @@ private static final long serialVersionUID = 0L;
         result.symbolId_ = symbolId_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.groupId_ = groupId_;
+        result.milestoneGroupId_ = milestoneGroupId_;
       }
       int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000004) != 0)) {
@@ -397,8 +397,8 @@ private static final long serialVersionUID = 0L;
       if (other.getSymbolId() != 0) {
         setSymbolId(other.getSymbolId());
       }
-      if (other.getGroupId() != 0) {
-        setGroupId(other.getGroupId());
+      if (other.getMilestoneGroupId() != 0) {
+        setMilestoneGroupId(other.getMilestoneGroupId());
       }
       if (other.hasSelfFinishAcceptCondition()) {
         mergeSelfFinishAcceptCondition(other.getSelfFinishAcceptCondition());
@@ -435,7 +435,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 8
             case 16: {
-              groupId_ = input.readInt32();
+              milestoneGroupId_ = input.readInt32();
               bitField0_ |= 0x00000002;
               break;
             } // case 16
@@ -510,34 +510,34 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private int groupId_ ;
+    private int milestoneGroupId_ ;
     /**
-     * <code>int32 group_id = 2;</code>
-     * @return The groupId.
+     * <code>int32 milestone_group_id = 2;</code>
+     * @return The milestoneGroupId.
      */
     @java.lang.Override
-    public int getGroupId() {
-      return groupId_;
+    public int getMilestoneGroupId() {
+      return milestoneGroupId_;
     }
     /**
-     * <code>int32 group_id = 2;</code>
-     * @param value The groupId to set.
+     * <code>int32 milestone_group_id = 2;</code>
+     * @param value The milestoneGroupId to set.
      * @return This builder for chaining.
      */
-    public Builder setGroupId(int value) {
+    public Builder setMilestoneGroupId(int value) {
 
-      groupId_ = value;
+      milestoneGroupId_ = value;
       bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
     /**
-     * <code>int32 group_id = 2;</code>
+     * <code>int32 milestone_group_id = 2;</code>
      * @return This builder for chaining.
      */
-    public Builder clearGroupId() {
+    public Builder clearMilestoneGroupId() {
       bitField0_ = (bitField0_ & ~0x00000002);
-      groupId_ = 0;
+      milestoneGroupId_ = 0;
       onChanged();
       return this;
     }
