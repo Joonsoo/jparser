@@ -251,7 +251,7 @@ mgroup3 {
 
   gen = ktjvm.library(
     srcs = glob("mgroup3/gen/kotlin/**.kt"),
-    deps = [parserData],
+    deps = [parserData, base.main],
   )
 
   parser = ktjvm.library(
@@ -262,7 +262,7 @@ mgroup3 {
   test = ktjvm.library(
     srcs = glob("mgroup3/test/kotlin/**.kt"),
     resources = glob("mgroup3/test/resources/**"),
-    deps = [parserData, gen, parser, ...testDeps],
+    deps = [parserData, gen, parser, metalang.main, ...testDeps],
   )
 }
 

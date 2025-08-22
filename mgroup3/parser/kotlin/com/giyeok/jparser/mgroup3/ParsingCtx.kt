@@ -28,9 +28,11 @@ data class PathRoot(val symbolId: Int, val startGen: Int)
 // start -> a 사이의 observingCondRoots는 MilestonePath(start, null)에 저장되고,
 // a -> b 사이의 observingCondRoots는 MilestonePath(a, MilestonePath(start, null))에 저장되는 식.
 data class MilestonePath(
+  val gen: Int,
   val milestone: Kernel,
   val parent: MilestonePath?,
-  val observingCondRoots: Set<PathRoot>,
+  // observingCondSymbolIds.map { PathRoot(it, gen) } 을 추적해야 함
+  val observingCondSymbolIds: Set<Int>,
 )
 
 data class Kernel(val symbolId: Int, val pointer: Int, val gen: Int)
