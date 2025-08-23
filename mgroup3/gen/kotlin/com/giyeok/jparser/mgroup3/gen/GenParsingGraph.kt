@@ -9,7 +9,7 @@ class GenParsingGraph(
   val observingCondSymbolIds: MutableSet<Int>,
   val acceptConditions: MutableMap<GenNode, Set<GenAcceptCondition>>,
   // key -> value 로 progress되었음
-  val progressedTo: MutableMap<GenNode, Pair<GenNode, Set<GenAcceptCondition>>>,
+  val progressedTo: MutableMap<GenNode, GenNode>,
 ) {
   fun clone(): GenParsingGraph = GenParsingGraph(
     startNode,
@@ -31,23 +31,45 @@ class GenParsingGraph(
 
   fun addEdge(start: GenNode, end: GenNode) {
     check(start in nodes && end in nodes)
-    edges.add(Pair(start, end))
-    edgesByStart.getOrPut(start) { mutableSetOf() }.add(end)
-    edgesByEnd.getOrPut(end) { mutableSetOf() }.add(start)
+    val newEdge = Pair(start, end)
+    if (newEdge !in edges) {
+      edges.add(newEdge)
+      edgesByStart.getOrPut(start) { mutableSetOf() }.add(end)
+      edgesByEnd.getOrPut(end) { mutableSetOf() }.add(start)
+    }
   }
 
-  fun addProgressedTo(start: GenNode, end: GenNode, acceptConditions: Set<GenAcceptCondition>) {
-    val prev = progressedTo[start]
+  fun addProgressedTo(
+    before: GenNode,
+    after: GenNode,
+    acceptConditions: Set<GenAcceptCondition>
+  ) {
+    check(before in nodes)
+
+    addNode(after)
+    this.acceptConditions[after] = this.acceptConditions[after]!! + acceptConditions
+
+    val prev = progressedTo[before]
     if (prev == null) {
-      progressedTo[start] = Pair(end, acceptConditions)
+      progressedTo[before] = after
     } else {
-      check(end == prev.first)
-      progressedTo[start] = Pair(end, acceptConditions + prev.second)
+      check(progressedTo[before] == after)
     }
   }
 }
 
-data class GenNode(val symbolId: Int, val pointer: Int)
+data class GenNode(
+  val symbolId: Int,
+  val pointer: Int,
+  val startGen: GenNodeGeneration,
+  val endGen: GenNodeGeneration
+)
+
+enum class GenNodeGeneration {
+  Prev,
+  Curr,
+  Next,
+}
 
 sealed class GenAcceptCondition {
   data class NoLongerMatch(val symbolId: Int): GenAcceptCondition()

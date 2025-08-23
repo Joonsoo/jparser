@@ -3,9 +3,14 @@ package com.giyeok.jparser.mgroup3.gen
 import com.giyeok.jparser.NGrammar
 
 sealed class GenParsingTask {
-  data class Derive(val node: GenNode): GenParsingTask()
-  data class Progress(val node: GenNode, val acc: Set<GenAcceptCondition>): GenParsingTask()
-  data class Finish(val node: GenNode): GenParsingTask()
+  abstract val node: GenNode
+
+  data class Derive(override val node: GenNode): GenParsingTask()
+  data class Finish(override val node: GenNode): GenParsingTask()
+  data class Progress(
+    override val node: GenNode,
+    val acc: Set<GenAcceptCondition>
+  ): GenParsingTask()
 }
 
 class GenParsingTaskRunner(val grammar: NGrammar) {
@@ -21,42 +26,49 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
       mutableMapOf(),
     )
 
-    run(graph, GenParsingTask.Derive(node))
+    run(graph, node.endGen, setOf(GenParsingTask.Derive(node)))
     return graph
   }
 
-  fun progressedFrom(graph: GenParsingGraph, taskToProgress: GenNode): GenParsingGraph {
+  fun progressedFrom(
+    graph: GenParsingGraph,
+    tasksToProgress: Set<GenNode>,
+    nextGen: GenNodeGeneration
+  ): GenParsingGraph {
     val newGraph = graph.clone()
 
-    run(newGraph, GenParsingTask.Progress(taskToProgress, setOf()))
+    val initTasks = tasksToProgress.map { GenParsingTask.Progress(it, setOf()) }.toSet()
+    run(newGraph, nextGen, initTasks)
     return newGraph
   }
 
   fun finishedFrom(graph: GenParsingGraph, taskToFinish: GenNode): GenParsingGraph {
     val newGraph = graph.clone()
 
-    run(newGraph, GenParsingTask.Finish(taskToFinish))
+    run(newGraph, taskToFinish.endGen, setOf(GenParsingTask.Finish(taskToFinish)))
     return newGraph
   }
 
-  fun run(graph: GenParsingGraph, initTask: GenParsingTask) {
-    val tasks = mutableListOf(initTask)
+  fun run(graph: GenParsingGraph, nextGen: GenNodeGeneration, initTasks: Set<GenParsingTask>) {
+    val tasks = initTasks.toMutableList()
     while (tasks.isNotEmpty()) {
-      val next = tasks.removeFirst()
-      val newTasks = when (next) {
+      val newTasks = when (val next = tasks.removeFirst()) {
         is GenParsingTask.Derive -> derive(graph, next.node)
-        is GenParsingTask.Progress -> progress(graph, next.node, next.acc)
         is GenParsingTask.Finish -> finish(graph, next.node)
+        is GenParsingTask.Progress -> progress(graph, next.node, nextGen, next.acc)
       }
       tasks.addAll(newTasks)
     }
   }
 
-  fun derive(graph: GenParsingGraph, node: GenNode): Set<GenParsingTask> {
+  fun derive(
+    graph: GenParsingGraph,
+    node: GenNode,
+  ): Set<GenParsingTask> {
     val newTasks = mutableSetOf<GenParsingTask>()
 
     fun addDerive(deriveSymbolId: Int) {
-      val d = GenNode(deriveSymbolId, 0)
+      val d = GenNode(deriveSymbolId, 0, node.endGen, node.endGen)
       if (graph.addNode(d)) {
         newTasks.add(GenParsingTask.Derive(d))
       }
@@ -129,18 +141,53 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
     return newTasks
   }
 
+  fun finish(
+    graph: GenParsingGraph,
+    node: GenNode,
+  ): Set<GenParsingTask> {
+    val newTasks = mutableSetOf<GenParsingTask>()
+
+    fun process(finishPointer: Int, vararg newAcceptConditions: GenAcceptCondition) {
+      check(node.pointer == finishPointer)
+      val initNode = GenNode(node.symbolId, 0, node.startGen, node.startGen)
+      graph.edgesByEnd[initNode]?.let { edges ->
+        val acc = newAcceptConditions.toSet()
+        for (toProg in edges) {
+          newTasks.add(GenParsingTask.Progress(toProg, acc))
+        }
+      }
+    }
+
+    when (val symbol = grammar.symbolOf(node.symbolId)) {
+      is NGrammar.NStart -> {}
+      is NGrammar.NNonterminal -> process(1)
+      is NGrammar.NOneOf -> process(1)
+      is NGrammar.NProxy -> process(1)
+      is NGrammar.NRepeat -> process(1)
+      is NGrammar.NSequence -> process(symbol.sequence().length())
+      is NGrammar.NExcept -> process(1, GenAcceptCondition.Unless(symbol.except()))
+      is NGrammar.NJoin -> process(1, GenAcceptCondition.OnlyIf(symbol.join()))
+      is NGrammar.NLongest -> process(1, GenAcceptCondition.NoLongerMatch(symbol.body()))
+      is NGrammar.NLookaheadExcept -> process(1, GenAcceptCondition.NotExists(symbol.lookahead()))
+      is NGrammar.NLookaheadIs -> process(1, GenAcceptCondition.Exists(symbol.lookahead()))
+      is NGrammar.NTerminal -> process(1)
+    }
+    return newTasks
+  }
+
   fun progress(
     graph: GenParsingGraph,
     node: GenNode,
-    acceptConditions: Set<GenAcceptCondition>
+    nextGen: GenNodeGeneration,
+    acceptConditions: Set<GenAcceptCondition>,
   ): MutableSet<GenParsingTask> {
     val newTasks = mutableSetOf<GenParsingTask>()
 
     fun processAtomicSymbol(newAcceptConditions: Set<GenAcceptCondition>) {
       check(node.pointer == 0)
-      val newNode = GenNode(node.symbolId, 1)
-      graph.addProgressedTo(node, newNode, acceptConditions + newAcceptConditions)
-      newTasks.add(GenParsingTask.Finish(newNode))
+      val after = GenNode(node.symbolId, 1, node.endGen, nextGen)
+      graph.addProgressedTo(node, after, acceptConditions + newAcceptConditions)
+      newTasks.add(GenParsingTask.Finish(after))
     }
 
     when (val symbol = grammar.symbolOf(node.symbolId)) {
@@ -151,8 +198,13 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
       is NGrammar.NRepeat -> processAtomicSymbol(setOf())
       is NGrammar.NSequence -> {
         check(node.pointer in 0..<symbol.sequence().length())
-        val newNode = GenNode(node.symbolId, node.pointer + 1)
+        val newNode = GenNode(node.symbolId, node.pointer + 1, node.endGen, nextGen)
         graph.addProgressedTo(node, newNode, acceptConditions)
+        if (newNode.pointer < symbol.sequence().length()) {
+          newTasks.add(GenParsingTask.Derive(newNode))
+        } else {
+          newTasks.add(GenParsingTask.Finish(newNode))
+        }
       }
 
       is NGrammar.NExcept -> {
@@ -178,39 +230,6 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
       is NGrammar.NTerminal -> {
         processAtomicSymbol(setOf())
       }
-    }
-    return newTasks
-  }
-
-  fun finish(
-    graph: GenParsingGraph,
-    node: GenNode,
-  ): Set<GenParsingTask> {
-    val newTasks = mutableSetOf<GenParsingTask>()
-
-    fun process(finishPointer: Int, vararg newAcceptConditions: GenAcceptCondition) {
-      check(node.pointer == finishPointer)
-      graph.edgesByEnd[node]?.let { edges ->
-        val acc = newAcceptConditions.toSet()
-        for (toProg in edges) {
-          newTasks.add(GenParsingTask.Progress(toProg, acc))
-        }
-      }
-    }
-
-    when (val symbol = grammar.symbolOf(node.symbolId)) {
-      is NGrammar.NStart -> {}
-      is NGrammar.NNonterminal -> process(1)
-      is NGrammar.NOneOf -> process(1)
-      is NGrammar.NProxy -> process(1)
-      is NGrammar.NRepeat -> process(1)
-      is NGrammar.NSequence -> process(symbol.sequence().length())
-      is NGrammar.NExcept -> process(1, GenAcceptCondition.Unless(symbol.except()))
-      is NGrammar.NJoin -> process(1, GenAcceptCondition.OnlyIf(symbol.join()))
-      is NGrammar.NLongest -> process(1, GenAcceptCondition.NoLongerMatch(symbol.body()))
-      is NGrammar.NLookaheadExcept -> process(1, GenAcceptCondition.NotExists(symbol.lookahead()))
-      is NGrammar.NLookaheadIs -> process(1, GenAcceptCondition.Exists(symbol.lookahead()))
-      is NGrammar.NTerminal -> process(1)
     }
     return newTasks
   }
