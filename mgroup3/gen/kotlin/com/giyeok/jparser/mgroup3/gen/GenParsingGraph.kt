@@ -9,7 +9,7 @@ class GenParsingGraph(
   val observingCondSymbolIds: MutableSet<Int>,
   val acceptConditions: MutableMap<GenNode, Set<GenAcceptCondition>>,
   // key -> value 로 progress되었음
-  val progressedTo: MutableMap<GenNode, GenNode>,
+  val progressedNodes: MutableSet<GenNode>,
 ) {
   fun clone(): GenParsingGraph = GenParsingGraph(
     startNode,
@@ -19,7 +19,7 @@ class GenParsingGraph(
     edgesByEnd.mapValues { (_, v) -> v.toMutableSet() }.toMutableMap(),
     observingCondSymbolIds.toMutableSet(),
     acceptConditions.mapValues { (_, v) -> v.toMutableSet() }.toMutableMap(),
-    progressedTo.toMutableMap(),
+    progressedNodes.toMutableSet(),
   )
 
   fun addNode(node: GenNode): Boolean {
@@ -49,12 +49,7 @@ class GenParsingGraph(
     addNode(after)
     this.acceptConditions[after] = this.acceptConditions[after]!! + acceptConditions
 
-    val prev = progressedTo[before]
-    if (prev == null) {
-      progressedTo[before] = after
-    } else {
-      check(progressedTo[before] == after)
-    }
+    progressedNodes.add(before)
   }
 }
 

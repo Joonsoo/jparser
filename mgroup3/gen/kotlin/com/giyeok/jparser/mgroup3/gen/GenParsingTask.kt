@@ -23,7 +23,7 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
       mutableMapOf(),
       mutableSetOf(),
       mutableMapOf(),
-      mutableMapOf(),
+      mutableSetOf(),
     )
 
     run(graph, node.endGen, setOf(GenParsingTask.Derive(node)))

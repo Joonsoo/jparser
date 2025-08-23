@@ -8,6 +8,9 @@ import com.giyeok.jparser.mgroup3.gen.Mgroup3ParserGenerator
 import com.giyeok.jparser.proto.GrammarProtobufConverter
 import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.Test
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.iterator
 
 class ParserGenTest {
   @Test
@@ -78,7 +81,15 @@ class ParserGenTest {
     println(graph)
     assertThat(gen.milestonesOf(graph)).isEmpty()
 
-    val proto = GrammarProtobufConverter.convertNGrammarToProto(grammar)
+    val termGroups = gen.progressibleTermGroupsOf(graph)
+    for ((tg, nodes) in termGroups) {
+      val g2 = gen.tasks.progressedFrom(graph, nodes, Next)
+      println(tg)
+      println(g2)
+      val milestones = gen.milestonesOf(g2)
+      println(milestones)
+    }
 
+    val proto = GrammarProtobufConverter.convertNGrammarToProto(grammar)
   }
 }
