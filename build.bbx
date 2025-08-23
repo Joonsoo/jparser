@@ -12,7 +12,7 @@ from bibix.plugins import jar
 from bibix.plugins import zip
 import git("https://github.com/Joonsoo/gviz.git") as gviz
 
-kotlinVersion = "2.2.0"
+kotlinVersion = "2.2.10"
 var ktjvm.sdkVersion = kotlinVersion
 var ktjvm.compilerVersion = kotlinVersion
 
@@ -32,7 +32,7 @@ ktxCoroutinesDeps = [
   maven.artifact("org.jetbrains.kotlinx", "kotlinx-coroutines-jdk8", ktxCoroutinesVersion),
 ]
 
-protobufVersion = "3.22.0"
+protobufVersion = "3.25.8"
 var protobuf.protobufVersion = protobufVersion
 protobufDep = maven.artifact("com.google.protobuf", "protobuf-java", protobufVersion)
 
@@ -268,6 +268,21 @@ mgroup3 {
     srcs = glob("mgroup3/test/kotlin/**.kt"),
     resources = glob("mgroup3/test/resources/**"),
     deps = [parserData, gen, parser, metalang.main, ...testDeps],
+  )
+
+  visualize = ktjvm.library(
+    srcs = glob("mgroup3/visualize/kotlin/**.kt"),
+    deps = [
+      gen,
+      parser,
+      metalang.main,
+      maven.artifact("com.google.protobuf", "protobuf-java-util", protobufVersion),
+      maven.artifact("io.ktor", "ktor-server-core-jvm", "3.2.3"),
+      maven.artifact("io.ktor", "ktor-server-netty-jvm", "3.2.3"),
+      maven.artifact("io.ktor", "ktor-server-cors-jvm", "3.2.3"),
+      maven.artifact("io.netty", "netty-transport-native-unix-common", "4.2.4.Final"),
+      // maven.artifact("io.netty", "netty-all", "4.2.2.Final"),
+    ],
   )
 }
 
