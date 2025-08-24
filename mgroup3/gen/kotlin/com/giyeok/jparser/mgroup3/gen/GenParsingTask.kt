@@ -9,24 +9,27 @@ sealed class GenParsingTask {
   data class Finish(override val node: GenNode): GenParsingTask()
   data class Progress(
     override val node: GenNode,
-    val acc: Set<GenAcceptCondition>
+    val acc: GenAcceptCondition
   ): GenParsingTask()
 }
 
 class GenParsingTaskRunner(val grammar: NGrammar) {
-  fun derivedFrom(node: GenNode): GenParsingGraph {
+  fun derivedFrom(nodes: Set<GenNode>): GenParsingGraph {
     val graph = GenParsingGraph(
-      node,
-      mutableSetOf(node),
-      mutableSetOf(),
-      mutableMapOf(),
-      mutableMapOf(),
-      mutableSetOf(),
-      mutableMapOf(),
-      mutableSetOf(),
+      startNodes = nodes,
+      nodes = nodes.toMutableSet(),
+      edges = mutableSetOf(),
+      edgesByStart = mutableMapOf(),
+      edgesByEnd = mutableMapOf(),
+      observingCondSymbolIds = mutableSetOf(),
+      acceptConditions = mutableMapOf(),
+      progressedNodes = mutableMapOf(),
     )
 
-    run(graph, node.endGen, setOf(GenParsingTask.Derive(node)))
+    val endGen = nodes.map { it.endGen }.toSet()
+    check(endGen.size == 1)
+
+    run(graph, endGen.single(), nodes.map { GenParsingTask.Derive(it) }.toSet())
     return graph
   }
 
@@ -35,14 +38,21 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
     tasksToProgress: Set<GenNode>,
     nextGen: GenNodeGeneration
   ): GenParsingGraph {
+    check(graph.nodes.containsAll(tasksToProgress))
     val newGraph = graph.clone()
 
-    val initTasks = tasksToProgress.map { GenParsingTask.Progress(it, setOf()) }.toSet()
+    newGraph.progressedNodes.clear()
+    newGraph.observingCondSymbolIds.clear()
+
+    val initTasks =
+      tasksToProgress.map { GenParsingTask.Progress(it, GenAcceptCondition.Always) }.toSet()
     run(newGraph, nextGen, initTasks)
     return newGraph
   }
 
   fun finishedFrom(graph: GenParsingGraph, taskToFinish: GenNode): GenParsingGraph {
+    check(taskToFinish in graph.nodes)
+
     val newGraph = graph.clone()
 
     run(newGraph, taskToFinish.endGen, setOf(GenParsingTask.Finish(taskToFinish)))
@@ -147,13 +157,15 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
   ): Set<GenParsingTask> {
     val newTasks = mutableSetOf<GenParsingTask>()
 
-    fun process(finishPointer: Int, vararg newAcceptConditions: GenAcceptCondition) {
+    fun process(
+      finishPointer: Int,
+      newAcceptConditions: GenAcceptCondition = GenAcceptCondition.Always
+    ) {
       check(node.pointer == finishPointer)
       val initNode = GenNode(node.symbolId, 0, node.startGen, node.startGen)
       graph.edgesByEnd[initNode]?.let { edges ->
-        val acc = newAcceptConditions.toSet()
         for (toProg in edges) {
-          newTasks.add(GenParsingTask.Progress(toProg, acc))
+          newTasks.add(GenParsingTask.Progress(toProg, newAcceptConditions))
         }
       }
     }
@@ -179,56 +191,59 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
     graph: GenParsingGraph,
     node: GenNode,
     nextGen: GenNodeGeneration,
-    acceptConditions: Set<GenAcceptCondition>,
+    acceptCondition: GenAcceptCondition,
   ): MutableSet<GenParsingTask> {
     val newTasks = mutableSetOf<GenParsingTask>()
 
-    fun processAtomicSymbol(newAcceptConditions: Set<GenAcceptCondition>) {
+    fun processAtomicSymbol(newAcceptConditions: GenAcceptCondition = GenAcceptCondition.Always) {
       check(node.pointer == 0)
       val after = GenNode(node.symbolId, 1, node.endGen, nextGen)
-      graph.addProgressedTo(node, after, acceptConditions + newAcceptConditions)
-      newTasks.add(GenParsingTask.Finish(after))
+      val newAcc = GenAcceptCondition.And.from(acceptCondition, newAcceptConditions)
+      if (graph.addProgressedTo(node, after, newAcc)) {
+        newTasks.add(GenParsingTask.Finish(after))
+      }
     }
 
     when (val symbol = grammar.symbolOf(node.symbolId)) {
-      is NGrammar.NStart -> processAtomicSymbol(setOf())
-      is NGrammar.NNonterminal -> processAtomicSymbol(setOf())
-      is NGrammar.NOneOf -> processAtomicSymbol(setOf())
-      is NGrammar.NProxy -> processAtomicSymbol(setOf())
-      is NGrammar.NRepeat -> processAtomicSymbol(setOf())
+      is NGrammar.NStart -> processAtomicSymbol()
+      is NGrammar.NNonterminal -> processAtomicSymbol()
+      is NGrammar.NOneOf -> processAtomicSymbol()
+      is NGrammar.NProxy -> processAtomicSymbol()
+      is NGrammar.NRepeat -> processAtomicSymbol()
       is NGrammar.NSequence -> {
         check(node.pointer in 0..<symbol.sequence().length())
         val newNode = GenNode(node.symbolId, node.pointer + 1, node.endGen, nextGen)
-        graph.addProgressedTo(node, newNode, acceptConditions)
-        if (newNode.pointer < symbol.sequence().length()) {
-          newTasks.add(GenParsingTask.Derive(newNode))
-        } else {
-          newTasks.add(GenParsingTask.Finish(newNode))
+        if (graph.addProgressedTo(node, newNode, acceptCondition)) {
+          if (newNode.pointer < symbol.sequence().length()) {
+            newTasks.add(GenParsingTask.Derive(newNode))
+          } else {
+            newTasks.add(GenParsingTask.Finish(newNode))
+          }
         }
       }
 
       is NGrammar.NExcept -> {
-        processAtomicSymbol(setOf(GenAcceptCondition.Unless(symbol.except())))
+        processAtomicSymbol(GenAcceptCondition.Unless(symbol.except()))
       }
 
       is NGrammar.NJoin -> {
-        processAtomicSymbol(setOf(GenAcceptCondition.Unless(symbol.join())))
+        processAtomicSymbol(GenAcceptCondition.Unless(symbol.join()))
       }
 
       is NGrammar.NLongest -> {
-        processAtomicSymbol(setOf(GenAcceptCondition.NoLongerMatch(symbol.body())))
+        processAtomicSymbol(GenAcceptCondition.NoLongerMatch(symbol.body()))
       }
 
       is NGrammar.NLookaheadExcept -> {
-        processAtomicSymbol(setOf(GenAcceptCondition.NotExists(symbol.lookahead())))
+        processAtomicSymbol(GenAcceptCondition.NotExists(symbol.lookahead()))
       }
 
       is NGrammar.NLookaheadIs -> {
-        processAtomicSymbol(setOf(GenAcceptCondition.Exists(symbol.lookahead())))
+        processAtomicSymbol(GenAcceptCondition.Exists(symbol.lookahead()))
       }
 
       is NGrammar.NTerminal -> {
-        processAtomicSymbol(setOf())
+        processAtomicSymbol()
       }
     }
     return newTasks

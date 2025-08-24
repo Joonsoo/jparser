@@ -177,7 +177,9 @@ fun evolveAcceptCondition(
       cond
     } else {
       val root = PathRoot(cond.symbolId, cond.startGen)
-      condPathFins[root]?.neg() ?: (if (root in activeCondPaths) cond else Always)
+      condPathFins[root]?.let {
+        evolveAcceptCondition(it.neg(), condPathFins, activeCondPaths, gen)
+      } ?: (if (root in activeCondPaths) cond else Always)
     }
   }
 
@@ -186,27 +188,37 @@ fun evolveAcceptCondition(
       cond
     } else {
       val root = PathRoot(cond.symbolId, cond.startGen)
-      condPathFins[root] ?: (if (root in activeCondPaths) cond else Never)
+      condPathFins[root]?.let {
+        evolveAcceptCondition(it, condPathFins, activeCondPaths, gen)
+      } ?: (if (root in activeCondPaths) cond else Never)
     }
   }
 
   is NotExists -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
-    condPathFins[root]?.neg() ?: (if (root in activeCondPaths) cond else Always)
+    condPathFins[root]?.let {
+      evolveAcceptCondition(it.neg(), condPathFins, activeCondPaths, gen)
+    } ?: (if (root in activeCondPaths) cond else Always)
   }
 
   is Exists -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
-    condPathFins[root] ?: (if (root in activeCondPaths) cond else Never)
+    condPathFins[root]?.let {
+      evolveAcceptCondition(it, condPathFins, activeCondPaths, gen)
+    } ?: (if (root in activeCondPaths) cond else Never)
   }
 
   is Unless -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
-    condPathFins[root]?.neg() ?: Always
+    condPathFins[root]?.let {
+      evolveAcceptCondition(it.neg(), condPathFins, activeCondPaths, gen)
+    } ?: Always
   }
 
   is OnlyIf -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
-    condPathFins[root] ?: Never
+    condPathFins[root]?.let {
+      evolveAcceptCondition(it, condPathFins, activeCondPaths, gen)
+    } ?: Never
   }
 }

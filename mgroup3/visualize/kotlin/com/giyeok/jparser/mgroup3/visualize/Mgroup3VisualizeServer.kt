@@ -13,22 +13,11 @@ import io.ktor.server.netty.*
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlin.io.path.Path
+import kotlin.io.path.readText
 
 fun main() {
-  val cdg = """
-      argument: Argument = bracket_argument | unquoted_argument
-      bracket_argument
-       = bracket_open_0 ((. !bracket_close_0 $0)* . {str($0, $1)})? bracket_close_0 {BracketArgument(contents=$1 ?: "")}
-       | bracket_open_1 ((. !bracket_close_1 $0)* . {str($0, $1)})? bracket_close_1 {BracketArgument(contents=$1 ?: "")}
-      bracket_open_0 = "[["
-      bracket_close_0 = "]]"
-      bracket_open_1 = "[=["
-      bracket_close_1 = "]=]"
-      bracket_open = bracket_open_0 {""} | bracket_open_1 {""}
-      
-      unquoted_argument: UnquotedArgument = !bracket_open <unquoted_element+> {UnquotedElems(elems=$1)}
-      unquoted_element: UnquotedElem = <(.-' \n\r\t()#"\\$')+ {UnquotedChars(c=str($0))}>
-    """.trimIndent()
+  val cdg = Path("examples/metalang3/resources/cmake/cmake_debug.cdg").readText()
 
   val grammarAnalysis = `MetaLanguage3$`.`MODULE$`.analyzeGrammar(cdg, "Grammar")
   val grammar = grammarAnalysis.ngrammar()
@@ -40,7 +29,7 @@ fun main() {
 
   val gen = Mgroup3ParserGenerator(grammar)
   val graph = gen.tasks.derivedFrom(
-    GenNode(grammar.startSymbol(), 0, Curr, Curr)
+    setOf(GenNode(grammar.startSymbol(), 0, Curr, Curr))
   )
 
   embeddedServer(Netty, port = 8000) {

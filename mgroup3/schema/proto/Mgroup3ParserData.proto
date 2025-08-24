@@ -12,16 +12,14 @@ message Mgroup3ParserData {
   com.giyeok.jparser.proto.NGrammar grammar = 1;
 
   int32 start_symbol_id = 2;
-  // 문법 맨 앞에서 lookahead 심볼같은게 등장하는 경우에는 initial_cond_symbol_ids가 필요할듯
-  repeated int32 initial_cond_symbol_ids = 3;
 
   // symbol id -> path root
-  map<int32, PathRootInfo> path_roots = 4;
+  map<int32, PathRootInfo> path_roots = 3;
 
   message MilestoneGroup {
     repeated KernelTemplate kernels = 1;
   }
-  map<int32, MilestoneGroup> milestone_groups = 5;
+  map<int32, MilestoneGroup> milestone_groups = 4;
 
   message TermGroupAction {
     com.giyeok.jparser.proto.TermGroup term_group = 1;
@@ -30,21 +28,21 @@ message Mgroup3ParserData {
   message TermGroupActions {
     repeated TermGroupAction actions = 1;
   }
-  map<int32, TermGroupActions> term_actions = 6;
+  map<int32, TermGroupActions> term_actions = 5;
 
   message TipEdgeActionPair {
     KernelTemplate parent = 1;
     int32 tip_group_id = 2;
     EdgeAction edge_action = 3;
   }
-  repeated TipEdgeActionPair tip_edge_actions = 7;
+  repeated TipEdgeActionPair tip_edge_actions = 6;
 
   message MidEdgeActionPair {
     KernelTemplate parent = 1;
     KernelTemplate tip = 2;
     EdgeAction edge_action = 3;
   }
-  repeated MidEdgeActionPair mid_edge_actions = 8;
+  repeated MidEdgeActionPair mid_edge_actions = 7;
 }
 
 message PathRootInfo {
@@ -52,8 +50,10 @@ message PathRootInfo {
   // kernel은 (symbol_id, 0)일 것
   int32 symbol_id = 1;
   int32 milestone_group_id = 2;
+  // 문법 맨 앞에서 lookahead 심볼같은게 등장하는 경우에는 initial_cond_symbol_ids가 필요할듯
+  repeated int32 initial_cond_symbol_ids = 3;
   // start symbol이 처음 derive될 때부터 finish되는 경우
-  optional AcceptConditionsSet self_finish_accept_condition = 3;
+  optional AcceptConditionTemplate self_finish_accept_condition = 4;
 }
 
 message TermAction {
@@ -71,20 +71,20 @@ message TermAction {
   // b -> REPLACE_GROUP_ID 에 대한 tip edge action (및 이어지는 연쇄 작용)을 시작한다
   message ReplaceAndProgress {
     int32 replace_milestone_group_id = 1;
-    AcceptConditionsSet accept_condition = 2;
+    AcceptConditionTemplate accept_condition = 2;
   }
   repeated ReplaceAndProgress replace_and_progresses = 2;
 }
 
 message AppendMilestoneGroup {
   int32 milestone_group_id = 1;
-  AcceptConditionsSet accept_condition = 2;
+  AcceptConditionTemplate accept_condition = 2;
   repeated int32 observing_cond_symbol_ids = 3;
 }
 
 message EdgeAction {
   repeated AppendMilestoneGroup append_milestone_groups = 1;
-  optional AcceptConditionsSet start_node_progress = 2;
+  optional AcceptConditionTemplate start_node_progress = 2;
 }
 
 message KernelTemplate {
@@ -92,25 +92,26 @@ message KernelTemplate {
   int32 pointer = 2;
 }
 
-// AcceptCondition 여러개를 and 조건으로 모은 것
-// 파서 제너레이션 과정에선 negation이 등장하지 않으므로 or도 등장하지 않는다
-message AcceptConditionsSet {
-  repeated AcceptConditionTemplate accept_conditions = 1;
-}
-
 message AcceptConditionTemplate {
   oneof condition {
+    google.protobuf.Empty always = 1;
+    MultiAcceptConditions and = 2;
+    MultiAcceptConditions or = 3;
     // longest 심볼의 PathStarter로부터 만들어진 경로가 이후에 finish되는 경우가 있으면 이번 path는 invalidate한다
     // (정확히는, longest 심볼의 PathStarter로부터 만들어진 경로가 이후에 finish되면 그 때 조건의 negation을 and로 붙인다)
-    int32 longest = 1;
+    int32 no_longer_match = 4;
     // lookahead_found 심볼의 PathStarter로부터 만들어진 경로가 finish되어야만 이번 path도 valid하다
-    int32 lookahead_found = 2;
+    int32 lookahead_found = 5;
     // lookahead_notfound 심볼의 PathStarter로부터 만들어진 경로가 finish되면 이번 path는 invalidate한다
-    int32 lookahead_notfound = 3;
+    int32 lookahead_notfound = 6;
     // except 심볼의 PathStarter로부터 만들어진 경로가 finish되는 시점에는 이번 path는 invalid하다
-    int32 except = 4;
+    int32 except = 7;
     // join 심볼의 PathStarter로부터 만들어진 경로가 finish되는 시점에만 이번 path가 valid하다
-    int32 join = 5;
+    int32 join = 8;
     // TODO 이 중, (특히 longest의 경우) 새로운 심볼을 추적하지 않고 기존 경로를 재사용할 수 있는 방법이 있을지 고민해보자
   }
+}
+
+message MultiAcceptConditions {
+  repeated AcceptConditionTemplate conditions = 1;
 }

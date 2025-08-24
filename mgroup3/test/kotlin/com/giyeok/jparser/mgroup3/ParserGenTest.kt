@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.iterator
+import kotlin.io.path.Path
+import kotlin.io.path.readText
 
 class ParserGenTest {
   @Test
@@ -29,67 +31,19 @@ class ParserGenTest {
     val grammar = grammarAnalysis.ngrammar()
 
     val gen = Mgroup3ParserGenerator(grammar)
-
-    val startNode = GenNode(grammar.startSymbol(), 0, Curr, Curr)
-    val startMgroupId = gen.milestoneGroupIdOf(setOf(startNode))
-
-    val graph = gen.tasks.derivedFrom(GenNode(grammar.startSymbol(), 0, Curr, Curr))
-    println(graph)
-    assertThat(gen.milestonesOf(graph)).isEmpty()
-
-    val prog = gen.progressibleTermNodesOf(graph)
-    println(prog)
-
-    val termGroups = gen.progressibleTermGroupsOf(graph)
-    println(termGroups)
-
-    for ((tg, nodes) in termGroups) {
-      val g2 = gen.tasks.progressedFrom(graph, nodes, Next)
-      println(tg)
-      println(g2)
-      val milestones = gen.milestonesOf(g2)
-      println(milestones)
-    }
+    val generated = gen.generate()
+    println(generated)
   }
 
   @Test
   fun testCmakeDebug() {
-    val cdg = """
-      argument: Argument = bracket_argument | unquoted_argument
-      bracket_argument
-       = bracket_open_0 ((. !bracket_close_0 $0)* . {str($0, $1)})? bracket_close_0 {BracketArgument(contents=$1 ?: "")}
-       | bracket_open_1 ((. !bracket_close_1 $0)* . {str($0, $1)})? bracket_close_1 {BracketArgument(contents=$1 ?: "")}
-      bracket_open_0 = "[["
-      bracket_close_0 = "]]"
-      bracket_open_1 = "[=["
-      bracket_close_1 = "]=]"
-      bracket_open = bracket_open_0 {""} | bracket_open_1 {""}
-      
-      unquoted_argument: UnquotedArgument = !bracket_open <unquoted_element+> {UnquotedElems(elems=$1)}
-      unquoted_element: UnquotedElem = <(.-' \n\r\t()#"\\$')+ {UnquotedChars(c=str($0))}>
-    """.trimIndent()
+    val cdg = Path("examples/metalang3/resources/cmake/cmake_debug.cdg").readText()
 
     val grammarAnalysis = `MetaLanguage3$`.`MODULE$`.analyzeGrammar(cdg, "Grammar")
     val grammar = grammarAnalysis.ngrammar()
 
     val gen = Mgroup3ParserGenerator(grammar)
-
-    val startNode = GenNode(grammar.startSymbol(), 0, Curr, Curr)
-    val startMgroupId = gen.milestoneGroupIdOf(setOf(startNode))
-
-    val graph = gen.tasks.derivedFrom(GenNode(grammar.startSymbol(), 0, Curr, Curr))
-    println(graph)
-    assertThat(gen.milestonesOf(graph)).isEmpty()
-
-    val termGroups = gen.progressibleTermGroupsOf(graph)
-    for ((tg, nodes) in termGroups) {
-      val g2 = gen.tasks.progressedFrom(graph, nodes, Next)
-      println(tg)
-      println(g2)
-      val milestones = gen.milestonesOf(g2)
-      println(milestones)
-    }
-
-    val proto = GrammarProtobufConverter.convertNGrammarToProto(grammar)
+    val generated = gen.generate()
+    println(generated)
   }
 }
