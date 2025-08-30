@@ -31,30 +31,77 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
   // (milestone, milestone) -> edge action
   val midEdgeActions = mutableMapOf<Pair<KernelTemplate, KernelTemplate>, EdgeAction>()
 
+
+  // 여기부터는 possibleTipEdges, possibleMidEdges 계산을 위한 부가 정보
+  // key의 group id 앞에(parent로) 올 수 있는 milestone들
+  val possibleParentsOfGroup = mutableMapOf<Int, MutableSet<KernelTemplate>>()
+
+  // key의 group id가 value로 치환되어 reduce trigger 가능
+  val edgeActionTriggers = mutableMapOf<Int, MutableSet<Int>>()
+
+  // key group id가 value의 group id로 치환될 수 있음
+  val mgroupReplaceables = mutableMapOf<Int, MutableSet<KernelTemplate>>()
+
   fun generate(): Mgroup3ParserData {
     rootPaths[grammar.startSymbol()] = genRootPathFromSymbol(grammar.startSymbol())
 
     while (true) {
-      val newRootPaths = possibleRootSymbols() - rootPaths.keys
-      val newMgroups = milestoneGroups.keys - termActions.keys
+      val possibleRoots = possibleRootSymbols()
+      val remainingMgroups = milestoneGroups.keys - termActions.keys
       val possibleTipEdges = possibleTipEdges()
       val possibleMidEdges = possibleMidEdges()
-      println("roots=${newRootPaths.size} mg=${newMgroups.size} tipEdges=${possibleTipEdges.canProgress.size} midEdges=${possibleMidEdges.size}")
+      val remainingRootPaths = possibleRoots - rootPaths.keys
+      val remainingTipEdges = possibleTipEdges.canProgress - tipEdgeActions.keys
+      val remainingMidEdges = possibleMidEdges - midEdgeActions.keys
+      println(
+        "roots=${remainingRootPaths.size}/${possibleRoots.size} " +
+          "mg=${remainingMgroups.size}/${milestoneGroups.size} " +
+          "tipEdges=${remainingTipEdges.size}/${possibleTipEdges.canProgress.size} " +
+          "midEdges=${remainingMidEdges.size}/${possibleMidEdges.size}"
+      )
 
-      if (newRootPaths.isEmpty() && newMgroups.isEmpty() && possibleTipEdges.canProgress.isEmpty() && possibleMidEdges.isEmpty()) {
+      if (remainingRootPaths.isEmpty() && remainingMgroups.isEmpty() &&
+        remainingTipEdges.isEmpty() && remainingMidEdges.isEmpty()
+      ) {
         break
       }
-      for (rootSymbolId in newRootPaths) {
+      for (rootSymbolId in remainingRootPaths) {
         rootPaths[rootSymbolId] = genRootPathFromSymbol(rootSymbolId)
       }
-      for (mgroupId in newMgroups) {
-        termActions[mgroupId] = genMgroupTermActions(mgroupId)
+      for (mgroupId in remainingMgroups) {
+        val termActionsOfMgroup = genMgroupTermActions(mgroupId)
+        termActions[mgroupId] = termActionsOfMgroup
+
+        for (action in termActionsOfMgroup) {
+          for (append in action.termAction.replaceAndAppendsList) {
+            mgroupReplaceables.getOrPut(mgroupId) { mutableSetOf() }
+              .add(append.replace)
+            possibleParentsOfGroup.getOrPut(append.append.milestoneGroupId) { mutableSetOf() }
+              .add(append.replace)
+          }
+          for (progress in action.termAction.replaceAndProgressesList) {
+            edgeActionTriggers.getOrPut(mgroupId) { mutableSetOf() }
+              .add(progress.replaceMilestoneGroupId)
+          }
+        }
       }
-      for (tipEdge in (possibleTipEdges.canProgress - tipEdgeActions.keys)) {
-        tipEdgeActions[tipEdge] = genTipEdgeAction(tipEdge.first, tipEdge.second)
+      for (tipEdge in remainingTipEdges) {
+        val edgeAction = genTipEdgeAction(tipEdge.first, tipEdge.second)
+        tipEdgeActions[tipEdge] = edgeAction
+
+        for (append in edgeAction.appendMilestoneGroupsList) {
+          possibleParentsOfGroup.getOrPut(append.milestoneGroupId) { mutableSetOf() }
+            .add(tipEdge.first)
+        }
       }
-      for (midEdge in possibleMidEdges) {
-        midEdgeActions[midEdge] = genMidEdgeAction(midEdge.first, midEdge.second)
+      for (midEdge in remainingMidEdges) {
+        val edgeAction = genMidEdgeAction(midEdge.first, midEdge.second)
+        midEdgeActions[midEdge] = edgeAction
+
+        for (append in edgeAction.appendMilestoneGroupsList) {
+          possibleParentsOfGroup.getOrPut(append.milestoneGroupId) { mutableSetOf() }
+            .add(midEdge.first)
+        }
       }
     }
 
@@ -238,6 +285,9 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
       GenNode(it.symbolId, it.pointer, Prev, Curr)
     }.toSet()
     // TODO progs가 graph에 모두 있는 상태인가..?
+    for (prog in progs) {
+      graph.addNode(prog)
+    }
     val g2 = tasks.progressedFrom(graph, progs, Next)
 
     return edgeActionFrom(g2, parentNode)
@@ -270,13 +320,34 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
   )
 
   fun possibleTipEdges(): PossibleTipEdges {
-    // TODO
-    return PossibleTipEdges(setOf(), setOf())
+    val canProgress = mutableSetOf<Pair<KernelTemplate, Int>>()
+    val canExist = mutableSetOf<Pair<KernelTemplate, Int>>()
+
+    for ((mgroupId, replaces) in edgeActionTriggers) {
+      possibleParentsOfGroup[mgroupId]?.forEach { parent ->
+        for (replace in replaces) {
+          canProgress.add(parent to replace)
+        }
+      }
+    }
+    for ((mgroupId, parents) in possibleParentsOfGroup) {
+      for (parent in parents) {
+        canExist.add(parent to mgroupId)
+      }
+    }
+    return PossibleTipEdges(canProgress, canExist)
   }
 
   fun possibleMidEdges(): Set<Pair<KernelTemplate, KernelTemplate>> {
-    // TODO
-    return setOf()
+    val midEdges = mutableSetOf<Pair<KernelTemplate, KernelTemplate>>()
+    for ((mgroupId, replaces) in mgroupReplaceables) {
+      possibleParentsOfGroup[mgroupId]?.forEach { parent ->
+        for (replace in replaces) {
+          midEdges.add(parent to replace)
+        }
+      }
+    }
+    return midEdges
   }
 }
 

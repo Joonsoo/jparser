@@ -5,9 +5,9 @@ export type GenParsingContextGraph = {
   edges: { first: GenNode, second: GenNode }[],
 }
 
-type GenNode = { symbolId: number, pointer: number, startGen: GenParsingGeneration, endGen: GenParsingGeneration }
+type GenNode = { symbolId: number, pointer: number, startGen: GenNodeGeneration, endGen: GenNodeGeneration }
 
-type GenParsingGeneration = "Prev" | "Curr" | "Next";
+type GenNodeGeneration = "Prev" | "Curr" | "Mid" | "Next";
 
 export function GenNodeId(genNode: GenNode): string {
   return `${genNode.symbolId}-${genNode.pointer}-${genNode.startGen}-${genNode.endGen}`;

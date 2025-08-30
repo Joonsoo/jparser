@@ -1,16 +1,8 @@
 package com.giyeok.jparser.mgroup3
 
 import com.giyeok.jparser.metalang3.`MetaLanguage3$`
-import com.giyeok.jparser.mgroup3.gen.GenNode
-import com.giyeok.jparser.mgroup3.gen.GenNodeGeneration.Curr
-import com.giyeok.jparser.mgroup3.gen.GenNodeGeneration.Next
 import com.giyeok.jparser.mgroup3.gen.Mgroup3ParserGenerator
-import com.giyeok.jparser.proto.GrammarProtobufConverter
-import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.Test
-import kotlin.collections.component1
-import kotlin.collections.component2
-import kotlin.collections.iterator
 import kotlin.io.path.Path
 import kotlin.io.path.readText
 

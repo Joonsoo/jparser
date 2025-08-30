@@ -3,6 +3,7 @@
 import {useEffect, useState} from "react";
 import {NGrammarWidget} from "@/NGrammarWidget";
 import {GenParsingContextGraphWidget} from "@/GenParsingContextWidget";
+import {GenParsingContextGraph} from "@/GenParsingContext";
 
 export default function Home() {
   return (<GraphView></GraphView>);
