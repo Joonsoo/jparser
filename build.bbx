@@ -224,6 +224,16 @@ mgroup2 {
   )
 }
 
+kttestutils {
+  main = ktjvm.library(
+    srcs = glob("kttestutils/main/kotlin/**.kt"),
+    deps = [
+      ktlib.main,
+      metalang.main,
+    ],
+  )
+}
+
 mgroup3 {
   parserDataSchema {
     schema = protobuf.schema(
@@ -244,15 +254,15 @@ mgroup3 {
     )
   }
 
-  parserData = ktjvm.library(
-    srcs = glob("mgroup3/schema/kotlin/**.kt"),
-    deps = [parserDataSchema.javalib],
-  )
+  // parserData = ktjvm.library(
+  //   srcs = glob("mgroup3/schema/kotlin/**.kt"),
+  //   deps = [parserDataSchema.javalib],
+  // )
 
   gen = ktjvm.library(
     srcs = glob("mgroup3/gen/kotlin/**.kt"),
     deps = [
-      parserData,
+      parserDataSchema.javalib,
       base.main,
       utils.main,
       maven.artifact("com.google.guava", "guava", "33.4.8-jre"),
@@ -261,13 +271,29 @@ mgroup3 {
 
   parser = ktjvm.library(
     srcs = glob("mgroup3/parser/kotlin/**.kt"),
-    deps = [parserData],
+    deps = [parserDataSchema.javalib, ktlib.main],
   )
 
   test = ktjvm.library(
     srcs = glob("mgroup3/test/kotlin/**.kt"),
     resources = glob("mgroup3/test/resources/**"),
-    deps = [parserData, gen, parser, metalang.main, ...testDeps],
+    deps = [
+      gen,
+      parser,
+      metalang.main,
+      mgroup2.gen,
+      mgroup2.parser,
+      ktparser.main,
+      kttestutils.main,
+      ...testDeps,
+    ],
+  )
+
+  cmakedebug = ktjvm.library(
+    srcs = glob("mgroup3/cmakedebug/kotlin/**.kt"),
+    deps = [
+      test
+    ]
   )
 
   visualize = ktjvm.library(
@@ -394,6 +420,17 @@ examples {
       parserDataFileName = "j1-mg2-parserdata-trimmed.pb",
       trimParserData = true,
     )
+
+    cmakeDebug = genKtAstMgroup2(
+      cdgFile = "examples/metalang3/resources/cmake/cmake_debug.cdg",
+      astifierClassName = "com.giyeok.jparser.ktlib.test.CmakeDebugAst",
+      parserDataFileName = "cmake-debug-parserdata-trimmed.pb",
+      trimParserData = true,
+    )
+
+    action generateCmakeDebug {
+      file.copyDirectory(cmakeDebug.srcsRoot, "mgroup3/cmakedebug/kotlin")
+    }
   }
 
   action generateAll {

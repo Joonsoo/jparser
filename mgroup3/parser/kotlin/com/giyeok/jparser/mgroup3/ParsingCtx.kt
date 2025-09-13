@@ -2,6 +2,8 @@ package com.giyeok.jparser.mgroup3
 
 data class ParsingCtx(
   val gen: Int,
+  val line: Int,
+  val col: Int,
   val mainRoot: PathRoot,
   val mainPaths: List<ParsingPath>,
   val condPaths: Map<PathRoot, List<ParsingPath>>,

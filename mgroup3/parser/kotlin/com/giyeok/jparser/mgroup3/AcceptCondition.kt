@@ -14,6 +14,9 @@ data object Never: AcceptCondition() {
 
 data class And(val conds: Set<AcceptCondition>): AcceptCondition() {
   companion object {
+    fun from(a: AcceptCondition, b: AcceptCondition): AcceptCondition =
+      from(setOf(a, b))
+
     fun from(conds: Set<AcceptCondition>): AcceptCondition =
       if (Never in conds) {
         Never

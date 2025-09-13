@@ -162,7 +162,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
   def nonterminalMatchFunc(nonterminal: String): CodeBlob = {
     varId = 0
     val valuefyExpr = analysis.nonterminalValuefyExprs(nonterminal)
-    val body = unrollChoicesExpr(valuefyExpr.choices, "beginGen", "endGen")
+    val body = unrollChoicesExpr(valuefyExpr.choices, "beginGen", "endGen", nonterminal)
     val returnType = typeDescStringOf(analysis.nonterminalTypes(nonterminal), Some(s"return type of nonterminal $nonterminal"))
     val codeBlob = CodeBlob(
       s"""fun ${nonterminalMatchFuncName(nonterminal)}(beginGen: Int, endGen: Int): ${returnType.code} {
@@ -172,7 +172,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
     codeBlob
   }
 
-  def unrollChoicesExpr(choicesMap: Map[Symbols.Symbol, ValuefyExpr], beginGen: String, endGen: String): ExprBlob = {
+  def unrollChoicesExpr(choicesMap: Map[Symbols.Symbol, ValuefyExpr], beginGen: String, endGen: String, parentSymbolName: String): ExprBlob = {
     // choices가 하나인 경우 체크 없이 바로 다음 단계로
     if (choicesMap.size == 1) {
       val (choiceSymbol, choiceExpr) = choicesMap.head
@@ -190,7 +190,18 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
         s"val $varName = history[$endGen].findByBeginGenOpt($symbolId, $lastPointer, $beginGen)"
       }
 
-      val assertCode = s"check(hasSingleTrue(${choiceVars.map(_ + " != null").mkString(", ")}))"
+      // TODO improve check error message like AstifySimulator
+      val tryData = choices.map((c) => {
+        val (varName, sym) = c
+        val symId = analysis.ngrammar.idOf(sym)
+        s"if ($varName != null) \"$symId ${sym.toShortString}\" else null"
+      })
+
+      val assertCode = List(
+        s"check(hasSingleTrue(${choiceVars.map(_ + " != null").mkString(", ")})) {",
+        s"  val candidates = listOfNotNull(${tryData.mkString(", ")})",
+        "  \"Ambiguity found $beginGen..$endGen " + parentSymbolName + " to ${candidates.joinToString()}\"",
+        "}")
 
       val v = newVar()
       var requires = Set[String]()
@@ -209,7 +220,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
         }
       }
 
-      ExprBlob(tryCodes ++ List(assertCode, s"val $v = when {") ++ choiceCodes ++ List("}"), v, requires)
+      ExprBlob(tryCodes ++ assertCode ++ List(s"val $v = when {") ++ choiceCodes ++ List("}"), v, requires)
     }
   }
 
@@ -315,7 +326,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
         v,
         elemProcessorCode.required)
     case ValuefyExpr.UnrollChoices(choices) =>
-      unrollChoicesExpr(choices, beginGen, endGen)
+      unrollChoicesExpr(choices, beginGen, endGen, symbol.toShortString)
     case ValuefyExpr.ConstructCall(className, params) =>
       val paramCodes = params.zipWithIndex.map { case (param, index) =>
         valuefyExprToCode(param, beginGen, endGen, symbol, sequenceVarName)
