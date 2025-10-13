@@ -13,6 +13,25 @@ class GenParsingGraph(
   // key -> value 로 progress되었음
   val progressedNodes: MutableMap<GenNode, GenNode>,
 ) {
+  fun toDot(): String {
+    fun id(node: GenNode): String =
+      "n${node.symbolId}_${node.pointer}_${node.startGen}_${node.endGen}"
+
+    val writer = StringBuilder()
+    writer.append("digraph G {\n")
+    nodes.forEach {
+      writer.append("${id(it)} [label=\"${it.symbolId} ${it.pointer} ${it.startGen} ${it.endGen}\"];\n")
+    }
+    edges.forEach {
+      writer.append("${id(it.first)} -> ${id(it.second)};\n")
+    }
+    progressedNodes.forEach {
+      writer.append("${id(it.key)} -> ${id(it.value)} [style=dotted];\n")
+    }
+    writer.append("}\n")
+    return writer.toString()
+  }
+
   fun clone(): GenParsingGraph = GenParsingGraph(
     startNodes = startNodes,
     nodes = nodes.toMutableSet(),
@@ -24,11 +43,11 @@ class GenParsingGraph(
     progressedNodes = progressedNodes.toMutableMap(),
   )
 
-  fun addNode(node: GenNode): Boolean {
+  fun addNode(node: GenNode, condition: GenAcceptCondition): Boolean {
     val isNewNode = node !in nodes
     if (isNewNode) {
       nodes.add(node)
-      acceptConditions[node] = GenAcceptCondition.Always
+      acceptConditions[node] = condition
     }
     return isNewNode
   }
@@ -50,10 +69,16 @@ class GenParsingGraph(
   ): Boolean {
     check(before in nodes)
 
-    val isNewNode = addNode(after)
-    val newCond = GenAcceptCondition.Or.from(this.acceptConditions[after]!!, acceptCondition)
-    val isCondUpdated = newCond != this.acceptConditions[after]!!
-    this.acceptConditions[after] = newCond
+    val isUpdated: Boolean
+    if (after in nodes) {
+      val newCond = GenAcceptCondition.Or.from(acceptConditions[after]!!, acceptCondition)
+      isUpdated = newCond != acceptConditions[after]!!
+      acceptConditions[after] = newCond
+    } else {
+      isUpdated = true
+      nodes.add(after)
+      acceptConditions[after] = acceptCondition
+    }
 
     val prev = progressedNodes[before]
     if (prev == null) {
@@ -61,7 +86,7 @@ class GenParsingGraph(
     } else {
       check(prev == after)
     }
-    return isNewNode || isCondUpdated
+    return isUpdated
   }
 
   // start에서 도달 가능한 end들을 반환
@@ -72,16 +97,14 @@ class GenParsingGraph(
 
     queue.add(start)
     visited.add(start)
+    reachables.addAll(end.intersect(setOf(start)))
     while (queue.isNotEmpty()) {
       val next = queue.poll()
-      if (next in end) {
-        reachables.add(next)
-      } else {
-        ((edgesByStart[next] ?: setOf()) + setOfNotNull(progressedNodes[next])).let { nexts ->
-          val newNodes = nexts.toSet() - visited
-          visited.addAll(newNodes)
-          queue.addAll(newNodes)
-        }
+      ((edgesByStart[next] ?: setOf()) + setOfNotNull(progressedNodes[next])).let { nexts ->
+        val newNodes = nexts.toSet() - visited
+        reachables.addAll(newNodes.intersect(end))
+        visited.addAll(newNodes)
+        queue.addAll(newNodes)
       }
     }
     return reachables

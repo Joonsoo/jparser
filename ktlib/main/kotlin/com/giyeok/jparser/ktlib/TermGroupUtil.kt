@@ -51,7 +51,7 @@ object TermGroupUtil {
         }
 
         TermGroupProto.TermGroup.TermGroupCase.ALL_CHARS_EXCLUDING -> {
-          TODO()
+          "Anything except ${termGroup}"
         }
 
         TermGroupProto.TermGroup.TermGroupCase.VIRTUALS_GROUP ->

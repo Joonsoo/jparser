@@ -2,11 +2,8 @@ package com.giyeok.jparser.mgroup3
 
 import com.giyeok.jparser.ktlib.TermGroupUtil
 import com.giyeok.jparser.ktlib.TermSet
-import com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate
-import com.giyeok.jparser.mgroup3.proto.EdgeAction
-import com.giyeok.jparser.mgroup3.proto.KernelTemplate
-import com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData
-import com.giyeok.jparser.mgroup3.proto.TermAction
+import com.giyeok.jparser.mgroup3.proto.*
+import java.util.*
 
 class Mgroup3Parser(val data: Mgroup3ParserData) {
   val midEdgeActions = data.midEdgeActionsList.associate {
@@ -16,11 +13,26 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     )) to it.edgeAction
   }
 
-  fun initCtx(): ParsingCtx {
-    val rootPath = data.pathRootsMap[data.startSymbolId]!!
+  fun condPathsFor(condSymbolIds: Collection<Int>, gen: Int): Map<PathRoot, List<ParsingPath>> {
+    val builder = mutableMapOf<Int, List<ParsingPath>>()
+    val queue = LinkedList<Int>()
+    queue.addAll(condSymbolIds)
+    while (queue.isNotEmpty()) {
+      val symId = queue.pop()
+      if (symId !in builder) {
+        val d = data.pathRootsMap[symId]!!
+        builder[symId] = listOf(ParsingPath(null, d.milestoneGroupId, Always))
+        queue.addAll(d.initialCondSymbolIdsList)
+      }
+    }
+    return builder.mapKeys { (symId, _) -> PathRoot(symId, gen) }
+  }
+
+  fun initCtx(startSymbolId: Int): ParsingCtx {
+    val rootPath = data.pathRootsMap[startSymbolId]!!
     return ParsingCtx(
       0, 0, 0,
-      PathRoot(data.startSymbolId, 0),
+      PathRoot(startSymbolId, 0),
       listOf(
         ParsingPath(
           null,
@@ -28,23 +40,28 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
           Always
         )
       ),
-      rootPath.initialCondSymbolIdsList.associate { condSymbolId ->
-        PathRoot(condSymbolId, 0) to listOf(
-          ParsingPath(
-            null,
-            data.pathRootsMap[condSymbolId]!!.milestoneGroupId,
-            Always
-          )
-        )
-      }
+      condPathsFor(rootPath.initialCondSymbolIdsList, 0),
     )
   }
 
-  fun expectedInputsOf(ctx: ParsingCtx): Set<TermSet> {
-    TODO()
+  fun initCtx(): ParsingCtx = initCtx(data.startSymbolId)
+
+  fun expectedInputsOf(ctx: ParsingCtx): TermSet {
+    val termGroups =
+      ctx.mainPaths.flatMap { path -> data.termActionsMap[path.tipGroupId]!!.actionsList.map { it.termGroup } }
+    val termSetBuilder = TermGroupUtil.TermGroupBuilder()
+    for (termGroup in termGroups) {
+      termSetBuilder.add(termGroup)
+    }
+    return termSetBuilder.build()
   }
 
-  fun parseStep(ctx: ParsingCtx, input: Char): ParsingCtx {
+  fun findApplicableAction(path: ParsingPath, input: Char): TermAction? =
+    data.termActionsMap[path.tipGroupId]!!.actionsList.find { action ->
+      TermGroupUtil.isMatch(action.termGroup, input)
+    }?.termAction
+
+  fun parseStep(ctx: ParsingCtx, input: Char, isLastInput: Boolean): ParsingCtx {
     if (ctx.mainPaths.isEmpty()) {
       throw ParsingError.UnexpectedInput(ctx.gen, ctx.line, ctx.col, expectedInputsOf(ctx), input)
     }
@@ -60,17 +77,38 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       nextCol = ctx.col + 1
     }
 
-    val nextMainPaths = mutableListOf<ParsingPath>()
+    val nextMainPathsOut = mutableListOf<ParsingPath>()
     val observingSymbolIdsOut = mutableSetOf<Int>()
     for (path in ctx.mainPaths) {
-      val termAction = data.termActionsMap[path.tipGroupId]!!.actionsList.find { action ->
-        TermGroupUtil.isMatch(action.termGroup, input)
-      }?.termAction
+      val termAction = findApplicableAction(path, input)
       if (termAction != null) {
-        applyTermAction(path, gen, termAction, nextMainPaths, observingSymbolIdsOut)
+        applyTermAction(path, gen, termAction, nextMainPathsOut, observingSymbolIdsOut)
       }
     }
-    TODO()
+
+    if (!isLastInput && nextMainPathsOut.isEmpty()) {
+      throw ParsingError.UnexpectedInput(ctx.gen, ctx.line, ctx.col, expectedInputsOf(ctx), input)
+    }
+
+    val contCondPaths = ctx.condPaths.mapValues { (_, paths) ->
+      val nextPathsOut = mutableListOf<ParsingPath>()
+      for (path in paths) {
+        val termAction = findApplicableAction(path, input)
+        if (termAction != null) {
+          applyTermAction(path, gen, termAction, nextPathsOut, observingSymbolIdsOut)
+        }
+      }
+      nextPathsOut
+    }
+    val newCondPaths = condPathsFor(observingSymbolIdsOut, gen)
+    return ParsingCtx(
+      gen,
+      nextLine,
+      nextCol,
+      ctx.mainRoot,
+      nextMainPathsOut,
+      newCondPaths + contCondPaths
+    )
   }
 
   fun applyTermAction(
@@ -81,18 +119,19 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     observingSymbolIdsOut: MutableSet<Int>,
   ) {
     for (action in termAction.replaceAndAppendsList) {
+      val oldGen = oldPath.milestonePath?.gen ?: 0
       out.add(
         ParsingPath(
           MilestonePath(
             gen,
-            action.replace.toKernel(gen),
+            action.replace.toKernel(oldGen),
             oldPath.milestonePath,
             action.append.observingCondSymbolIdsList.toSet(),
           ),
           action.append.milestoneGroupId,
           And.from(
             oldPath.acceptCondition,
-            action.append.acceptCondition.toAcceptCondition(oldPath.milestonePath?.gen ?: 0, gen)
+            action.append.acceptCondition.toAcceptCondition(oldGen, gen)
           )
         )
       )
@@ -194,8 +233,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
 
   fun parse(text: String): ParsingCtx {
     var ctx = initCtx()
-    for (t in text) {
-      ctx = parseStep(ctx, t)
+    for ((idx, t) in text.withIndex()) {
+      ctx = parseStep(ctx, t, text.length == idx + 1)
     }
     return ctx
   }
@@ -206,7 +245,7 @@ sealed class ParsingError: Exception() {
     val loc: Int,
     val locLine: Int,
     val locCol: Int,
-    val expected: Set<TermSet>,
+    val expected: TermSet,
     val actual: Char
   ): ParsingError()
 
@@ -214,6 +253,6 @@ sealed class ParsingError: Exception() {
     val loc: Int,
     val locLine: Int,
     val locCol: Int,
-    val expected: Set<TermSet>
+    val expected: TermSet,
   ): ParsingError()
 }

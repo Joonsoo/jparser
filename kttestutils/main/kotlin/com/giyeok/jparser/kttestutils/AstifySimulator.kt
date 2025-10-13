@@ -2,16 +2,12 @@ package com.giyeok.jparser.kttestutils
 
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.Symbols
-import com.giyeok.jparser.ktlib.Kernel
-import com.giyeok.jparser.ktlib.KernelSet
-import com.giyeok.jparser.ktlib.getSequenceElems
-import com.giyeok.jparser.ktlib.hasSingleTrue
-import com.giyeok.jparser.ktlib.unrollRepeat0
-import com.giyeok.jparser.ktlib.unrollRepeat1
+import com.giyeok.jparser.ktlib.*
 import com.giyeok.jparser.metalang3.MetaLanguage3
 import com.giyeok.jparser.metalang3.Type
 import com.giyeok.jparser.metalang3.ValuefyExpr
-import scala.jdk.CollectionConverters.*
+import scala.jdk.CollectionConverters.IterableHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class AstifySimulator(
   val analysis: MetaLanguage3.ProcessedGrammar,
@@ -148,7 +144,7 @@ class AstifySimulator(
           }
           check(hasSingleTrue(*choiceSymbols.map { it.found != null }.toBooleanArray())) {
             val possibleMatches = choiceSymbols.filter { it.found != null }
-            "Ambiguity found: $beginGen..<$endGen ${sym.toShortString()} -> ${possibleMatches.map { "${it.symId} ${it.sym.toShortString()}" }}"
+            "Ambiguity found: $beginGen..<$endGen ${sym.toShortString()} -> ${possibleMatches.map { "${it.sym.toShortString()} (${it.symId})" }}"
           }
           val choice = choiceSymbols.single { it.found != null }
           simulateAst(choice.expr, beginGen, endGen, choice.sym)

@@ -54,6 +54,8 @@ message PathRootInfo {
   repeated int32 initial_cond_symbol_ids = 3;
   // start symbol이 처음 derive될 때부터 finish되는 경우
   optional AcceptConditionTemplate self_finish_accept_condition = 4;
+
+  ParsingActions parsing_actions = 5;
 }
 
 message TermAction {
@@ -74,6 +76,8 @@ message TermAction {
     AcceptConditionTemplate accept_condition = 2;
   }
   repeated ReplaceAndProgress replace_and_progresses = 2;
+
+  ParsingActions parsing_actions = 3;
 }
 
 message AppendMilestoneGroup {
@@ -85,6 +89,7 @@ message AppendMilestoneGroup {
 message EdgeAction {
   repeated AppendMilestoneGroup append_milestone_groups = 1;
   optional AcceptConditionTemplate start_node_progress = 2;
+  ParsingActions parsing_actions = 3;
 }
 
 message KernelTemplate {
@@ -114,4 +119,15 @@ message AcceptConditionTemplate {
 
 message MultiAcceptConditions {
   repeated AcceptConditionTemplate conditions = 1;
+}
+
+// 실제 파싱 시에는 start gen, mid gen, end gen과 붙어서
+// (progressed.symbol_id, progressed.pointer, start_gen, mid_gen)이
+// progress돼서 (progressed.symbol_id, progressed.pointer + 1, start_gen, end_gen)이 추가되었음을 나타내고,
+// (finished.symbol_id, finished.pointer, start_gen, end_gen) 이 finish되었음을 나타낸다.
+// ParsingActions가 있어야 Parse tree를 복원할 수 있음
+// TODO 실제 parse tree 복원 시에 모든 node의 정보가 필요하진 않기 때문에 메모리를 절약하기 위해 불필요한 부분은 저장하지 않을 수도 있음
+message ParsingActions {
+  repeated KernelTemplate progressed = 1;
+  repeated KernelTemplate finished = 2;
 }

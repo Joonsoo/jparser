@@ -46,4 +46,19 @@ public interface EdgeActionOrBuilder extends
    * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate start_node_progress = 2;</code>
    */
   com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder getStartNodeProgressOrBuilder();
+
+  /**
+   * <code>.com.giyeok.jparser.mgroup3.proto.ParsingActions parsing_actions = 3;</code>
+   * @return Whether the parsingActions field is set.
+   */
+  boolean hasParsingActions();
+  /**
+   * <code>.com.giyeok.jparser.mgroup3.proto.ParsingActions parsing_actions = 3;</code>
+   * @return The parsingActions.
+   */
+  com.giyeok.jparser.mgroup3.proto.ParsingActions getParsingActions();
+  /**
+   * <code>.com.giyeok.jparser.mgroup3.proto.ParsingActions parsing_actions = 3;</code>
+   */
+  com.giyeok.jparser.mgroup3.proto.ParsingActionsOrBuilder getParsingActionsOrBuilder();
 }

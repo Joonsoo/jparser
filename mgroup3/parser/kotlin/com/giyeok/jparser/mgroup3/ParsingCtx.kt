@@ -6,6 +6,7 @@ data class ParsingCtx(
   val col: Int,
   val mainRoot: PathRoot,
   val mainPaths: List<ParsingPath>,
+  // TODO condPaths 사이의 관계를 저장해서 불필요한 paths들을 트래킹하지 않도록 할 필요가 있을듯
   val condPaths: Map<PathRoot, List<ParsingPath>>,
   // TODO history
 )

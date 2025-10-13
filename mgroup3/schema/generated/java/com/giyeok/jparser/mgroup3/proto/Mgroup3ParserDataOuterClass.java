@@ -105,6 +105,11 @@ public final class Mgroup3ParserDataOuterClass {
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_com_giyeok_jparser_mgroup3_proto_MultiAcceptConditions_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_com_giyeok_jparser_mgroup3_proto_ParsingActions_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_com_giyeok_jparser_mgroup3_proto_ParsingActions_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -158,49 +163,58 @@ public final class Mgroup3ParserDataOuterClass {
       "Template\022=\n\003tip\030\002 \001(\01320.com.giyeok.jpars" +
       "er.mgroup3.proto.KernelTemplate\022A\n\013edge_" +
       "action\030\003 \001(\0132,.com.giyeok.jparser.mgroup" +
-      "3.proto.EdgeAction\"\345\001\n\014PathRootInfo\022\021\n\ts" +
+      "3.proto.EdgeAction\"\260\002\n\014PathRootInfo\022\021\n\ts" +
       "ymbol_id\030\001 \001(\005\022\032\n\022milestone_group_id\030\002 \001" +
       "(\005\022\037\n\027initial_cond_symbol_ids\030\003 \003(\005\022d\n\034s" +
       "elf_finish_accept_condition\030\004 \001(\01329.com." +
       "giyeok.jparser.mgroup3.proto.AcceptCondi" +
-      "tionTemplateH\000\210\001\001B\037\n\035_self_finish_accept" +
-      "_condition\"\225\004\n\nTermAction\022h\n\023replace_and" +
-      "_appends\030\001 \003(\0132K.com.giyeok.jparser.mgro" +
-      "up3.proto.TermAction.ReplaceAndAppendMil" +
-      "estoneGroup\022_\n\026replace_and_progresses\030\002 " +
-      "\003(\0132?.com.giyeok.jparser.mgroup3.proto.T" +
-      "ermAction.ReplaceAndProgress\032\253\001\n\036Replace" +
-      "AndAppendMilestoneGroup\022A\n\007replace\030\001 \001(\013" +
-      "20.com.giyeok.jparser.mgroup3.proto.Kern" +
-      "elTemplate\022F\n\006append\030\002 \001(\01326.com.giyeok." +
-      "jparser.mgroup3.proto.AppendMilestoneGro" +
-      "up\032\215\001\n\022ReplaceAndProgress\022\"\n\032replace_mil" +
-      "estone_group_id\030\001 \001(\005\022S\n\020accept_conditio" +
-      "n\030\002 \001(\01329.com.giyeok.jparser.mgroup3.pro" +
-      "to.AcceptConditionTemplate\"\252\001\n\024AppendMil" +
-      "estoneGroup\022\032\n\022milestone_group_id\030\001 \001(\005\022" +
-      "S\n\020accept_condition\030\002 \001(\01329.com.giyeok.j" +
-      "parser.mgroup3.proto.AcceptConditionTemp" +
-      "late\022!\n\031observing_cond_symbol_ids\030\003 \003(\005\"" +
-      "\332\001\n\nEdgeAction\022W\n\027append_milestone_group" +
-      "s\030\001 \003(\01326.com.giyeok.jparser.mgroup3.pro" +
-      "to.AppendMilestoneGroup\022[\n\023start_node_pr" +
-      "ogress\030\002 \001(\01329.com.giyeok.jparser.mgroup" +
-      "3.proto.AcceptConditionTemplateH\000\210\001\001B\026\n\024" +
-      "_start_node_progress\"4\n\016KernelTemplate\022\021" +
-      "\n\tsymbol_id\030\001 \001(\005\022\017\n\007pointer\030\002 \001(\005\"\325\002\n\027A" +
-      "cceptConditionTemplate\022(\n\006always\030\001 \001(\0132\026" +
-      ".google.protobuf.EmptyH\000\022F\n\003and\030\002 \001(\01327." +
-      "com.giyeok.jparser.mgroup3.proto.MultiAc" +
-      "ceptConditionsH\000\022E\n\002or\030\003 \001(\01327.com.giyeo" +
-      "k.jparser.mgroup3.proto.MultiAcceptCondi" +
-      "tionsH\000\022\031\n\017no_longer_match\030\004 \001(\005H\000\022\031\n\017lo" +
-      "okahead_found\030\005 \001(\005H\000\022\034\n\022lookahead_notfo" +
-      "und\030\006 \001(\005H\000\022\020\n\006except\030\007 \001(\005H\000\022\016\n\004join\030\010 " +
-      "\001(\005H\000B\013\n\tcondition\"f\n\025MultiAcceptConditi" +
-      "ons\022M\n\nconditions\030\001 \003(\01329.com.giyeok.jpa" +
-      "rser.mgroup3.proto.AcceptConditionTempla" +
-      "teB\002P\001b\006proto3"
+      "tionTemplateH\000\210\001\001\022I\n\017parsing_actions\030\005 \001" +
+      "(\01320.com.giyeok.jparser.mgroup3.proto.Pa" +
+      "rsingActionsB\037\n\035_self_finish_accept_cond" +
+      "ition\"\340\004\n\nTermAction\022h\n\023replace_and_appe" +
+      "nds\030\001 \003(\0132K.com.giyeok.jparser.mgroup3.p" +
+      "roto.TermAction.ReplaceAndAppendMileston" +
+      "eGroup\022_\n\026replace_and_progresses\030\002 \003(\0132?" +
+      ".com.giyeok.jparser.mgroup3.proto.TermAc" +
+      "tion.ReplaceAndProgress\022I\n\017parsing_actio" +
+      "ns\030\003 \001(\01320.com.giyeok.jparser.mgroup3.pr" +
+      "oto.ParsingActions\032\253\001\n\036ReplaceAndAppendM" +
+      "ilestoneGroup\022A\n\007replace\030\001 \001(\01320.com.giy" +
+      "eok.jparser.mgroup3.proto.KernelTemplate" +
+      "\022F\n\006append\030\002 \001(\01326.com.giyeok.jparser.mg" +
+      "roup3.proto.AppendMilestoneGroup\032\215\001\n\022Rep" +
+      "laceAndProgress\022\"\n\032replace_milestone_gro" +
+      "up_id\030\001 \001(\005\022S\n\020accept_condition\030\002 \001(\01329." +
+      "com.giyeok.jparser.mgroup3.proto.AcceptC" +
+      "onditionTemplate\"\252\001\n\024AppendMilestoneGrou" +
+      "p\022\032\n\022milestone_group_id\030\001 \001(\005\022S\n\020accept_" +
+      "condition\030\002 \001(\01329.com.giyeok.jparser.mgr" +
+      "oup3.proto.AcceptConditionTemplate\022!\n\031ob" +
+      "serving_cond_symbol_ids\030\003 \003(\005\"\245\002\n\nEdgeAc" +
+      "tion\022W\n\027append_milestone_groups\030\001 \003(\01326." +
+      "com.giyeok.jparser.mgroup3.proto.AppendM" +
+      "ilestoneGroup\022[\n\023start_node_progress\030\002 \001" +
+      "(\01329.com.giyeok.jparser.mgroup3.proto.Ac" +
+      "ceptConditionTemplateH\000\210\001\001\022I\n\017parsing_ac" +
+      "tions\030\003 \001(\01320.com.giyeok.jparser.mgroup3" +
+      ".proto.ParsingActionsB\026\n\024_start_node_pro" +
+      "gress\"4\n\016KernelTemplate\022\021\n\tsymbol_id\030\001 \001" +
+      "(\005\022\017\n\007pointer\030\002 \001(\005\"\325\002\n\027AcceptConditionT" +
+      "emplate\022(\n\006always\030\001 \001(\0132\026.google.protobu" +
+      "f.EmptyH\000\022F\n\003and\030\002 \001(\01327.com.giyeok.jpar" +
+      "ser.mgroup3.proto.MultiAcceptConditionsH" +
+      "\000\022E\n\002or\030\003 \001(\01327.com.giyeok.jparser.mgrou" +
+      "p3.proto.MultiAcceptConditionsH\000\022\031\n\017no_l" +
+      "onger_match\030\004 \001(\005H\000\022\031\n\017lookahead_found\030\005" +
+      " \001(\005H\000\022\034\n\022lookahead_notfound\030\006 \001(\005H\000\022\020\n\006" +
+      "except\030\007 \001(\005H\000\022\016\n\004join\030\010 \001(\005H\000B\013\n\tcondit" +
+      "ion\"f\n\025MultiAcceptConditions\022M\n\nconditio" +
+      "ns\030\001 \003(\01329.com.giyeok.jparser.mgroup3.pr" +
+      "oto.AcceptConditionTemplate\"\232\001\n\016ParsingA" +
+      "ctions\022D\n\nprogressed\030\001 \003(\01320.com.giyeok." +
+      "jparser.mgroup3.proto.KernelTemplate\022B\n\010" +
+      "finished\030\002 \003(\01320.com.giyeok.jparser.mgro" +
+      "up3.proto.KernelTemplateB\002P\001b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -268,13 +282,13 @@ public final class Mgroup3ParserDataOuterClass {
     internal_static_com_giyeok_jparser_mgroup3_proto_PathRootInfo_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup3_proto_PathRootInfo_descriptor,
-        new java.lang.String[] { "SymbolId", "MilestoneGroupId", "InitialCondSymbolIds", "SelfFinishAcceptCondition", });
+        new java.lang.String[] { "SymbolId", "MilestoneGroupId", "InitialCondSymbolIds", "SelfFinishAcceptCondition", "ParsingActions", });
     internal_static_com_giyeok_jparser_mgroup3_proto_TermAction_descriptor =
       getDescriptor().getMessageTypes().get(2);
     internal_static_com_giyeok_jparser_mgroup3_proto_TermAction_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup3_proto_TermAction_descriptor,
-        new java.lang.String[] { "ReplaceAndAppends", "ReplaceAndProgresses", });
+        new java.lang.String[] { "ReplaceAndAppends", "ReplaceAndProgresses", "ParsingActions", });
     internal_static_com_giyeok_jparser_mgroup3_proto_TermAction_ReplaceAndAppendMilestoneGroup_descriptor =
       internal_static_com_giyeok_jparser_mgroup3_proto_TermAction_descriptor.getNestedTypes().get(0);
     internal_static_com_giyeok_jparser_mgroup3_proto_TermAction_ReplaceAndAppendMilestoneGroup_fieldAccessorTable = new
@@ -298,7 +312,7 @@ public final class Mgroup3ParserDataOuterClass {
     internal_static_com_giyeok_jparser_mgroup3_proto_EdgeAction_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup3_proto_EdgeAction_descriptor,
-        new java.lang.String[] { "AppendMilestoneGroups", "StartNodeProgress", });
+        new java.lang.String[] { "AppendMilestoneGroups", "StartNodeProgress", "ParsingActions", });
     internal_static_com_giyeok_jparser_mgroup3_proto_KernelTemplate_descriptor =
       getDescriptor().getMessageTypes().get(5);
     internal_static_com_giyeok_jparser_mgroup3_proto_KernelTemplate_fieldAccessorTable = new
@@ -317,6 +331,12 @@ public final class Mgroup3ParserDataOuterClass {
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup3_proto_MultiAcceptConditions_descriptor,
         new java.lang.String[] { "Conditions", });
+    internal_static_com_giyeok_jparser_mgroup3_proto_ParsingActions_descriptor =
+      getDescriptor().getMessageTypes().get(8);
+    internal_static_com_giyeok_jparser_mgroup3_proto_ParsingActions_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_com_giyeok_jparser_mgroup3_proto_ParsingActions_descriptor,
+        new java.lang.String[] { "Progressed", "Finished", });
     com.giyeok.jparser.proto.GrammarProto.getDescriptor();
     com.giyeok.jparser.proto.TermGroupProto.getDescriptor();
     com.google.protobuf.EmptyProto.getDescriptor();

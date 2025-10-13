@@ -80,4 +80,19 @@ public interface PathRootInfoOrBuilder extends
    * <code>optional .com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate self_finish_accept_condition = 4;</code>
    */
   com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplateOrBuilder getSelfFinishAcceptConditionOrBuilder();
+
+  /**
+   * <code>.com.giyeok.jparser.mgroup3.proto.ParsingActions parsing_actions = 5;</code>
+   * @return Whether the parsingActions field is set.
+   */
+  boolean hasParsingActions();
+  /**
+   * <code>.com.giyeok.jparser.mgroup3.proto.ParsingActions parsing_actions = 5;</code>
+   * @return The parsingActions.
+   */
+  com.giyeok.jparser.mgroup3.proto.ParsingActions getParsingActions();
+  /**
+   * <code>.com.giyeok.jparser.mgroup3.proto.ParsingActions parsing_actions = 5;</code>
+   */
+  com.giyeok.jparser.mgroup3.proto.ParsingActionsOrBuilder getParsingActionsOrBuilder();
 }

@@ -22,7 +22,7 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
       edgesByStart = mutableMapOf(),
       edgesByEnd = mutableMapOf(),
       observingCondSymbolIds = mutableSetOf(),
-      acceptConditions = mutableMapOf(),
+      acceptConditions = nodes.associateWith { GenAcceptCondition.Always }.toMutableMap(),
       progressedNodes = mutableMapOf(),
     )
 
@@ -39,13 +39,15 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
     nextGen: GenNodeGeneration
   ): GenParsingGraph {
     check(graph.nodes.containsAll(tasksToProgress))
+    check(graph.acceptConditions.keys.containsAll(tasksToProgress))
     val newGraph = graph.clone()
 
     newGraph.progressedNodes.clear()
     newGraph.observingCondSymbolIds.clear()
 
-    val initTasks =
-      tasksToProgress.map { GenParsingTask.Progress(it, GenAcceptCondition.Always) }.toSet()
+    val initTasks = tasksToProgress.map {
+      GenParsingTask.Progress(it, GenAcceptCondition.Always)
+    }.toSet()
     run(newGraph, nextGen, initTasks)
     return newGraph
   }
@@ -79,7 +81,7 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
 
     fun addDerive(deriveSymbolId: Int) {
       val d = GenNode(deriveSymbolId, 0, node.endGen, node.endGen)
-      if (graph.addNode(d)) {
+      if (graph.addNode(d, GenAcceptCondition.Always)) {
         newTasks.add(GenParsingTask.Derive(d))
       }
       graph.addEdge(node, d)
@@ -157,15 +159,13 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
   ): Set<GenParsingTask> {
     val newTasks = mutableSetOf<GenParsingTask>()
 
-    fun process(
-      finishPointer: Int,
-      newAcceptConditions: GenAcceptCondition = GenAcceptCondition.Always
-    ) {
+    fun process(finishPointer: Int) {
       check(node.pointer == finishPointer)
+      val condition = graph.acceptConditions[node]!!
       val initNode = GenNode(node.symbolId, 0, node.startGen, node.startGen)
       graph.edgesByEnd[initNode]?.let { edges ->
         for (toProg in edges) {
-          newTasks.add(GenParsingTask.Progress(toProg, newAcceptConditions))
+          newTasks.add(GenParsingTask.Progress(toProg, condition))
         }
       }
     }
@@ -177,11 +177,11 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
       is NGrammar.NProxy -> process(1)
       is NGrammar.NRepeat -> process(1)
       is NGrammar.NSequence -> process(symbol.sequence().length())
-      is NGrammar.NExcept -> process(1, GenAcceptCondition.Unless(symbol.except()))
-      is NGrammar.NJoin -> process(1, GenAcceptCondition.OnlyIf(symbol.join()))
-      is NGrammar.NLongest -> process(1, GenAcceptCondition.NoLongerMatch(symbol.body()))
-      is NGrammar.NLookaheadExcept -> process(1, GenAcceptCondition.NotExists(symbol.lookahead()))
-      is NGrammar.NLookaheadIs -> process(1, GenAcceptCondition.Exists(symbol.lookahead()))
+      is NGrammar.NExcept -> process(1)
+      is NGrammar.NJoin -> process(1)
+      is NGrammar.NLongest -> process(1)
+      is NGrammar.NLookaheadExcept -> process(1)
+      is NGrammar.NLookaheadIs -> process(1)
       is NGrammar.NTerminal -> process(1)
     }
     return newTasks

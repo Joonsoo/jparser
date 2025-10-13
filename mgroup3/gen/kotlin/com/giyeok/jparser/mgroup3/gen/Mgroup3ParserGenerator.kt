@@ -105,7 +105,8 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
       }
     }
 
-    // TODO observing_cond_symbol_ids 에 A가 포함되어 있으면, A에 대한 PathRootInfo의 initial_cond_symbol_ids도 모두 포함해야 한다
+    // TODO observing_cond_symbol_ids 에 A가 포함되어 있으면, A에 대한 PathRootInfo의 initial_cond_symbol_ids도 모두 포함되도록 한다
+    // -> 안 그래도 파싱시에 다 확인은 하지만 조금이라도 미리 해놓으려고?
 
     val builder = Mgroup3ParserData.newBuilder()
     builder.grammar = GrammarProtobufConverter.convertNGrammarToProto(grammar)
@@ -198,12 +199,15 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
     builder.milestoneGroupId = milestoneGroupIdOf(setOf(startNode))
 
     val graph = tasks.derivedFrom(setOf(startNode))
+    builder.addAllInitialCondSymbolIds(graph.observingCondSymbolIds)
     if (startNode in graph.progressedNodes) {
       builder.selfFinishAcceptCondition =
         graph.acceptConditions[graph.progressedNodes[startNode]!!]!!.toProto()
     } else {
       builder.clearSelfFinishAcceptCondition()
     }
+
+    // TODO builder.parsingActions
 
     return builder.build()
   }
@@ -223,11 +227,13 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
 
       val builder = actionBuilder.termActionBuilder
       val g2 = tasks.progressedFrom(graph, nodes, Next)
+      // println(g2.toDot())
 
       // replace_and_appends
       val appendingMilestones = milestonesOf(g2)
       for (parentMilestone in milestones) {
-        val reachables = g2.reachablesFrom(parentMilestone, appendingMilestones)
+        val reachables = appendingMilestones
+        // TODO reachability를 따질 필요가 있나? 없는 것 같은데.. g2.reachablesFrom(parentMilestone, appendingMilestones)
         if (reachables.isNotEmpty()) {
           val reachableGroups = reachables.groupBy { g2.acceptConditions[it]!! }
           // reachableGroups가 proto에 추가되는 순서를 정의하기 위함
@@ -255,6 +261,8 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
         replaceAndProgressBuilder.setAcceptCondition(acc.toProto())
       }
 
+      // TODO builder.parsingActions
+
       actions.add(actionBuilder.build())
     }
 
@@ -274,6 +282,8 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
       appendBuilder.addAllObservingCondSymbolIds(graph.observingCondSymbolIds)
     }
 
+    // TODO builder.parsingActions
+
     return builder.build()
 
   }
@@ -286,7 +296,7 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
     }.toSet()
     // TODO progs가 graph에 모두 있는 상태인가..?
     for (prog in progs) {
-      graph.addNode(prog)
+      graph.addNode(prog, GenAcceptCondition.Always)
     }
     val g2 = tasks.progressedFrom(graph, progs, Next)
 
@@ -297,22 +307,28 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
     val parentNode = GenNode(parent.symbolId, parent.pointer, Prev, Curr)
     val graph = tasks.derivedFrom(setOf(parentNode))
     val prog = GenNode(child.symbolId, child.pointer, Prev, Mid)
-    graph.addNode(prog)
+    graph.addNode(prog, GenAcceptCondition.Always)
     val g2 = tasks.progressedFrom(graph, setOf(prog), Next)
 
     return edgeActionFrom(g2, parentNode)
   }
 
   // TODO 효율성을 위해 그래프 처리할 때 새로 등장한 애들 쌓아서 사용하기 -
-  fun possibleRootSymbols(): Set<Int> = (termActions.values.flatMap { actions ->
-    actions.flatMap { action ->
-      action.termAction.replaceAndAppendsList.flatMap { it.append.observingCondSymbolIdsList }
+  fun possibleRootSymbols(): Set<Int> {
+    val condsByRoots = rootPaths.values.flatMap { it.initialCondSymbolIdsList }
+    val byTermActions = termActions.values.flatMap { actions ->
+      actions.flatMap { action ->
+        action.termAction.replaceAndAppendsList.flatMap { it.append.observingCondSymbolIdsList }
+      }
     }
-  } + tipEdgeActions.values.flatMap { edgeAction ->
-    edgeAction.appendMilestoneGroupsList.flatMap { it.observingCondSymbolIdsList }
-  } + midEdgeActions.values.flatMap { edgeAction ->
-    edgeAction.appendMilestoneGroupsList.flatMap { it.observingCondSymbolIdsList }
-  }).toSet()
+    val byTipEdges = tipEdgeActions.values.flatMap { edgeAction ->
+      edgeAction.appendMilestoneGroupsList.flatMap { it.observingCondSymbolIdsList }
+    }
+    val byMidEdges = midEdgeActions.values.flatMap { edgeAction ->
+      edgeAction.appendMilestoneGroupsList.flatMap { it.observingCondSymbolIdsList }
+    }
+    return (condsByRoots + byTermActions + byTipEdges + byMidEdges).toSet()
+  }
 
   data class PossibleTipEdges(
     val canProgress: Set<Pair<KernelTemplate, Int>>,

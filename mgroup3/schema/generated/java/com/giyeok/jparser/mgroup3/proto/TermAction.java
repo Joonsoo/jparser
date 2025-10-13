@@ -1561,6 +1561,7 @@ private static final long serialVersionUID = 0L;
 
   }
 
+  private int bitField0_;
   public static final int REPLACE_AND_APPENDS_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
   private java.util.List<com.giyeok.jparser.mgroup3.proto.TermAction.ReplaceAndAppendMilestoneGroup> replaceAndAppends_;
@@ -1643,6 +1644,32 @@ private static final long serialVersionUID = 0L;
     return replaceAndProgresses_.get(index);
   }
 
+  public static final int PARSING_ACTIONS_FIELD_NUMBER = 3;
+  private com.giyeok.jparser.mgroup3.proto.ParsingActions parsingActions_;
+  /**
+   * <code>.com.giyeok.jparser.mgroup3.proto.ParsingActions parsing_actions = 3;</code>
+   * @return Whether the parsingActions field is set.
+   */
+  @java.lang.Override
+  public boolean hasParsingActions() {
+    return ((bitField0_ & 0x00000001) != 0);
+  }
+  /**
+   * <code>.com.giyeok.jparser.mgroup3.proto.ParsingActions parsing_actions = 3;</code>
+   * @return The parsingActions.
+   */
+  @java.lang.Override
+  public com.giyeok.jparser.mgroup3.proto.ParsingActions getParsingActions() {
+    return parsingActions_ == null ? com.giyeok.jparser.mgroup3.proto.ParsingActions.getDefaultInstance() : parsingActions_;
+  }
+  /**
+   * <code>.com.giyeok.jparser.mgroup3.proto.ParsingActions parsing_actions = 3;</code>
+   */
+  @java.lang.Override
+  public com.giyeok.jparser.mgroup3.proto.ParsingActionsOrBuilder getParsingActionsOrBuilder() {
+    return parsingActions_ == null ? com.giyeok.jparser.mgroup3.proto.ParsingActions.getDefaultInstance() : parsingActions_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1663,6 +1690,9 @@ private static final long serialVersionUID = 0L;
     for (int i = 0; i < replaceAndProgresses_.size(); i++) {
       output.writeMessage(2, replaceAndProgresses_.get(i));
     }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      output.writeMessage(3, getParsingActions());
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -1679,6 +1709,10 @@ private static final long serialVersionUID = 0L;
     for (int i = 0; i < replaceAndProgresses_.size(); i++) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(2, replaceAndProgresses_.get(i));
+    }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(3, getParsingActions());
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -1699,6 +1733,11 @@ private static final long serialVersionUID = 0L;
         .equals(other.getReplaceAndAppendsList())) return false;
     if (!getReplaceAndProgressesList()
         .equals(other.getReplaceAndProgressesList())) return false;
+    if (hasParsingActions() != other.hasParsingActions()) return false;
+    if (hasParsingActions()) {
+      if (!getParsingActions()
+          .equals(other.getParsingActions())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1717,6 +1756,10 @@ private static final long serialVersionUID = 0L;
     if (getReplaceAndProgressesCount() > 0) {
       hash = (37 * hash) + REPLACE_AND_PROGRESSES_FIELD_NUMBER;
       hash = (53 * hash) + getReplaceAndProgressesList().hashCode();
+    }
+    if (hasParsingActions()) {
+      hash = (37 * hash) + PARSING_ACTIONS_FIELD_NUMBER;
+      hash = (53 * hash) + getParsingActions().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -1837,13 +1880,21 @@ private static final long serialVersionUID = 0L;
 
     // Construct using com.giyeok.jparser.mgroup3.proto.TermAction.newBuilder()
     private Builder() {
-
+      maybeForceBuilderInitialization();
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
       super(parent);
-
+      maybeForceBuilderInitialization();
+    }
+    private void maybeForceBuilderInitialization() {
+      if (com.google.protobuf.GeneratedMessageV3
+              .alwaysUseFieldBuilders) {
+        getReplaceAndAppendsFieldBuilder();
+        getReplaceAndProgressesFieldBuilder();
+        getParsingActionsFieldBuilder();
+      }
     }
     @java.lang.Override
     public Builder clear() {
@@ -1863,6 +1914,11 @@ private static final long serialVersionUID = 0L;
         replaceAndProgressesBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000002);
+      parsingActions_ = null;
+      if (parsingActionsBuilder_ != null) {
+        parsingActionsBuilder_.dispose();
+        parsingActionsBuilder_ = null;
+      }
       return this;
     }
 
@@ -1918,6 +1974,14 @@ private static final long serialVersionUID = 0L;
 
     private void buildPartial0(com.giyeok.jparser.mgroup3.proto.TermAction result) {
       int from_bitField0_ = bitField0_;
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.parsingActions_ = parsingActionsBuilder_ == null
+            ? parsingActions_
+            : parsingActionsBuilder_.build();
+        to_bitField0_ |= 0x00000001;
+      }
+      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -2016,6 +2080,9 @@ private static final long serialVersionUID = 0L;
           }
         }
       }
+      if (other.hasParsingActions()) {
+        mergeParsingActions(other.getParsingActions());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -2068,6 +2135,13 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 18
+            case 26: {
+              input.readMessage(
+                  getParsingActionsFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 26
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2563,6 +2637,127 @@ private static final long serialVersionUID = 0L;
         replaceAndProgresses_ = null;
       }
       return replaceAndProgressesBuilder_;
+    }
+
+    private com.giyeok.jparser.mgroup3.proto.ParsingActions parsingActions_;
+    private com.google.protobuf.SingleFieldBuilderV3<
+        com.giyeok.jparser.mgroup3.proto.ParsingActions, com.giyeok.jparser.mgroup3.proto.ParsingActions.Builder, com.giyeok.jparser.mgroup3.proto.ParsingActionsOrBuilder> parsingActionsBuilder_;
+    /**
+     * <code>.com.giyeok.jparser.mgroup3.proto.ParsingActions parsing_actions = 3;</code>
+     * @return Whether the parsingActions field is set.
+     */
+    public boolean hasParsingActions() {
+      return ((bitField0_ & 0x00000004) != 0);
+    }
+    /**
+     * <code>.com.giyeok.jparser.mgroup3.proto.ParsingActions parsing_actions = 3;</code>
+     * @return The parsingActions.
+     */
+    public com.giyeok.jparser.mgroup3.proto.ParsingActions getParsingActions() {
+      if (parsingActionsBuilder_ == null) {
+        return parsingActions_ == null ? com.giyeok.jparser.mgroup3.proto.ParsingActions.getDefaultInstance() : parsingActions_;
+      } else {
+        return parsingActionsBuilder_.getMessage();
+      }
+    }
+    /**
+     * <code>.com.giyeok.jparser.mgroup3.proto.ParsingActions parsing_actions = 3;</code>
+     */
+    public Builder setParsingActions(com.giyeok.jparser.mgroup3.proto.ParsingActions value) {
+      if (parsingActionsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        parsingActions_ = value;
+      } else {
+        parsingActionsBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>.com.giyeok.jparser.mgroup3.proto.ParsingActions parsing_actions = 3;</code>
+     */
+    public Builder setParsingActions(
+        com.giyeok.jparser.mgroup3.proto.ParsingActions.Builder builderForValue) {
+      if (parsingActionsBuilder_ == null) {
+        parsingActions_ = builderForValue.build();
+      } else {
+        parsingActionsBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>.com.giyeok.jparser.mgroup3.proto.ParsingActions parsing_actions = 3;</code>
+     */
+    public Builder mergeParsingActions(com.giyeok.jparser.mgroup3.proto.ParsingActions value) {
+      if (parsingActionsBuilder_ == null) {
+        if (((bitField0_ & 0x00000004) != 0) &&
+          parsingActions_ != null &&
+          parsingActions_ != com.giyeok.jparser.mgroup3.proto.ParsingActions.getDefaultInstance()) {
+          getParsingActionsBuilder().mergeFrom(value);
+        } else {
+          parsingActions_ = value;
+        }
+      } else {
+        parsingActionsBuilder_.mergeFrom(value);
+      }
+      if (parsingActions_ != null) {
+        bitField0_ |= 0x00000004;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <code>.com.giyeok.jparser.mgroup3.proto.ParsingActions parsing_actions = 3;</code>
+     */
+    public Builder clearParsingActions() {
+      bitField0_ = (bitField0_ & ~0x00000004);
+      parsingActions_ = null;
+      if (parsingActionsBuilder_ != null) {
+        parsingActionsBuilder_.dispose();
+        parsingActionsBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>.com.giyeok.jparser.mgroup3.proto.ParsingActions parsing_actions = 3;</code>
+     */
+    public com.giyeok.jparser.mgroup3.proto.ParsingActions.Builder getParsingActionsBuilder() {
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return getParsingActionsFieldBuilder().getBuilder();
+    }
+    /**
+     * <code>.com.giyeok.jparser.mgroup3.proto.ParsingActions parsing_actions = 3;</code>
+     */
+    public com.giyeok.jparser.mgroup3.proto.ParsingActionsOrBuilder getParsingActionsOrBuilder() {
+      if (parsingActionsBuilder_ != null) {
+        return parsingActionsBuilder_.getMessageOrBuilder();
+      } else {
+        return parsingActions_ == null ?
+            com.giyeok.jparser.mgroup3.proto.ParsingActions.getDefaultInstance() : parsingActions_;
+      }
+    }
+    /**
+     * <code>.com.giyeok.jparser.mgroup3.proto.ParsingActions parsing_actions = 3;</code>
+     */
+    private com.google.protobuf.SingleFieldBuilderV3<
+        com.giyeok.jparser.mgroup3.proto.ParsingActions, com.giyeok.jparser.mgroup3.proto.ParsingActions.Builder, com.giyeok.jparser.mgroup3.proto.ParsingActionsOrBuilder> 
+        getParsingActionsFieldBuilder() {
+      if (parsingActionsBuilder_ == null) {
+        parsingActionsBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+            com.giyeok.jparser.mgroup3.proto.ParsingActions, com.giyeok.jparser.mgroup3.proto.ParsingActions.Builder, com.giyeok.jparser.mgroup3.proto.ParsingActionsOrBuilder>(
+                getParsingActions(),
+                getParentForChildren(),
+                isClean());
+        parsingActions_ = null;
+      }
+      return parsingActionsBuilder_;
     }
     @java.lang.Override
     public final Builder setUnknownFields(
