@@ -33,26 +33,26 @@ public interface ParsingActionsOrBuilder extends
       int index);
 
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
    */
-  java.util.List<com.giyeok.jparser.mgroup3.proto.KernelTemplate> 
+  java.util.List<com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate> 
       getFinishedList();
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
    */
-  com.giyeok.jparser.mgroup3.proto.KernelTemplate getFinished(int index);
+  com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate getFinished(int index);
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
    */
   int getFinishedCount();
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
    */
-  java.util.List<? extends com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder> 
+  java.util.List<? extends com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplateOrBuilder> 
       getFinishedOrBuilderList();
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
    */
-  com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder getFinishedOrBuilder(
+  com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplateOrBuilder getFinishedOrBuilder(
       int index);
 }

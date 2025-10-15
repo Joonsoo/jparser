@@ -110,6 +110,11 @@ public final class Mgroup3ParserDataOuterClass {
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_com_giyeok_jparser_mgroup3_proto_ParsingActions_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_com_giyeok_jparser_mgroup3_proto_FinishedKernelTemplate_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_com_giyeok_jparser_mgroup3_proto_FinishedKernelTemplate_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -210,11 +215,18 @@ public final class Mgroup3ParserDataOuterClass {
       "except\030\007 \001(\005H\000\022\016\n\004join\030\010 \001(\005H\000B\013\n\tcondit" +
       "ion\"f\n\025MultiAcceptConditions\022M\n\nconditio" +
       "ns\030\001 \003(\01329.com.giyeok.jparser.mgroup3.pr" +
-      "oto.AcceptConditionTemplate\"\232\001\n\016ParsingA" +
+      "oto.AcceptConditionTemplate\"\242\001\n\016ParsingA" +
       "ctions\022D\n\nprogressed\030\001 \003(\01320.com.giyeok." +
-      "jparser.mgroup3.proto.KernelTemplate\022B\n\010" +
-      "finished\030\002 \003(\01320.com.giyeok.jparser.mgro" +
-      "up3.proto.KernelTemplateB\002P\001b\006proto3"
+      "jparser.mgroup3.proto.KernelTemplate\022J\n\010" +
+      "finished\030\002 \003(\01328.com.giyeok.jparser.mgro" +
+      "up3.proto.FinishedKernelTemplate\"\331\001\n\026Fin" +
+      "ishedKernelTemplate\022\021\n\tsymbol_id\030\001 \001(\005\022\017" +
+      "\n\007pointer\030\002 \001(\005\022F\n\tstart_gen\030\003 \001(\01623.com" +
+      ".giyeok.jparser.mgroup3.proto.KernelTemp" +
+      "lateGen\022S\n\020finish_condition\030\004 \001(\01329.com." +
+      "giyeok.jparser.mgroup3.proto.AcceptCondi" +
+      "tionTemplate*0\n\021KernelTemplateGen\022\010\n\004CUR" +
+      "R\020\000\022\007\n\003MID\020\001\022\010\n\004NEXT\020\002B\002P\001b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -337,6 +349,12 @@ public final class Mgroup3ParserDataOuterClass {
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup3_proto_ParsingActions_descriptor,
         new java.lang.String[] { "Progressed", "Finished", });
+    internal_static_com_giyeok_jparser_mgroup3_proto_FinishedKernelTemplate_descriptor =
+      getDescriptor().getMessageTypes().get(9);
+    internal_static_com_giyeok_jparser_mgroup3_proto_FinishedKernelTemplate_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_com_giyeok_jparser_mgroup3_proto_FinishedKernelTemplate_descriptor,
+        new java.lang.String[] { "SymbolId", "Pointer", "StartGen", "FinishCondition", });
     com.giyeok.jparser.proto.GrammarProto.getDescriptor();
     com.giyeok.jparser.proto.TermGroupProto.getDescriptor();
     com.google.protobuf.EmptyProto.getDescriptor();

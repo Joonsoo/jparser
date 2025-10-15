@@ -24,6 +24,7 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
       observingCondSymbolIds = mutableSetOf(),
       acceptConditions = nodes.associateWith { GenAcceptCondition.Always }.toMutableMap(),
       progressedNodes = mutableMapOf(),
+      finishedNodes = mutableSetOf(),
     )
 
     val endGen = nodes.map { it.endGen }.toSet()
@@ -52,14 +53,14 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
     return newGraph
   }
 
-  fun finishedFrom(graph: GenParsingGraph, taskToFinish: GenNode): GenParsingGraph {
-    check(taskToFinish in graph.nodes)
-
-    val newGraph = graph.clone()
-
-    run(newGraph, taskToFinish.endGen, setOf(GenParsingTask.Finish(taskToFinish)))
-    return newGraph
-  }
+//  fun finishedFrom(graph: GenParsingGraph, taskToFinish: GenNode): GenParsingGraph {
+//    check(taskToFinish in graph.nodes)
+//
+//    val newGraph = graph.clone()
+//
+//    run(newGraph, taskToFinish.endGen, setOf(GenParsingTask.Finish(taskToFinish)))
+//    return newGraph
+//  }
 
   fun run(graph: GenParsingGraph, nextGen: GenNodeGeneration, initTasks: Set<GenParsingTask>) {
     val tasks = initTasks.toMutableList()
@@ -157,6 +158,8 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
     graph: GenParsingGraph,
     node: GenNode,
   ): Set<GenParsingTask> {
+    graph.finishedNodes.add(node)
+
     val newTasks = mutableSetOf<GenParsingTask>()
 
     fun process(finishPointer: Int) {

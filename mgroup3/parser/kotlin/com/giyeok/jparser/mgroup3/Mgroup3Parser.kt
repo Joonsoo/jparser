@@ -78,28 +78,57 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     }
 
     val nextMainPathsOut = mutableListOf<ParsingPath>()
+    val parsingActionsOut = mutableListOf<ParsingActions>()
     val observingSymbolIdsOut = mutableSetOf<Int>()
     for (path in ctx.mainPaths) {
       val termAction = findApplicableAction(path, input)
       if (termAction != null) {
-        applyTermAction(path, gen, termAction, nextMainPathsOut, observingSymbolIdsOut)
+        applyTermAction(
+          path,
+          gen,
+          termAction,
+          nextMainPathsOut,
+          parsingActionsOut,
+          observingSymbolIdsOut
+        )
       }
     }
+
+    val contCondPaths = mutableMapOf<PathRoot, MutableList<ParsingPath>>()
+    val condPathFinishes = mutableMapOf<PathRoot, AcceptCondition>()
+    for ((root, paths) in ctx.condPaths) {
+      val nextPathsOut = mutableListOf<ParsingPath>()
+      val parsingActionsOut = mutableListOf<ParsingActions>()
+      for (path in paths) {
+        val termAction = findApplicableAction(path, input)
+        if (termAction != null) {
+          applyTermAction(
+            path,
+            gen,
+            termAction,
+            nextPathsOut,
+            parsingActionsOut,
+            observingSymbolIdsOut
+          )
+        }
+      }
+      if (nextPathsOut.isNotEmpty()) {
+        contCondPaths[root] = nextPathsOut
+      }
+      // TODO parsingActionsOut 중에 root에 대한 finish가 있는 경우, finish condition들을 or 로 묶어서 condPathFinishes에 넣어준다
+    }
+
+    val acceptConditions = (nextMainPathsOut.map { it.acceptCondition } +
+      contCondPaths.values.flatMap { paths -> paths.map { it.acceptCondition } }).toSet()
+    val newAcceptConditions = acceptConditions.associateWith {
+      evolveAcceptCondition(it, condPathFinishes, contCondPaths.keys, gen)
+    }
+    // TODO 새로운 path들에 대해 newAcceptConditions 적용해서 업데이트 - 하고 Never인 애들 날리기
 
     if (!isLastInput && nextMainPathsOut.isEmpty()) {
       throw ParsingError.UnexpectedInput(ctx.gen, ctx.line, ctx.col, expectedInputsOf(ctx), input)
     }
 
-    val contCondPaths = ctx.condPaths.mapValues { (_, paths) ->
-      val nextPathsOut = mutableListOf<ParsingPath>()
-      for (path in paths) {
-        val termAction = findApplicableAction(path, input)
-        if (termAction != null) {
-          applyTermAction(path, gen, termAction, nextPathsOut, observingSymbolIdsOut)
-        }
-      }
-      nextPathsOut
-    }
     val newCondPaths = condPathsFor(observingSymbolIdsOut, gen)
     return ParsingCtx(
       gen,
@@ -116,8 +145,11 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     gen: Int,
     termAction: TermAction,
     out: MutableList<ParsingPath>,
+    // TODO 그냥 ParsingActions만 있으면 안되고 gen에 대한 정보도 있어야 함
+    parsingActionsOut: MutableList<ParsingActions>,
     observingSymbolIdsOut: MutableSet<Int>,
   ) {
+    parsingActionsOut.add(termAction.parsingActions)
     for (action in termAction.replaceAndAppendsList) {
       val oldGen = oldPath.milestonePath?.gen ?: 0
       out.add(
@@ -149,6 +181,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
           parentOfTip,
           gen,
           tipEdgeAction,
+          parsingActionsOut,
           oldPath.acceptCondition,
           out,
           observingSymbolIdsOut
@@ -161,10 +194,13 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     mpath: MilestonePath,
     gen: Int,
     edgeAction: EdgeAction,
+    // TODO 그냥 ParsingActions만 있으면 안되고 gen에 대한 정보도 있어야 함
+    parsingActionsOut: MutableList<ParsingActions>,
     prevCondition: AcceptCondition,
     out: MutableList<ParsingPath>,
     observingSymbolIdsOut: MutableSet<Int>,
   ) {
+    parsingActionsOut.add(edgeAction.parsingActions)
     // oldPath의 tip mgroup id는 edgeAction의 mgroup id와 다를 수 있음
     for (append in edgeAction.appendMilestoneGroupsList) {
       out.add(
@@ -192,6 +228,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         mpath.parent,
         gen,
         midEdgeAction,
+        parsingActionsOut,
         prevCondition,
         out,
         observingSymbolIdsOut

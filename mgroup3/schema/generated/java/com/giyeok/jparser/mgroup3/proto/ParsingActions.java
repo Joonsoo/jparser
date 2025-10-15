@@ -5,6 +5,15 @@
 package com.giyeok.jparser.mgroup3.proto;
 
 /**
+ * <pre>
+ * 실제 파싱 시에는 start gen, mid gen, end gen과 붙어서
+ * (progressed.symbol_id, progressed.pointer, start_gen, mid_gen)이
+ * progress돼서 (progressed.symbol_id, progressed.pointer + 1, start_gen, end_gen)이 추가되었음을 나타내고,
+ * (finished.symbol_id, finished.pointer, start_gen, end_gen) 이 finish되었음을 나타낸다.
+ * ParsingActions가 있어야 Parse tree를 복원할 수 있음
+ * TODO 실제 parse tree 복원 시에 모든 node의 정보가 필요하진 않기 때문에 메모리를 절약하기 위해 불필요한 부분은 저장하지 않을 수도 있음
+ * </pre>
+ *
  * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.ParsingActions}
  */
 public final class ParsingActions extends
@@ -84,41 +93,41 @@ private static final long serialVersionUID = 0L;
 
   public static final int FINISHED_FIELD_NUMBER = 2;
   @SuppressWarnings("serial")
-  private java.util.List<com.giyeok.jparser.mgroup3.proto.KernelTemplate> finished_;
+  private java.util.List<com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate> finished_;
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
    */
   @java.lang.Override
-  public java.util.List<com.giyeok.jparser.mgroup3.proto.KernelTemplate> getFinishedList() {
+  public java.util.List<com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate> getFinishedList() {
     return finished_;
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
    */
   @java.lang.Override
-  public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder> 
+  public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplateOrBuilder> 
       getFinishedOrBuilderList() {
     return finished_;
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
    */
   @java.lang.Override
   public int getFinishedCount() {
     return finished_.size();
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
    */
   @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.KernelTemplate getFinished(int index) {
+  public com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate getFinished(int index) {
     return finished_.get(index);
   }
   /**
-   * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+   * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
    */
   @java.lang.Override
-  public com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder getFinishedOrBuilder(
+  public com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplateOrBuilder getFinishedOrBuilder(
       int index) {
     return finished_.get(index);
   }
@@ -296,6 +305,15 @@ private static final long serialVersionUID = 0L;
     return builder;
   }
   /**
+   * <pre>
+   * 실제 파싱 시에는 start gen, mid gen, end gen과 붙어서
+   * (progressed.symbol_id, progressed.pointer, start_gen, mid_gen)이
+   * progress돼서 (progressed.symbol_id, progressed.pointer + 1, start_gen, end_gen)이 추가되었음을 나타내고,
+   * (finished.symbol_id, finished.pointer, start_gen, end_gen) 이 finish되었음을 나타낸다.
+   * ParsingActions가 있어야 Parse tree를 복원할 수 있음
+   * TODO 실제 parse tree 복원 시에 모든 node의 정보가 필요하진 않기 때문에 메모리를 절약하기 위해 불필요한 부분은 저장하지 않을 수도 있음
+   * </pre>
+   *
    * Protobuf type {@code com.giyeok.jparser.mgroup3.proto.ParsingActions}
    */
   public static final class Builder extends
@@ -536,9 +554,9 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 10
             case 18: {
-              com.giyeok.jparser.mgroup3.proto.KernelTemplate m =
+              com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate m =
                   input.readMessage(
-                      com.giyeok.jparser.mgroup3.proto.KernelTemplate.parser(),
+                      com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate.parser(),
                       extensionRegistry);
               if (finishedBuilder_ == null) {
                 ensureFinishedIsMutable();
@@ -805,22 +823,22 @@ private static final long serialVersionUID = 0L;
       return progressedBuilder_;
     }
 
-    private java.util.List<com.giyeok.jparser.mgroup3.proto.KernelTemplate> finished_ =
+    private java.util.List<com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate> finished_ =
       java.util.Collections.emptyList();
     private void ensureFinishedIsMutable() {
       if (!((bitField0_ & 0x00000002) != 0)) {
-        finished_ = new java.util.ArrayList<com.giyeok.jparser.mgroup3.proto.KernelTemplate>(finished_);
+        finished_ = new java.util.ArrayList<com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate>(finished_);
         bitField0_ |= 0x00000002;
        }
     }
 
     private com.google.protobuf.RepeatedFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.KernelTemplate, com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder, com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder> finishedBuilder_;
+        com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate, com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate.Builder, com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplateOrBuilder> finishedBuilder_;
 
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
      */
-    public java.util.List<com.giyeok.jparser.mgroup3.proto.KernelTemplate> getFinishedList() {
+    public java.util.List<com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate> getFinishedList() {
       if (finishedBuilder_ == null) {
         return java.util.Collections.unmodifiableList(finished_);
       } else {
@@ -828,7 +846,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
      */
     public int getFinishedCount() {
       if (finishedBuilder_ == null) {
@@ -838,9 +856,9 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.KernelTemplate getFinished(int index) {
+    public com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate getFinished(int index) {
       if (finishedBuilder_ == null) {
         return finished_.get(index);
       } else {
@@ -848,10 +866,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
      */
     public Builder setFinished(
-        int index, com.giyeok.jparser.mgroup3.proto.KernelTemplate value) {
+        int index, com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate value) {
       if (finishedBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
@@ -865,10 +883,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
      */
     public Builder setFinished(
-        int index, com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder builderForValue) {
+        int index, com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate.Builder builderForValue) {
       if (finishedBuilder_ == null) {
         ensureFinishedIsMutable();
         finished_.set(index, builderForValue.build());
@@ -879,9 +897,9 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
      */
-    public Builder addFinished(com.giyeok.jparser.mgroup3.proto.KernelTemplate value) {
+    public Builder addFinished(com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate value) {
       if (finishedBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
@@ -895,10 +913,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
      */
     public Builder addFinished(
-        int index, com.giyeok.jparser.mgroup3.proto.KernelTemplate value) {
+        int index, com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate value) {
       if (finishedBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
@@ -912,10 +930,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
      */
     public Builder addFinished(
-        com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder builderForValue) {
+        com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate.Builder builderForValue) {
       if (finishedBuilder_ == null) {
         ensureFinishedIsMutable();
         finished_.add(builderForValue.build());
@@ -926,10 +944,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
      */
     public Builder addFinished(
-        int index, com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder builderForValue) {
+        int index, com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate.Builder builderForValue) {
       if (finishedBuilder_ == null) {
         ensureFinishedIsMutable();
         finished_.add(index, builderForValue.build());
@@ -940,10 +958,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
      */
     public Builder addAllFinished(
-        java.lang.Iterable<? extends com.giyeok.jparser.mgroup3.proto.KernelTemplate> values) {
+        java.lang.Iterable<? extends com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate> values) {
       if (finishedBuilder_ == null) {
         ensureFinishedIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
@@ -955,7 +973,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
      */
     public Builder clearFinished() {
       if (finishedBuilder_ == null) {
@@ -968,7 +986,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
      */
     public Builder removeFinished(int index) {
       if (finishedBuilder_ == null) {
@@ -981,16 +999,16 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder getFinishedBuilder(
+    public com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate.Builder getFinishedBuilder(
         int index) {
       return getFinishedFieldBuilder().getBuilder(index);
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder getFinishedOrBuilder(
+    public com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplateOrBuilder getFinishedOrBuilder(
         int index) {
       if (finishedBuilder_ == null) {
         return finished_.get(index);  } else {
@@ -998,9 +1016,9 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
      */
-    public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder> 
+    public java.util.List<? extends com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplateOrBuilder> 
          getFinishedOrBuilderList() {
       if (finishedBuilder_ != null) {
         return finishedBuilder_.getMessageOrBuilderList();
@@ -1009,33 +1027,33 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder addFinishedBuilder() {
+    public com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate.Builder addFinishedBuilder() {
       return getFinishedFieldBuilder().addBuilder(
-          com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance());
+          com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate.getDefaultInstance());
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
      */
-    public com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder addFinishedBuilder(
+    public com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate.Builder addFinishedBuilder(
         int index) {
       return getFinishedFieldBuilder().addBuilder(
-          index, com.giyeok.jparser.mgroup3.proto.KernelTemplate.getDefaultInstance());
+          index, com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate.getDefaultInstance());
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup3.proto.KernelTemplate finished = 2;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate finished = 2;</code>
      */
-    public java.util.List<com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder> 
+    public java.util.List<com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate.Builder> 
          getFinishedBuilderList() {
       return getFinishedFieldBuilder().getBuilderList();
     }
     private com.google.protobuf.RepeatedFieldBuilderV3<
-        com.giyeok.jparser.mgroup3.proto.KernelTemplate, com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder, com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder> 
+        com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate, com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate.Builder, com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplateOrBuilder> 
         getFinishedFieldBuilder() {
       if (finishedBuilder_ == null) {
         finishedBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
-            com.giyeok.jparser.mgroup3.proto.KernelTemplate, com.giyeok.jparser.mgroup3.proto.KernelTemplate.Builder, com.giyeok.jparser.mgroup3.proto.KernelTemplateOrBuilder>(
+            com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate, com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate.Builder, com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplateOrBuilder>(
                 finished_,
                 ((bitField0_ & 0x00000002) != 0),
                 getParentForChildren(),

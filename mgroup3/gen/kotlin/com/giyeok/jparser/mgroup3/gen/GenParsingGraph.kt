@@ -1,5 +1,6 @@
 package com.giyeok.jparser.mgroup3.gen
 
+import com.giyeok.jparser.mgroup3.proto.KernelTemplateGen
 import java.util.*
 
 class GenParsingGraph(
@@ -12,6 +13,7 @@ class GenParsingGraph(
   val acceptConditions: MutableMap<GenNode, GenAcceptCondition>,
   // key -> value 로 progress되었음
   val progressedNodes: MutableMap<GenNode, GenNode>,
+  val finishedNodes: MutableSet<GenNode>,
 ) {
   fun toDot(): String {
     fun id(node: GenNode): String =
@@ -41,6 +43,7 @@ class GenParsingGraph(
     observingCondSymbolIds = observingCondSymbolIds.toMutableSet(),
     acceptConditions = acceptConditions.toMutableMap(),
     progressedNodes = progressedNodes.toMutableMap(),
+    finishedNodes = finishedNodes.toMutableSet(),
   )
 
   fun addNode(node: GenNode, condition: GenAcceptCondition): Boolean {
@@ -122,7 +125,14 @@ enum class GenNodeGeneration {
   Prev,
   Curr,
   Mid, // mid-edge 계산 도중에 등장함
-  Next,
+  Next;
+
+  fun toProto(): KernelTemplateGen = when (this) {
+    GenNodeGeneration.Prev -> TODO()
+    GenNodeGeneration.Curr -> KernelTemplateGen.CURR
+    GenNodeGeneration.Mid -> KernelTemplateGen.MID
+    GenNodeGeneration.Next -> KernelTemplateGen.NEXT
+  }
 }
 
 sealed class GenAcceptCondition: Comparable<GenAcceptCondition> {

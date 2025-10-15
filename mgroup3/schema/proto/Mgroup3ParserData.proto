@@ -89,6 +89,7 @@ message AppendMilestoneGroup {
 message EdgeAction {
   repeated AppendMilestoneGroup append_milestone_groups = 1;
   optional AcceptConditionTemplate start_node_progress = 2;
+
   ParsingActions parsing_actions = 3;
 }
 
@@ -129,5 +130,18 @@ message MultiAcceptConditions {
 // TODO 실제 parse tree 복원 시에 모든 node의 정보가 필요하진 않기 때문에 메모리를 절약하기 위해 불필요한 부분은 저장하지 않을 수도 있음
 message ParsingActions {
   repeated KernelTemplate progressed = 1;
-  repeated KernelTemplate finished = 2;
+  repeated FinishedKernelTemplate finished = 2;
+}
+
+message FinishedKernelTemplate {
+  int32 symbol_id = 1;
+  int32 pointer = 2;
+  KernelTemplateGen start_gen = 3;
+  AcceptConditionTemplate finish_condition = 4;
+}
+
+enum KernelTemplateGen {
+  CURR = 0;
+  MID = 1;
+  NEXT = 2;
 }

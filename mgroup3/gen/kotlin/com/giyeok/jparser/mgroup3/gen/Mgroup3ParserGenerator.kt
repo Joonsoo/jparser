@@ -208,6 +208,12 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
     }
 
     // TODO builder.parsingActions
+    for (finished in graph.finishedNodes) {
+      val b = builder.parsingActionsBuilder.addFinishedBuilder()
+      b.symbolId = finished.symbolId
+      b.pointer = finished.pointer
+      b.startGen = finished.startGen.toProto()
+    }
 
     return builder.build()
   }
@@ -262,6 +268,12 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
       }
 
       // TODO builder.parsingActions
+      for (finished in g2.finishedNodes) {
+        val b = builder.parsingActionsBuilder.addFinishedBuilder()
+        b.symbolId = finished.symbolId
+        b.pointer = finished.pointer
+        b.startGen = finished.startGen.toProto()
+      }
 
       actions.add(actionBuilder.build())
     }
@@ -283,6 +295,12 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
     }
 
     // TODO builder.parsingActions
+    for (finished in graph.finishedNodes) {
+      val b = builder.parsingActionsBuilder.addFinishedBuilder()
+      b.symbolId = finished.symbolId
+      b.pointer = finished.pointer
+      b.startGen = finished.startGen.toProto()
+    }
 
     return builder.build()
 
