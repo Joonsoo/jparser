@@ -197,10 +197,11 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
         s"if ($varName != null) \"$symId ${sym.toShortString}\" else null"
       })
 
+      val parentSymbolNameEscaped = parentSymbolName.replaceAll("\"", "\\\"").replaceAll("\n", "\\n")
       val assertCode = List(
         s"check(hasSingleTrue(${choiceVars.map(_ + " != null").mkString(", ")})) {",
         s"  val candidates = listOfNotNull(${tryData.mkString(", ")})",
-        "  \"Ambiguity found $beginGen..$endGen " + parentSymbolName + " to ${candidates.joinToString()}\"",
+        "  \"Ambiguity found $beginGen..$endGen " + parentSymbolNameEscaped + " to ${candidates.joinToString()}\"",
         "}")
 
       val v = newVar()
