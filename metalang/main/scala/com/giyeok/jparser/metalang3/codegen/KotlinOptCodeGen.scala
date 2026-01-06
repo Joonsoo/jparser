@@ -4,7 +4,7 @@ import com.giyeok.jparser.NGrammar.{NNonterminal, NRepeat, NStart}
 import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.metalang3.MetaLanguage3.{ProcessedGrammar, check}
 import com.giyeok.jparser.metalang3.{ClassHierarchyItem, ClassRelationCollector, Type, ValuefyExpr}
-import com.giyeok.jparser.utils.JavaCodeGenUtil.{isPrintableChar, javaChar}
+import com.giyeok.jparser.utils.JavaCodeGenUtil.isPrintableChar
 
 import java.io.StringWriter
 import scala.annotation.tailrec
@@ -190,7 +190,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
         s"val $varName = history[$endGen].findByBeginGenOpt($symbolId, $lastPointer, $beginGen)"
       }
 
-      def escapeString(s: String): String = s.replaceAll("\"", "\\\"").replaceAll("\n", "\\n")
+      def escapeString(s: String): String = s.replaceAll("\"", "\\\"").replaceAll("\n", "\\n").replaceAll("$", "\\$")
 
       // TODO improve check error message like AstifySimulator
       val tryData = choices.map((c) => {
