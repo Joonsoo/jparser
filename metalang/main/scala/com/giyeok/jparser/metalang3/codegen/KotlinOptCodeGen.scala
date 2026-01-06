@@ -190,18 +190,19 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
         s"val $varName = history[$endGen].findByBeginGenOpt($symbolId, $lastPointer, $beginGen)"
       }
 
+      def escapeString(s: String): String = s.replaceAll("\"", "\\\"").replaceAll("\n", "\\n")
+
       // TODO improve check error message like AstifySimulator
       val tryData = choices.map((c) => {
         val (varName, sym) = c
         val symId = analysis.ngrammar.idOf(sym)
-        s"if ($varName != null) \"$symId ${sym.toShortString}\" else null"
+        s"if ($varName != null) \"$symId ${escapeString(sym.toShortString)}\" else null"
       })
 
-      val parentSymbolNameEscaped = parentSymbolName.replaceAll("\"", "\\\"").replaceAll("\n", "\\n")
       val assertCode = List(
         s"check(hasSingleTrue(${choiceVars.map(_ + " != null").mkString(", ")})) {",
         s"  val candidates = listOfNotNull(${tryData.mkString(", ")})",
-        "  \"Ambiguity found $beginGen..$endGen " + parentSymbolNameEscaped + " to ${candidates.joinToString()}\"",
+        "  \"Ambiguity found $beginGen..$endGen " + escapeString(parentSymbolName) + " to ${candidates.joinToString()}\"",
         "}")
 
       val v = newVar()
