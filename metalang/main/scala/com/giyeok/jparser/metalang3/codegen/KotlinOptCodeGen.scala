@@ -42,7 +42,18 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
     case c => c.toString
   }
 
-  def escapeString(s: String): String = s.flatMap(escapeChar)
+  def escapeString(s: String): String = s.flatMap {
+    case '\b' => "\\b"
+    case '\n' => "\\n"
+    case '\r' => "\\r"
+    case '\t' => "\\t"
+    case '\\' => "\\\\"
+    case '"' => "\\\""
+    case '$' => "\\$"
+    case '\f' => "\\f"
+    case c if c < ' ' || c > '~' && c < '\u00A0' => f"\\u${c.toInt}%04x"
+    case c => c.toString
+  }
 
   def typeDescStringOf(typ: Type, context: Option[String] = None): CodeBlob = typ match {
     case Type.NodeType => CodeBlob("Node", Set("com.giyeok.jparser.ParseResultTree.Node"))
@@ -189,8 +200,6 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
         _symbolsOfInterest += symbolId
         s"val $varName = history[$endGen].findByBeginGenOpt($symbolId, $lastPointer, $beginGen)"
       }
-
-      def escapeString(s: String): String = s.replaceAll("\"", "\\\"").replaceAll("\n", "\\n").replaceAll("$", "\\$")
 
       // TODO improve check error message like AstifySimulator
       val tryData = choices.map((c) => {
