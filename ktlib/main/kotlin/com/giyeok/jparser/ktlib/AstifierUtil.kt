@@ -1,7 +1,10 @@
 package com.giyeok.jparser.ktlib
 
 fun Collection<Kernel>.checkSingle(): Kernel {
-  check(this.size == 1) { "Kernel size was expected to be 1, but it was ${this.size}" }
+  check(this.size == 1) {
+    val ranges = this.map { "${it.beginGen}..${it.endGen}" }
+    "Kernel size was expected to be 1, but it was ${this.size} ($ranges)"
+  }
   return this.first()
 }
 
