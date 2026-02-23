@@ -230,7 +230,7 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
       }
 
       is NGrammar.NJoin -> {
-        processAtomicSymbol(GenAcceptCondition.Unless(symbol.join()))
+        processAtomicSymbol(GenAcceptCondition.OnlyIf(symbol.join()))
       }
 
       is NGrammar.NLongest -> {
