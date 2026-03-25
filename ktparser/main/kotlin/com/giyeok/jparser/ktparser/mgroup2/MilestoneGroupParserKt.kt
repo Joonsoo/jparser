@@ -504,6 +504,9 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
   }
 
   fun parse(source: String): ParsingContextKt {
+    if (debugging) {
+      debuggingLog = DebuggingLogBuilder()
+    }
     var ctx = initialCtx
     for (input in source) {
       ctx = parseStep(ctx, input)
