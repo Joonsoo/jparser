@@ -6,15 +6,31 @@ import com.giyeok.jparser.ktlib.TermGroupUtil
 import com.giyeok.jparser.ktlib.TermSet
 import com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.*
 import com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.*
+import java.nio.file.Path
 
 class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
   constructor(proto: MilestoneGroupParserData): this(MilestoneGroupParserDataKt(proto))
 
   private var verbose: Boolean = false
+  private var debugging: Boolean = false
+
+  private var debuggingLog: DebuggingLogBuilder? = null
 
   fun setVerbose(): MilestoneGroupParserKt {
     verbose = true
     return this
+  }
+
+  fun setDebugging(): MilestoneGroupParserKt {
+    debugging = true
+    debuggingLog = DebuggingLogBuilder()
+    return this
+  }
+
+  fun debuggingLogJsonString(): String? = debuggingLog?.toJsonString()
+
+  fun saveDebuggingLog(path: Path) {
+    debuggingLog?.writeTo(path)
   }
 
   val initialMilestone: MilestoneKt = MilestoneKt(parserData.grammar.startSymbol, 0, 0)
@@ -360,6 +376,9 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
     if (verbose) {
       println("  === $gen $input ${ctx.paths.size}")
     }
+    if (debugging) {
+      debuggingLog?.beginParseStep(gen, input, ctx.paths.size)
+    }
     if (ctx.paths.all { it.first != initialMilestone }) {
       throw ParsingErrorKt.UnexpectedInput(gen, expectedTermsOf(ctx), input)
     } else {
@@ -411,14 +430,25 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
         actionsCollector.addProgressedRootMilestone(firstMilestone, progressCondition)
       }
 
-      if (verbose) {
-        for (path in pathsCollector) {
-          println(path.prettyString())
+      if (verbose || debugging) {
+        val groupSummaries =
+          pathsCollector.map { it.tip.groupId }.distinct().sorted().map { groupId ->
+            val milestones = parserData.milestonesOfGroup(groupId)
+            DebuggingLogBuilder.groupSummary(groupId, milestones)
+          }
+
+        if (verbose) {
+          for (path in pathsCollector) {
+            println(path.prettyString())
+          }
+          for (groupSummary in groupSummaries) {
+            val milestones = groupSummary.milestones
+            val milestonesString = milestones.joinToString(", ") { "${it.symbolId} ${it.pointer}" }
+            println("${groupSummary.groupId} => (${milestones.size}) $milestonesString")
+          }
         }
-        for (groupId in pathsCollector.map { it.tip.groupId }.distinct().sorted()) {
-          val milestones = parserData.milestonesOfGroup(groupId)
-          val milestonesString = milestones.joinToString(", ") { "${it.symbolId} ${it.pointer}" }
-          println("$groupId => (${milestones.size}) $milestonesString")
+        if (debugging) {
+          debuggingLog?.recordCollectedPaths(pathsCollector, groupSummaries)
         }
       }
 
@@ -446,6 +476,9 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
           println(path.prettyString())
         }
       }
+      if (debugging) {
+        debuggingLog?.recordConditionUpdated(updatedPaths)
+      }
 
       val trackings = collectTrackings(newPaths)
       val filteredPaths = updatedPaths.filter { path ->
@@ -457,6 +490,9 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
         for (path in filteredPaths) {
           println(path.prettyString())
         }
+      }
+      if (debugging) {
+        debuggingLog?.recordFiltered(trackings, filteredPaths)
       }
 
       return ParsingContextKt(
