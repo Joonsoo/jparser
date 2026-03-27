@@ -182,7 +182,7 @@ class DebuggingLogBuilder {
     name("collectedPaths")
     beginArray()
 //    step.collectedPaths.forEach { valuePrettyOnly(it) }
-    step.collectedPaths.forEach { value(it) }
+    step.collectedPaths.forEach { value(it.pretty) }
     endArray()
 //    name("collectedGroupSummaries")
 //    beginArray()
