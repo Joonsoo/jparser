@@ -48,6 +48,8 @@ truthDeps = [
   maven.artifact("com.google.truth.extensions", "truth-proto-extension", truthVersion),
 ]
 
+gsonDep = maven.artifact("com.google.code.gson", "gson", "2.13.1")
+
 scalaTestDeps = [
   ...testDeps,
   maven.artifact("org.scalatest", "scalatest_$scalaVersion", "3.2.15", excludes=[
@@ -578,7 +580,7 @@ ktlib {
 ktparser {
   main = ktjvm.library(
     srcs = glob("ktparser/main/kotlin/**.kt"),
-    deps = [ktlib.main],
+    deps = [ktlib.main, gsonDep],
   )
 
   test = ktjvm.library(

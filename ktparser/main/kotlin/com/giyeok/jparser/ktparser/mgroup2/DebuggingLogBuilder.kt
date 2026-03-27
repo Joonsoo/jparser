@@ -1,8 +1,11 @@
 package com.giyeok.jparser.ktparser.mgroup2
 
+import com.google.gson.stream.JsonWriter
 import com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto
 import java.nio.file.Path
-import kotlin.io.path.writeText
+import java.io.StringWriter
+import java.io.Writer
+import kotlin.io.path.bufferedWriter
 
 class DebuggingLogBuilder {
   data class MilestoneLog(val symbolId: Int, val pointer: Int, val gen: Int)
@@ -77,25 +80,28 @@ class DebuggingLogBuilder {
 
   fun snapshot(): List<ParseStepLog> = parseSteps.toList()
 
-  fun toJsonString(): String = encodeValue(
-    mapOf(
-      "parseSteps" to parseSteps.map { step ->
-        mapOf(
-          "gen" to step.gen,
-          "input" to step.input,
-          "previousPathCount" to step.previousPathCount,
-          "collectedPaths" to step.collectedPaths.map { it.toJsonMap() },
-          "collectedGroupSummaries" to step.collectedGroupSummaries.map { it.toJsonMap() },
-          "updatedPaths" to step.updatedPaths.map { it.toJsonMap() },
-          "trackings" to step.trackings.map { it.toJsonMap() },
-          "filteredPaths" to step.filteredPaths.map { it.toJsonMap() },
-        )
-      }
-    )
-  )
+  fun toJsonString(): String {
+    val writer = StringWriter()
+    writeTo(writer)
+    return writer.toString()
+  }
+
+  fun writeTo(writer: Writer) {
+    JsonWriter(writer).use { json ->
+      json.setIndent("  ")
+      json.beginObject()
+      json.name("parseSteps")
+      json.beginArray()
+      parseSteps.forEach { step -> json.value(step) }
+      json.endArray()
+      json.endObject()
+    }
+  }
 
   fun writeTo(path: Path) {
-    path.writeText(toJsonString())
+    path.bufferedWriter().use { writer ->
+      writeTo(writer)
+    }
   }
 
   private fun MilestoneKt.toLog(): MilestoneLog = MilestoneLog(symbolId, pointer, gen)
@@ -168,87 +174,93 @@ class DebuggingLogBuilder {
     )
   }
 
-  private fun MilestoneLog.toJsonMap(): Map<String, Any> = mapOf(
-    "symbolId" to symbolId,
-    "pointer" to pointer,
-    "gen" to gen,
-  )
-
-  private fun MilestoneGroupLog.toJsonMap(): Map<String, Any> = mapOf(
-    "groupId" to groupId,
-    "gen" to gen,
-  )
-
-  private fun AcceptConditionLog.toJsonMap(): Map<String, Any?> = buildMap {
-    put("type", type)
-    symbolId?.let { put("symbolId", it) }
-    gen?.let { put("gen", it) }
-    checkFromNextGen?.let { put("checkFromNextGen", it) }
-    conditions?.let { put("conditions", it.map { cond -> cond.toJsonMap() }) }
+  private fun JsonWriter.value(step: ParseStepLog) {
+    beginObject()
+    name("gen").value(step.gen.toLong())
+    name("input").value(step.input)
+    name("previousPathCount").value(step.previousPathCount.toLong())
+    name("collectedPaths")
+    beginArray()
+    step.collectedPaths.forEach { value(it) }
+    endArray()
+    name("collectedGroupSummaries")
+    beginArray()
+    step.collectedGroupSummaries.forEach { value(it) }
+    endArray()
+    name("updatedPaths")
+    beginArray()
+    step.updatedPaths.forEach { value(it) }
+    endArray()
+    name("trackings")
+    beginArray()
+    step.trackings.forEach { value(it) }
+    endArray()
+    name("filteredPaths")
+    beginArray()
+    step.filteredPaths.forEach { value(it) }
+    endArray()
+    endObject()
   }
 
-  private fun PathLog.toJsonMap(): Map<String, Any> = mapOf(
-    "first" to first.toJsonMap(),
-    "path" to path.map { it.toJsonMap() },
-    "tip" to tip.toJsonMap(),
-    "acceptCondition" to acceptCondition.toJsonMap(),
-    "pretty" to pretty,
-  )
-
-  private fun GroupSummaryLog.toJsonMap(): Map<String, Any> = mapOf(
-    "groupId" to groupId,
-    "milestoneCount" to milestoneCount,
-    "milestones" to milestones.map { milestone ->
-      mapOf(
-        "symbolId" to milestone.symbolId,
-        "pointer" to milestone.pointer,
-      )
-    },
-  )
-
-  private fun encodeValue(value: Any?, indent: String = ""): String = when (value) {
-    null -> "null"
-    is String -> "\"${escape(value)}\""
-    is Number, is Boolean -> value.toString()
-    is Map<*, *> -> encodeMap(value, indent)
-    is Iterable<*> -> encodeList(value.toList(), indent)
-    else -> "\"${escape(value.toString())}\""
+  private fun JsonWriter.value(milestone: MilestoneLog) {
+    beginObject()
+    name("symbolId").value(milestone.symbolId.toLong())
+    name("pointer").value(milestone.pointer.toLong())
+    name("gen").value(milestone.gen.toLong())
+    endObject()
   }
 
-  private fun encodeMap(map: Map<*, *>, indent: String): String {
-    if (map.isEmpty()) return "{}"
-    val nextIndent = "$indent  "
-    return map.entries.joinToString(
-      prefix = "{\n",
-      postfix = "\n$indent}",
-      separator = ",\n"
-    ) { (key, value) ->
-      "$nextIndent\"${escape(key.toString())}\": ${encodeValue(value, nextIndent)}"
+  private fun JsonWriter.value(milestoneGroup: MilestoneGroupLog) {
+    beginObject()
+    name("groupId").value(milestoneGroup.groupId.toLong())
+    name("gen").value(milestoneGroup.gen.toLong())
+    endObject()
+  }
+
+  private fun JsonWriter.value(condition: AcceptConditionLog) {
+    beginObject()
+    name("type").value(condition.type)
+    condition.symbolId?.let { name("symbolId").value(it.toLong()) }
+    condition.gen?.let { name("gen").value(it.toLong()) }
+    condition.checkFromNextGen?.let { name("checkFromNextGen").value(it) }
+    condition.conditions?.let { conditions ->
+      name("conditions")
+      beginArray()
+      conditions.forEach { value(it) }
+      endArray()
     }
+    endObject()
   }
 
-  private fun encodeList(list: List<*>, indent: String): String {
-    if (list.isEmpty()) return "[]"
-    val nextIndent = "$indent  "
-    return list.joinToString(
-      prefix = "[\n",
-      postfix = "\n$indent]",
-      separator = ",\n"
-    ) { value ->
-      "$nextIndent${encodeValue(value, nextIndent)}"
-    }
+  private fun JsonWriter.value(path: PathLog) {
+    beginObject()
+    name("first")
+    value(path.first)
+    name("path")
+    beginArray()
+    path.path.forEach { value(it) }
+    endArray()
+    name("tip")
+    value(path.tip)
+    name("acceptCondition")
+    value(path.acceptCondition)
+    name("pretty").value(path.pretty)
+    endObject()
   }
 
-  private fun escape(value: String): String = buildString {
-    value.forEach { ch ->
-      when (ch) {
-        '\\' -> append("\\\\")
-        '"' -> append("\\\"")
-        '\n' -> append("\\n")
-        '\r' -> append("\\r")
-        '\t' -> append("\\t")
-        else -> append(ch)
-      }
+  private fun JsonWriter.value(groupSummary: GroupSummaryLog) {
+    beginObject()
+    name("groupId").value(groupSummary.groupId.toLong())
+    name("milestoneCount").value(groupSummary.milestoneCount.toLong())
+    name("milestones")
+    beginArray()
+    groupSummary.milestones.forEach { milestone ->
+      beginObject()
+      name("symbolId").value(milestone.symbolId.toLong())
+      name("pointer").value(milestone.pointer.toLong())
+      endObject()
     }
+    endArray()
+    endObject()
   }
 }
