@@ -181,24 +181,25 @@ class DebuggingLogBuilder {
     name("previousPathCount").value(step.previousPathCount.toLong())
     name("collectedPaths")
     beginArray()
-    step.collectedPaths.forEach { valuePrettyOnly(it) }
+//    step.collectedPaths.forEach { valuePrettyOnly(it) }
+    step.collectedPaths.forEach { value(it) }
     endArray()
-    name("collectedGroupSummaries")
-    beginArray()
-    step.collectedGroupSummaries.forEach { value(it) }
-    endArray()
-    name("updatedPaths")
-    beginArray()
-    step.updatedPaths.forEach { value(it) }
-    endArray()
-    name("trackings")
-    beginArray()
-    step.trackings.forEach { value(it) }
-    endArray()
-    name("filteredPaths")
-    beginArray()
-    step.filteredPaths.forEach { value(it) }
-    endArray()
+//    name("collectedGroupSummaries")
+//    beginArray()
+//    step.collectedGroupSummaries.forEach { value(it) }
+//    endArray()
+//    name("updatedPaths")
+//    beginArray()
+//    step.updatedPaths.forEach { value(it) }
+//    endArray()
+//    name("trackings")
+//    beginArray()
+//    step.trackings.forEach { value(it) }
+//    endArray()
+//    name("filteredPaths")
+//    beginArray()
+//    step.filteredPaths.forEach { value(it) }
+//    endArray()
     endObject()
   }
 
