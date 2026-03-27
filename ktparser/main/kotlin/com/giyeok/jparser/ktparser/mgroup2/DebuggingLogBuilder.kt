@@ -181,7 +181,7 @@ class DebuggingLogBuilder {
     name("previousPathCount").value(step.previousPathCount.toLong())
     name("collectedPaths")
     beginArray()
-    step.collectedPaths.forEach { value(it) }
+    step.collectedPaths.forEach { valuePrettyOnly(it) }
     endArray()
     name("collectedGroupSummaries")
     beginArray()
@@ -244,6 +244,22 @@ class DebuggingLogBuilder {
     value(path.tip)
     name("acceptCondition")
     value(path.acceptCondition)
+    name("pretty").value(path.pretty)
+    endObject()
+  }
+
+  private fun JsonWriter.valuePrettyOnly(path: PathLog) {
+    beginObject()
+    // name("first")
+    // value(path.first)
+    // name("path")
+    // beginArray()
+    // path.path.forEach { value(it) }
+    // endArray()
+    // name("tip")
+    // value(path.tip)
+    // name("acceptCondition")
+    // value(path.acceptCondition)
     name("pretty").value(path.pretty)
     endObject()
   }
