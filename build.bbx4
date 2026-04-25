@@ -1,0 +1,84 @@
+namespace jparser
+
+import protobuf
+import ktjvm
+import java
+import maven
+
+protobufVersion = "4.31.1"
+
+base(basePath="base") {
+  proto(basePath="proto") {
+    schema = protobuf.schema(
+      srcs = [
+        "GrammarProto.proto",
+        "TermGroupProto.proto",
+      ]
+    )
+
+    javacode = protobuf.java(schema=schema)
+    javalib = java.library(
+      srcs = javacode.javaFiles,
+      deps = [
+        maven.resolve("com.google.protobuf", "protobuf-java", protobufVersion),
+      ],
+    )
+  }
+}
+
+milestone2(basePath="milestone2") {
+  proto {
+    schema = protobuf.schema(
+      srcs = withBasePath("data/proto") { [
+        "MilestoneParserData.proto",
+      ] },
+      deps = [base.proto.schema],
+    )
+
+    javacode = protobuf.java(schema)
+    javalib = java.library(
+      srcs = javacode.javaFiles,
+      deps = [base.proto.javalib]
+    )
+  }
+}
+
+mgroup2(basePath="mgroup2") {
+  proto {
+    schema = protobuf.schema(
+      srcs = withBasePath("data/proto") { [
+        "MilestoneGroupParserData.proto",
+      ] },
+      deps = [milestone2.proto.schema],
+    )
+
+    javacode = protobuf.java(schema)
+    javalib = java.library(
+      srcs = javacode.javaFiles,
+      deps = [milestone2.proto.javalib]
+    )
+  }
+}
+
+ktlib(basePath="ktlib") {
+  main = ktjvm.library(
+    srcs = withBasePath("main/kotlin") {
+      file.glob("**.kt")
+    },
+    deps = [mgroup2.proto.javalib],
+  )
+}
+
+gsonDep = maven.resolve("com.google.code.gson", "gson", "2.13.1")
+
+ktparser(basePath="ktparser") {
+  main = ktjvm.library(
+    srcs = withBasePath("main/kotlin") {
+      file.glob("**.kt")
+    },
+    deps = [
+      ktlib.main,
+      gsonDep,
+    ],
+  )
+}
