@@ -164,7 +164,6 @@ class MilestoneParserGen(val grammar: NGrammar) {
         AcceptConditionTemplate.disjunct(conditions.map(conditionToTemplateForTermAction(result, _, pendedCollector, lookaheadCollector)))
       /* 여기서부터 전 세대에서 nullable 심볼에 의해 만들어져서 evolve 이후에도 살아남은 컨디션들 */
       case AcceptCondition.NotExists(1, 2, symbolId) =>
-        ???
         // longest
         addPended(symbolId)
         LongestTemplate(symbolId, beginFromNextGen = false)
@@ -204,7 +203,6 @@ class MilestoneParserGen(val grammar: NGrammar) {
         addPended(symbolId)
         LongestTemplate(symbolId, beginFromNextGen = false)
       case AcceptCondition.NotExists(2, 3, symbolId) =>
-        ???
         addPended(symbolId)
         LongestTemplate(symbolId, beginFromNextGen = true)
       case AcceptCondition.Exists(2, 2, symbolId) =>
@@ -254,11 +252,9 @@ class MilestoneParserGen(val grammar: NGrammar) {
           OnlyIfTemplate(symbolId, fromNextGen = false)
         }
       case AcceptCondition.Unless(2, 2, symbolId) =>
-        ???
         // TODO addPended나 lookaheadCollector += symbolId가 필요할까?
         UnlessTemplate(symbolId, fromNextGen = true)
       case AcceptCondition.OnlyIf(2, 2, symbolId) =>
-        ???
         // TODO addPended나 lookaheadCollector += symbolId가 필요할까?
         OnlyIfTemplate(symbolId, fromNextGen = true)
     }
@@ -360,7 +356,6 @@ class MilestoneParserGen(val grammar: NGrammar) {
       /* 여기서부터 전 세대에서 nullable 심볼에 의해 만들어져서 evolve 이후에도 살아남은 컨디션들 */
       case AcceptCondition.NotExists(0, 1, symbolId) =>
         // new
-        ???
         needsToKeep += symbolId
         LongestTemplate(symbolId, beginFromNextGen = false)
       case AcceptCondition.Exists(0, 0, symbolId) =>
@@ -387,7 +382,6 @@ class MilestoneParserGen(val grammar: NGrammar) {
         LongestTemplate(symbolId, beginFromNextGen = false)
       case AcceptCondition.NotExists(2, 3, symbolId) =>
         // new
-        ???
         // longest with nullable symbol
         needsToKeep += symbolId
         LongestTemplate(symbolId, beginFromNextGen = true)
@@ -415,12 +409,10 @@ class MilestoneParserGen(val grammar: NGrammar) {
         OnlyIfTemplate(symbolId, fromNextGen = false)
       case AcceptCondition.Unless(2, 2, symbolId) =>
         // new
-        ???
         needsToKeep += symbolId
         UnlessTemplate(symbolId, fromNextGen = true)
       case AcceptCondition.OnlyIf(2, 2, symbolId) =>
         // new
-        ???
         needsToKeep += symbolId
         OnlyIfTemplate(symbolId, fromNextGen = true)
     }

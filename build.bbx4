@@ -3,9 +3,24 @@ namespace jparser
 import protobuf
 import ktjvm
 import java
+import jvm
 import maven
+import scala2
 
 protobufVersion = "4.31.1"
+scalaVersion = "2.13"
+truthVersion = "1.4.2"
+
+testDeps = [
+  maven.resolve("org.junit.jupiter", "junit-jupiter-api", "5.8.2"),
+  maven.resolve("com.google.truth", "truth", truthVersion),
+  maven.resolve("com.google.truth.extensions", "truth-proto-extension", truthVersion),
+]
+
+scalaTestDeps = [
+  ...testDeps,
+  maven.resolve("org.scalatest", "scalatest_${scalaVersion}", "3.2.15"),
+]
 
 base(basePath="base") {
   proto(basePath="proto") {
@@ -24,6 +39,38 @@ base(basePath="base") {
       ],
     )
   }
+
+  main = scala2.library(
+    srcs = withBasePath("main/scala") {
+      file.glob("**.scala")
+    },
+    deps = [proto.javalib],
+  )
+
+  test = scala2.library(
+    srcs = withBasePath("test/scala") {
+      file.glob("**.scala")
+    },
+    deps = [base.main] + scalaTestDeps,
+  )
+}
+
+naive(basePath="naive") {
+  main = scala2.library(
+    srcs = withBasePath("main/scala") {
+      file.glob("**.scala")
+    },
+    deps = [base.main],
+  )
+}
+
+utils(basePath="utils") {
+  main = scala2.library(
+    srcs = withBasePath("main/scala") {
+      file.glob("**.scala")
+    },
+    deps = [base.main],
+  )
 }
 
 milestone2(basePath="milestone2") {
@@ -35,12 +82,49 @@ milestone2(basePath="milestone2") {
       deps = [base.proto.schema],
     )
 
-    javacode = protobuf.java(schema)
+    javacode = protobuf.java(schema=schema)
     javalib = java.library(
       srcs = javacode.javaFiles,
-      deps = [base.proto.javalib]
+      deps = [base.proto.javalib],
     )
   }
+
+  data = scala2.library(
+    srcs = withBasePath("data/scala") {
+      file.glob("**.scala")
+    },
+    deps = [naive.main, proto.javalib],
+  )
+
+  parser = scala2.library(
+    srcs = withBasePath("parser/scala") {
+      file.glob("**.scala")
+    },
+    deps = [base.main, data, utils.main],
+  )
+
+  gen = scala2.library(
+    srcs = withBasePath("gen/scala") {
+      file.glob("**.scala")
+    },
+    deps = [naive.main, metalang.main, data, utils.main],
+  )
+
+  test = scala2.library(
+    srcs = withBasePath("test/scala") {
+      file.glob("**.scala")
+    },
+    resourceDirs = ["test/resources"],
+    deps = [
+      data,
+      gen,
+      parser,
+      naive.main,
+      examples.naiveExamples,
+      examples.metalang3,
+      examples.generated,
+    ] + scalaTestDeps,
+  )
 }
 
 mgroup2(basePath="mgroup2") {
@@ -52,12 +136,67 @@ mgroup2(basePath="mgroup2") {
       deps = [milestone2.proto.schema],
     )
 
-    javacode = protobuf.java(schema)
+    javacode = protobuf.java(schema=schema)
     javalib = java.library(
       srcs = javacode.javaFiles,
-      deps = [milestone2.proto.javalib]
+      deps = [milestone2.proto.javalib],
     )
   }
+
+  data = scala2.library(
+    srcs = withBasePath("data/scala") {
+      file.glob("**.scala")
+    },
+    deps = [milestone2.data, proto.javalib],
+  )
+
+  parser = scala2.library(
+    srcs = withBasePath("parser/scala") {
+      file.glob("**.scala")
+    },
+    deps = [milestone2.parser, base.main, data, utils.main],
+  )
+
+  gen = scala2.library(
+    srcs = withBasePath("gen/scala") {
+      file.glob("**.scala")
+    },
+    deps = [milestone2.gen, data],
+  )
+
+  test = scala2.library(
+    srcs = withBasePath("test/scala") {
+      file.glob("**.scala")
+    },
+    resourceDirs = ["test/resources"],
+    deps = [
+      data,
+      gen,
+      parser,
+      naive.main,
+      examples.metalang3,
+      milestone2.gen,
+      milestone2.parser,
+      milestone2.test,
+    ] + scalaTestDeps,
+  )
+}
+
+metalang(basePath="metalang") {
+  generatedParser = scala2.library(
+    srcs = withBasePath("generated/scala") {
+      file.glob("**.scala")
+    },
+    resourceDirs = ["generated/resources"],
+    deps = [mgroup2.parser],
+  )
+
+  main = scala2.library(
+    srcs = withBasePath("main/scala") {
+      file.glob("**.scala")
+    },
+    deps = [naive.main, utils.main, generatedParser],
+  )
 }
 
 ktlib(basePath="ktlib") {
@@ -66,6 +205,36 @@ ktlib(basePath="ktlib") {
       file.glob("**.kt")
     },
     deps = [mgroup2.proto.javalib],
+  )
+}
+
+examples(basePath="examples") {
+  naiveExamples = scala2.library(
+    srcs = withBasePath("naive/scala") {
+      file.glob("**.scala")
+    },
+    deps = [base.main],
+  )
+
+  metalang3 = ktjvm.library(
+    srcs = withBasePath("metalang3/kotlin") {
+      file.glob("**.kt")
+    },
+    resourceDirs = ["metalang3/resources"],
+    deps = [base.test, naiveExamples],
+  )
+
+  generated = ktjvm.library(
+    srcs = withBasePath("generated/kotlin") {
+      file.glob("**.kt")
+    },
+    resourceDirs = ["generated/resources"],
+    deps = [
+      milestone2.parser,
+      mgroup2.parser,
+      ktlib.main,
+      examples.metalang3,
+    ],
   )
 }
 
@@ -81,4 +250,49 @@ ktparser(basePath="ktparser") {
       gsonDep,
     ],
   )
+}
+
+def runScalaTest(lib: jvm.JvmLib) {
+  runScalaTestSuite(lib, .none)
+}
+
+def runScalaTestSuite(lib: jvm.JvmLib, suiteName: optional<string>) {
+  let runtimeClasspath = lib.transitiveJars + [lib.resourcesDir]
+  let cpArg = jvm.joinClasspath(runtimeClasspath)
+  let baseCmd = [
+    java.javaCmd(),
+    "-cp", cpArg,
+    "org.scalatest.tools.Runner",
+    "-R", lib.classesDir.absolutePath,
+    "-o",
+  ]
+  let suiteArgs = match suiteName {
+    case .some(s) -> ["-s", s]
+    case .none -> []
+  }
+  let cmd = baseCmd + suiteArgs
+  let inputs = [lib.classesDir] + runtimeClasspath
+  let s = context.runCommandStream(cmd = cmd, inputs = inputs)
+  let stdoutTask = async {
+    s.stdout.collect { line -> context.log(line) }
+  }
+  let stderrTask = async {
+    s.stderr.collect { line -> context.log(line) }
+  }
+  let _ = stdoutTask.await()
+  let _ = stderrTask.await()
+  let exitCode = s.exit.await()
+  if exitCode != 0 {
+    throw "ScalaTest failed (exit=${exitCode})"
+  }
+}
+
+@action
+def runTest() {
+  runScalaTest(mgroup2.test)
+}
+
+@action
+def runMgroup2Test() {
+  runScalaTestSuite(mgroup2.test, .some("com.giyeok.jparser.mgroup2.Mgroup2Test"))
 }
