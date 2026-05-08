@@ -1,0 +1,109 @@
+// bibix4 번들 stdlib — Scala 2 JVM 빌드 룰.
+//
+// JVM 공용 추상 (`JvmLib`, classpath helper) 은 [jvm.bbx], Java 실행 helper 는 [java.bbx].
+// 이 파일은 Scala 2 compiler (`scala.tools.nsc.Main`) 외부 프로세스 호출만 담당.
+//
+// ## 외부 프로세스 모델
+//
+// scalac 는 외부 `java` 프로세스로 실행 (JDK 버전 격리). `scala-compiler` jar 는
+// `maven.resolve(...)` 로 받는다. scala-compiler 의 transitive deps 에 scala-library /
+// scala-reflect 가 포함되며, 사용자 코드 컴파일 cp 와 runtime cp 에 함께 포함한다.
+//
+// ## 캐싱
+//
+// `cached(...)` key 에 `file.contentHashOf(srcs + resourceDirs)` 을 포함 — bibix4 의
+// call-id 는 path 의 file content 를 자동으로 hash 하지 않으므로, src 내용 변경에 따른
+// invalidation 을 명시적으로 켜는 패턴. deps 의 JvmLib 는 upstream cached() 가 만든
+// hash-bearing 디렉토리라 (basePath/absolutePath 가 변경) cascade 자동.
+
+import jvm
+import maven
+import java
+
+namespace scala2 {
+  // ===== 사용자 설정 =====
+  // Scala 2 compiler 버전 — `org.scala-lang:scala-compiler` maven coord version.
+  let scalaVersion: string = "2.13.14"
+  // ===== 내부 helper =====
+  // scala-compiler + transitive deps (scala-library / scala-reflect 등).
+  private def scalacJars(): list<path> =
+    maven.resolve("org.scala-lang", "scala-compiler", scalaVersion).transitiveJars
+  // scalac 외부 프로세스 호출. exit code != 0 이면 에러 리포트.
+  // 식별자는 `context.thisTargetName` 자동 사용.
+  private def invokeScalac(
+    srcs: list<path>,
+    classpath: list<path>,
+    outDir: path,
+  ) {
+    let sJars = scalacJars()
+    // scalac 자체 실행에 필요한 cp (`java -cp <cp> scala.tools.nsc.Main`).
+    let runtimeCp = jvm.joinClasspath(sJars)
+    // 사용자 컴파일 시 사용할 cp = 사용자 deps + scalac sibling jars (scala-library 등).
+    let combinedCp: list<path> = classpath + sJars
+    let userCp = jvm.joinClasspath(combinedCp)
+    let srcArgs: list<string> = []
+    for s in srcs {
+      srcArgs = srcArgs + [s.absolutePath]
+    }
+    let baseCmd: list<string> = [
+      java.javaCmd(),
+      "-cp", runtimeCp,
+      "scala.tools.nsc.Main",
+      "-d", outDir.absolutePath,
+    ]
+    let cmdWithCp: list<string> = if userCp.size > 0u64 {
+      baseCmd + ["-classpath", userCp]
+    } else {
+      baseCmd
+    }
+    let cmd: list<string> = cmdWithCp + srcArgs
+    let targetName = context.thisTargetName
+    context.scheduleCommand(
+      cmd = cmd,
+      inputs = srcs + classpath,
+      outputs = [outDir],
+    ) { ctx, result ->
+      if ctx.exitCode != 0 {
+        result.reportError("scala2.library ${targetName} (exit=${ctx.exitCode}): ${ctx.stderr}")
+      }
+    }
+  }
+  // ===== public API =====
+  // 캐시 키 / 산출물 이름 등에 사용되는 식별자는 `context.thisTargetName` 을 자동 사용.
+  // cached key 에 srcs + resourceDirs 의 content hash 를 포함 — bibix4 의 call-id 는
+  // path 의 (basePath, absolutePath) 만 보고 file content 는 안 보므로, 명시적으로 content
+  // hash 를 끼워 넣지 않으면 src 내용 변경 시 cache 가 stale 해진다 (deps 의 JvmLib 는
+  // upstream cached() 가 만든 hash-bearing 디렉토리라 자동 cascade).
+  def library(
+    srcs: list<path>,
+    deps: list<jvm.JvmLib> = [],
+    resourceDirs: list<path> = [],
+  ): jvm.JvmLib {
+    let srcHash = file.contentHashOf(srcs + resourceDirs)
+    return cached("scala2.library.${context.thisTargetName}.${srcHash}") {
+      let destDir = context.destDirectory()
+      let classesDir = destDir / "classes"
+      file.createDirectory(classesDir)
+      // 컴파일에 사용할 cp = deps 의 transitiveJars 만 (self 는 아직 컴파일 전).
+      let compileCp: list<path> = []
+      for d in deps {
+        for j in d.transitiveJars {
+          compileCp = compileCp + [j]
+        }
+      }
+      invokeScalac(srcs, compileCp, classesDir)
+      // self.classesDir + transitive + scalac sibling jars (scala-library / scala-reflect 등).
+      // Scala 로 컴파일된 코드는 런타임에 scala-library 가 필요하므로 transitiveJars 에 포함한다.
+      let sJars: list<path> = scalacJars()
+      let myTransJars: list<path> = jvm.flattenClasspath(classesDir, deps) + sJars
+      // self resources + deps 의 transitive resources 를 단일 staging dir 에 symlink.
+      let resourcesDir = jvm.stageResources(destDir / "resources", resourceDirs, deps)
+      jvm.JvmLib(
+        classesDir = classesDir,
+        resourcesDir = resourcesDir,
+        transitiveJars = myTransJars,
+      )
+    }
+  }
+}
+
