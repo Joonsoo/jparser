@@ -11,8 +11,11 @@ protobufVersion = "4.31.1"
 scalaVersion = "2.13"
 truthVersion = "1.4.2"
 
+junitConsoleDep = maven.resolve("org.junit.platform", "junit-platform-console-standalone", "1.8.2")
+
 testDeps = [
   maven.resolve("org.junit.jupiter", "junit-jupiter-api", "5.8.2"),
+  junitConsoleDep,
   maven.resolve("com.google.truth", "truth", truthVersion),
   maven.resolve("com.google.truth.extensions", "truth-proto-extension", truthVersion),
 ]
@@ -252,8 +255,109 @@ ktparser(basePath="ktparser") {
   )
 }
 
+kttestutils(basePath="kttestutils") {
+  main = ktjvm.library(
+    srcs = withBasePath("main/kotlin") {
+      file.glob("**.kt")
+    },
+    deps = [
+      ktlib.main,
+      metalang.main,
+    ],
+  )
+}
+
+mgroup3(basePath="mgroup3") {
+  parserDataSchema(basePath="schema/proto") {
+    schema = protobuf.schema(
+      srcs = [
+        "Mgroup3ParserData.proto",
+      ],
+      deps = [base.proto.schema],
+    )
+
+    javacode = protobuf.java(schema=schema)
+    javalib = java.library(
+      srcs = javacode.javaFiles,
+      deps = [base.proto.javalib],
+    )
+  }
+
+  gen = ktjvm.library(
+    srcs = withBasePath("gen/kotlin") {
+      file.glob("**.kt")
+    },
+    deps = [
+      parserDataSchema.javalib,
+      base.main,
+      utils.main,
+      maven.resolve("com.google.guava", "guava", "33.4.8-jre"),
+    ],
+  )
+
+  parser = ktjvm.library(
+    srcs = withBasePath("parser/kotlin") {
+      file.glob("**.kt")
+    },
+    deps = [
+      parserDataSchema.javalib,
+      ktlib.main,
+    ],
+  )
+
+  test = ktjvm.library(
+    srcs = withBasePath("test/kotlin") {
+      file.glob("**.kt")
+    },
+    resourceDirs = ["test/resources"],
+    deps = [
+      gen,
+      parser,
+      metalang.main,
+      mgroup2.gen,
+      mgroup2.parser,
+      ktparser.main,
+      kttestutils.main,
+    ] + testDeps,
+  )
+}
+
 def runScalaTest(lib: jvm.JvmLib) {
   runScalaTestSuite(lib, .none)
+}
+
+def runJUnitTest(lib: jvm.JvmLib) {
+  runJUnitTestSuite(lib, .none)
+}
+
+def runJUnitTestSuite(lib: jvm.JvmLib, suiteName: optional<string>) {
+  let runtimeClasspath = lib.transitiveJars + [lib.resourcesDir]
+  let cpArg = jvm.joinClasspath(runtimeClasspath)
+  let baseCmd = [
+    java.javaCmd(),
+    "-cp", cpArg,
+    "org.junit.platform.console.ConsoleLauncher",
+    "--fail-if-no-tests",
+  ]
+  let suiteArgs = match suiteName {
+    case .some(s) -> ["--select-class", s]
+    case .none -> ["--scan-class-path", lib.classesDir.absolutePath]
+  }
+  let cmd = baseCmd + suiteArgs
+  let inputs = [lib.classesDir] + runtimeClasspath
+  let s = context.runCommandStream(cmd = cmd, inputs = inputs)
+  let stdoutTask = async {
+    s.stdout.collect { line -> context.log(line) }
+  }
+  let stderrTask = async {
+    s.stderr.collect { line -> context.log(line) }
+  }
+  let _ = stdoutTask.await()
+  let _ = stderrTask.await()
+  let exitCode = s.exit.await()
+  if exitCode != 0 {
+    throw "JUnit failed (exit=${exitCode})"
+  }
 }
 
 def runScalaTestSuite(lib: jvm.JvmLib, suiteName: optional<string>) {
@@ -295,4 +399,9 @@ def runTest() {
 @action
 def runMgroup2Test() {
   runScalaTestSuite(mgroup2.test, .some("com.giyeok.jparser.mgroup2.Mgroup2Test"))
+}
+
+@action
+def runMgroup3Test() {
+  runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.ParserGenTest"))
 }
