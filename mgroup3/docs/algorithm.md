@@ -367,11 +367,33 @@ handling of nested NLongest cases.
 | Feature                    | mgroup1/2                                  | mgroup3                                            |
 | -------------------------- | ------------------------------------------ | -------------------------------------------------- |
 | Implementation language    | Scala                                      | Kotlin                                             |
+| Generator-side parsing     | Uses real `NaiveParser2` context to drive derive/progress | Uses an abstract `GenParsingGraph` with `GenNodeGeneration` slots (`Prev`/`Curr`/`Mid`/`Next`) |
 | Cond-condition runtime     | Re-runs naive deriver on demand            | Separate cond paths progressed step-by-step        |
-| Accept-condition rep       | Generator-side templates with implicit gen mapping | Explicit `KernelTemplateGen` tag per condition |
+| Accept-condition rep       | Generator-side templates derived from NaiveParser's `AcceptCondition.NotExists(beginGen, endGen, sym)` etc. — the `(beginGen, endGen)` pattern (0/1/2/3 slot model) determines `fromNextGen` | Explicit `KernelTemplateGen` tag per condition, taken from the atomic symbol's `GenNode.startGen` |
 | Path representation        | Linked list of milestones + tip            | Same                                               |
 | Path dedup                 | Implicit                                    | Explicit `(milestonePath, tipGroupId) → OR` merge   |
 | History-aware evaluation   | Yes (via `isEventuallyAccepted`)           | Yes (via `collectFinishesAfter` over history)      |
+
+The critical difference for the unresolved NJoin+NLongest issue is the
+**accept-condition representation**. mgroup2's generator carries the
+NaiveParser's actual `(beginGen, endGen)` numbers all the way through:
+when it summarises a step into a `TermAction`, the surviving
+`AcceptCondition.NotExists(beginGen=2, endGen=3, sym)` is unambiguously
+"a longest condition whose body started matching at the current
+step's beginning (slot 2) and finished at next-step's beginning (slot
+3)", and that maps cleanly to `LongestTemplate(beginFromNextGen=true)`
+or `false` based on which slot pair appears
+(`ParserGenBase2.scala:50-93`).
+
+mgroup3 throws this `(beginGen, endGen)` information away. Its
+`GenNode.startGen` only records *which graph slot* a node started
+in, not which slot it actually matches from when the condition fires
+later. For most symbols this is fine — NLongest/NExcept inside an
+NRepeat genuinely starts at the iteration boundary — but for a
+multi-character NJoin body like `"||" & OpTk`, the cond symbol's
+match start is several slots earlier than the slot in which the
+NJoin's `progress` task runs, and the abstraction has no way to
+recover that fact.
 
 ## 8. Known limitations
 
@@ -382,25 +404,38 @@ failures all reduce to one structural pattern:
 - **`NJoin` whose body is a multi-character sequence and whose
   cond-symbol is a `NLongest`** (e.g. mulang's
   `"||" & OpTk` where `OpTk = <Op = ('+'|'-'|"||")+>`). The cond
-  starter for `OpTk` is registered with a startGen that is one step
-  too late: it begins consuming input *after* the main path has
-  already begun matching the NJoin's body, so the starter only sees a
-  suffix of the body and never satisfies the NLongest. The `OnlyIf`
-  condition on the main path then evolves to `Never`. Reproducers:
-  `testLeftRecursionWithOpTk`, `testOrExpression`,
-  `testAndStmt`, etc.
+  starter for `OpTk` is registered too late: by the time the main
+  path's `OnlyIf` condition fires, the NJoin body has already been
+  consumed, so any starter spawned now begins reading a suffix of the
+  input rather than the full body. Reproducers: `testLeftRecursionWithOpTk`,
+  `testOrExpression`, `testAndStmt`, etc.
 
-  Progress made: the proto/parser now carry a `KernelTemplateGen.GRAND`
-  tag and a `grandGen` parameter through term/edge actions, intended
-  to let the generator emit "the start gen of the main path's last
-  milestone" as the cond starter's startGen. Direct experimentation
-  shows the right `grandGen` value is not simply
-  `milestonePath.parent.gen` or `milestone.gen` — the milestone-path
-  abstraction does not retain enough information to recover the
-  precise gen at which the NJoin's derive site began matching. The
-  next attempt likely needs the generator to track, per atomic
-  symbol, which surrounding milestone witnessed its derivation, and
-  to encode that milestone's start gen explicitly.
+  **mgroup2's solution.** mgroup2/milestone2 sidesteps this by *not*
+  running cond paths as a separate process. Instead the generator
+  pre-computes, for every term/edge action, what each referenced
+  cond-symbol would do if it were tracked in parallel — which
+  milestone-groups it would have to be appended to, what its progress
+  condition is, etc. — and packages that information *inside the term
+  action itself* (see `MilestoneParserGen.addPendedForTermAction`,
+  the `lookaheadRequiringSymbols` and `pendedAcceptConditionKernels`
+  fields). When the runtime applies a term action it adds *both* the
+  main path's new tail and a parallel "lookahead-requiring" path for
+  every referenced cond symbol, all simultaneously, so the main path
+  and its conditional companions stay in lock-step.
+
+  mgroup3's current design — separate `condPaths` advanced step by
+  step from a starter created at condition-emit time — loses that
+  synchronisation, and there is no information left at runtime to
+  reconstruct it. The fix path is for the generator to emit equivalent
+  "cond root must be running alongside" information into each term
+  action, mirroring mgroup2's `addPendedForTermAction`.
+
+  Scaffolding committed during the diagnostic phase: the proto/parser
+  carry a `KernelTemplateGen.GRAND` tag and a `grandGen` parameter
+  through term/edge actions. This was an attempt to encode "the start
+  gen of the main path's last milestone" as the cond starter's
+  startGen, but that single-value fix is insufficient — the actual
+  resolution is the parallel-path encoding described above.
 
 - **Path explosion** on the largest mulang examples (e.g. `ccgen.mu`)
   produces an out-of-memory error. The `dedup` step is sufficient for

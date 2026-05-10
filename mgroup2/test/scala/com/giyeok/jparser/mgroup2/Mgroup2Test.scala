@@ -3,7 +3,7 @@ package com.giyeok.jparser.mgroup2
 import com.giyeok.jparser.{Inputs, NGrammar, ParseForest, ParseForestFunc}
 import com.giyeok.jparser.metalang3.MetaLanguage3
 import com.giyeok.jparser.milestone2.{AcceptConditionTemplate, AndTemplate, LongestTemplate, OnlyIfTemplate, OrTemplate, TasksSummary2, UnlessTemplate}
-import com.giyeok.jparser.nparser.ParseTreeConstructor2
+import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor2}
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.nparser2.NaiveParser2
 import org.scalatest.flatspec.AnyFlatSpec
@@ -11,6 +11,18 @@ import org.scalatest.flatspec.AnyFlatSpec
 class Mgroup2Test extends AnyFlatSpec {
   "mulang grammar" should "produce the same parse forest with naive and mgroup2 parsers" in {
     testMulang()
+  }
+
+  "left recursion + NJoin with NLongest body" should "parse 1 || 2" in {
+    val grammar = """
+      |Grammar = E
+      |E = N | E WS "||"&OpTk WS N
+      |N = '0-9'+
+      |OpTk = <Op>
+      |Op = ('+' | '-' | "||")+
+      |WS = ' '*
+      |""".stripMargin
+    assertSameParseResult(grammar, "1 || 2")
   }
 
   "nullable condition grammars" should "generate parser data for longest except and join" in {

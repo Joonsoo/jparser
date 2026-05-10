@@ -145,9 +145,9 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
   ) {
     // path의 tip이 만들어진 gen (= parent milestone gen)
     val parentGen = oldPath.milestonePath?.gen ?: pathRoot.startGen
-    // grandGen 매핑 — 추후 GRAND 라벨이 정확히 무엇이어야 하는지 확정 시 변경.
-    // 현재는 parent milestone 의 parent gen (= main path 의 마지막 milestone 의 startGen 후보)
-    val grandGen = oldPath.milestonePath?.parent?.gen ?: pathRoot.startGen
+    // grandGen = 마지막 milestone의 *kernel.gen* (= milestone 이 시작된 시점, "beginGen" in NaiveParser2 terms).
+    // mgroup2 NaiveParser 에서 OnlyIf/Unless 의 beginGen 슬롯에 해당.
+    val grandGen = oldPath.milestonePath?.milestone?.gen ?: pathRoot.startGen
 
     // term action에서 발생한 finish/progress 기록
     if (termAction.hasParsingActions()) {
@@ -261,8 +261,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     rootProgressesOut: MutableMap<PathRoot, AcceptCondition>,
     observingSymbolIdsOut: MutableSet<Int>,
   ) {
-    // edge action 의 GRAND 매핑.
-    val grandGrandParentGen = parentPath.parent?.parent?.gen ?: pathRoot.startGen
+    // edge action 의 GRAND 매핑: parentPath milestone 의 kernel.gen (= beginGen).
+    val grandGrandParentGen = parentPath.milestone.gen
     // edge action 자체에서 발생한 finish/progress 기록
     if (edgeAction.hasParsingActions()) {
       for (finished in edgeAction.parsingActions.finishedList) {
