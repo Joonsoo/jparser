@@ -381,24 +381,26 @@ failures all reduce to one structural pattern:
 
 - **`NJoin` whose body is a multi-character sequence and whose
   cond-symbol is a `NLongest`** (e.g. mulang's
-  `"||" & OpTk` where `OpTk = <Op = ('+'|'-'|"||")+>`). When the main
-  path is at the start of the NJoin body, the cond starter for OpTk is
-  registered with `startGen = main_path's_parent_milestone_gen`. But the
-  semantically correct start gen is one step *earlier* — the position
-  at which the NJoin itself was first derived in the parser graph,
-  before the NJoin body's first character was consumed. The current
-  parser registers the cond starter too late: it begins consuming input
-  one step after main, never matches the NJoin body's full sequence,
-  and therefore never finishes its NLongest body. The `OnlyIf` condition
-  on the main path subsequently evolves to `Never`. Reproducers:
+  `"||" & OpTk` where `OpTk = <Op = ('+'|'-'|"||")+>`). The cond
+  starter for `OpTk` is registered with a startGen that is one step
+  too late: it begins consuming input *after* the main path has
+  already begun matching the NJoin's body, so the starter only sees a
+  suffix of the body and never satisfies the NLongest. The `OnlyIf`
+  condition on the main path then evolves to `Never`. Reproducers:
   `testLeftRecursionWithOpTk`, `testOrExpression`,
   `testAndStmt`, etc.
 
-  A clean fix likely needs the generator to expose a richer kind of
-  `KernelTemplateGen` value — something like a "grand-parent
-  milestone gen" tag — and to use that as the startGen of NJoin /
-  NLongest conditions whose derive site is one step earlier than the
-  current milestone.
+  Progress made: the proto/parser now carry a `KernelTemplateGen.GRAND`
+  tag and a `grandGen` parameter through term/edge actions, intended
+  to let the generator emit "the start gen of the main path's last
+  milestone" as the cond starter's startGen. Direct experimentation
+  shows the right `grandGen` value is not simply
+  `milestonePath.parent.gen` or `milestone.gen` — the milestone-path
+  abstraction does not retain enough information to recover the
+  precise gen at which the NJoin's derive site began matching. The
+  next attempt likely needs the generator to track, per atomic
+  symbol, which surrounding milestone witnessed its derivation, and
+  to encode that milestone's start gen explicitly.
 
 - **Path explosion** on the largest mulang examples (e.g. `ccgen.mu`)
   produces an out-of-memory error. The `dedup` step is sufficient for
