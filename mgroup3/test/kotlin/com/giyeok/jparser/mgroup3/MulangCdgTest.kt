@@ -221,6 +221,8 @@ class MulangCdgTest {
     org.junit.jupiter.api.Assertions.assertTrue(accepted)
   }
 
+  // mulang grammar 는 top-level 이 def/class/etc 만 가능. `match x { ... }` 는 invalid input.
+  @org.junit.jupiter.api.Disabled("invalid input — match expression cannot be top-level")
   @Test
   fun testTwoCaseStringInRHSMinimal() {
     // 가능한 단순화. match 안에서 string RHS 후 stmt sep
@@ -430,6 +432,102 @@ class MulangCdgTest {
       }
     }
     println("accepted=${parser.isAccepted(ctx)}")
+  }
+
+  // dead path 추적: step별 main path 의 milestone path + finishedKernels 자세히 출력
+  @Test
+  fun testTraceMainPathLifetime() {
+    val cdg = """
+      Grammar = Stmt (NL Stmt)*
+      Stmt = Expr
+      Expr = <Atom (S Op S Atom)*>
+      Atom = Str
+      Str = '"' Elem* '"'
+      Elem = <(.-'"')+>
+      Op = '+'
+      S = ' '*
+      NL = '\n' ' '*
+    """.trimIndent()
+    val grammarAnalysis = `MetaLanguage3$`.`MODULE$`.analyzeGrammar(cdg, "Grammar")
+    val grammar = grammarAnalysis.ngrammar()
+    val gen = Mgroup3ParserGenerator(grammar)
+    val data = gen.generate()
+    val parser = Mgroup3Parser(data)
+    val src = "\"a\"\n\"b\""
+    var ctx = parser.initCtx()
+    println("=== initCtx ===")
+    println("  mainPaths=${ctx.mainPaths.size}")
+    for ((i, p) in ctx.mainPaths.withIndex()) {
+      println("  main[$i] tip=${p.tipGroupId}")
+      var mp = p.milestonePath
+      while (mp != null) {
+        println("    mile gen=${mp.gen} kernel=(${mp.milestone.symbolId}+${mp.milestone.pointer}@${mp.milestone.gen}) obs=${mp.observingCondSymbolIds}")
+        mp = mp.parent
+      }
+    }
+    for ((idx, c) in src.withIndex()) {
+      val charDisplay = if (c == '\n') "\\n" else c.toString()
+      try {
+        ctx = parser.parseStep(ctx, c, idx == src.length - 1)
+        println("=== step $idx '$charDisplay' -> gen=${ctx.gen} ===")
+        println("  mainPaths=${ctx.mainPaths.size}")
+        for ((i, p) in ctx.mainPaths.withIndex()) {
+          println("  main[$i] tip=${p.tipGroupId} acc=${p.acceptCondition}")
+          var mp = p.milestonePath
+          while (mp != null) {
+            println("    mile gen=${mp.gen} kernel=(${mp.milestone.symbolId}+${mp.milestone.pointer}@${mp.milestone.gen}) obs=${mp.observingCondSymbolIds}")
+            mp = mp.parent
+          }
+        }
+        // sym 7 finish만 출력
+        val entry = ctx.history.last()
+        val sym7Finishes = entry.finishedKernels.filter { it.kernel.symbolId == 7 }
+        if (sym7Finishes.isNotEmpty()) {
+          println("  sym7 finishes:")
+          for (f in sym7Finishes) {
+            println("    (${f.kernel.symbolId}+${f.kernel.pointer}@${f.kernel.gen}) cond=${f.condition}")
+          }
+        }
+        // condPaths 의 (7, 1) starter path 들
+        val sym7Root = PathRoot(7, 1)
+        if (sym7Root in ctx.condPaths) {
+          println("  cond (7, 1) paths: ${ctx.condPaths[sym7Root]?.size}")
+          for ((j, cp) in (ctx.condPaths[sym7Root] ?: emptyList()).withIndex()) {
+            println("    cp[$j] tip=${cp.tipGroupId} acc=${cp.acceptCondition}")
+            var mp = cp.milestonePath
+            while (mp != null) {
+              println("      mile gen=${mp.gen} kernel=(${mp.milestone.symbolId}+${mp.milestone.pointer}@${mp.milestone.gen}) obs=${mp.observingCondSymbolIds}")
+              mp = mp.parent
+            }
+          }
+        }
+      } catch (e: ParsingError) {
+        println("[$idx] '$charDisplay' -> FAIL: $e")
+        // 마지막 main path 의 termAction 결과 살펴보기
+        for ((i, p) in ctx.mainPaths.withIndex()) {
+          println("  before-fail main[$i] tip=${p.tipGroupId} acc=${p.acceptCondition}")
+          val ta = parser.findApplicableAction(p, c)
+          if (ta != null) {
+            println("    termAction matches!")
+            for (rea in ta.replaceAndAppendsList) {
+              println("    rea: replace=(${rea.replace.symbolId}+${rea.replace.pointer}) appendMgroup=${rea.append.milestoneGroupId} cond=${rea.append.acceptCondition}")
+            }
+            for (rap in ta.replaceAndProgressesList) {
+              println("    rap: replaceMgroup=${rap.replaceMilestoneGroupId} cond=${rap.acceptCondition}")
+            }
+            if (ta.hasParsingActions()) {
+              for (f in ta.parsingActions.finishedList) {
+                println("    finish: (${f.symbolId}+${f.pointer}@${f.startGen}) cond=${f.finishCondition}")
+              }
+              for (pr in ta.parsingActions.progressedList) {
+                println("    progress: (${pr.symbolId}+${pr.pointer}@${pr.startGen}+${pr.midGen})")
+              }
+            }
+          }
+        }
+        throw e
+      }
+    }
   }
 
   // 가장 단순한 reproducer 시도. NLongest body의 NRepeat

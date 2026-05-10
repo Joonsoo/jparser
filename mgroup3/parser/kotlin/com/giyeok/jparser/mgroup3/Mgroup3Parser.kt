@@ -462,9 +462,17 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       newCondRoots.add(PathRoot(sym, gen))
     }
 
+    // history 에 한 번이라도 등장한 적 있는 cond root 은 skip — 이미 시도되어 dead 된 root.
+    // 다시 등록하면 starter 가 잘못된 시점부터 시작해서 wrong path 가 발생.
+    val everSeenCondRoots = mutableSetOf<PathRoot>()
+    for (entry in ctx.history) {
+      everSeenCondRoots.addAll(entry.activeCondPaths)
+    }
     for (pathRoot in newCondRoots) {
       // 이미 ctx.condPaths/nextCondPaths 에 있는 root 은 skip.
       if (pathRoot in ctx.condPaths.keys || pathRoot in nextCondPaths.keys) continue
+      // 이미 history 에 등장했었던 root 은 skip (한 번 dead된 root 다시 시작 안 함).
+      if (pathRoot in everSeenCondRoots) continue
       val rootInfo = data.pathRootsMap[pathRoot.symbolId] ?: continue
       // root가 self-finish 가능한 경우 (예: 'a'? 같은 nullable cond symbol) 즉시 finish
       if (rootInfo.hasSelfFinishAcceptCondition()) {
