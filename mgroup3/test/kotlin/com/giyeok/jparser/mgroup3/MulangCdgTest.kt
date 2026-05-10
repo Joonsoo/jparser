@@ -587,6 +587,15 @@ class MulangCdgTest {
     val grammar = grammarAnalysis.ngrammar()
     val gen = Mgroup3ParserGenerator(grammar)
     val data = gen.generate()
+    println("== milestoneGroups ==")
+    for ((mgId, mg) in data.milestoneGroupsMap) {
+      println("  mg $mgId: ${mg.kernelsList.map { "(${it.symbolId}+${it.pointer})" }}, possibleFinishes=${mg.possibleFinishesList.map { "${it.symbolId}=${it.acceptCondition.conditionCase}" }}")
+    }
+    println("== nsymbols (relevant) ==")
+    for (sid in 0 until grammar.nsymbols().size()) {
+      val sym = grammar.nsymbols().get(sid)
+      if (sym.isDefined && sid <= 25) println("  $sid: ${sym.get()}")
+    }
     val parser = Mgroup3Parser(data)
     val src = "1 || 2"
     var ctx = parser.initCtx()
@@ -600,7 +609,22 @@ class MulangCdgTest {
         for ((i, p) in ctx.mainPaths.withIndex()) {
           println("  main[$i] tip=${p.tipGroupId} acc=${p.acceptCondition}")
         }
-        for ((root, ps) in ctx.condPaths) println("  cond ${root}: ${ps.size}")
+        for ((root, ps) in ctx.condPaths) {
+          println("  cond ${root}: ${ps.size}")
+          for ((j, cp) in ps.withIndex()) {
+            println("    cp[$j] tip=${cp.tipGroupId} acc=${cp.acceptCondition}")
+            var mp = cp.milestonePath
+            while (mp != null) {
+              println("      mile gen=${mp.gen} kernel=(${mp.milestone.symbolId}+${mp.milestone.pointer}@${mp.milestone.gen}) obs=${mp.observingCondSymbolIds}")
+              mp = mp.parent
+            }
+          }
+        }
+        // condPathFinishes도
+        val entry = ctx.history.last()
+        if (entry.condPathFinishes.isNotEmpty()) {
+          println("  condFinishes: ${entry.condPathFinishes}")
+        }
       } catch (e: ParsingError) {
         println("[$idx] '$display' -> FAIL: $e")
         // cond path (19, 3) 의 termActions 살펴보기
@@ -609,6 +633,11 @@ class MulangCdgTest {
         if (condPaths != null) {
           for ((j, cp) in condPaths.withIndex()) {
             println("  cond (19,3) cp[$j] tip=${cp.tipGroupId} acc=${cp.acceptCondition}")
+            var mp = cp.milestonePath
+            while (mp != null) {
+              println("    mile gen=${mp.gen} kernel=(${mp.milestone.symbolId}+${mp.milestone.pointer}@${mp.milestone.gen}) obs=${mp.observingCondSymbolIds}")
+              mp = mp.parent
+            }
             val termActions = data.termActionsMap[cp.tipGroupId]
             if (termActions != null) {
               for (ta in termActions.actionsList) {

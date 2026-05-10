@@ -18,6 +18,14 @@ message Mgroup3ParserData {
 
   message MilestoneGroup {
     repeated KernelTemplate kernels = 1;
+    // 이 milestone group 안의 milestone 들에서 시작했을 때 추가 input 없이 (혹은 부모 측의 reduce
+    // 체인으로) finish 될 수 있는 (sym, condition) 들. cond starter 가 input 매치 못해 dead 될
+    // 시점에, 자기 cond root sym 과 일치하는 finish 가 여기 있으면 self-finish 등록.
+    repeated PossibleFinish possible_finishes = 2;
+  }
+  message PossibleFinish {
+    int32 symbol_id = 1;
+    AcceptConditionTemplate accept_condition = 2;
   }
   map<int32, MilestoneGroup> milestone_groups = 4;
 

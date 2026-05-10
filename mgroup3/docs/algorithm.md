@@ -379,18 +379,35 @@ The current implementation passes the mgroup3 own-test suite (86/0)
 and most of the mulang example grammar's smaller programs. Known
 failures all reduce to one structural pattern:
 
-- **Direct left recursion combined with NJoin whose body is a NLongest**
-  (e.g. mulang's `OrExpr = AndExpr | OrExpr WS "||" & OpTk WS AndExpr`).
-  The reproducer `testLeftRecursionWithOpTk` isolates the issue. Plain
-  left recursion without NJoin works (`testLeftRecursionMicro`,
-  `testLeftRecursionMultiChar`); NJoin without left recursion works
-  (`testJoin`). The combination triggers a wrong-path scenario in the
-  generated graph that has not yet been diagnosed in detail.
+- **`NJoin` whose body is a multi-character sequence and whose
+  cond-symbol is a `NLongest`** (e.g. mulang's
+  `"||" & OpTk` where `OpTk = <Op = ('+'|'-'|"||")+>`). When the main
+  path is at the start of the NJoin body, the cond starter for OpTk is
+  registered with `startGen = main_path's_parent_milestone_gen`. But the
+  semantically correct start gen is one step *earlier* — the position
+  at which the NJoin itself was first derived in the parser graph,
+  before the NJoin body's first character was consumed. The current
+  parser registers the cond starter too late: it begins consuming input
+  one step after main, never matches the NJoin body's full sequence,
+  and therefore never finishes its NLongest body. The `OnlyIf` condition
+  on the main path subsequently evolves to `Never`. Reproducers:
+  `testLeftRecursionWithOpTk`, `testOrExpression`,
+  `testAndStmt`, etc.
+
+  A clean fix likely needs the generator to expose a richer kind of
+  `KernelTemplateGen` value — something like a "grand-parent
+  milestone gen" tag — and to use that as the startGen of NJoin /
+  NLongest conditions whose derive site is one step earlier than the
+  current milestone.
 
 - **Path explosion** on the largest mulang examples (e.g. `ccgen.mu`)
   produces an out-of-memory error. The `dedup` step is sufficient for
   the medium-sized examples (e.g. `cpp_ast.mu`, 7,530 chars) but
   insufficient for the worst-case ambiguity of the largest
   programs.
+
+- **Lambda type signatures** (e.g. `(Literal, Literal) -> Expr` in
+  `try_let.mu`) — independent grammar feature whose support is
+  separate from the cond-condition machinery.
 
 These are tracked as follow-up work.

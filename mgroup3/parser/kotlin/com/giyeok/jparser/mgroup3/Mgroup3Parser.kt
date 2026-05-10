@@ -395,19 +395,40 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     for ((root, paths) in ctx.condPaths) {
       val nextPaths = mutableListOf<ParsingPath>()
       for (path in paths) {
-        val ta = findApplicableAction(path, input) ?: continue
-        applyTermAction(
-          oldPath = path,
-          pathRoot = root,
-          termAction = ta,
-          midGen = ctx.gen,
-          gen = gen,
-          nextPathsOut = nextPaths,
-          finishesOut = finishesByGroup,
-          progressesOut = progressesByGroup,
-          rootProgressesOut = rootProgresses,
-          observingSymbolIdsOut = observingOut,
-        )
+        val ta = findApplicableAction(path, input)
+        if (ta != null) {
+          applyTermAction(
+            oldPath = path,
+            pathRoot = root,
+            termAction = ta,
+            midGen = ctx.gen,
+            gen = gen,
+            nextPathsOut = nextPaths,
+            finishesOut = finishesByGroup,
+            progressesOut = progressesByGroup,
+            rootProgressesOut = rootProgresses,
+            observingSymbolIdsOut = observingOut,
+          )
+        } else {
+          // path 가 input 매치 못해 dead — milestone group의 possible_finishes 에서
+          // root.symbolId 와 일치하는 finish 가 있으면 그걸 cond path finish 로 등록 (self-finish chain).
+          val mg = data.milestoneGroupsMap[path.tipGroupId]
+          if (mg != null) {
+            for (pf in mg.possibleFinishesList) {
+              if (pf.symbolId == root.symbolId) {
+                // condition reify: prevGen 은 milestone gen (= tip 이 만들어진 gen).
+                val prevGen = path.milestonePath?.gen ?: root.startGen
+                val midGenLocal = ctx.gen
+                val cond = pf.acceptCondition.toAcceptCondition(prevGen, midGenLocal, gen)
+                val combined = And.from(path.acceptCondition, cond)
+                if (combined != Never) {
+                  val existing = rootProgresses[root]
+                  rootProgresses[root] = if (existing != null) Or.from(existing, combined) else combined
+                }
+              }
+            }
+          }
+        }
       }
       if (nextPaths.isNotEmpty()) {
         nextCondPaths[root] = nextPaths

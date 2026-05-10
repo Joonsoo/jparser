@@ -112,10 +112,34 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
     }
     for ((mgroupId, milestones) in milestoneGroups.entries.sortedBy { it.key }) {
       val sortedKernels = milestones.toList().sortedWith(compareBy({ it.symbolId }, { it.pointer }))
-      builder.putMilestoneGroups(
-        mgroupId,
-        Mgroup3ParserData.MilestoneGroup.newBuilder().addAllKernels(sortedKernels).build()
-      )
+      val mgBuilder = Mgroup3ParserData.MilestoneGroup.newBuilder()
+        .addAllKernels(sortedKernels)
+      // possible finishes: 이 milestone group 의 milestone 에서 출발한 derive graph 에서, 추가 input 없이
+      // 발생할 수 있는 finish 들. derivedFrom 결과 graph 의 finishedNodes 에 직접 등장.
+      // 이건 milestone path 의 reduce chain 이 input 없이 도달 가능한 finish 를 나타낸다.
+      val milestoneNodes = milestones.map {
+        GenNode(it.symbolId, it.pointer, Prev, Curr)
+      }.toSet()
+      val graph = tasks.derivedFrom(milestoneNodes)
+      // finishedNodes 중 startNode 의 reduce chain 으로 도달 가능한 것들 (milestoneNodes 자체이거나 그 ancestor)
+      // 단순화: graph.finishedNodes 모두 추가.
+      val finishesBySym = mutableMapOf<Int, GenAcceptCondition>()
+      for (finished in graph.finishedNodes) {
+        if (finished.pointer == 1 && finished !in milestoneNodes) {
+          // pointer=1 은 atomic symbol finish. milestoneNodes 자체는 제외 (그건 tip 시작점, 아직 finish 아님).
+          val cond = graph.acceptConditions[finished] ?: continue
+          val existing = finishesBySym[finished.symbolId]
+          finishesBySym[finished.symbolId] =
+            if (existing != null) GenAcceptCondition.Or.from(existing, cond) else cond
+        }
+      }
+      for ((sym, cond) in finishesBySym.entries.sortedBy { it.key }) {
+        mgBuilder.addPossibleFinishesBuilder().apply {
+          symbolId = sym
+          acceptCondition = cond.toProto()
+        }
+      }
+      builder.putMilestoneGroups(mgroupId, mgBuilder.build())
     }
     for ((mgroupId, termActionList) in termActions.entries.sortedBy { it.key }) {
       builder.putTermActions(
