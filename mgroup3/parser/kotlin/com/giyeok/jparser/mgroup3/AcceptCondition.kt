@@ -1,7 +1,10 @@
 package com.giyeok.jparser.mgroup3
 
-sealed class AcceptCondition {
+sealed class AcceptCondition: Comparable<AcceptCondition> {
   abstract fun neg(): AcceptCondition
+
+  override fun compareTo(other: AcceptCondition): Int =
+    this.toString().compareTo(other.toString())
 }
 
 data object Always: AcceptCondition() {
@@ -40,11 +43,14 @@ data class And(val conds: Set<AcceptCondition>): AcceptCondition() {
       }
   }
 
-  override fun neg(): AcceptCondition = Or(conds.map { it.neg() }.toSet())
+  override fun neg(): AcceptCondition = Or.from(conds.map { it.neg() }.toSet())
 }
 
 data class Or(val conds: Set<AcceptCondition>): AcceptCondition() {
   companion object {
+    fun from(a: AcceptCondition, b: AcceptCondition): AcceptCondition =
+      from(setOf(a, b))
+
     fun from(conds: Set<AcceptCondition>): AcceptCondition =
       if (Always in conds) {
         Always
@@ -68,7 +74,7 @@ data class Or(val conds: Set<AcceptCondition>): AcceptCondition() {
       }
   }
 
-  override fun neg(): AcceptCondition = And(conds.map { it.neg() }.toSet())
+  override fun neg(): AcceptCondition = And.from(conds.map { it.neg() }.toSet())
 }
 
 // evolve:
@@ -126,39 +132,90 @@ data class OnlyIf(val symbolId: Int, val startGen: Int): AcceptCondition() {
   override fun neg(): AcceptCondition = Unless(symbolId, startGen)
 }
 
+// 입력이 모두 처리된 후, 이 condition이 true로 평가될 수 있는지 확인
+// condPathFins는 마지막에 finish된 cond path들의 finish condition map
+// activeCondPaths는 입력 끝까지 살아남은 cond path들
 fun evaluateAcceptCondition(
   cond: AcceptCondition,
-  condPathFins: Map<PathRoot, AcceptCondition>
+  condPathFins: Map<PathRoot, AcceptCondition>,
+  activeCondPaths: Set<PathRoot>,
 ): Boolean = when (cond) {
   Always -> true
   Never -> false
-  is And -> cond.conds.all { evaluateAcceptCondition(it, condPathFins) }
-  is Or -> cond.conds.any { evaluateAcceptCondition(it, condPathFins) }
+  is And -> cond.conds.all { evaluateAcceptCondition(it, condPathFins, activeCondPaths) }
+  is Or -> cond.conds.any { evaluateAcceptCondition(it, condPathFins, activeCondPaths) }
 
-  is NoLongerMatch -> true
-  is NeedLongerMatch -> false
+  is NoLongerMatch -> {
+    // longest: 더 길게 매치되는 경우가 없으면 true
+    val root = PathRoot(cond.symbolId, cond.startGen)
+    // 이미 finish된 적이 있다면 그 finish condition이 false로 나와야 true (즉 더 긴 매치는 invalid)
+    // 그러나 finish 후에도 cond path가 더 살아남아 있을 수 있는데 이 경우 evolveAcceptCondition에서
+    // 이미 처리된 후의 결과가 들어옴. 여기서는 단순히 마지막 상태에서 평가
+    val finCond = condPathFins[root]
+    if (finCond != null) {
+      !evaluateAcceptCondition(finCond, condPathFins, activeCondPaths)
+    } else {
+      // active이거나 이미 사라졌거나 모두 더 긴 매치가 없는 것으로 간주
+      true
+    }
+  }
+
+  is NeedLongerMatch -> {
+    val root = PathRoot(cond.symbolId, cond.startGen)
+    val finCond = condPathFins[root]
+    if (finCond != null) {
+      evaluateAcceptCondition(finCond, condPathFins, activeCondPaths)
+    } else {
+      false
+    }
+  }
 
   is NotExists -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
-    condPathFins[root]?.let { !evaluateAcceptCondition(it, condPathFins) } ?: false
+    val finCond = condPathFins[root]
+    if (finCond != null) {
+      !evaluateAcceptCondition(finCond, condPathFins, activeCondPaths)
+    } else {
+      // 한 번도 finish되지 않았으므로 lookahead-not 성립
+      true
+    }
   }
 
   is Exists -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
-    condPathFins[root]?.let { evaluateAcceptCondition(it, condPathFins) } ?: true
+    val finCond = condPathFins[root]
+    if (finCond != null) {
+      evaluateAcceptCondition(finCond, condPathFins, activeCondPaths)
+    } else {
+      false
+    }
   }
 
   is Unless -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
-    condPathFins[root]?.let { !evaluateAcceptCondition(it, condPathFins) } ?: false
+    val finCond = condPathFins[root]
+    if (finCond != null) {
+      !evaluateAcceptCondition(finCond, condPathFins, activeCondPaths)
+    } else {
+      true
+    }
   }
 
   is OnlyIf -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
-    condPathFins[root]?.let { evaluateAcceptCondition(it, condPathFins) } ?: true
+    val finCond = condPathFins[root]
+    if (finCond != null) {
+      evaluateAcceptCondition(finCond, condPathFins, activeCondPaths)
+    } else {
+      false
+    }
   }
 }
 
+// step별로 cond condition을 진화시킴.
+// condPathFins: 이번 step까지 누적된 finish condition map (모든 종류 포함)
+// activeCondPaths: 이번 step 후에 살아남은 cond path들의 root
+// gen: 이번 step의 gen
 fun evolveAcceptCondition(
   cond: AcceptCondition,
   condPathFins: Map<PathRoot, AcceptCondition>,
@@ -180,9 +237,15 @@ fun evolveAcceptCondition(
       cond
     } else {
       val root = PathRoot(cond.symbolId, cond.startGen)
-      condPathFins[root]?.let {
-        evolveAcceptCondition(it.neg(), condPathFins, activeCondPaths, gen)
-      } ?: (if (root in activeCondPaths) cond else Always)
+      val finCond = condPathFins[root]
+      if (finCond != null) {
+        // 더 긴 매치가 있었다면 그 condition의 negation을 적용
+        evolveAcceptCondition(finCond.neg(), condPathFins, activeCondPaths, gen)
+      } else if (root in activeCondPaths) {
+        cond
+      } else {
+        Always
+      }
     }
   }
 
@@ -191,37 +254,65 @@ fun evolveAcceptCondition(
       cond
     } else {
       val root = PathRoot(cond.symbolId, cond.startGen)
-      condPathFins[root]?.let {
-        evolveAcceptCondition(it, condPathFins, activeCondPaths, gen)
-      } ?: (if (root in activeCondPaths) cond else Never)
+      val finCond = condPathFins[root]
+      if (finCond != null) {
+        evolveAcceptCondition(finCond, condPathFins, activeCondPaths, gen)
+      } else if (root in activeCondPaths) {
+        cond
+      } else {
+        Never
+      }
     }
   }
 
   is NotExists -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
-    condPathFins[root]?.let {
-      evolveAcceptCondition(it.neg(), condPathFins, activeCondPaths, gen)
-    } ?: (if (root in activeCondPaths) cond else Always)
+    val finCond = condPathFins[root]
+    if (finCond != null) {
+      evolveAcceptCondition(finCond.neg(), condPathFins, activeCondPaths, gen)
+    } else if (root in activeCondPaths) {
+      cond
+    } else {
+      Always
+    }
   }
 
   is Exists -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
-    condPathFins[root]?.let {
-      evolveAcceptCondition(it, condPathFins, activeCondPaths, gen)
-    } ?: (if (root in activeCondPaths) cond else Never)
+    val finCond = condPathFins[root]
+    if (finCond != null) {
+      evolveAcceptCondition(finCond, condPathFins, activeCondPaths, gen)
+    } else if (root in activeCondPaths) {
+      cond
+    } else {
+      Never
+    }
   }
 
   is Unless -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
-    condPathFins[root]?.let {
-      evolveAcceptCondition(it.neg(), condPathFins, activeCondPaths, gen)
-    } ?: Always
+    val finCond = condPathFins[root]
+    if (finCond != null) {
+      evolveAcceptCondition(finCond.neg(), condPathFins, activeCondPaths, gen)
+    } else if (root in activeCondPaths) {
+      // 아직 finish 가능성이 살아 있음. 유지.
+      cond
+    } else {
+      // 더 이상 except의 가능성이 없으므로 Always
+      Always
+    }
   }
 
   is OnlyIf -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
-    condPathFins[root]?.let {
-      evolveAcceptCondition(it, condPathFins, activeCondPaths, gen)
-    } ?: Never
+    val finCond = condPathFins[root]
+    if (finCond != null) {
+      evolveAcceptCondition(finCond, condPathFins, activeCondPaths, gen)
+    } else if (root in activeCondPaths) {
+      // 아직 finish 가능성이 살아 있음. 유지.
+      cond
+    } else {
+      Never
+    }
   }
 }

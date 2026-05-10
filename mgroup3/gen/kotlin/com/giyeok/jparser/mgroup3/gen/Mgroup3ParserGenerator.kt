@@ -13,7 +13,10 @@ import com.google.common.collect.HashBiMap
 import com.google.protobuf.Empty
 import scala.jdk.javaapi.CollectionConverters
 
-// TODO tasks.derivedFrom 캐싱 해서 효율성 제고
+// Mgroup3 parser data generator.
+// 기본 알고리즘은 mgroup2와 비슷하지만:
+// - condition 처리는 별도 cond paths로 추적할 것이라 가정하고, observing_cond_symbol_ids만 함께 기록
+// - parsing actions는 (kernel template, gen) 단위로 기록
 class Mgroup3ParserGenerator(val grammar: NGrammar) {
   val tasks = GenParsingTaskRunner(grammar)
 
@@ -36,14 +39,16 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
   // key의 group id 앞에(parent로) 올 수 있는 milestone들
   val possibleParentsOfGroup = mutableMapOf<Int, MutableSet<KernelTemplate>>()
 
-  // key의 group id가 value로 치환되어 reduce trigger 가능
+  // key의 group id가 value(replace mgroup id)로 치환되어 reduce trigger 가능
   val edgeActionTriggers = mutableMapOf<Int, MutableSet<Int>>()
 
-  // key group id가 value의 group id로 치환될 수 있음
+  // key group id가 value의 milestone들로 치환될 수 있음 (mid edge에서 사용)
   val mgroupReplaceables = mutableMapOf<Int, MutableSet<KernelTemplate>>()
 
   fun generate(): Mgroup3ParserData {
     rootPaths[grammar.startSymbol()] = genRootPathFromSymbol(grammar.startSymbol())
+    // start symbol에 대한 milestone group은 항상 1번
+    milestoneGroupIdOfKernelTemplates(setOf(KernelTemplate.newBuilder().setSymbolId(grammar.startSymbol()).setPointer(0).build()))
 
     while (true) {
       val possibleRoots = possibleRootSymbols()
@@ -53,12 +58,6 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
       val remainingRootPaths = possibleRoots - rootPaths.keys
       val remainingTipEdges = possibleTipEdges.canProgress - tipEdgeActions.keys
       val remainingMidEdges = possibleMidEdges - midEdgeActions.keys
-      println(
-        "roots=${remainingRootPaths.size}/${possibleRoots.size} " +
-          "mg=${remainingMgroups.size}/${milestoneGroups.size} " +
-          "tipEdges=${remainingTipEdges.size}/${possibleTipEdges.canProgress.size} " +
-          "midEdges=${remainingMidEdges.size}/${possibleMidEdges.size}"
-      )
 
       if (remainingRootPaths.isEmpty() && remainingMgroups.isEmpty() &&
         remainingTipEdges.isEmpty() && remainingMidEdges.isEmpty()
@@ -105,9 +104,6 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
       }
     }
 
-    // TODO observing_cond_symbol_ids 에 A가 포함되어 있으면, A에 대한 PathRootInfo의 initial_cond_symbol_ids도 모두 포함되도록 한다
-    // -> 안 그래도 파싱시에 다 확인은 하지만 조금이라도 미리 해놓으려고?
-
     val builder = Mgroup3ParserData.newBuilder()
     builder.grammar = GrammarProtobufConverter.convertNGrammarToProto(grammar)
     builder.startSymbolId = grammar.startSymbol()
@@ -115,28 +111,34 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
       builder.putPathRoots(rootSymbolId, rootPath)
     }
     for ((mgroupId, milestones) in milestoneGroups.entries.sortedBy { it.key }) {
-      // TODO milestones 소팅
+      val sortedKernels = milestones.toList().sortedWith(compareBy({ it.symbolId }, { it.pointer }))
       builder.putMilestoneGroups(
         mgroupId,
-        Mgroup3ParserData.MilestoneGroup.newBuilder().addAllKernels(milestones).build()
+        Mgroup3ParserData.MilestoneGroup.newBuilder().addAllKernels(sortedKernels).build()
       )
     }
-    for ((mgroupId, termActions) in termActions.entries.sortedBy { it.key }) {
-      // TODO termActions 소팅
+    for ((mgroupId, termActionList) in termActions.entries.sortedBy { it.key }) {
       builder.putTermActions(
         mgroupId,
-        TermGroupActions.newBuilder().addAllActions(termActions).build()
+        TermGroupActions.newBuilder().addAllActions(termActionList).build()
       )
     }
-    // TODO tipEdgeActions.entries 소팅
-    for ((edge, edgeAction) in tipEdgeActions.entries) {
+    val sortedTipEdges = tipEdgeActions.entries.sortedWith(
+      compareBy({ it.key.first.symbolId }, { it.key.first.pointer }, { it.key.second })
+    )
+    for ((edge, edgeAction) in sortedTipEdges) {
       builder.addTipEdgeActionsBuilder()
         .setParent(edge.first)
         .setTipGroupId(edge.second)
         .setEdgeAction(edgeAction)
     }
-    // TODO midEdgeActions.entries 소팅
-    for ((edge, edgeAction) in midEdgeActions.entries) {
+    val sortedMidEdges = midEdgeActions.entries.sortedWith(
+      compareBy(
+        { it.key.first.symbolId }, { it.key.first.pointer },
+        { it.key.second.symbolId }, { it.key.second.pointer }
+      )
+    )
+    for ((edge, edgeAction) in sortedMidEdges) {
       builder.addMidEdgeActionsBuilder()
         .setParent(edge.first)
         .setTip(edge.second)
@@ -147,9 +149,7 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
   }
 
   fun milestoneGroupIdOf(nodes: Set<GenNode>): Int {
-    val kts = nodes.map {
-      KernelTemplate.newBuilder().setSymbolId(it.symbolId).setPointer(it.pointer).build()
-    }.toSet()
+    val kts = nodes.map { it.toKernelTemplateProto() }.toSet()
     return milestoneGroupIdOfKernelTemplates(kts)
   }
 
@@ -163,7 +163,7 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
     return newId
   }
 
-  fun progressibleTermGroupsOf(graph: GenParsingGraph): Map<TermGroup, Set<GenNode>> {
+  fun progressibleTermGroupsOf(graph: GenParsingGraph): List<Pair<TermGroup, Set<GenNode>>> {
     val progressibleTermNodes = graph.nodes.filter { node ->
       node.pointer == 0 && grammar.symbolOf(node.symbolId) is NGrammar.NTerminal
     }.toSet()
@@ -172,23 +172,48 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
     }
 
     val termGroups = TermGrouper.termGroupsOf(CollectionConverters.asScala(nodes.values).toSet())
-    return CollectionConverters.asJava(termGroups).associate { tg ->
+    // 같은 proto term group으로 변환되는 것들이 여러 개 있을 수 있으므로 dedup해서 합침
+    // (protobuf 객체 비교 의존성을 피하기 위해 byteString을 dedup key로 사용)
+    val byKey = mutableMapOf<com.google.protobuf.ByteString, Pair<TermGroup, MutableSet<GenNode>>>()
+    for (tg in CollectionConverters.asJava(termGroups)) {
+      val proto = TermGroupProtobufConverter.convertTermGroupToProto(tg)
+      val key = proto.toByteString()
       val applicables = nodes.filter { it.value.acceptTermGroup(tg) }.keys
-      TermGroupProtobufConverter.convertTermGroupToProto(tg) to applicables
+      val pair = byKey.getOrPut(key) { proto to mutableSetOf() }
+      pair.second.addAll(applicables)
     }
+    return byKey.values.map { it.first to it.second.toSet() }
   }
 
-  fun milestonesOf(graph: GenParsingGraph): Set<GenNode> =
-    (graph.nodes - graph.startNodes).filter { node ->
-      when (val symbol = grammar.symbolOf(node.symbolId)) {
-        is NGrammar.NSequence -> {
-          node.pointer in 1..<symbol.sequence().size() &&
-            node.startGen == Curr && node.endGen == Next
-        }
+  // graph에서 milestone (NSequence이고 pointer > 0)인 노드들 중 startGen이 expectedStart, endGen이 Next인 것들
+  fun appendingMilestonesOf(graph: GenParsingGraph, expectedStart: GenNodeGeneration): Set<GenNode> =
+    graph.nodes.filter { node ->
+      node !in graph.startNodes &&
+        node.startGen == expectedStart && node.endGen == Next &&
+        when (val symbol = grammar.symbolOf(node.symbolId)) {
+          is NGrammar.NSequence ->
+            node.pointer in 1..<symbol.sequence().size()
 
-        else -> false
-      }
+          else -> false
+        }
     }.toSet()
+
+  // accept condition이나 cond path를 만들어내야 하는 심볼들 (Exists/NotExists/Unless/OnlyIf의 대상)
+  // mgroup3에서는 longest도 별도 cond path가 아닌 main path에서 처리하지만
+  // 일관성을 위해 일단 모두 cond symbol로 추적한다.
+  // 추후 최적화 가능 (longest 심볼이 main path에 있으면 cond path 생성 생략)
+  fun observedCondSymbolsFromAcc(condition: GenAcceptCondition, out: MutableSet<Int>) {
+    when (condition) {
+      GenAcceptCondition.Always -> {}
+      is GenAcceptCondition.And -> condition.conds.forEach { observedCondSymbolsFromAcc(it, out) }
+      is GenAcceptCondition.Or -> condition.conds.forEach { observedCondSymbolsFromAcc(it, out) }
+      is GenAcceptCondition.Exists -> out.add(condition.symbolId)
+      is GenAcceptCondition.NotExists -> out.add(condition.symbolId)
+      is GenAcceptCondition.NoLongerMatch -> out.add(condition.symbolId)
+      is GenAcceptCondition.Unless -> out.add(condition.symbolId)
+      is GenAcceptCondition.OnlyIf -> out.add(condition.symbolId)
+    }
+  }
 
   fun genRootPathFromSymbol(symbolId: Int): PathRootInfo {
     val builder = PathRootInfo.newBuilder()
@@ -199,81 +224,115 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
     builder.milestoneGroupId = milestoneGroupIdOf(setOf(startNode))
 
     val graph = tasks.derivedFrom(setOf(startNode))
-    builder.addAllInitialCondSymbolIds(graph.observingCondSymbolIds)
-    if (startNode in graph.progressedNodes) {
-      builder.selfFinishAcceptCondition =
-        graph.acceptConditions[graph.progressedNodes[startNode]!!]!!.toProto()
+
+    // start node로부터 도달 가능한 cond symbol들 모두 수집
+    builder.addAllInitialCondSymbolIds(graph.observingCondSymbolIds.sorted())
+
+    // start node가 derive 도중 progress될 수 있는 경우 (empty match) self finish condition을 기록
+    val progressed = graph.progressedNodes[startNode]
+    if (progressed != null) {
+      builder.selfFinishAcceptCondition = graph.acceptConditions[progressed]!!.toProto()
     } else {
       builder.clearSelfFinishAcceptCondition()
     }
 
-    // TODO builder.parsingActions
-    for (finished in graph.finishedNodes) {
-      val b = builder.parsingActionsBuilder.addFinishedBuilder()
-      b.symbolId = finished.symbolId
-      b.pointer = finished.pointer
-      b.startGen = finished.startGen.toProto()
+    // root path의 derive 단계에서 자동으로 일어나는 finish/progress들을 parsingActions에 기록
+    val parsingActionsBuilder = builder.parsingActionsBuilder
+    for (finished in graph.finishedNodes.sortedWith(compareBy({ it.symbolId }, { it.pointer }))) {
+      parsingActionsBuilder.addFinishedBuilder().apply {
+        this.symbolId = finished.symbolId
+        this.pointer = finished.pointer
+        this.startGen = finished.startGen.toProto()
+        this.finishCondition = graph.acceptConditions[finished]!!.toProto()
+      }
+    }
+    for ((before, after) in graph.progressedNodes.entries.sortedWith(
+      compareBy({ it.key.symbolId }, { it.key.pointer })
+    )) {
+      // start node 자체의 progress는 selfFinishAcceptCondition에서 처리
+      if (before == startNode) continue
+      parsingActionsBuilder.addProgressedBuilder().apply {
+        this.symbolId = before.symbolId
+        this.pointer = before.pointer
+        this.startGen = before.startGen.toProto()
+        this.midGen = before.endGen.toProto()
+      }
     }
 
     return builder.build()
   }
 
   fun genMgroupTermActions(mgroupId: Int): List<Mgroup3ParserData.TermGroupAction> {
-    val milestones = milestoneGroups[mgroupId]!!.map {
+    val mgroup = milestoneGroups[mgroupId]!!
+    // 모든 milestone들이 같은 starts(Prev -> Curr)에서 시작한다고 가정
+    val milestoneNodes = mgroup.map {
       GenNode(it.symbolId, it.pointer, Prev, Curr)
     }.toSet()
-    val graph = tasks.derivedFrom(milestones)
+    val graph = tasks.derivedFrom(milestoneNodes)
+    // derive 단계에서 이미 finish된 노드들 (이건 init context에서 한 번만 일어나는 것이므로 termAction에 포함되면 안 됨)
+    val derivePhaseFinishedNodes = graph.finishedNodes.toSet()
 
     val actions = mutableListOf<Mgroup3ParserData.TermGroupAction>()
 
-    val terms = progressibleTermGroupsOf(graph)
-    for ((termGroup, nodes) in terms) {
+    val termGroups = progressibleTermGroupsOf(graph)
+    val sortedTermGroups = termGroups.sortedWith(
+      compareBy { it.first.toString() }
+    )
+    for ((termGroup, termNodes) in sortedTermGroups) {
       val actionBuilder = Mgroup3ParserData.TermGroupAction.newBuilder()
         .setTermGroup(termGroup)
 
-      val builder = actionBuilder.termActionBuilder
-      val g2 = tasks.progressedFrom(graph, nodes, Next)
-      // println(g2.toDot())
+      val taBuilder = actionBuilder.termActionBuilder
+      val g2 = tasks.progressedFrom(graph, termNodes, Next)
 
-      // replace_and_appends
-      val appendingMilestones = milestonesOf(g2)
-      for (parentMilestone in milestones) {
-        val reachables = appendingMilestones
-        // TODO reachability를 따질 필요가 있나? 없는 것 같은데.. g2.reachablesFrom(parentMilestone, appendingMilestones)
+      val appendingMilestones = appendingMilestonesOf(g2, Curr)
+      // 각 parent milestone에 대해, 도달 가능한 appending milestone들을 condition별로 묶어서 replace_and_appends 생성
+      val sortedMilestoneNodes = milestoneNodes.toList().sortedWith(
+        compareBy({ it.symbolId }, { it.pointer })
+      )
+      for (parentMilestone in sortedMilestoneNodes) {
+        if (!g2.nodes.contains(parentMilestone)) continue
+        val reachables = g2.reachablesFrom(parentMilestone, appendingMilestones)
         if (reachables.isNotEmpty()) {
           val reachableGroups = reachables.groupBy { g2.acceptConditions[it]!! }
-          // reachableGroups가 proto에 추가되는 순서를 정의하기 위함
           val reachableGroupsEntries = reachableGroups.entries.sortedBy { it.key }
           for ((acc, subReachables) in reachableGroupsEntries) {
-            val replaceAndAppendBuilder = builder.addReplaceAndAppendsBuilder()
+            val replaceAndAppendBuilder = taBuilder.addReplaceAndAppendsBuilder()
             replaceAndAppendBuilder.setReplace(parentMilestone.toKernelTemplateProto())
             val append = replaceAndAppendBuilder.appendBuilder
             append.milestoneGroupId = milestoneGroupIdOf(subReachables.toSet())
             append.acceptCondition = acc.toProto()
-            // TODO 실제로는 parentMilestone -> subReachables + 각 subReachables의 derive에서 나오는 observing cond symbol ids
-            append.addAllObservingCondSymbolIds(g2.observingCondSymbolIds)
+            // 추가되는 group의 cond symbols + 그 acc에서 사용되는 cond symbols
+            val condSymbols = mutableSetOf<Int>()
+            condSymbols.addAll(g2.observingCondSymbolIds)
+            observedCondSymbolsFromAcc(acc, condSymbols)
+            append.addAllObservingCondSymbolIds(condSymbols.sorted())
           }
         }
       }
 
-      val progressedMilestones = g2.progressedNodes.keys.intersect(milestones)
+      // replace_and_progresses: graph의 milestone 중 g2에서 progress된 것들
+      // (즉, 자기 자신의 끝까지 진행된 milestone들)
+      val progressedMilestones = g2.progressedNodes.keys.intersect(milestoneNodes)
         .groupBy { parentMilestone ->
           g2.acceptConditions[g2.progressedNodes[parentMilestone]!!]!!
         }
-      val progressedMilestonesEntries = progressedMilestones.entries.sortedBy { it.key }
-      for ((acc, subMilestones) in progressedMilestonesEntries) {
-        val replaceAndProgressBuilder = builder.addReplaceAndProgressesBuilder()
-        replaceAndProgressBuilder.setReplaceMilestoneGroupId(milestoneGroupIdOf(subMilestones.toSet()))
+      val progressedEntries = progressedMilestones.entries.sortedBy { it.key }
+      for ((acc, subMilestones) in progressedEntries) {
+        val replaceAndProgressBuilder = taBuilder.addReplaceAndProgressesBuilder()
+        // subMilestones가 진행된 결과의 mgroup. 단, replace target은 진행 전(원래 milestone) 들의 mgroup이어야 함
+        val replaceKernels = subMilestones.map { it.toKernelTemplateProto() }.toSet()
+        replaceAndProgressBuilder.setReplaceMilestoneGroupId(milestoneGroupIdOfKernelTemplates(replaceKernels))
         replaceAndProgressBuilder.setAcceptCondition(acc.toProto())
       }
 
-      // TODO builder.parsingActions
-      for (finished in g2.finishedNodes) {
-        val b = builder.parsingActionsBuilder.addFinishedBuilder()
-        b.symbolId = finished.symbolId
-        b.pointer = finished.pointer
-        b.startGen = finished.startGen.toProto()
-      }
+      // parsing actions
+      fillParsingActions(
+        taBuilder.parsingActionsBuilder, g2,
+        starts = milestoneNodes,
+        derivePhaseFinishedNodes = derivePhaseFinishedNodes,
+        includeProgressOfStarts = true,
+      )
 
       actions.add(actionBuilder.build())
     }
@@ -281,57 +340,129 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
     return actions
   }
 
-  private fun edgeActionFrom(graph: GenParsingGraph, parentNode: GenNode): EdgeAction {
+  // graph (g2)에서 일어난 finish/progress들을 parsingActions에 기록.
+  // derive 단계에서 이미 일어난 finish/progress는 제외하고 progress phase에서 새로 등장한 것만 기록.
+  // includeProgressOfStarts: starts의 progress(즉 startNodeProgress)도 기록할지 여부
+  private fun fillParsingActions(
+    builder: ParsingActions.Builder,
+    g2: GenParsingGraph,
+    starts: Set<GenNode>,
+    derivePhaseFinishedNodes: Set<GenNode>,
+    includeProgressOfStarts: Boolean,
+  ) {
+    for (finished in g2.finishedNodes.sortedWith(compareBy({ it.symbolId }, { it.pointer }))) {
+      // derive phase에서 이미 finish된 노드는 제외
+      if (finished in derivePhaseFinishedNodes) continue
+      builder.addFinishedBuilder().apply {
+        this.symbolId = finished.symbolId
+        this.pointer = finished.pointer
+        this.startGen = finished.startGen.toProto()
+        this.finishCondition = g2.acceptConditions[finished]!!.toProto()
+      }
+    }
+    for ((before, after) in g2.progressedNodes.entries.sortedWith(
+      compareBy({ it.key.symbolId }, { it.key.pointer })
+    )) {
+      if (!includeProgressOfStarts && before in starts) continue
+      // (sym, ptr, before.startGen, before.endGen) → (sym, ptr+1, after.startGen, after.endGen)
+      // 즉 startGen=before.startGen=after.startGen (NSequence는 startGen 유지),
+      // mid_gen=before.endGen, end_gen=after.endGen=NEXT
+      builder.addProgressedBuilder().apply {
+        this.symbolId = before.symbolId
+        this.pointer = before.pointer
+        this.startGen = before.startGen.toProto()
+        this.midGen = before.endGen.toProto()
+      }
+    }
+  }
+
+  private fun edgeActionFrom(
+    graph: GenParsingGraph,
+    parentNode: GenNode,
+    starts: Set<GenNode>,
+    derivePhaseFinishedNodes: Set<GenNode>,
+  ): EdgeAction {
     val builder = EdgeAction.newBuilder()
 
-    val appendings = milestonesOf(graph).groupBy { graph.acceptConditions[it]!! }
-    val appendingsEntries = appendings.entries.sortedBy { it.key }
-    for ((acc, appendingMilestones) in appendingsEntries) {
+    val appendingMilestones = appendingMilestonesOf(graph, Curr)
+    // parentNode 자체에서 도달 가능한 appendingMilestones들만 의미가 있으므로 필터링
+    val reachables = graph.reachablesFrom(parentNode, appendingMilestones)
+    val groupedAppendings = reachables.groupBy { graph.acceptConditions[it]!! }
+    val sortedAppendings = groupedAppendings.entries.sortedBy { it.key }
+    for ((acc, appending) in sortedAppendings) {
       val appendBuilder = builder.addAppendMilestoneGroupsBuilder()
-      appendBuilder.milestoneGroupId = milestoneGroupIdOf(appendingMilestones.toSet())
+      appendBuilder.milestoneGroupId = milestoneGroupIdOf(appending.toSet())
       appendBuilder.acceptCondition = acc.toProto()
-      // TODO 실제로는 parentNode -> appendingMilestones + 각 appendingMilestones의 derive에서 나오는 observing cond symbol ids
-      appendBuilder.addAllObservingCondSymbolIds(graph.observingCondSymbolIds)
+      val condSymbols = mutableSetOf<Int>()
+      condSymbols.addAll(graph.observingCondSymbolIds)
+      observedCondSymbolsFromAcc(acc, condSymbols)
+      appendBuilder.addAllObservingCondSymbolIds(condSymbols.sorted())
     }
 
-    // TODO builder.parsingActions
-    for (finished in graph.finishedNodes) {
-      val b = builder.parsingActionsBuilder.addFinishedBuilder()
-      b.symbolId = finished.symbolId
-      b.pointer = finished.pointer
-      b.startGen = finished.startGen.toProto()
+    // parentNode가 progress되는 경우 (즉, parent의 시작 노드까지 reduce 가능한 경우)
+    val parentProgressed = graph.progressedNodes[parentNode]
+    if (parentProgressed != null) {
+      builder.startNodeProgress = graph.acceptConditions[parentProgressed]!!.toProto()
+    } else {
+      builder.clearStartNodeProgress()
     }
+
+    fillParsingActions(
+      builder.parsingActionsBuilder, graph,
+      starts = starts,
+      derivePhaseFinishedNodes = derivePhaseFinishedNodes,
+      includeProgressOfStarts = true,
+    )
 
     return builder.build()
-
   }
 
   fun genTipEdgeAction(parent: KernelTemplate, tipMgroupId: Int): EdgeAction {
     val parentNode = GenNode(parent.symbolId, parent.pointer, Prev, Curr)
+    val tipMgroup = milestoneGroups[tipMgroupId]!!
+    // tip edge: parent --[derive]--> ... --> child(tip)들
     val graph = tasks.derivedFrom(setOf(parentNode))
-    val progs = milestoneGroups[tipMgroupId]!!.map {
-      GenNode(it.symbolId, it.pointer, Prev, Curr)
+    val derivePhaseFinishedNodes = graph.finishedNodes.toSet()
+    // tip mgroup의 milestone들을 startGen=Curr 기준으로 graph에 추가
+    // (이미 등장한 init node로 들어오는 incoming edge를 progressed milestone으로 동일하게 추가)
+    val progs = tipMgroup.map {
+      GenNode(it.symbolId, it.pointer, Curr, Curr)
     }.toSet()
-    // TODO progs가 graph에 모두 있는 상태인가..?
-    for (prog in progs) {
-      graph.addNode(prog, GenAcceptCondition.Always)
-    }
+    addProgsWithIncomingEdges(graph, progs)
     val g2 = tasks.progressedFrom(graph, progs, Next)
 
-    return edgeActionFrom(g2, parentNode)
+    return edgeActionFrom(g2, parentNode, progs, derivePhaseFinishedNodes)
   }
 
   fun genMidEdgeAction(parent: KernelTemplate, child: KernelTemplate): EdgeAction {
     val parentNode = GenNode(parent.symbolId, parent.pointer, Prev, Curr)
     val graph = tasks.derivedFrom(setOf(parentNode))
-    val prog = GenNode(child.symbolId, child.pointer, Prev, Mid)
-    graph.addNode(prog, GenAcceptCondition.Always)
+    val derivePhaseFinishedNodes = graph.finishedNodes.toSet()
+    // mid edge: parent --[derive]--> ... --> child(이미 진행 중)
+    // child의 startGen은 Curr (parent와 같은 layer)이고 endGen은 Mid (이전 mgroup의 진행 결과)
+    val prog = GenNode(child.symbolId, child.pointer, Curr, Mid)
+    addProgsWithIncomingEdges(graph, setOf(prog))
     val g2 = tasks.progressedFrom(graph, setOf(prog), Next)
 
-    return edgeActionFrom(g2, parentNode)
+    return edgeActionFrom(g2, parentNode, setOf(prog), derivePhaseFinishedNodes)
   }
 
-  // TODO 효율성을 위해 그래프 처리할 때 새로 등장한 애들 쌓아서 사용하기 -
+  // prog 노드들을 graph에 추가하면서, prog의 init form (symbolId, 0, prog.startGen, prog.startGen)으로
+  // 들어오는 incoming edges를 prog 노드로 동일하게 추가한다.
+  // 이는 derive로 등장한 init node에서 finish가 일어나야 progress가 incoming edges로 propagate되도록 하기 위함.
+  private fun addProgsWithIncomingEdges(graph: GenParsingGraph, progs: Set<GenNode>) {
+    for (prog in progs) {
+      val initNode = GenNode(prog.symbolId, 0, prog.startGen, prog.startGen)
+      graph.addNode(prog, GenAcceptCondition.Always)
+      // initNode가 graph에 있으면 그 incoming edges를 prog에 복사
+      val incomingStarts = graph.edgesByEnd[initNode]?.toSet() ?: emptySet()
+      for (start in incomingStarts) {
+        graph.addEdge(start, prog)
+      }
+    }
+  }
+
+  // 추적해야 하는 모든 root path symbol들
   fun possibleRootSymbols(): Set<Int> {
     val condsByRoots = rootPaths.values.flatMap { it.initialCondSymbolIdsList }
     val byTermActions = termActions.values.flatMap { actions ->
@@ -385,7 +516,7 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
   }
 }
 
-private fun GenAcceptCondition.toProto(): AcceptConditionTemplate {
+fun GenAcceptCondition.toProto(): AcceptConditionTemplate {
   val b = AcceptConditionTemplate.newBuilder()
   when (this) {
     GenAcceptCondition.Always -> b.setAlways(Empty.getDefaultInstance())
@@ -399,11 +530,16 @@ private fun GenAcceptCondition.toProto(): AcceptConditionTemplate {
         .addAllConditions(this.conds.map { it.toProto() }).build()
     }
 
-    is GenAcceptCondition.NoLongerMatch -> b.setNoLongerMatch(symbolId)
-    is GenAcceptCondition.Exists -> b.setLookaheadFound(symbolId)
-    is GenAcceptCondition.NotExists -> b.setLookaheadNotfound(symbolId)
-    is GenAcceptCondition.Unless -> b.setExcept(symbolId)
-    is GenAcceptCondition.OnlyIf -> b.setJoin(symbolId)
+    is GenAcceptCondition.NoLongerMatch ->
+      b.noLongerMatch = NoLongerMatchTemplate.newBuilder().setSymbolId(symbolId).setStartGen(startGen.toProto()).build()
+    is GenAcceptCondition.Exists ->
+      b.lookaheadFound = LookaheadFoundTemplate.newBuilder().setSymbolId(symbolId).setStartGen(startGen.toProto()).build()
+    is GenAcceptCondition.NotExists ->
+      b.lookaheadNotfound = LookaheadNotFoundTemplate.newBuilder().setSymbolId(symbolId).setStartGen(startGen.toProto()).build()
+    is GenAcceptCondition.Unless ->
+      b.except = ExceptTemplate.newBuilder().setSymbolId(symbolId).setStartGen(startGen.toProto()).build()
+    is GenAcceptCondition.OnlyIf ->
+      b.join = JoinTemplate.newBuilder().setSymbolId(symbolId).setStartGen(startGen.toProto()).build()
   }
   return b.build()
 }

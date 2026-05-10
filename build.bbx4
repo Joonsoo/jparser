@@ -403,5 +403,28 @@ def runMgroup2Test() {
 
 @action
 def runMgroup3Test() {
+  runJUnitTest(mgroup3.test)
+}
+
+@action
+def runMgroup3GenTest() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.ParserGenTest"))
 }
+
+@action
+def runMgroup3ParserTest() {
+  runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Mgroup3ParserTest"))
+}
+
+@action
+def runMgroup3MulangCdgTest() {
+  runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.MulangCdgTest"))
+}
+
+@action
+def runMgroup3AdvancedTest() {
+  runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Mgroup3ParserAdvancedTest"))
+}
+
+
+

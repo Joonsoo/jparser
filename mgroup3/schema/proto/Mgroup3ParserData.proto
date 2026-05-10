@@ -105,17 +105,41 @@ message AcceptConditionTemplate {
     MultiAcceptConditions or = 3;
     // longest 심볼의 PathStarter로부터 만들어진 경로가 이후에 finish되는 경우가 있으면 이번 path는 invalidate한다
     // (정확히는, longest 심볼의 PathStarter로부터 만들어진 경로가 이후에 finish되면 그 때 조건의 negation을 and로 붙인다)
-    int32 no_longer_match = 4;
+    NoLongerMatchTemplate no_longer_match = 4;
     // lookahead_found 심볼의 PathStarter로부터 만들어진 경로가 finish되어야만 이번 path도 valid하다
-    int32 lookahead_found = 5;
+    LookaheadFoundTemplate lookahead_found = 5;
     // lookahead_notfound 심볼의 PathStarter로부터 만들어진 경로가 finish되면 이번 path는 invalidate한다
-    int32 lookahead_notfound = 6;
+    LookaheadNotFoundTemplate lookahead_notfound = 6;
     // except 심볼의 PathStarter로부터 만들어진 경로가 finish되는 시점에는 이번 path는 invalid하다
-    int32 except = 7;
+    ExceptTemplate except = 7;
     // join 심볼의 PathStarter로부터 만들어진 경로가 finish되는 시점에만 이번 path가 valid하다
-    int32 join = 8;
+    JoinTemplate join = 8;
     // TODO 이 중, (특히 longest의 경우) 새로운 심볼을 추적하지 않고 기존 경로를 재사용할 수 있는 방법이 있을지 고민해보자
   }
+}
+
+// start_gen: cond path가 시작되는 시점.
+// CURR (parent milestone gen), MID (ctx.gen, 직전 input 후), NEXT (이번 input 처리 후)
+// 의미적으로 condition이 발생한 NLongest/Lookahead/Except/Join 의 derive 시점에 대응됨.
+message NoLongerMatchTemplate {
+  int32 symbol_id = 1;
+  KernelTemplateGen start_gen = 2;
+}
+message LookaheadFoundTemplate {
+  int32 symbol_id = 1;
+  KernelTemplateGen start_gen = 2;
+}
+message LookaheadNotFoundTemplate {
+  int32 symbol_id = 1;
+  KernelTemplateGen start_gen = 2;
+}
+message ExceptTemplate {
+  int32 symbol_id = 1;
+  KernelTemplateGen start_gen = 2;
+}
+message JoinTemplate {
+  int32 symbol_id = 1;
+  KernelTemplateGen start_gen = 2;
 }
 
 message MultiAcceptConditions {
@@ -129,8 +153,16 @@ message MultiAcceptConditions {
 // ParsingActions가 있어야 Parse tree를 복원할 수 있음
 // TODO 실제 parse tree 복원 시에 모든 node의 정보가 필요하진 않기 때문에 메모리를 절약하기 위해 불필요한 부분은 저장하지 않을 수도 있음
 message ParsingActions {
-  repeated KernelTemplate progressed = 1;
+  repeated ProgressedKernelTemplate progressed = 1;
   repeated FinishedKernelTemplate finished = 2;
+}
+
+message ProgressedKernelTemplate {
+  int32 symbol_id = 1;
+  int32 pointer = 2;
+  // (sym, ptr, start_gen, mid_gen) 이 progress 되어 (sym, ptr+1, start_gen, end_gen=NEXT)이 됨
+  KernelTemplateGen start_gen = 3;
+  KernelTemplateGen mid_gen = 4;
 }
 
 message FinishedKernelTemplate {

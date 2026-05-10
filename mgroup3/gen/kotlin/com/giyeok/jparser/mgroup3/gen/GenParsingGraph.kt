@@ -11,9 +11,12 @@ class GenParsingGraph(
   val edgesByEnd: MutableMap<GenNode, MutableSet<GenNode>>,
   val observingCondSymbolIds: MutableSet<Int>,
   val acceptConditions: MutableMap<GenNode, GenAcceptCondition>,
-  // key -> value 로 progress되었음
+  // key -> value 로 progress되었음. 현재 phase에서의 progress만 (derive 또는 progress 단계)
   val progressedNodes: MutableMap<GenNode, GenNode>,
   val finishedNodes: MutableSet<GenNode>,
+  // derivedFrom 단계에서 만들어진 progressedNodes의 사본. progressedFrom 호출 시 보존되어
+  // reachables 계산이나 chain 추적에 사용.
+  val derivePhaseProgressedNodes: MutableMap<GenNode, GenNode> = mutableMapOf(),
 ) {
   fun toDot(): String {
     fun id(node: GenNode): String =
@@ -44,6 +47,7 @@ class GenParsingGraph(
     acceptConditions = acceptConditions.toMutableMap(),
     progressedNodes = progressedNodes.toMutableMap(),
     finishedNodes = finishedNodes.toMutableSet(),
+    derivePhaseProgressedNodes = derivePhaseProgressedNodes.toMutableMap(),
   )
 
   fun addNode(node: GenNode, condition: GenAcceptCondition): Boolean {
@@ -55,14 +59,16 @@ class GenParsingGraph(
     return isNewNode
   }
 
-  fun addEdge(start: GenNode, end: GenNode) {
+  fun addEdge(start: GenNode, end: GenNode): Boolean {
     check(start in nodes && end in nodes)
     val newEdge = Pair(start, end)
     if (newEdge !in edges) {
       edges.add(newEdge)
       edgesByStart.getOrPut(start) { mutableSetOf() }.add(end)
       edgesByEnd.getOrPut(end) { mutableSetOf() }.add(start)
+      return true
     }
+    return false
   }
 
   fun addProgressedTo(
@@ -92,7 +98,8 @@ class GenParsingGraph(
     return isUpdated
   }
 
-  // start에서 도달 가능한 end들을 반환
+  // start에서 도달 가능한 end들을 반환.
+  // edges와 progressedNodes(현재 phase) 및 derivePhaseProgressedNodes(이전 derive phase)를 모두 따라간다.
   fun reachablesFrom(start: GenNode, end: Set<GenNode>): Set<GenNode> {
     val queue: Queue<GenNode> = LinkedList()
     val visited = mutableSetOf<GenNode>()
@@ -103,12 +110,13 @@ class GenParsingGraph(
     reachables.addAll(end.intersect(setOf(start)))
     while (queue.isNotEmpty()) {
       val next = queue.poll()
-      ((edgesByStart[next] ?: setOf()) + setOfNotNull(progressedNodes[next])).let { nexts ->
-        val newNodes = nexts.toSet() - visited
-        reachables.addAll(newNodes.intersect(end))
-        visited.addAll(newNodes)
-        queue.addAll(newNodes)
-      }
+      val nexts = (edgesByStart[next] ?: setOf()) +
+        setOfNotNull(progressedNodes[next]) +
+        setOfNotNull(derivePhaseProgressedNodes[next])
+      val newNodes = nexts.toSet() - visited
+      reachables.addAll(newNodes.intersect(end))
+      visited.addAll(newNodes)
+      queue.addAll(newNodes)
     }
     return reachables
   }
@@ -121,17 +129,32 @@ data class GenNode(
   val endGen: GenNodeGeneration
 )
 
+// GenNodeGeneration <-> KernelTemplateGen 매핑
+// Prev = 0 = CURR  (proto): start gen of the path root or grand-parent of edge action
+// Curr = 1 = MID   (proto): "current" step의 시작 gen (=직전 input 처리 직후 gen)
+// Mid  = 1 = MID   (proto): mid edge가 만들어지는 도중에 사용 (Curr와 같은 인덱스로 매핑)
+// Next = 2 = NEXT  (proto): 현재 input 처리 후의 gen
+//
+// term action (mgroup 안에서 input을 처리)의 경우:
+//   parent milestone의 gen = Prev에 매핑 (CURR)
+//   ctx.gen (직전 입력 후의 gen) = Curr에 매핑 (MID)
+//   gen (이번 입력 처리 후 gen) = Next에 매핑 (NEXT)
+// tip edge action (parent 노드 위에서 edge를 발생)의 경우:
+//   grandparent gen = Prev (CURR)
+//   parent gen = Curr (MID)
+//   현재 gen = Next (NEXT)
+// mid edge action도 위와 동일.
 enum class GenNodeGeneration {
   Prev,
   Curr,
-  Mid, // mid-edge 계산 도중에 등장함
+  Mid, // mid-edge 계산 도중에 등장함 (Curr와 같은 의미)
   Next;
 
   fun toProto(): KernelTemplateGen = when (this) {
-    GenNodeGeneration.Prev -> TODO()
-    GenNodeGeneration.Curr -> KernelTemplateGen.CURR
-    GenNodeGeneration.Mid -> KernelTemplateGen.MID
-    GenNodeGeneration.Next -> KernelTemplateGen.NEXT
+    Prev -> KernelTemplateGen.CURR
+    Curr -> KernelTemplateGen.MID
+    Mid -> KernelTemplateGen.MID
+    Next -> KernelTemplateGen.NEXT
   }
 }
 
@@ -165,9 +188,11 @@ sealed class GenAcceptCondition: Comparable<GenAcceptCondition> {
     }
   }
 
-  data class NoLongerMatch(val symbolId: Int): GenAcceptCondition()
-  data class NotExists(val symbolId: Int): GenAcceptCondition()
-  data class Exists(val symbolId: Int): GenAcceptCondition()
-  data class Unless(val symbolId: Int): GenAcceptCondition()
-  data class OnlyIf(val symbolId: Int): GenAcceptCondition()
+  // startGen: cond path 시작 시점. condition이 등장한 atomic symbol (NLongest, Lookahead 등) 의
+  // derive 시점에 해당. GenNodeGeneration 으로 표현 (Prev/Curr/Mid/Next).
+  data class NoLongerMatch(val symbolId: Int, val startGen: GenNodeGeneration = GenNodeGeneration.Prev): GenAcceptCondition()
+  data class NotExists(val symbolId: Int, val startGen: GenNodeGeneration = GenNodeGeneration.Prev): GenAcceptCondition()
+  data class Exists(val symbolId: Int, val startGen: GenNodeGeneration = GenNodeGeneration.Prev): GenAcceptCondition()
+  data class Unless(val symbolId: Int, val startGen: GenNodeGeneration = GenNodeGeneration.Prev): GenAcceptCondition()
+  data class OnlyIf(val symbolId: Int, val startGen: GenNodeGeneration = GenNodeGeneration.Prev): GenAcceptCondition()
 }
