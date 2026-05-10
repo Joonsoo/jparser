@@ -434,6 +434,175 @@ class MulangCdgTest {
     println("accepted=${parser.isAccepted(ctx)}")
   }
 
+  @Test
+  fun testOrExpression() {
+    // rbln_examples.mu 의 fail 케이스 단순화
+    val src = """
+      def f() {
+        if a || b {}
+      }
+    """.trimIndent()
+    val ctx = parseSimple(src)
+    val cdgPath = findMulangCdg()!!
+    val parser = Mgroup3Parser(loadOrGenerate(cdgPath))
+    val accepted = parser.isAccepted(ctx)
+    println("testOrExpression: accepted=$accepted, ${src.length} chars")
+    org.junit.jupiter.api.Assertions.assertTrue(accepted)
+  }
+
+  @Test
+  fun testIfWithoutOr() {
+    // testOrExpression 확인용 — || 없이는?
+    val src = """
+      def f() {
+        if a {}
+      }
+    """.trimIndent()
+    val ctx = parseSimple(src)
+    val cdgPath = findMulangCdg()!!
+    val parser = Mgroup3Parser(loadOrGenerate(cdgPath))
+    val accepted = parser.isAccepted(ctx)
+    println("testIfWithoutOr: accepted=$accepted, ${src.length} chars")
+    org.junit.jupiter.api.Assertions.assertTrue(accepted)
+  }
+
+  @Test
+  fun testOrSimpleStmt() {
+    // if 없이 그냥 expression 으로
+    val src = """
+      def f() {
+        let x = a || b
+      }
+    """.trimIndent()
+    val ctx = parseSimple(src)
+    val cdgPath = findMulangCdg()!!
+    val parser = Mgroup3Parser(loadOrGenerate(cdgPath))
+    val accepted = parser.isAccepted(ctx)
+    println("testOrSimpleStmt: accepted=$accepted, ${src.length} chars")
+    org.junit.jupiter.api.Assertions.assertTrue(accepted)
+  }
+
+  @Test
+  fun testAndStmt() {
+    val src = """
+      def f() {
+        let x = a && b
+      }
+    """.trimIndent()
+    val ctx = parseSimple(src)
+    val cdgPath = findMulangCdg()!!
+    val parser = Mgroup3Parser(loadOrGenerate(cdgPath))
+    val accepted = parser.isAccepted(ctx)
+    println("testAndStmt: accepted=$accepted, ${src.length} chars")
+    org.junit.jupiter.api.Assertions.assertTrue(accepted)
+  }
+
+  @Test
+  fun testEqStmt() {
+    val src = """
+      def f() {
+        let x = a == b
+      }
+    """.trimIndent()
+    val ctx = parseSimple(src)
+    val cdgPath = findMulangCdg()!!
+    val parser = Mgroup3Parser(loadOrGenerate(cdgPath))
+    val accepted = parser.isAccepted(ctx)
+    println("testEqStmt: accepted=$accepted, ${src.length} chars")
+    org.junit.jupiter.api.Assertions.assertTrue(accepted)
+  }
+
+  // micro grammar: 직접 left recursion
+  @Test
+  fun testLeftRecursionMicro() {
+    val cdg = """
+      Grammar = E
+      E = N | E WS '+' WS N
+      N = '0-9'+
+      WS = ' '*
+    """.trimIndent()
+    val grammarAnalysis = `MetaLanguage3$`.`MODULE$`.analyzeGrammar(cdg, "Grammar")
+    val grammar = grammarAnalysis.ngrammar()
+    val gen = Mgroup3ParserGenerator(grammar)
+    val data = gen.generate()
+    val parser = Mgroup3Parser(data)
+    val ctx = parser.parse("1 + 2")
+    val accepted = parser.isAccepted(ctx)
+    println("testLeftRecursionMicro: accepted=$accepted")
+    org.junit.jupiter.api.Assertions.assertTrue(accepted)
+  }
+
+  @Test
+  fun testLeftRecursionMultiChar() {
+    val cdg = """
+      Grammar = E
+      E = N | E WS "||" WS N
+      N = '0-9'+
+      WS = ' '*
+    """.trimIndent()
+    val grammarAnalysis = `MetaLanguage3$`.`MODULE$`.analyzeGrammar(cdg, "Grammar")
+    val grammar = grammarAnalysis.ngrammar()
+    val gen = Mgroup3ParserGenerator(grammar)
+    val data = gen.generate()
+    val parser = Mgroup3Parser(data)
+    val ctx = parser.parse("1 || 2")
+    val accepted = parser.isAccepted(ctx)
+    println("testLeftRecursionMultiChar: accepted=$accepted")
+    org.junit.jupiter.api.Assertions.assertTrue(accepted)
+  }
+
+  @Test
+  fun testLeftRecursionWithOpTk() {
+    // mulang 의 "||"&OpTk 패턴 mimic
+    val cdg = """
+      Grammar = E
+      E = N | E WS "||"&OpTk WS N
+      N = '0-9'+
+      OpTk = <Op>
+      Op = ('+' | '-' | "||")+
+      WS = ' '*
+    """.trimIndent()
+    val grammarAnalysis = `MetaLanguage3$`.`MODULE$`.analyzeGrammar(cdg, "Grammar")
+    val grammar = grammarAnalysis.ngrammar()
+    val gen = Mgroup3ParserGenerator(grammar)
+    val data = gen.generate()
+    val parser = Mgroup3Parser(data)
+    val ctx = parser.parse("1 || 2")
+    val accepted = parser.isAccepted(ctx)
+    println("testLeftRecursionWithOpTk: accepted=$accepted")
+    org.junit.jupiter.api.Assertions.assertTrue(accepted)
+  }
+
+  @Test
+  fun testAddStmt() {
+    val src = """
+      def f() {
+        let x = a + b
+      }
+    """.trimIndent()
+    val ctx = parseSimple(src)
+    val cdgPath = findMulangCdg()!!
+    val parser = Mgroup3Parser(loadOrGenerate(cdgPath))
+    val accepted = parser.isAccepted(ctx)
+    println("testAddStmt: accepted=$accepted, ${src.length} chars")
+    org.junit.jupiter.api.Assertions.assertTrue(accepted)
+  }
+
+  @Test
+  fun testOrWithMethodCall() {
+    val src = """
+      def f() {
+        if a.b || c.d {}
+      }
+    """.trimIndent()
+    val ctx = parseSimple(src)
+    val cdgPath = findMulangCdg()!!
+    val parser = Mgroup3Parser(loadOrGenerate(cdgPath))
+    val accepted = parser.isAccepted(ctx)
+    println("testOrWithMethodCall: accepted=$accepted, ${src.length} chars")
+    org.junit.jupiter.api.Assertions.assertTrue(accepted)
+  }
+
   // dead path 추적: step별 main path 의 milestone path + finishedKernels 자세히 출력
   @Test
   fun testTraceMainPathLifetime() {
