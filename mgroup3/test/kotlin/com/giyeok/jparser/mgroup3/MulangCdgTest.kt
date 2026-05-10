@@ -574,6 +574,56 @@ class MulangCdgTest {
   }
 
   @Test
+  fun testDebugLeftRecJoin() {
+    val cdg = """
+      Grammar = E
+      E = N | E WS "||"&OpTk WS N
+      N = '0-9'+
+      OpTk = <Op>
+      Op = ('+' | '-' | "||")+
+      WS = ' '*
+    """.trimIndent()
+    val grammarAnalysis = `MetaLanguage3$`.`MODULE$`.analyzeGrammar(cdg, "Grammar")
+    val grammar = grammarAnalysis.ngrammar()
+    val gen = Mgroup3ParserGenerator(grammar)
+    val data = gen.generate()
+    val parser = Mgroup3Parser(data)
+    val src = "1 || 2"
+    var ctx = parser.initCtx()
+    println("== init: main=${ctx.mainPaths.size}, cond=${ctx.condPaths.size}")
+    for ((root, ps) in ctx.condPaths) println("  cond ${root}: ${ps.size}")
+    for ((idx, c) in src.withIndex()) {
+      val display = if (c == ' ') "_" else c.toString()
+      try {
+        ctx = parser.parseStep(ctx, c, idx == src.length - 1)
+        println("[$idx] '$display' -> main=${ctx.mainPaths.size} cond=${ctx.condPaths.size}")
+        for ((i, p) in ctx.mainPaths.withIndex()) {
+          println("  main[$i] tip=${p.tipGroupId} acc=${p.acceptCondition}")
+        }
+        for ((root, ps) in ctx.condPaths) println("  cond ${root}: ${ps.size}")
+      } catch (e: ParsingError) {
+        println("[$idx] '$display' -> FAIL: $e")
+        // cond path (19, 3) 의 termActions 살펴보기
+        val sym19Root = PathRoot(19, 3)
+        val condPaths = ctx.condPaths[sym19Root]
+        if (condPaths != null) {
+          for ((j, cp) in condPaths.withIndex()) {
+            println("  cond (19,3) cp[$j] tip=${cp.tipGroupId} acc=${cp.acceptCondition}")
+            val termActions = data.termActionsMap[cp.tipGroupId]
+            if (termActions != null) {
+              for (ta in termActions.actionsList) {
+                val termGroupChars = ta.termGroup.toString().replace("\n", " ")
+                println("    termGroup: $termGroupChars")
+              }
+            }
+          }
+        }
+        throw e
+      }
+    }
+  }
+
+  @Test
   fun testAddStmt() {
     val src = """
       def f() {
