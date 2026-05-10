@@ -585,8 +585,10 @@ class MulangCdgTest {
     """.trimIndent()
     val grammarAnalysis = `MetaLanguage3$`.`MODULE$`.analyzeGrammar(cdg, "Grammar")
     val grammar = grammarAnalysis.ngrammar()
+    System.setProperty("mgroup3.debug.startgen", "1")
     val gen = Mgroup3ParserGenerator(grammar)
     val data = gen.generate()
+    System.setProperty("mgroup3.debug.startgen", "0")
     println("== milestoneGroups ==")
     for ((mgId, mg) in data.milestoneGroupsMap) {
       println("  mg $mgId: ${mg.kernelsList.map { "(${it.symbolId}+${it.pointer})" }}, possibleFinishes=${mg.possibleFinishesList.map { "${it.symbolId}=${it.acceptCondition.conditionCase}" }}")

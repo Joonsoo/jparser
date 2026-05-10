@@ -145,28 +145,31 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
   ) {
     // path의 tip이 만들어진 gen (= parent milestone gen)
     val parentGen = oldPath.milestonePath?.gen ?: pathRoot.startGen
+    // grandGen 매핑 — 추후 GRAND 라벨이 정확히 무엇이어야 하는지 확정 시 변경.
+    // 현재는 parent milestone 의 parent gen (= main path 의 마지막 milestone 의 startGen 후보)
+    val grandGen = oldPath.milestonePath?.parent?.gen ?: pathRoot.startGen
 
     // term action에서 발생한 finish/progress 기록
     if (termAction.hasParsingActions()) {
       for (finished in termAction.parsingActions.finishedList) {
-        val startGen = resolveGen(finished.startGen, parentGen, midGen, gen)
+        val startGen = resolveGen(finished.startGen, parentGen, midGen, gen, grandGen)
         finishesOut.add(
           FinishedKernelRecord(
             Kernel(finished.symbolId, finished.pointer, startGen),
-            finished.finishCondition.toAcceptCondition(parentGen, midGen, gen),
+            finished.finishCondition.toAcceptCondition(parentGen, midGen, gen, grandGen),
           )
         )
       }
       for (prog in termAction.parsingActions.progressedList) {
-        val startGen = resolveGen(prog.startGen, parentGen, midGen, gen)
-        val mGen = resolveGen(prog.midGen, parentGen, midGen, gen)
+        val startGen = resolveGen(prog.startGen, parentGen, midGen, gen, grandGen)
+        val mGen = resolveGen(prog.midGen, parentGen, midGen, gen, grandGen)
         progressesOut.add(ProgressedKernelRecord(prog.symbolId, prog.pointer, startGen, mGen, gen))
       }
     }
 
     // replace_and_appends: tip이 진행되어 milestone이 되고, 그 milestone 뒤에 새 mgroup이 붙음
     for (rea in termAction.replaceAndAppendsList) {
-      val newAcceptCondition = rea.append.acceptCondition.toAcceptCondition(parentGen, midGen, gen)
+      val newAcceptCondition = rea.append.acceptCondition.toAcceptCondition(parentGen, midGen, gen, grandGen)
       val combined = And.from(oldPath.acceptCondition, newAcceptCondition)
       if (combined == Never) continue
 
@@ -192,7 +195,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
 
     // replace_and_progresses: tip의 일부 milestone들이 자체 sequence 끝까지 진행되어 reduce 발생
     for (rap in termAction.replaceAndProgressesList) {
-      val newAcceptCondition = rap.acceptCondition.toAcceptCondition(parentGen, midGen, gen)
+      val newAcceptCondition = rap.acceptCondition.toAcceptCondition(parentGen, midGen, gen, grandGen)
       val combined = And.from(oldPath.acceptCondition, newAcceptCondition)
       if (combined == Never) continue
 
@@ -243,6 +246,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
   //   CURR (Prev) = grandparent gen
   //   MID  (Curr) = parent gen
   //   NEXT (Next) = gen (현재 step gen)
+  //   GRAND = grand-grand-parent gen (parentPath.parent.parent.gen)
   private fun applyEdgeAction(
     parentPath: MilestonePath,
     edgeAction: EdgeAction,
@@ -257,20 +261,22 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     rootProgressesOut: MutableMap<PathRoot, AcceptCondition>,
     observingSymbolIdsOut: MutableSet<Int>,
   ) {
+    // edge action 의 GRAND 매핑.
+    val grandGrandParentGen = parentPath.parent?.parent?.gen ?: pathRoot.startGen
     // edge action 자체에서 발생한 finish/progress 기록
     if (edgeAction.hasParsingActions()) {
       for (finished in edgeAction.parsingActions.finishedList) {
-        val startGen = resolveGen(finished.startGen, grandParentGen, parentGen, gen)
+        val startGen = resolveGen(finished.startGen, grandParentGen, parentGen, gen, grandGrandParentGen)
         finishesOut.add(
           FinishedKernelRecord(
             Kernel(finished.symbolId, finished.pointer, startGen),
-            finished.finishCondition.toAcceptCondition(grandParentGen, parentGen, gen),
+            finished.finishCondition.toAcceptCondition(grandParentGen, parentGen, gen, grandGrandParentGen),
           )
         )
       }
       for (prog in edgeAction.parsingActions.progressedList) {
-        val startGen = resolveGen(prog.startGen, grandParentGen, parentGen, gen)
-        val mGen = resolveGen(prog.midGen, grandParentGen, parentGen, gen)
+        val startGen = resolveGen(prog.startGen, grandParentGen, parentGen, gen, grandGrandParentGen)
+        val mGen = resolveGen(prog.midGen, grandParentGen, parentGen, gen, grandGrandParentGen)
         progressesOut.add(ProgressedKernelRecord(prog.symbolId, prog.pointer, startGen, mGen, gen))
       }
     }
@@ -279,7 +285,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     // (mgroup2와 같은 의미: path 구조는 그대로, tip만 바뀜)
     // 단, tip의 observingCondSymbolIds는 새 mgroup의 것으로 갱신
     for (append in edgeAction.appendMilestoneGroupsList) {
-      val condition = append.acceptCondition.toAcceptCondition(grandParentGen, parentGen, gen)
+      val condition = append.acceptCondition.toAcceptCondition(grandParentGen, parentGen, gen, grandGrandParentGen)
       val combined = And.from(prevCondition, condition)
       if (combined == Never) continue
       // parentPath를 그대로 사용하되, observingCondSymbolIds를 새 것으로 교체
@@ -299,7 +305,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     // start node progress: parent 자체가 진행되어 reduce
     if (edgeAction.hasStartNodeProgress()) {
       val startNodeProgressCondition =
-        edgeAction.startNodeProgress.toAcceptCondition(grandParentGen, parentGen, gen)
+        edgeAction.startNodeProgress.toAcceptCondition(grandParentGen, parentGen, gen, grandGrandParentGen)
       val combined = And.from(prevCondition, startNodeProgressCondition)
       if (combined != Never) {
         val grandParent = parentPath.parent
@@ -344,11 +350,12 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     }
   }
 
-  private fun resolveGen(genTag: KernelTemplateGen, currGen: Int, midGen: Int, nextGen: Int): Int =
+  private fun resolveGen(genTag: KernelTemplateGen, currGen: Int, midGen: Int, nextGen: Int, grandGen: Int = currGen): Int =
     when (genTag) {
       KernelTemplateGen.CURR -> currGen
       KernelTemplateGen.MID -> midGen
       KernelTemplateGen.NEXT -> nextGen
+      KernelTemplateGen.GRAND -> grandGen
       else -> currGen
     }
 
@@ -805,37 +812,37 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     }
   }
 
-  private fun AcceptConditionTemplate.toAcceptCondition(prevGen: Int, midGen: Int, gen: Int): AcceptCondition =
+  private fun AcceptConditionTemplate.toAcceptCondition(prevGen: Int, midGen: Int, gen: Int, grandGen: Int = prevGen): AcceptCondition =
     when (conditionCase) {
       AcceptConditionTemplate.ConditionCase.ALWAYS -> Always
       AcceptConditionTemplate.ConditionCase.AND ->
-        And.from(this.and.conditionsList.map { it.toAcceptCondition(prevGen, midGen, gen) }.toSet())
+        And.from(this.and.conditionsList.map { it.toAcceptCondition(prevGen, midGen, gen, grandGen) }.toSet())
 
       AcceptConditionTemplate.ConditionCase.OR ->
-        Or.from(this.or.conditionsList.map { it.toAcceptCondition(prevGen, midGen, gen) }.toSet())
+        Or.from(this.or.conditionsList.map { it.toAcceptCondition(prevGen, midGen, gen, grandGen) }.toSet())
 
       AcceptConditionTemplate.ConditionCase.NO_LONGER_MATCH -> {
-        val startGen = resolveGen(noLongerMatch.startGen, prevGen, midGen, gen)
+        val startGen = resolveGen(noLongerMatch.startGen, prevGen, midGen, gen, grandGen)
         NoLongerMatch(noLongerMatch.symbolId, startGen, gen)
       }
 
       AcceptConditionTemplate.ConditionCase.LOOKAHEAD_FOUND -> {
-        val startGen = resolveGen(lookaheadFound.startGen, prevGen, midGen, gen)
+        val startGen = resolveGen(lookaheadFound.startGen, prevGen, midGen, gen, grandGen)
         Exists(lookaheadFound.symbolId, startGen)
       }
 
       AcceptConditionTemplate.ConditionCase.LOOKAHEAD_NOTFOUND -> {
-        val startGen = resolveGen(lookaheadNotfound.startGen, prevGen, midGen, gen)
+        val startGen = resolveGen(lookaheadNotfound.startGen, prevGen, midGen, gen, grandGen)
         NotExists(lookaheadNotfound.symbolId, startGen)
       }
 
       AcceptConditionTemplate.ConditionCase.EXCEPT -> {
-        val startGen = resolveGen(except.startGen, prevGen, midGen, gen)
+        val startGen = resolveGen(except.startGen, prevGen, midGen, gen, grandGen)
         Unless(except.symbolId, startGen)
       }
 
       AcceptConditionTemplate.ConditionCase.JOIN -> {
-        val startGen = resolveGen(join.startGen, prevGen, midGen, gen)
+        val startGen = resolveGen(join.startGen, prevGen, midGen, gen, grandGen)
         OnlyIf(join.symbolId, startGen)
       }
 

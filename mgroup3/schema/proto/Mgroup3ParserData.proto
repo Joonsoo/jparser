@@ -184,4 +184,8 @@ enum KernelTemplateGen {
   CURR = 0;
   MID = 1;
   NEXT = 2;
+  // grand-parent milestone gen: main path 의 parent milestone 의 parent milestone 의 endGen.
+  // = main path 의 마지막 milestone 의 startGen.
+  // NJoin / NLongest / NExcept 처럼 매치 시작 시점이 milestone 의 startGen 인 condition 에 사용.
+  GRAND = 3;
 }

@@ -179,10 +179,6 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
         newTasks.add(GenParsingTask.Derive(d))
       }
       val isNewEdge = graph.addEdge(node, d)
-      // d로 들어가는 새 incoming edge가 추가되었을 때, 이미 d 또는 d의 progress 결과가 finish된 적이 있으면
-      // 그 finish chain의 progress가 node로도 전파되어야 한다.
-      // - d 자체가 finished (예: NSeq empty가 즉시 finish): d의 condition 사용
-      // - d의 progress 결과 finished (pointer >= 1): 그 condition 사용
       if (isNewEdge) {
         for (finished in graph.finishedNodes) {
           if (finished.symbolId == d.symbolId && finished.startGen == d.startGen) {
@@ -337,7 +333,6 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
       }
 
       is NGrammar.NExcept -> {
-        // condition의 startGen 은 이 atomic symbol 의 derive 시점 = node.startGen
         processAtomicSymbol(GenAcceptCondition.Unless(symbol.except(), node.startGen))
       }
 

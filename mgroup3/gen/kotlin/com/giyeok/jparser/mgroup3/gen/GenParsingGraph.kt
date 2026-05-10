@@ -148,13 +148,17 @@ enum class GenNodeGeneration {
   Prev,
   Curr,
   Mid, // mid-edge 계산 도중에 등장함 (Curr와 같은 의미)
-  Next;
+  Next,
+  // Grand: main path 의 parent milestone 의 *parent* milestone gen (= 마지막 milestone 의 startGen).
+  // NJoin/NLongest/NExcept 같이 매치 시작 시점이 milestone startGen 인 case 에 사용.
+  Grand;
 
   fun toProto(): KernelTemplateGen = when (this) {
     Prev -> KernelTemplateGen.CURR
     Curr -> KernelTemplateGen.MID
     Mid -> KernelTemplateGen.MID
     Next -> KernelTemplateGen.NEXT
+    Grand -> KernelTemplateGen.GRAND
   }
 }
 
