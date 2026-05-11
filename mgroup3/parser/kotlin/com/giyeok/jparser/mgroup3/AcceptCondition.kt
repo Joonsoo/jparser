@@ -15,7 +15,20 @@ data object Never: AcceptCondition() {
   override fun neg(): AcceptCondition = Always
 }
 
-data class And(val conds: Set<AcceptCondition>): AcceptCondition() {
+class And(val conds: Set<AcceptCondition>): AcceptCondition() {
+  // Manual hashCode/equals with cached hashCode — data class 의 매번 deep hash 가 hot path 에서 dominant.
+  private var _hashCode: Int = 0
+  private var _hashCodeComputed: Boolean = false
+  override fun hashCode(): Int {
+    if (!_hashCodeComputed) {
+      _hashCode = conds.hashCode()
+      _hashCodeComputed = true
+    }
+    return _hashCode
+  }
+  override fun equals(other: Any?): Boolean = this === other || (other is And && conds == other.conds)
+  override fun toString(): String = "And(conds=$conds)"
+
   companion object {
     fun from(a: AcceptCondition, b: AcceptCondition): AcceptCondition =
       from(setOf(a, b))
@@ -46,7 +59,19 @@ data class And(val conds: Set<AcceptCondition>): AcceptCondition() {
   override fun neg(): AcceptCondition = Or.from(conds.map { it.neg() }.toSet())
 }
 
-data class Or(val conds: Set<AcceptCondition>): AcceptCondition() {
+class Or(val conds: Set<AcceptCondition>): AcceptCondition() {
+  private var _hashCode: Int = 0
+  private var _hashCodeComputed: Boolean = false
+  override fun hashCode(): Int {
+    if (!_hashCodeComputed) {
+      _hashCode = conds.hashCode()
+      _hashCodeComputed = true
+    }
+    return _hashCode
+  }
+  override fun equals(other: Any?): Boolean = this === other || (other is Or && conds == other.conds)
+  override fun toString(): String = "Or(conds=$conds)"
+
   companion object {
     fun from(a: AcceptCondition, b: AcceptCondition): AcceptCondition =
       from(setOf(a, b))

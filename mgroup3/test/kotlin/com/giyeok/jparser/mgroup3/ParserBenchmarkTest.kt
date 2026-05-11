@@ -25,7 +25,7 @@ class ParserBenchmarkTest {
   // 으로 명시적으로 이 클래스를 선택해도 @Disabled 면 실행 안 되므로, 일단 수동으로 @Disabled
   // 해제 후 runParserBenchmark 실행. (간단한 절차로 우선)
   @Test
-  @Disabled("manual benchmark. Unannotate @Disabled and run runParserBenchmark action.")
+  @Disabled("manual benchmark. Unannotate to run via runParserBenchmark action.")
   fun benchmarkThreeParsers() {
     // Grammar: arithmetic with NJoin ("||" must be on Op-token boundary) + NLongest (OpTk = longest Op).
     val grammarText = """
@@ -102,13 +102,15 @@ class ParserBenchmarkTest {
         m3Parser.parse(input)
       }
 
-      // Measurement
+      // Measurement (parse only, accept evaluation 제외)
       val n = 30
       val m2Times = LongArray(n)
       val ktTimes = LongArray(n)
       val m3Times = LongArray(n)
+      // mgroup3 의 step-별 breakdown 측정용 (n 번 측정 후 평균).
+      var m3InitMs = 0.0
+      var m3StepMs = 0.0
       for (i in 0 until n) {
-        // 각 측정 사이에 GC 약간 안정화. (간단한 hint, force 아님)
         System.gc()
         Thread.sleep(5)
         m2Times[i] = measureNanoTime { m2Parser.parse(Inputs.fromString(input)) }
@@ -119,6 +121,19 @@ class ParserBenchmarkTest {
         Thread.sleep(5)
         m3Times[i] = measureNanoTime { m3Parser.parse(input) }
       }
+      // m3 의 ctx 통계 (마지막 ctx, 한 번만).
+      val ctxFinal = m3Parser.parse(input)
+      val mainPathsAvg = ctxFinal.mainPaths.size
+      val condPathsCount = ctxFinal.condPaths.size
+      val historySize = ctxFinal.history.size
+      val totalCondPaths = ctxFinal.condPaths.values.sumOf { it.size }
+      // MilestonePath depth — 첫 main path 의 depth.
+      val mpDepth = ctxFinal.mainPaths.keys.firstOrNull()?.let {
+        var d = 0; var mp = it.milestonePath
+        while (mp != null) { d++; mp = mp.parent }
+        d
+      } ?: 0
+      println("    [m3 final ctx] mainPaths=$mainPathsAvg, condRoots=$condPathsCount, totalCondPaths=$totalCondPaths, history.size=$historySize, mpDepth=$mpDepth")
 
       println("%-8d | %-10d | %-12s %-12s %-12s | %-12s %-12s %-12s | %-12s %-12s %-12s".format(
         size, inputChars,

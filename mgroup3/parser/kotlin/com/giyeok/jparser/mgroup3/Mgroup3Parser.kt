@@ -12,6 +12,21 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
   // null 이면 trace 안 함. setTrace(gen) 으로 활성.
   private var traceGen: Int? = null
 
+  // Phase timing — debugging/benchmark 용. resetPhaseTimers() 후 parse 하고 reportPhaseTimers() 로 출력.
+  val phaseNanos: LongArray = LongArray(8)
+  fun resetPhaseTimers() { for (i in phaseNanos.indices) phaseNanos[i] = 0L }
+  fun reportPhaseTimers(): String {
+    val labels = listOf("step1", "step1b", "step2", "step3", "step4", "step5_evolve", "step6_prune", "step7_history")
+    val total = phaseNanos.sum()
+    val sb = StringBuilder("phase timing (total ${total / 1_000_000}ms): ")
+    for (i in phaseNanos.indices) {
+      val ms = phaseNanos[i] / 1_000_000.0
+      val pct = if (total > 0) 100.0 * phaseNanos[i] / total else 0.0
+      sb.append("${labels[i]}=${"%.1f".format(ms)}ms(${"%.1f".format(pct)}%) ")
+    }
+    return sb.toString()
+  }
+
   fun setVerbose(): Mgroup3Parser {
     verbose = true
     return this
@@ -89,7 +104,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       mainRoot = mainRoot,
       mainPaths = mainPaths,
       condPaths = initialCondPaths,
-      history = listOf(initialEntry),
+      history = arrayListOf(initialEntry),
     )
   }
 
@@ -377,6 +392,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       println("  ctx.mainPaths.size=${ctx.mainPaths.size}, condPaths.size=${ctx.condPaths.size}")
     }
 
+    var tPhase = System.nanoTime()
+
     // step 1: main paths 에 term action 적용
     for ((idx, entry) in ctx.mainPaths.entries.withIndex()) {
       val shape = entry.key
@@ -426,11 +443,13 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       }
     }
 
+    run { val t = System.nanoTime(); phaseNanos[0] += t - tPhase; tPhase = t }
+
     // step 1b: main path termAction 결과 등록된 condRootStartersFromTerm 의 starter 들에 같은 input 적용.
     val nextCondPaths = mutableMapOf<PathRoot, MutableMap<PathShape, AcceptCondition>>()
     for ((starterRoot, mgroupId) in condRootStartersFromTerm) {
       if (starterRoot in ctx.condPaths.keys) continue
-      if (ctx.history.any { starterRoot in it.activeCondPaths }) continue
+      if (starterRoot in ctx.everSeenCondRoots) continue
       val rootInfo = data.pathRootsMap[starterRoot.symbolId] ?: continue
       val starterShape = PathShape(null, mgroupId)
       val ta = findApplicableAction(starterShape, input)
@@ -463,6 +482,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         rootProgresses[starterRoot] = if (existing != null) Or.from(existing, cond) else cond
       }
     }
+
+    run { val t = System.nanoTime(); phaseNanos[1] += t - tPhase; tPhase = t }
 
     // step 2: cond paths 에 term action 적용
     for ((root, pathMap) in ctx.condPaths) {
@@ -509,6 +530,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       }
     }
 
+    run { val t = System.nanoTime(); phaseNanos[2] += t - tPhase; tPhase = t }
+
     // step 3: 새로 등장한 cond symbol 에 대해 cond path 시작.
     val newCondRootSyms = observingOut.toSet()
     val allObservingSyms = mutableSetOf<Int>()
@@ -549,10 +572,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     }
 
     // history 에 한 번이라도 등장한 적 있는 cond root 은 skip.
-    val everSeenCondRoots = mutableSetOf<PathRoot>()
-    for (entry in ctx.history) {
-      everSeenCondRoots.addAll(entry.activeCondPaths)
-    }
+    // ctx.everSeenCondRoots 는 이전 step 까지 누적된 active roots — O(1) amortized 로 share.
+    val everSeenCondRoots = ctx.everSeenCondRoots
     for (pathRoot in newCondRoots) {
       if (pathRoot in ctx.condPaths.keys || pathRoot in nextCondPaths.keys) continue
       if (pathRoot in everSeenCondRoots) continue
@@ -589,6 +610,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     }
 
 
+    run { val t = System.nanoTime(); phaseNanos[3] += t - tPhase; tPhase = t }
+
     // step 4: condPath finish detection
     val condPathFinishes = mutableMapOf<PathRoot, AcceptCondition>()
     for ((root, cond) in rootProgresses) {
@@ -602,6 +625,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         condPathFinishes[root] = if (existing != null) Or.from(existing, cond) else cond
       }
     }
+
+    run { val t = System.nanoTime(); phaseNanos[4] += t - tPhase; tPhase = t }
 
     // step 5: 모든 path 의 acceptCondition 을 evolve
     val activeCondRoots = nextCondPaths.keys
@@ -644,6 +669,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       println("  after evolve: mainPathsEvolved.size=${mainPathsEvolved.size}")
     }
 
+    run { val t = System.nanoTime(); phaseNanos[5] += t - tPhase; tPhase = t }
+
     // step 6: 사용되지 않는 cond path 제거
     val referencedRoots = mutableSetOf<PathRoot>()
     fun collectReferenced(cond: AcceptCondition) {
@@ -676,6 +703,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
 
     val condPathsFiltered = condPathsEvolved.filter { (root, _) -> root in referencedRoots }
 
+    run { val t = System.nanoTime(); phaseNanos[6] += t - tPhase; tPhase = t }
+
     // step 7: 입력 종료 시점이 아닌데 main path 모두 사라진 경우 에러
     if (!isLastInput && mainPathsEvolved.isEmpty()) {
       throw ParsingError.UnexpectedInput(ctx.gen, ctx.line, ctx.col, expectedInputsOf(ctx), input)
@@ -688,6 +717,15 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       activeCondPaths = condPathsFiltered.keys.toSet(),
     )
 
+    // history / everSeenCondRoots 는 mutable 로 share — parser 의 chain 사용 패턴 안전.
+    val nextHistory: ArrayList<HistoryEntry> = ctx.history as? ArrayList<HistoryEntry>
+      ?: ArrayList(ctx.history)
+    nextHistory.add(historyEntry)
+    // 이번 step 의 active 를 누적 (Phase 3 의 O(n) traverse 회피).
+    ctx.everSeenCondRoots.addAll(historyEntry.activeCondPaths)
+
+    run { val t = System.nanoTime(); phaseNanos[7] += t - tPhase }
+
     return ParsingCtx(
       gen = gen,
       line = nextLine,
@@ -695,7 +733,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       mainRoot = ctx.mainRoot,
       mainPaths = mainPathsEvolved,
       condPaths = condPathsFiltered,
-      history = ctx.history + historyEntry,
+      history = nextHistory,
+      everSeenCondRoots = ctx.everSeenCondRoots,
     )
   }
 

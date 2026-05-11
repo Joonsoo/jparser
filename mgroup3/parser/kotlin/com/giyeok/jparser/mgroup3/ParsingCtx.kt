@@ -1,11 +1,26 @@
 package com.giyeok.jparser.mgroup3
 
 // Path 의 "모양" — graph 상의 위치 (milestonePath, tipGroupId). acceptCondition 은 PathMap 의 value 에서 분리.
-data class PathShape(
-  // null 이면 starter path (root 가 tipGroupId 에 포함된 경우).
+class PathShape(
   val milestonePath: MilestonePath?,
   val tipGroupId: Int,
-)
+) {
+  private var _hashCode: Int = 0
+  private var _hashCodeComputed: Boolean = false
+  override fun hashCode(): Int {
+    if (!_hashCodeComputed) {
+      _hashCode = 31 * (milestonePath?.hashCode() ?: 0) + tipGroupId
+      _hashCodeComputed = true
+    }
+    return _hashCode
+  }
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (other !is PathShape) return false
+    return tipGroupId == other.tipGroupId && milestonePath == other.milestonePath
+  }
+  override fun toString(): String = "PathShape(milestonePath=$milestonePath, tipGroupId=$tipGroupId)"
+}
 
 // PathShape → 그 shape 에 도달한 acceptCondition (여러 source 가 같은 shape 에 도달하면 Or 로 합쳐짐).
 typealias PathMap = Map<PathShape, AcceptCondition>
@@ -21,6 +36,9 @@ data class ParsingCtx(
   // 매 step 마다 발생한 actions 를 저장 (parse tree 복원에 쓰일 수 있음).
   // 0 번째 entry 는 initialCtx 에서 발생한 actions, 이후 i 번째 entry 는 i 번째 input 처리 결과.
   val history: List<HistoryEntry>,
+  // history 의 모든 entry.activeCondPaths 의 누적 union. step 마다 새 active 만 추가하여 O(1) amortized.
+  // history 와 마찬가지로 mutable 로 share — parser 의 chain 사용 패턴 안전.
+  val everSeenCondRoots: MutableSet<PathRoot> = mutableSetOf(),
 )
 
 data class HistoryEntry(
