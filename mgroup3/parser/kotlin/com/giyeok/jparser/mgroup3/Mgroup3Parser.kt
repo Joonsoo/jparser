@@ -193,7 +193,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       )
       observingSymbolIdsOut.addAll(rea.append.observingCondSymbolIdsList)
       for (starter in rea.append.condRootStartersList) {
-        condRootStartersOut[PathRoot(starter.symbolId, midGen)] = starter.milestoneGroupId
+        // mgroup2 의 lookaheadRequiringSymbols 와 같은 의미: 새 cond root 의 startGen = 이번 input 처리 후 gen.
+        condRootStartersOut[PathRoot(starter.symbolId, gen)] = starter.milestoneGroupId
       }
     }
 
@@ -291,7 +292,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       )
       observingSymbolIdsOut.addAll(append.observingCondSymbolIdsList)
       for (starter in append.condRootStartersList) {
-        condRootStartersOut[PathRoot(starter.symbolId, parentGen)] = starter.milestoneGroupId
+        // edge action 에서도 새 cond root 의 startGen = 이번 input 처리 후 gen.
+        condRootStartersOut[PathRoot(starter.symbolId, gen)] = starter.milestoneGroupId
       }
     }
 

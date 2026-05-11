@@ -250,7 +250,10 @@ private fun evolveAcceptCondition(
         val finCond = condPathFins[root]
         if (finCond != null && root !in visiting) rec(finCond.neg(), visiting + root)
         else if (root in visiting) {
-          // visiting fallback: 자기 root 가 expansion chain 위에 있음. 의미적으로 tautology — Always 로 단순화.
+          // visiting fallback: 자기 root 가 expansion chain 위에 있음.
+          // 외부에서 finCond.neg() evolve 안에 자기 NoLongerMatch 등장한 케이스.
+          // 의미상 "(r) 의 finish 자체가 invalid (no longer)" — 외부 NoLongerMatch evolve 결과의 한 항이며,
+          // tautology 로 만족 → Always (외부 disjunct/conjunct 에서 단순화에 기여하지 않음).
           Always
         }
         else if (root in activeCondPaths) cond
@@ -265,8 +268,8 @@ private fun evolveAcceptCondition(
         val finCond = condPathFins[root]
         if (finCond != null && root !in visiting) rec(finCond, visiting + root)
         else if (root in visiting) {
-          // visiting fallback: 자기 root tautology — Never (NeedLongerMatch 는 NoLongerMatch 의 negation).
-          Never
+          // visiting fallback: 자기 root 가 expansion chain 위에 있음. tautology — Always.
+          Always
         }
         else if (root in activeCondPaths) cond
         else Never

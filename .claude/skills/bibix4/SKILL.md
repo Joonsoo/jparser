@@ -40,17 +40,26 @@ Run an action: `/Users/joonsoo/Documents/apps/bibix4/bibix4 runMgroup3Test`.
 
 ## Reading test results
 
-Each action writes a streaming log to:
+Two log locations:
 
-```
-bbx4build/logs/actions/jparser.<actionName>/context.log
-```
+1. **Streaming action log** — `bbx4build/logs/actions/jparser.<actionName>/context.log`. The action-level events (which test is running, summary counts, failure markers).
+
+2. **Per-call stdout/stderr** — `bbx4build/logs/outputs/jparser.<actionName>/call-*/cmd-001.{stdout,stderr}`. The actual program output (println, traces, etc.). When you add `setTrace(gen)` or other diagnostic prints, this is where they land.
 
 The tool's stdout shows summary lines like `[97 tests successful] [1 tests failed]`. To find **which** test failed, grep the context.log:
 
 ```bash
 grep -i "fail\|Failures" bbx4build/logs/actions/jparser.runMgroup3Test/context.log | tail
 ```
+
+To see actual test output (println, exception messages, traces), look at the per-call stdout:
+
+```bash
+ls bbx4build/logs/outputs/jparser.runMgroup3Test/        # find latest call-xxx
+grep -A 50 "TRACE parseStep" bbx4build/logs/outputs/jparser.runMgroup3Test/call-*/cmd-001.stdout
+```
+
+**Don't re-run bibix4 just to see output.** After an action completes, the logs above already contain everything stdout/stderr produced — read those instead of re-running.
 
 Failure markers look like:
 ```
