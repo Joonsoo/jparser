@@ -324,12 +324,21 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
             val replaceAndAppendBuilder = taBuilder.addReplaceAndAppendsBuilder()
             replaceAndAppendBuilder.setReplace(parentMilestone.toKernelTemplateProto())
             val append = replaceAndAppendBuilder.appendBuilder
-            append.milestoneGroupId = milestoneGroupIdOf(subReachables.toSet())
+            val newMgroupId = milestoneGroupIdOf(subReachables.toSet())
+            append.milestoneGroupId = newMgroupId
             append.acceptCondition = acc.toProto()
-            // 추가되는 group의 cond symbols + 그 acc에서 사용되는 cond symbols
+            // 추가되는 group의 cond symbols + 그 acc에서 사용되는 cond symbols +
+            // 새 milestone group 의 derive 결과 observing cond syms (mgroup2 의 lookaheadRequiringSymbols 와 동일).
             val condSymbols = mutableSetOf<Int>()
             condSymbols.addAll(g2.observingCondSymbolIds)
             observedCondSymbolsFromAcc(acc, condSymbols)
+            // 새 milestone group 의 derive graph 의 observingCondSymbolIds.
+            // 새 group 의 milestone 들에서 시작하는 derive 가 NJoin/NLongest 등 만나면 그 cond_sym 도 추적해야 함.
+            val newMgroupNodes = subReachables.map {
+              GenNode(it.symbolId, it.pointer, Prev, Curr)
+            }.toSet()
+            val newMgroupGraph = tasks.derivedFrom(newMgroupNodes)
+            condSymbols.addAll(newMgroupGraph.observingCondSymbolIds)
             append.addAllObservingCondSymbolIds(condSymbols.sorted())
             // mgroup2 의 lookahead_requiring_symbols 와 동일한 정보: 각 cond root sym 의 starter milestone group id.
             // runtime 에서 main path 가 이 milestone group 을 attach 하는 시점에 starter 도 같이 시작.

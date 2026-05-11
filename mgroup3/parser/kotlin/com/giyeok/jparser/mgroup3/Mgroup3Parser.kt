@@ -571,34 +571,31 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         val cond = rootInfo.selfFinishAcceptCondition.toAcceptCondition(pathRoot.startGen, pathRoot.startGen, gen)
         newCondRootProgresses[pathRoot] = cond
       }
-      // starter cond path 처리.
-      // pathRoot.startGen == gen (fromNextGen=true 의미): starter는 NEXT step부터 진행. input 적용 안 함.
-      // pathRoot.startGen < gen: starter는 startGen 시점부터. 이번 step input 까지 적용.
+      // starter cond path 처리: mgroup2 와 동일하게, starter 는 이번 step input 까지 적용 + 다음 step 부터도 진행.
       val starterPath = ParsingPath(null, rootInfo.milestoneGroupId, Always)
-      if (pathRoot.startGen == gen) {
+      val ta = findApplicableAction(starterPath, input)
+      val nextPaths = mutableListOf<ParsingPath>()
+      if (ta != null) {
+        val ignoredStarters = mutableMapOf<PathRoot, Int>()
+        applyTermAction(
+          oldPath = starterPath,
+          pathRoot = pathRoot,
+          termAction = ta,
+          midGen = ctx.gen,
+          gen = gen,
+          nextPathsOut = nextPaths,
+          finishesOut = finishesByGroup,
+          progressesOut = progressesByGroup,
+          rootProgressesOut = newCondRootProgresses,
+          observingSymbolIdsOut = observingOut,
+          condRootStartersOut = ignoredStarters,
+        )
+      }
+      if (nextPaths.isNotEmpty()) {
+        nextCondPaths[pathRoot] = nextPaths
+      } else if (pathRoot.startGen == gen) {
+        // starter 가 input 못 받아 dead 였지만 startGen=gen (next step 부터 진행 가능 의미) → starter 그대로 추가.
         nextCondPaths[pathRoot] = mutableListOf(starterPath)
-      } else {
-        val ta = findApplicableAction(starterPath, input)
-        if (ta != null) {
-          val nextPaths = mutableListOf<ParsingPath>()
-          val ignoredStarters = mutableMapOf<PathRoot, Int>()
-          applyTermAction(
-            oldPath = starterPath,
-            pathRoot = pathRoot,
-            termAction = ta,
-            midGen = ctx.gen,
-            gen = gen,
-            nextPathsOut = nextPaths,
-            finishesOut = finishesByGroup,
-            progressesOut = progressesByGroup,
-            rootProgressesOut = newCondRootProgresses,
-            observingSymbolIdsOut = observingOut,
-            condRootStartersOut = ignoredStarters,
-          )
-          if (nextPaths.isNotEmpty()) {
-            nextCondPaths[pathRoot] = nextPaths
-          }
-        }
       }
     }
 
