@@ -686,40 +686,85 @@ class MulangCdgTest {
 
   @Test
   fun testTryLetMu() {
-    // try_let.mu — testAllMulangExamples 의 SO 시작 file
+    // try_let.mu — fail 위치/원인 분석.
     val cdgPath = findMulangCdg() ?: return
     val data = loadOrGenerate(cdgPath)
     val parser = Mgroup3Parser(data)
-    parser.setVerbose()
+    // parser.setTrace(842) // testTryLetMu 분석용 — fail step (gen=842) 의 evolve trace.
     val srcPath = Path("../mulang/examples/try_let.mu")
     if (!srcPath.exists()) return
     val src = srcPath.readText()
     var ctx = parser.initCtx()
-    val start = System.currentTimeMillis()
     var lastIdx = -1
     try {
       for ((idx, c) in src.withIndex()) {
         ctx = parser.parseStep(ctx, c, idx == src.length - 1)
         lastIdx = idx
       }
-      val end = System.currentTimeMillis()
       val accepted = parser.isAccepted(ctx)
-      println("testTryLetMu: ${src.length} chars, ${end - start}ms, accepted=$accepted")
+      println("testTryLetMu: ${src.length} chars, accepted=$accepted")
       org.junit.jupiter.api.Assertions.assertTrue(accepted)
-    } catch (e: StackOverflowError) {
-      val line = src.substring(0, lastIdx + 1).count { it == '\n' }
-      println("testTryLetMu: SO at idx=$lastIdx (line ~$line). main=${ctx.mainPaths.size}, cond=${ctx.condPaths.size}")
-      // condPathFinishes 검사 — last history entry
+    } catch (e: ParsingError.UnexpectedInput) {
+      val failIdx = lastIdx + 1
+      val failChar = src[failIdx]
+      val before = src.substring(0, failIdx)
+      val line = before.count { it == '\n' }
+      val lineStart = before.lastIndexOf('\n').let { if (it < 0) 0 else it + 1 }
+      val col = failIdx - lineStart
+      val lineEndIdx = src.indexOf('\n', failIdx).let { if (it < 0) src.length else it }
+      val curLine = src.substring(lineStart, lineEndIdx)
+      println("testTryLetMu: UnexpectedInput at idx=$failIdx (line $line col $col), char='$failChar'")
+      println("  line:  $curLine")
+      println("  here:  ${" ".repeat(col)}^")
+      println("  mainPaths.size=${ctx.mainPaths.size}, condPaths.size=${ctx.condPaths.size}")
+      println("  ctx.gen=${ctx.gen}")
+      // 어느 main path 가 fail char 의 term action 을 가지고 있고, 어떤 condition 으로 죽었는지 추적.
+      println("  --- paths whose termAction matches '$failChar' ---")
+      var matchCount = 0
+      for ((i, p) in ctx.mainPaths.entries.withIndex()) {
+        val ta = parser.findApplicableAction(p.key, failChar)
+        if (ta != null) {
+          matchCount++
+          println("  main[$i] tip=${p.tipGroupId} match!")
+          println("    pathCond = ${p.value.toString().take(300)}")
+          var mp = p.milestonePath
+          var d = 0
+          while (mp != null && d < 8) {
+            println("    mp[$d] (${mp.milestone.symbolId}+${mp.milestone.pointer}@${mp.milestone.gen}) gen=${mp.gen}")
+            mp = mp.parent
+            d++
+          }
+          // 그 termAction 의 replaceAndAppends / replaceAndProgresses 의 acceptCondition 보기.
+          for (rea in ta.replaceAndAppendsList) {
+            println("    rea: replace=(${rea.replace.symbolId}+${rea.replace.pointer}) appendMg=${rea.append.milestoneGroupId} appendCond=${rea.append.acceptCondition.toString().replace("\n", " ").take(200)}")
+          }
+          for (rap in ta.replaceAndProgressesList) {
+            println("    rap: replaceMg=${rap.replaceMilestoneGroupId} rapCond=${rap.acceptCondition.toString().replace("\n", " ").take(200)}")
+          }
+        }
+      }
+      println("  total matching paths: $matchCount")
+      // history 마지막 entry 의 condPathFinishes — 어떤 cond root 들이 finish 했는지
       val lastEntry = ctx.history.lastOrNull()
       if (lastEntry != null) {
-        println("  condPathFinishes (size=${lastEntry.condPathFinishes.size}):")
-        for ((root, cond) in lastEntry.condPathFinishes.entries.take(10)) {
-          println("    $root => $cond")
+        println("  --- last condPathFinishes (size=${lastEntry.condPathFinishes.size}) ---")
+        for ((root, cond) in lastEntry.condPathFinishes.entries.take(15)) {
+          println("    $root =>")
+          for (sub in flattenAnd(cond)) {
+            println("        $sub")
+          }
         }
-        if (lastEntry.condPathFinishes.size > 10) println("    ... (${lastEntry.condPathFinishes.size - 10} more)")
       }
+      // active cond paths
+      println("  --- activeCondPaths ---")
+      println("  ${ctx.condPaths.keys.take(30)}")
       throw e
     }
+  }
+
+  private fun flattenAnd(cond: AcceptCondition): List<AcceptCondition> = when (cond) {
+    is And -> cond.conds.flatMap { flattenAnd(it) }
+    else -> listOf(cond)
   }
 
   private fun depthOf(cond: AcceptCondition): Int = when (cond) {

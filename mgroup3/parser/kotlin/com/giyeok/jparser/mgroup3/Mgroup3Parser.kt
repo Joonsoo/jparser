@@ -8,11 +8,21 @@ import java.util.*
 
 class Mgroup3Parser(val data: Mgroup3ParserData) {
   private var verbose = false
+  // 특정 step (= 이 gen 으로 진행되는 parseStep) 에서 trace 출력.
+  // null 이면 trace 안 함. setTrace(gen) 으로 활성.
+  private var traceGen: Int? = null
 
   fun setVerbose(): Mgroup3Parser {
     verbose = true
     return this
   }
+
+  fun setTrace(gen: Int): Mgroup3Parser {
+    traceGen = gen
+    return this
+  }
+
+  private fun traceOn(gen: Int): Boolean = traceGen == gen
 
   // (parent symbol, parent pointer, tip group id) -> edge action
   val tipEdgeActionsMap: Map<Pair<KernelTemplatePair, Int>, EdgeAction> =
@@ -359,9 +369,39 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     val rootProgresses = mutableMapOf<PathRoot, AcceptCondition>()
     val condRootStartersFromTerm = mutableMapOf<PathRoot, Int>()
 
+    val trace = traceOn(gen)
+    if (trace) {
+      println("=== TRACE parseStep gen=$gen input='${if (input == '\n') "\\n" else input.toString()}' ===")
+      println("  ctx.mainPaths.size=${ctx.mainPaths.size}, condPaths.size=${ctx.condPaths.size}")
+    }
+
     // step 1: main paths 에 term action 적용
-    for ((shape, cond) in ctx.mainPaths) {
+    for ((idx, entry) in ctx.mainPaths.entries.withIndex()) {
+      val shape = entry.key
+      val cond = entry.value
       val ta = findApplicableAction(shape, input) ?: continue
+      if (trace) {
+        val before = nextMainPaths.size
+        println("  main[$idx] tip=${shape.tipGroupId} matched.")
+        println("    cond=${cond.toString().take(300)}")
+        applyTermAction(
+          oldShape = shape,
+          oldCondition = cond,
+          pathRoot = ctx.mainRoot,
+          termAction = ta,
+          midGen = ctx.gen,
+          gen = gen,
+          nextPathsOut = nextMainPaths,
+          finishesOut = finishesByGroup,
+          progressesOut = progressesByGroup,
+          rootProgressesOut = rootProgresses,
+          observingSymbolIdsOut = observingOut,
+          condRootStartersOut = condRootStartersFromTerm,
+        )
+        val after = nextMainPaths.size
+        println("    => produced ${after - before} new entries (nextMainPaths now $after)")
+        continue
+      }
       applyTermAction(
         oldShape = shape,
         oldCondition = cond,
@@ -376,6 +416,12 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         observingSymbolIdsOut = observingOut,
         condRootStartersOut = condRootStartersFromTerm,
       )
+    }
+    if (trace) {
+      println("  after step 1: nextMainPaths.size=${nextMainPaths.size}")
+      for ((i, e) in nextMainPaths.entries.withIndex()) {
+        println("    nm[$i] tip=${e.key.tipGroupId} cond=${e.value.toString().take(200)}")
+      }
     }
 
     // step 1b: main path termAction 결과 등록된 condRootStartersFromTerm 의 starter 들에 같은 input 적용.
@@ -558,11 +604,29 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     // step 5: 모든 path 의 acceptCondition 을 evolve
     val activeCondRoots = nextCondPaths.keys
 
-    fun evolveMap(paths: Map<PathShape, AcceptCondition>): Map<PathShape, AcceptCondition> {
+    if (trace) {
+      println("  --- step 5 evolve ---")
+      println("  condPathFinishes (${condPathFinishes.size}):")
+      for ((r, c) in condPathFinishes) {
+        println("    $r => ${c.toString().take(300)}")
+      }
+      println("  activeCondRoots (${activeCondRoots.size}): ${activeCondRoots.take(20)}")
+    }
+
+    fun evolveMap(paths: Map<PathShape, AcceptCondition>, label: String = ""): Map<PathShape, AcceptCondition> {
       if (paths.isEmpty()) return paths
       val result = LinkedHashMap<PathShape, AcceptCondition>()
       for ((shape, cond) in paths) {
+        if (trace && label == "main") {
+          println("  evolve main tip=${shape.tipGroupId}:")
+          println("    in : ${cond.toString().take(300)}")
+          evolveTrace = true
+        }
         val evolved = evolveAcceptCondition(cond, condPathFinishes, activeCondRoots, gen)
+        if (trace && label == "main") {
+          evolveTrace = false
+          println("    out: ${evolved.toString().take(300)}")
+        }
         if (evolved == Never) continue
         val existing = result[shape]
         result[shape] = if (existing == null) evolved else Or.from(existing, evolved)
@@ -570,10 +634,13 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       return result
     }
 
-    val mainPathsEvolved = evolveMap(nextMainPaths)
+    val mainPathsEvolved = evolveMap(nextMainPaths, "main")
     val condPathsEvolved = nextCondPaths
       .mapValues { (_, pm) -> evolveMap(pm) }
       .filter { (_, pm) -> pm.isNotEmpty() }
+    if (trace) {
+      println("  after evolve: mainPathsEvolved.size=${mainPathsEvolved.size}")
+    }
 
     // step 6: 사용되지 않는 cond path 제거
     val referencedRoots = mutableSetOf<PathRoot>()
