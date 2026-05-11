@@ -731,16 +731,26 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     is Or -> cond.conds.any { evaluateConditionWithHistory(it, history, activeCondPaths) }
 
     is NoLongerMatch -> {
-      val root = PathRoot(cond.symbolId, cond.startGen)
-      val laterFinishes = collectFinishesAfter(history, root, cond.endGen)
-      if (laterFinishes.isEmpty()) true
-      else !laterFinishes.any { evaluateConditionWithHistory(it, history, activeCondPaths) }
+      // evolve 가 매 step 단순화하므로 evaluate 시 살아남은 NoLongerMatch 는
+      // 마지막 step 의 condPathFinishes 로 결정. fromNextGen=true 이면 무조건 true (이번 step 의
+      // finish 와 결합 안 함). mgroup2 의 NotExists(_, _, true) => true 와 같은 의미.
+      if (cond.fromNextGen) true
+      else {
+        val root = PathRoot(cond.symbolId, cond.startGen)
+        val finCond = history.lastOrNull()?.condPathFinishes?.get(root)
+        if (finCond == null) true
+        else !evaluateConditionWithHistory(finCond, history, activeCondPaths)
+      }
     }
 
     is NeedLongerMatch -> {
-      val root = PathRoot(cond.symbolId, cond.startGen)
-      val laterFinishes = collectFinishesAfter(history, root, cond.endGen)
-      laterFinishes.any { evaluateConditionWithHistory(it, history, activeCondPaths) }
+      if (cond.fromNextGen) false
+      else {
+        val root = PathRoot(cond.symbolId, cond.startGen)
+        val finCond = history.lastOrNull()?.condPathFinishes?.get(root)
+        if (finCond == null) false
+        else evaluateConditionWithHistory(finCond, history, activeCondPaths)
+      }
     }
 
     is NotExists -> {
@@ -778,20 +788,6 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     val result = mutableListOf<AcceptCondition>()
     for ((gen, entry) in history.withIndex()) {
       if (gen < minGen) continue
-      val cond = entry.condPathFinishes[root]
-      if (cond != null) result.add(cond)
-    }
-    return result
-  }
-
-  private fun collectFinishesAfter(
-    history: List<HistoryEntry>,
-    root: PathRoot,
-    strictlyAfter: Int,
-  ): List<AcceptCondition> {
-    val result = mutableListOf<AcceptCondition>()
-    for ((gen, entry) in history.withIndex()) {
-      if (gen <= strictlyAfter) continue
       val cond = entry.condPathFinishes[root]
       if (cond != null) result.add(cond)
     }
@@ -856,7 +852,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
 
       AcceptConditionTemplate.ConditionCase.NO_LONGER_MATCH -> {
         val startGen = resolveGen(noLongerMatch.startGen, prevGen, midGen, gen, grandGen)
-        NoLongerMatch(noLongerMatch.symbolId, startGen, gen)
+        NoLongerMatch(noLongerMatch.symbolId, startGen, fromNextGen = true)
       }
 
       AcceptConditionTemplate.ConditionCase.LOOKAHEAD_FOUND -> {

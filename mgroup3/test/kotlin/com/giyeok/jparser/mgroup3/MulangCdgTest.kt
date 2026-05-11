@@ -690,7 +690,7 @@ class MulangCdgTest {
     val cdgPath = findMulangCdg() ?: return
     val data = loadOrGenerate(cdgPath)
     val parser = Mgroup3Parser(data)
-    // parser.setTrace(842) // testTryLetMu 분석용 — fail step (gen=842) 의 evolve trace.
+    // parser.setTrace(842) // 분석용
     val srcPath = Path("../mulang/examples/try_let.mu")
     if (!srcPath.exists()) return
     val src = srcPath.readText()

@@ -77,27 +77,16 @@ data class Or(val conds: Set<AcceptCondition>): AcceptCondition() {
   override fun neg(): AcceptCondition = And.from(conds.map { it.neg() }.toSet())
 }
 
-// evolve:
-//   이번 gen이 endGen과 같으면 그대로 유지하고,
-//   그렇지 않은 경우
-//   cond paths의 (symbolId, startGen) 심볼이 finish되었으면 finish된 조건의 neg()로 치환
-//   그렇지 않으면
-//   cond paths에 (symbolId, startGen) 심볼에서 시작하는 경로가 살아남아 있으면 계속 유지하고,
-//   사라지면 Always로 치환
-data class NoLongerMatch(val symbolId: Int, val startGen: Int, val endGen: Int): AcceptCondition() {
-  override fun neg(): AcceptCondition = NeedLongerMatch(symbolId, startGen, endGen)
+// fromNextGen: reify step (이 condition 이 path 에 처음 추가된 step) 이면 true.
+// 이 step 의 finish 와 결합 방지용. evolve 가 한 step 만에 fromNextGen=true → false 로 변환.
+// 이후 step 부터 finCond 와 결합 시도. mgroup2 의 NotExists 의 checkFromNextGen 과 같은 의미.
+data class NoLongerMatch(val symbolId: Int, val startGen: Int, val fromNextGen: Boolean = false): AcceptCondition() {
+  override fun neg(): AcceptCondition = NeedLongerMatch(symbolId, startGen, fromNextGen)
 }
 
-// evolve:
-//   이번 gen이 endGen과 같으면 그대로 유지하고,
-//   그렇지 않은 경우
-//   cond paths의 (symbolId, startGen) 심볼이 finish되었으면 finish된 조건으로 치환
-//   그렇지 않으면
-//   cond paths에 (symbolId, startGen) 심볼에서 시작하는 경로가 살아남아 있으면 계속 유지하고,
-//   사라지면 Never로 치환
-data class NeedLongerMatch(val symbolId: Int, val startGen: Int, val endGen: Int):
+data class NeedLongerMatch(val symbolId: Int, val startGen: Int, val fromNextGen: Boolean = false):
   AcceptCondition() {
-  override fun neg(): AcceptCondition = NoLongerMatch(symbolId, startGen, endGen)
+  override fun neg(): AcceptCondition = NoLongerMatch(symbolId, startGen, fromNextGen)
 }
 
 // evolve:
@@ -253,25 +242,33 @@ private fun evolveAcceptCondition(
     is Or -> Or.from(cond.conds.map { rec(it) }.toSet())
 
     is NoLongerMatch -> {
-      if (gen == cond.endGen) cond
+      // fromNextGen=true 이면 이번 step 은 reify step. 같은 step 의 finish 와 결합 안 함.
+      // fromNextGen=false 로만 변환 → 이후 step 의 evolve 가 finCond 검사.
+      if (cond.fromNextGen) NoLongerMatch(cond.symbolId, cond.startGen, fromNextGen = false)
       else {
         val root = PathRoot(cond.symbolId, cond.startGen)
         val finCond = condPathFins[root]
         if (finCond != null && root !in visiting) rec(finCond.neg(), visiting + root)
+        else if (root in visiting) {
+          // visiting fallback: 자기 root 가 expansion chain 위에 있음. 의미적으로 tautology — Always 로 단순화.
+          Always
+        }
         else if (root in activeCondPaths) cond
-        else if (finCond != null) cond
         else Always
       }
     }
 
     is NeedLongerMatch -> {
-      if (gen == cond.endGen) cond
+      if (cond.fromNextGen) NeedLongerMatch(cond.symbolId, cond.startGen, fromNextGen = false)
       else {
         val root = PathRoot(cond.symbolId, cond.startGen)
         val finCond = condPathFins[root]
         if (finCond != null && root !in visiting) rec(finCond, visiting + root)
+        else if (root in visiting) {
+          // visiting fallback: 자기 root tautology — Never (NeedLongerMatch 는 NoLongerMatch 의 negation).
+          Never
+        }
         else if (root in activeCondPaths) cond
-        else if (finCond != null) cond
         else Never
       }
     }
