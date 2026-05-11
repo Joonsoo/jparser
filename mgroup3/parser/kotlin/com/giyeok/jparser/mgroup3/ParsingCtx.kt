@@ -65,7 +65,19 @@ data class ProgressedKernelRecord(
   val endGen: Int,
 )
 
-data class PathRoot(val symbolId: Int, val startGen: Int)
+// PathRoot 를 packed Long inline value class 로 — hot path 에 매 leaf condition / map key / set element 마다
+// 등장. data class 의 매번 hashCode 계산 + 새 instance allocation 회피. equals/hashCode 는 Long 의 그것 — fast.
+@JvmInline
+value class PathRoot private constructor(val packed: Long) {
+  val symbolId: Int get() = (packed shr 32).toInt()
+  val startGen: Int get() = packed.toInt()
+  override fun toString(): String = "PathRoot(symbolId=$symbolId, startGen=$startGen)"
+
+  companion object {
+    operator fun invoke(symbolId: Int, startGen: Int): PathRoot =
+      PathRoot((symbolId.toLong() shl 32) or (startGen.toLong() and 0xFFFFFFFFL))
+  }
+}
 
 // MilestonePath: linked list 형태로 graph 의 path 를 나타냄.
 // (start -> a -> b -> X) 의 경로는 MilestonePath(b, MilestonePath(a, MilestonePath(start, null))) 와 같이 표현.
