@@ -20,7 +20,11 @@ class ParserBenchmarkTaxonomyTest {
     val name: String,
     val description: String,
     val grammarText: String,
-    val makeInput: (Int) -> String,  // sizes (= num repetitions)
+    val makeInput: (Int) -> String,
+    // 특정 case 별 size override. null 이면 default sizes 사용.
+    val sizes: List<Int>? = null,
+    // mgroup2 가 path explosion 이슈 있는 케이스는 skip.
+    val skipM2: Boolean = false,
   )
 
   private val cases = listOf(
@@ -77,9 +81,10 @@ class ParserBenchmarkTaxonomyTest {
     ),
 
     // 4. Mixed (longest + join) — 단일 NJoin keyword in a list. cond root 자주 active.
+    // mgroup2 가 path explosion 으로 hang 하는 케이스. mgroup3 / ktparser 만 측정.
     Case(
       name = "longest_join",
-      description = "Mixed list of single-keyword NJoin and longest tokens.",
+      description = "Mixed list of single-keyword NJoin and longest tokens (m2 skipped — path explosion).",
       grammarText = """
         Grammar = Item (WS Item)*
         Item = Kw | Word
@@ -92,6 +97,7 @@ class ParserBenchmarkTaxonomyTest {
         val toks = listOf("mut", "abc", "xyz", "id1", "foo", "bar")
         (0 until n).joinToString(" ") { toks[it % toks.size] }
       },
+      skipM2 = true,
     ),
 
     // 5. Cond-heavy — left recursion + NJoin + NLongest (try_let.mu style 의 stress).
@@ -115,13 +121,14 @@ class ParserBenchmarkTaxonomyTest {
         }
         sb.toString()
       },
+      skipM2 = true,
     ),
   )
 
   @Test
   @Disabled("manual taxonomy benchmark. Unannotate to run via runParserBenchmarkTaxonomy action.")
   fun benchmarkTaxonomy() {
-    val sizes = listOf(100, 1000)
+    val defaultSizes = listOf(100, 1000)
     val warmup = 10
     val measureN = 30
 
@@ -139,11 +146,12 @@ class ParserBenchmarkTaxonomyTest {
       println("%-6s | %-8s | %-12s %-12s %-12s | ratio m3/kt".format("size", "chars", "m2 median", "kt median", "m3 median"))
       println("-".repeat(80))
 
+      val sizes = case.sizes ?: defaultSizes
       for (size in sizes) {
         val input = case.makeInput(size)
 
-        // 검증 + 안전한 timing — m2 가 OOM 같은 케이스 있으므로 try-catch.
-        val m2OK = try {
+        // 검증 + 안전한 timing — m2 가 OOM 같은 케이스 있으므로 try-catch / 명시적 skip.
+        val m2OK = if (case.skipM2) false else try {
           m2Parser.parse(Inputs.fromString(input)).isRight
         } catch (e: Throwable) { false }
         val ktCtx = try { ktParser.parse(input) } catch (e: Throwable) { null }

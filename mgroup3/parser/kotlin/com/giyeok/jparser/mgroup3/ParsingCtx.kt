@@ -30,16 +30,18 @@ data class ParsingCtx(
   val line: Int,
   val col: Int,
   val mainRoot: PathRoot,
-  val mainPaths: PathMap,
-  // 살아있는 cond path 들. 각 cond root 에 대해 자체 PathMap.
-  val condPaths: Map<PathRoot, PathMap>,
+  // 모든 path — main path 와 cond path 가 같은 map 안에 있음.
+  // mainRoot key 는 항상 존재 (main path); 그 외 key 는 살아있는 cond root.
+  val paths: Map<PathRoot, PathMap>,
   // 매 step 마다 발생한 actions 를 저장 (parse tree 복원에 쓰일 수 있음).
-  // 0 번째 entry 는 initialCtx 에서 발생한 actions, 이후 i 번째 entry 는 i 번째 input 처리 결과.
   val history: List<HistoryEntry>,
   // history 의 모든 entry.activeCondPaths 의 누적 union. step 마다 새 active 만 추가하여 O(1) amortized.
-  // history 와 마찬가지로 mutable 로 share — parser 의 chain 사용 패턴 안전.
   val everSeenCondRoots: MutableSet<PathRoot> = mutableSetOf(),
-)
+) {
+  // 편의 view — main path 만, cond path 들만 (디버그/print 용).
+  val mainPaths: PathMap get() = paths[mainRoot] ?: emptyMap()
+  val condPaths: Map<PathRoot, PathMap> get() = paths.filterKeys { it != mainRoot }
+}
 
 data class HistoryEntry(
   val finishedKernels: List<FinishedKernelRecord>,
