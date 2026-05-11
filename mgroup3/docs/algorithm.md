@@ -100,6 +100,25 @@ containing:
   reductions that propagate when the tip's progression is complete.
   These are looked up after a `replaceAndProgresses` term action fires.
 
+Every `AppendMilestoneGroup` entry inside a term or edge action
+additionally carries a list of `CondRootStarter { symbolId,
+milestoneGroupId }` records — the cond-root symbols whose starter
+must be created (in parallel with the main path) whenever this
+milestone group is attached. This mirrors mgroup2's
+`lookahead_requiring_symbols`. The generator populates it from two
+sources:
+
+1. `g2.observingCondSymbolIds` — cond symbols reached during the
+   step's progress phase.
+2. The new milestone group's own `derivedFrom` graph — cond symbols
+   inside the still-to-be-matched body of the new group, like the
+   NJoin/NLongest inside a `"||" & OpTk` that the main path is
+   *about* to start consuming.
+
+Without (2) the parallel starter would not be created at the moment
+the main path begins matching a multi-character NJoin body and would
+miss the body's prefix.
+
 A `TermAction` has three fields:
 
 - `replaceAndAppends: list<{replace, append}>` — the tip's milestone
@@ -202,7 +221,26 @@ emits new paths into `nextMainPaths`, records finishes/progresses in
 `finishesByGroup`/`progressesByGroup`, and emits any path-root
 progresses (the start symbol finishing) into `rootProgresses`. New cond
 symbols introduced by the milestone group's `observingCondSymbolIds`
-flow into `observingOut`.
+flow into `observingOut`. Every `CondRootStarter` listed on an
+`AppendMilestoneGroup` is recorded in `condRootStartersFromTerm` with
+`startGen = midGen` — the gen at which the main path *began*
+consuming the new milestone group's body.
+
+### Phase 1b — apply input to cond root starters
+
+For each `(starterRoot, milestoneGroupId)` in
+`condRootStartersFromTerm`, spawn a fresh starter `ParsingPath(null,
+milestoneGroupId, Always)` and apply the current input via
+`applyTermAction`, exactly as if it were one of `ctx.mainPaths`. Any
+resulting path is queued under `starterRoot` in `nextCondPaths`. If
+the starter has already been seen (history skip) or is already in
+`ctx.condPaths`/`nextCondPaths`, it is left alone — its existing copy
+will be advanced by phase 2.
+
+This step is the analogue of mgroup2's
+`lookahead_requiring_symbols`: the starter created at the moment the
+main path begins matching an NJoin/NLongest body consumes the *same*
+input character, so it never lags behind.
 
 A `replaceAndAppends` entry creates a new `MilestonePath`:
 
@@ -246,7 +284,8 @@ registered.
 For each newly-required `PathRoot(sym, startGen)`:
 
 1. **Skip if already in `ctx.condPaths` or `nextCondPaths`** — the root
-   is already being progressed.
+   is already being progressed (possibly via phase 1b's freshly
+   spawned starter).
 2. **Skip if the root has appeared in any prior `history.activeCondPaths`** —
    it was once active and has since died. Re-spawning a starter now
    would launch a "phantom" parse from a stale generation, producing
@@ -258,14 +297,11 @@ For each newly-required `PathRoot(sym, startGen)`:
 3. **Self-finish** — if the root symbol is nullable (the generator
    filled its `selfFinishAcceptCondition`), record the immediate finish
    in `newCondRootProgresses`.
-4. **Spawn a starter path**:
-   - If `startGen == gen` (the cond root just appeared): the starter
-     is queued in `nextCondPaths[root]`. The starter does *not*
-     consume `input`. Its first input will be the *next* step's input.
-   - If `startGen < gen` (the cond root's nominal start is in the past
-     but the parser only just discovered it): this is a "fromNextGen=
-     false"-style condition. The starter applies `input` immediately
-     to align with the main path's input handling.
+4. **Spawn a starter path**: apply the current input via
+   `applyTermAction`. If the starter has no matching term action but
+   the root's `startGen == gen` (i.e. it's a "next-step" root that
+   hasn't yet had a chance to match anything), still queue an empty
+   starter so it can match starting from the next step.
 
 ### Phase 4 — collect cond-path finishes
 
@@ -401,60 +437,14 @@ The current implementation passes the mgroup3 own-test suite (86/0)
 and most of the mulang example grammar's smaller programs. Known
 failures all reduce to one structural pattern:
 
-- **`NJoin` whose body is a multi-character sequence and whose
-  cond-symbol is a `NLongest`** (e.g. mulang's
-  `"||" & OpTk` where `OpTk = <Op = ('+'|'-'|"||")+>`). The cond
-  starter for `OpTk` is registered too late: by the time the main
-  path's `OnlyIf` condition fires, the NJoin body has already been
-  consumed, so any starter spawned now begins reading a suffix of the
-  input rather than the full body. Reproducers: `testLeftRecursionWithOpTk`,
-  `testOrExpression`, `testAndStmt`, etc.
-
-  **mgroup2's solution.** mgroup2/milestone2 sidesteps this by *not*
-  running cond paths as a separate process. Instead the generator
-  pre-computes, for every term/edge action, what each referenced
-  cond-symbol would do if it were tracked in parallel — which
-  milestone-groups it would have to be appended to, what its progress
-  condition is, etc. — and packages that information *inside the term
-  action itself* (see `MilestoneParserGen.addPendedForTermAction`,
-  the `lookaheadRequiringSymbols` and `pendedAcceptConditionKernels`
-  fields). When the runtime applies a term action it adds *both* the
-  main path's new tail and a parallel "lookahead-requiring" path for
-  every referenced cond symbol, all simultaneously, so the main path
-  and its conditional companions stay in lock-step.
-
-  mgroup3's current design — separate `condPaths` advanced step by
-  step from a starter created at condition-emit time — loses that
-  synchronisation, and there is no information left at runtime to
-  reconstruct it. The fix path is for the generator to emit equivalent
-  "cond root must be running alongside" information into each term
-  action, mirroring mgroup2's `addPendedForTermAction`.
-
-  Scaffolding committed during the diagnostic phase:
-
-  - `KernelTemplateGen.GRAND` tag and a `grandGen` parameter through
-    term/edge actions (attempt to encode "the start gen of the main
-    path's last milestone" as the cond starter's startGen).
-  - `AppendMilestoneGroup.cond_root_starters: repeated CondRootStarter`
-    proto field, plus the generator-side emission and the parser-side
-    `condRootStartersOut` collector. This mirrors mgroup2's
-    `lookahead_requiring_symbols` shape.
-
-  Neither alone resolves the test, because the parallel cond starter
-  still does not consume the same input as the main path on the step
-  it is created — mgroup3 currently spawns cond starters at the *end*
-  of a step's processing, and they only see the *next* step's input.
-  Closing this gap requires either:
-
-  1. Spawning cond starters at the *start* of step k from the
-     CondRootStarters emitted by the *previous* step's term/edge
-     actions, so they end up in `ctx.condPaths` before step k's
-     input is consumed.
-  2. Or applying the starter's term action to the same input
-     immediately, inside `applyTermAction`/`applyEdgeAction`, so the
-     parallel run is in lock-step with the main path.
-
-  Both approaches reach equivalent behaviour to mgroup2's runtime.
+- (Resolved) **`NJoin` whose body is a multi-character sequence and
+  whose cond-symbol is a `NLongest`** (e.g. mulang's `"||" & OpTk`
+  where `OpTk = <Op = ('+'|'-'|"||")+>`). Resolution mirrors
+  mgroup2's `lookahead_requiring_symbols` / `addPendedForTermAction`
+  machinery — the generator emits the cond root starter information
+  alongside every new milestone group, and the parser registers and
+  applies those starters to the current step's input in lock-step
+  with the main path. See the next section for the encoding details.
 
 - **Path explosion** on the largest mulang examples (e.g. `ccgen.mu`)
   produces an out-of-memory error. The `dedup` step is sufficient for
