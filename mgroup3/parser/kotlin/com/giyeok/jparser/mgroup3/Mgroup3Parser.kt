@@ -418,8 +418,46 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       )
     }
 
-    // step 2: cond paths에 term action 적용
+    // step 1b: main path termAction 결과 등록된 condRootStartersFromTerm 의 starter 들에 같은 input 즉시 적용.
+    // mgroup2 의 lookahead_requiring_symbols 처리와 같은 효과 — starter 와 main path 가 같은 input 받음.
     val nextCondPaths = mutableMapOf<PathRoot, MutableList<ParsingPath>>()
+    for ((starterRoot, mgroupId) in condRootStartersFromTerm) {
+      // 이미 ctx.condPaths 에 있으면 step 2 에서 처리되므로 skip.
+      if (starterRoot in ctx.condPaths.keys) continue
+      // history 에 등장한 적 있는 root 도 skip.
+      if (ctx.history.any { starterRoot in it.activeCondPaths }) continue
+      val rootInfo = data.pathRootsMap[starterRoot.symbolId] ?: continue
+      val starterPath = ParsingPath(null, mgroupId, Always)
+      val ta = findApplicableAction(starterPath, input)
+      if (ta != null) {
+        val nextPaths = mutableListOf<ParsingPath>()
+        val ignoredStarters = mutableMapOf<PathRoot, Int>()
+        applyTermAction(
+          oldPath = starterPath,
+          pathRoot = starterRoot,
+          termAction = ta,
+          midGen = ctx.gen,
+          gen = gen,
+          nextPathsOut = nextPaths,
+          finishesOut = finishesByGroup,
+          progressesOut = progressesByGroup,
+          rootProgressesOut = rootProgresses,
+          observingSymbolIdsOut = observingOut,
+          condRootStartersOut = ignoredStarters,
+        )
+        if (nextPaths.isNotEmpty()) {
+          nextCondPaths.getOrPut(starterRoot) { mutableListOf() }.addAll(nextPaths)
+        }
+      }
+      // self-finish
+      if (rootInfo.hasSelfFinishAcceptCondition()) {
+        val cond = rootInfo.selfFinishAcceptCondition.toAcceptCondition(starterRoot.startGen, starterRoot.startGen, gen)
+        val existing = rootProgresses[starterRoot]
+        rootProgresses[starterRoot] = if (existing != null) Or.from(existing, cond) else cond
+      }
+    }
+
+    // step 2: cond paths에 term action 적용
     for ((root, paths) in ctx.condPaths) {
       val nextPaths = mutableListOf<ParsingPath>()
       for (path in paths) {

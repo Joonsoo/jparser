@@ -430,12 +430,31 @@ failures all reduce to one structural pattern:
   "cond root must be running alongside" information into each term
   action, mirroring mgroup2's `addPendedForTermAction`.
 
-  Scaffolding committed during the diagnostic phase: the proto/parser
-  carry a `KernelTemplateGen.GRAND` tag and a `grandGen` parameter
-  through term/edge actions. This was an attempt to encode "the start
-  gen of the main path's last milestone" as the cond starter's
-  startGen, but that single-value fix is insufficient — the actual
-  resolution is the parallel-path encoding described above.
+  Scaffolding committed during the diagnostic phase:
+
+  - `KernelTemplateGen.GRAND` tag and a `grandGen` parameter through
+    term/edge actions (attempt to encode "the start gen of the main
+    path's last milestone" as the cond starter's startGen).
+  - `AppendMilestoneGroup.cond_root_starters: repeated CondRootStarter`
+    proto field, plus the generator-side emission and the parser-side
+    `condRootStartersOut` collector. This mirrors mgroup2's
+    `lookahead_requiring_symbols` shape.
+
+  Neither alone resolves the test, because the parallel cond starter
+  still does not consume the same input as the main path on the step
+  it is created — mgroup3 currently spawns cond starters at the *end*
+  of a step's processing, and they only see the *next* step's input.
+  Closing this gap requires either:
+
+  1. Spawning cond starters at the *start* of step k from the
+     CondRootStarters emitted by the *previous* step's term/edge
+     actions, so they end up in `ctx.condPaths` before step k's
+     input is consumed.
+  2. Or applying the starter's term action to the same input
+     immediately, inside `applyTermAction`/`applyEdgeAction`, so the
+     parallel run is in lock-step with the main path.
+
+  Both approaches reach equivalent behaviour to mgroup2's runtime.
 
 - **Path explosion** on the largest mulang examples (e.g. `ccgen.mu`)
   produces an out-of-memory error. The `dedup` step is sufficient for
