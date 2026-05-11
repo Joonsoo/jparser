@@ -293,7 +293,7 @@ class MulangCdgTest {
         val charDisplay = if (c == '\n') "\\n" else c.toString()
         println("[$idx] '$charDisplay' -> FAIL")
         // fail 직전 main path 상태 출력
-        for ((i, mp) in ctx.mainPaths.withIndex()) {
+        for ((i, mp) in ctx.mainPaths.entries.withIndex()) {
           println("  before path[$i]: tipGroupId=${mp.tipGroupId}, acc=${mp.acceptCondition}")
         }
         // fail 직전 condPaths 상태도 출력
@@ -384,7 +384,7 @@ class MulangCdgTest {
       } catch (e: ParsingError) {
         val charDisplay = if (c == '\n') "\\n" else c.toString()
         println("[$idx] '$charDisplay' -> FAIL: $e")
-        for ((i, mp) in ctx.mainPaths.withIndex()) {
+        for ((i, mp) in ctx.mainPaths.entries.withIndex()) {
           println("  before path[$i]: tip=${mp.tipGroupId}, acc=${mp.acceptCondition}")
         }
         for ((root, paths) in ctx.condPaths) {
@@ -608,12 +608,12 @@ class MulangCdgTest {
       try {
         ctx = parser.parseStep(ctx, c, idx == src.length - 1)
         println("[$idx] '$display' -> main=${ctx.mainPaths.size} cond=${ctx.condPaths.size}")
-        for ((i, p) in ctx.mainPaths.withIndex()) {
+        for ((i, p) in ctx.mainPaths.entries.withIndex()) {
           println("  main[$i] tip=${p.tipGroupId} acc=${p.acceptCondition}")
         }
         for ((root, ps) in ctx.condPaths) {
           println("  cond ${root}: ${ps.size}")
-          for ((j, cp) in ps.withIndex()) {
+          for ((j, cp) in ps.entries.withIndex()) {
             println("    cp[$j] tip=${cp.tipGroupId} acc=${cp.acceptCondition}")
             var mp = cp.milestonePath
             while (mp != null) {
@@ -633,7 +633,7 @@ class MulangCdgTest {
         val sym19Root = PathRoot(19, 3)
         val condPaths = ctx.condPaths[sym19Root]
         if (condPaths != null) {
-          for ((j, cp) in condPaths.withIndex()) {
+          for ((j, cp) in condPaths.entries.withIndex()) {
             println("  cond (19,3) cp[$j] tip=${cp.tipGroupId} acc=${cp.acceptCondition}")
             var mp = cp.milestonePath
             while (mp != null) {
@@ -684,6 +684,51 @@ class MulangCdgTest {
     org.junit.jupiter.api.Assertions.assertTrue(accepted)
   }
 
+  @Test
+  fun testTryLetMu() {
+    // try_let.mu — testAllMulangExamples 의 SO 시작 file
+    val cdgPath = findMulangCdg() ?: return
+    val data = loadOrGenerate(cdgPath)
+    val parser = Mgroup3Parser(data)
+    parser.setVerbose()
+    val srcPath = Path("../mulang/examples/try_let.mu")
+    if (!srcPath.exists()) return
+    val src = srcPath.readText()
+    var ctx = parser.initCtx()
+    val start = System.currentTimeMillis()
+    var lastIdx = -1
+    try {
+      for ((idx, c) in src.withIndex()) {
+        ctx = parser.parseStep(ctx, c, idx == src.length - 1)
+        lastIdx = idx
+      }
+      val end = System.currentTimeMillis()
+      val accepted = parser.isAccepted(ctx)
+      println("testTryLetMu: ${src.length} chars, ${end - start}ms, accepted=$accepted")
+      org.junit.jupiter.api.Assertions.assertTrue(accepted)
+    } catch (e: StackOverflowError) {
+      val line = src.substring(0, lastIdx + 1).count { it == '\n' }
+      println("testTryLetMu: SO at idx=$lastIdx (line ~$line). main=${ctx.mainPaths.size}, cond=${ctx.condPaths.size}")
+      // condPathFinishes 검사 — last history entry
+      val lastEntry = ctx.history.lastOrNull()
+      if (lastEntry != null) {
+        println("  condPathFinishes (size=${lastEntry.condPathFinishes.size}):")
+        for ((root, cond) in lastEntry.condPathFinishes.entries.take(10)) {
+          println("    $root => $cond")
+        }
+        if (lastEntry.condPathFinishes.size > 10) println("    ... (${lastEntry.condPathFinishes.size - 10} more)")
+      }
+      throw e
+    }
+  }
+
+  private fun depthOf(cond: AcceptCondition): Int = when (cond) {
+    Always, Never -> 1
+    is And -> 1 + (cond.conds.maxOfOrNull { depthOf(it) } ?: 0)
+    is Or -> 1 + (cond.conds.maxOfOrNull { depthOf(it) } ?: 0)
+    else -> 1
+  }
+
   // dead path 추적: step별 main path 의 milestone path + finishedKernels 자세히 출력
   @Test
   fun testTraceMainPathLifetime() {
@@ -707,7 +752,7 @@ class MulangCdgTest {
     var ctx = parser.initCtx()
     println("=== initCtx ===")
     println("  mainPaths=${ctx.mainPaths.size}")
-    for ((i, p) in ctx.mainPaths.withIndex()) {
+    for ((i, p) in ctx.mainPaths.entries.withIndex()) {
       println("  main[$i] tip=${p.tipGroupId}")
       var mp = p.milestonePath
       while (mp != null) {
@@ -721,7 +766,7 @@ class MulangCdgTest {
         ctx = parser.parseStep(ctx, c, idx == src.length - 1)
         println("=== step $idx '$charDisplay' -> gen=${ctx.gen} ===")
         println("  mainPaths=${ctx.mainPaths.size}")
-        for ((i, p) in ctx.mainPaths.withIndex()) {
+        for ((i, p) in ctx.mainPaths.entries.withIndex()) {
           println("  main[$i] tip=${p.tipGroupId} acc=${p.acceptCondition}")
           var mp = p.milestonePath
           while (mp != null) {
@@ -742,7 +787,7 @@ class MulangCdgTest {
         val sym7Root = PathRoot(7, 1)
         if (sym7Root in ctx.condPaths) {
           println("  cond (7, 1) paths: ${ctx.condPaths[sym7Root]?.size}")
-          for ((j, cp) in (ctx.condPaths[sym7Root] ?: emptyList()).withIndex()) {
+          for ((j, cp) in (ctx.condPaths[sym7Root] ?: emptyMap<PathShape, AcceptCondition>()).entries.withIndex()) {
             println("    cp[$j] tip=${cp.tipGroupId} acc=${cp.acceptCondition}")
             var mp = cp.milestonePath
             while (mp != null) {
@@ -754,9 +799,9 @@ class MulangCdgTest {
       } catch (e: ParsingError) {
         println("[$idx] '$charDisplay' -> FAIL: $e")
         // 마지막 main path 의 termAction 결과 살펴보기
-        for ((i, p) in ctx.mainPaths.withIndex()) {
+        for ((i, p) in ctx.mainPaths.entries.withIndex()) {
           println("  before-fail main[$i] tip=${p.tipGroupId} acc=${p.acceptCondition}")
-          val ta = parser.findApplicableAction(p, c)
+          val ta = parser.findApplicableAction(p.key, c)
           if (ta != null) {
             println("    termAction matches!")
             for (rea in ta.replaceAndAppendsList) {

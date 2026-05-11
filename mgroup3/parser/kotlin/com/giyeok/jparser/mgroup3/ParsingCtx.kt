@@ -1,41 +1,42 @@
 package com.giyeok.jparser.mgroup3
 
+// Path 의 "모양" — graph 상의 위치 (milestonePath, tipGroupId). acceptCondition 은 PathMap 의 value 에서 분리.
+data class PathShape(
+  // null 이면 starter path (root 가 tipGroupId 에 포함된 경우).
+  val milestonePath: MilestonePath?,
+  val tipGroupId: Int,
+)
+
+// PathShape → 그 shape 에 도달한 acceptCondition (여러 source 가 같은 shape 에 도달하면 Or 로 합쳐짐).
+typealias PathMap = Map<PathShape, AcceptCondition>
+
 data class ParsingCtx(
   val gen: Int,
   val line: Int,
   val col: Int,
   val mainRoot: PathRoot,
-  val mainPaths: List<ParsingPath>,
-  // 살아있는 condition path들. 같은 PathRoot에 여러 ParsingPath가 들어있을 수 있다.
-  val condPaths: Map<PathRoot, List<ParsingPath>>,
-  // 매 step마다 발생한 actions를 저장 (parse tree 복원에 쓰일 수 있음)
-  // 0번째 entry는 initialCtx에서 발생한 actions, 이후 i번째 entry는 i번째 input을 처리하면서 발생한 actions
+  val mainPaths: PathMap,
+  // 살아있는 cond path 들. 각 cond root 에 대해 자체 PathMap.
+  val condPaths: Map<PathRoot, PathMap>,
+  // 매 step 마다 발생한 actions 를 저장 (parse tree 복원에 쓰일 수 있음).
+  // 0 번째 entry 는 initialCtx 에서 발생한 actions, 이후 i 번째 entry 는 i 번째 input 처리 결과.
   val history: List<HistoryEntry>,
 )
 
 data class HistoryEntry(
-  // 이 step에서 발생한 모든 finished kernel들 (condition별로 묶을 수도 있지만 단순히 list로 둠)
   val finishedKernels: List<FinishedKernelRecord>,
-  // 이 step에서 발생한 progressed kernel들
   val progressedKernels: List<ProgressedKernelRecord>,
-  // 이 step에서 finish된 cond path들의 root → finish accept condition (Or로 묶인)
-  // 후속 evolve나 isAccepted 시 활용
+  // 이 step 에서 finish 된 cond path 들의 root → finish accept condition (Or 로 묶임).
   val condPathFinishes: Map<PathRoot, AcceptCondition> = emptyMap(),
-  // 이 step 후에 살아남은 cond path들의 root (active 여부 판단용)
+  // 이 step 후 살아남은 cond path 들의 root.
   val activeCondPaths: Set<PathRoot> = emptySet(),
 )
 
-// finished는 (symbolId, pointer, startGen)이 condition 하에서 finish됨을 나타냄
-// 실제 finishGen은 ParsingCtx.gen에서 추정 가능
 data class FinishedKernelRecord(
   val kernel: Kernel,
   val condition: AcceptCondition,
 )
 
-// progressed는 (symbolId, pointer, startGen, midGen)에서 (symbolId, pointer+1, startGen, gen=endGen)으로 진행됨을 나타냄
-// kernelsHistory에서 두 kernel을 더해야 함:
-//   (symbolId, pointer, startGen, midGen) - progress 전 상태 (이미 finish됐을 수도 있음)
-//   (symbolId, pointer+1, startGen, endGen) - progress 후 상태
 data class ProgressedKernelRecord(
   val symbolId: Int,
   val pointer: Int,
@@ -44,33 +45,72 @@ data class ProgressedKernelRecord(
   val endGen: Int,
 )
 
-data class ParsingPath(
-  // milestonePath == null이라는 것은 starter path인 경우, 즉 root가 tipGroupId에 포함되어 있는 경우를 나타냄
-  // 이 때는 TermAction 실행시 TermAction의 replace 하나로 구성된 MilestonePath로 변경해야 한다
-  val milestonePath: MilestonePath?,
-  val tipGroupId: Int,
-  val acceptCondition: AcceptCondition,
-)
-
 data class PathRoot(val symbolId: Int, val startGen: Int)
 
-// start -> a -> b -> X 의 경로는
-// MilestonePath(b, MilestonePath(a, MilestonePath(start, null))) 와 같이 표현된다.
-// 그래서 MilestonePath 하나는 엣지 하나를 나타내는 것과 같다.
-// observingCondRoots는 해당 엣지에 포함된 그래프가 추후에 필요하게 될 지도 모를 모든 cond symbol root들을 나타낸다.
-data class MilestonePath(
-  // 이 milestone이 만들어진 시점의 gen (즉, milestone.gen과 같음)
+// MilestonePath: linked list 형태로 graph 의 path 를 나타냄.
+// (start -> a -> b -> X) 의 경로는 MilestonePath(b, MilestonePath(a, MilestonePath(start, null))) 와 같이 표현.
+// 한 인스턴스가 곧 한 엣지에 해당.
+// observingCondSymbolIds 는 이 엣지에 포함된 그래프가 추후 추적해야 할 cond symbol root 들.
+//
+// 변경 사항: 더 이상 data class 가 아님. hashCode 를 lazy 캐싱 (immutable 이므로 안전).
+// 이유: data class hashCode 는 매 호출마다 deep 계산 → PathMap 으로 자료구조를 바꾸면서 hash 비용이 dominate 할 위험.
+class MilestonePath(
   val gen: Int,
-  // 이 milestone에 해당하는 kernel
   val milestone: Kernel,
   val parent: MilestonePath?,
-  // 이 milestone이 다음으로 진행하기 위해서 추적해야 하는 cond symbol들의 root
-  // (path가 만들어진 gen 시점에 추적되는 cond symbol들)
   val observingCondSymbolIds: Set<Int>,
-)
+) {
+  private var _hashCode: Int = 0
+  private var _hashCodeComputed: Boolean = false
+
+  override fun hashCode(): Int {
+    if (!_hashCodeComputed) {
+      var h = gen
+      h = 31 * h + milestone.hashCode()
+      h = 31 * h + (parent?.hashCode() ?: 0)
+      h = 31 * h + observingCondSymbolIds.hashCode()
+      _hashCode = h
+      _hashCodeComputed = true
+    }
+    return _hashCode
+  }
+
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (other !is MilestonePath) return false
+    if (gen != other.gen) return false
+    if (milestone != other.milestone) return false
+    if (observingCondSymbolIds != other.observingCondSymbolIds) return false
+    // parent 비교는 가장 무거우므로 마지막. immutable + sharing 으로 reference equality 가 자주 성립.
+    return parent == other.parent
+  }
+
+  fun copy(
+    gen: Int = this.gen,
+    milestone: Kernel = this.milestone,
+    parent: MilestonePath? = this.parent,
+    observingCondSymbolIds: Set<Int> = this.observingCondSymbolIds,
+  ): MilestonePath = MilestonePath(gen, milestone, parent, observingCondSymbolIds)
+
+  override fun toString(): String =
+    "MilestonePath(gen=$gen, milestone=$milestone, parent=$parent, observingCondSymbolIds=$observingCondSymbolIds)"
+}
 
 data class Kernel(val symbolId: Int, val pointer: Int, val gen: Int) {
   val kernelTemplate: KernelTemplatePair get() = KernelTemplatePair(symbolId, pointer)
 }
 
 data class KernelTemplatePair(val symbolId: Int, val pointer: Int)
+
+// PathMap 에 path 를 추가/병합하는 helper. 이미 같은 shape 가 있으면 acceptCondition 을 Or 로 결합.
+fun MutableMap<PathShape, AcceptCondition>.addPath(shape: PathShape, cond: AcceptCondition) {
+  if (cond == Never) return
+  val existing = this[shape]
+  this[shape] = if (existing == null) cond else Or.from(existing, cond)
+}
+
+// 디버그/테스트용 — PathShape + AcceptCondition 의 (튜플 이라기엔 좀 더 의미있는) view.
+// 기존 코드의 path.tipGroupId / path.acceptCondition / path.milestonePath 접근 호환.
+val Map.Entry<PathShape, AcceptCondition>.tipGroupId: Int get() = key.tipGroupId
+val Map.Entry<PathShape, AcceptCondition>.milestonePath: MilestonePath? get() = key.milestonePath
+val Map.Entry<PathShape, AcceptCondition>.acceptCondition: AcceptCondition get() = value
