@@ -3,16 +3,127 @@ package com.giyeok.jparser.mgroup3
 sealed class AcceptCondition: Comparable<AcceptCondition> {
   abstract fun neg(): AcceptCondition
 
+  // 이 condition 이 reference 하는 모든 PathRoot. step3 새 cond root 찾기 / step6 prune 의
+  // tree traversal 회피 + dirty-root evolve skip 의 기반.
+  abstract val referencedRoots: RootSet
+
+  // tree 안에 fromNextGen=true 인 NoLongerMatch/NeedLongerMatch 존재 여부. evolve 에서 매 step
+  // 한 step 만에 false 로 변환되므로, true 면 무조건 evolve 해야 (skip 불가).
+  abstract val hasFromNextGen: Boolean
+
   override fun compareTo(other: AcceptCondition): Int =
     this.toString().compareTo(other.toString())
 }
 
+// 한 AcceptCondition 이 참조하는 PathRoot 들의 집합. memory 절약 위해 size 별 다른 representation.
+sealed class RootSet {
+  abstract val size: Int
+  abstract operator fun contains(root: PathRoot): Boolean
+  abstract fun forEach(action: (PathRoot) -> Unit)
+  // 다른 RootSet 과 union — disjoint 검사 같은 hot path 에서 사용.
+  abstract fun isDisjoint(other: Set<PathRoot>): Boolean
+
+  data object Empty: RootSet() {
+    override val size: Int get() = 0
+    override fun contains(root: PathRoot): Boolean = false
+    override fun forEach(action: (PathRoot) -> Unit) {}
+    override fun isDisjoint(other: Set<PathRoot>): Boolean = true
+  }
+
+  class Single(val root: PathRoot): RootSet() {
+    override val size: Int get() = 1
+    override fun contains(root: PathRoot): Boolean = this.root == root
+    override fun forEach(action: (PathRoot) -> Unit) { action(root) }
+    override fun isDisjoint(other: Set<PathRoot>): Boolean = root !in other
+  }
+
+  class Many(val set: Set<PathRoot>): RootSet() {
+    override val size: Int get() = set.size
+    override fun contains(root: PathRoot): Boolean = root in set
+    override fun forEach(action: (PathRoot) -> Unit) { set.forEach(action) }
+    override fun isDisjoint(other: Set<PathRoot>): Boolean {
+      if (set.size <= other.size) {
+        for (r in set) if (r in other) return false
+      } else {
+        for (r in other) if (r in set) return false
+      }
+      return true
+    }
+  }
+
+  companion object {
+    fun unionOf(parts: Array<AcceptCondition>): RootSet {
+      var combined: HashSet<PathRoot>? = null
+      var single: PathRoot? = null
+      for (p in parts) {
+        val r = p.referencedRoots
+        when (r) {
+          Empty -> {}
+          is Single -> {
+            if (combined != null) combined.add(r.root)
+            else if (single == null) single = r.root
+            else if (single != r.root) {
+              combined = HashSet(); combined.add(single); combined.add(r.root); single = null
+            }
+          }
+          is Many -> {
+            if (combined == null) {
+              combined = HashSet(r.set.size + (if (single != null) 1 else 0))
+              if (single != null) combined.add(single)
+              single = null
+            }
+            combined.addAll(r.set)
+          }
+        }
+      }
+      return when {
+        combined != null -> Many(combined)
+        single != null -> Single(single)
+        else -> Empty
+      }
+    }
+    fun unionOfPair(a: AcceptCondition, b: AcceptCondition): RootSet {
+      val ra = a.referencedRoots
+      val rb = b.referencedRoots
+      return when {
+        ra is Empty -> rb
+        rb is Empty -> ra
+        ra is Single && rb is Single -> if (ra.root == rb.root) ra else {
+          val s = HashSet<PathRoot>(2); s.add(ra.root); s.add(rb.root); Many(s)
+        }
+        else -> {
+          val s = HashSet<PathRoot>(ra.size + rb.size)
+          ra.forEach { s.add(it) }
+          rb.forEach { s.add(it) }
+          Many(s)
+        }
+      }
+    }
+
+    // SmallAnd/SmallOr (size 2/3/4) 의 referencedRoots 계산용. nullable c, d 받음.
+    fun unionOfChildren(
+      a: AcceptCondition,
+      b: AcceptCondition,
+      c: AcceptCondition?,
+      d: AcceptCondition?,
+    ): RootSet {
+      if (c == null) return unionOfPair(a, b)
+      val children: Array<AcceptCondition> = if (d == null) arrayOf(a, b, c) else arrayOf(a, b, c, d)
+      return unionOf(children)
+    }
+  }
+}
+
 data object Always: AcceptCondition() {
   override fun neg(): AcceptCondition = Never
+  override val referencedRoots: RootSet get() = RootSet.Empty
+  override val hasFromNextGen: Boolean get() = false
 }
 
 data object Never: AcceptCondition() {
   override fun neg(): AcceptCondition = Always
+  override val referencedRoots: RootSet get() = RootSet.Empty
+  override val hasFromNextGen: Boolean get() = false
 }
 
 // And: AND of multiple AcceptConditions. 자식 element 가 2/3/4 면 SmallAnd, 5+ 면 LargeAnd 로 표현.
@@ -100,6 +211,10 @@ class SmallAnd(
   }
   override fun toString(): String = "And(${(0 until size).joinToString(", ") { elementAt(it).toString() }})"
 
+  override val referencedRoots: RootSet = RootSet.unionOfChildren(a, b, c, d)
+  override val hasFromNextGen: Boolean = a.hasFromNextGen || b.hasFromNextGen ||
+    (c?.hasFromNextGen == true) || (d?.hasFromNextGen == true)
+
   override fun neg(): AcceptCondition = Or.from(buildList(size) {
     add(a.neg()); add(b.neg())
     c?.let { add(it.neg()) }
@@ -124,6 +239,9 @@ class LargeAnd(val items: Array<AcceptCondition>) : And() {
     return items.contentEquals(other.items)
   }
   override fun toString(): String = "And(${items.joinToString(", ")})"
+
+  override val referencedRoots: RootSet = RootSet.unionOf(items)
+  override val hasFromNextGen: Boolean = items.any { it.hasFromNextGen }
 
   override fun neg(): AcceptCondition = Or.from(items.map { it.neg() })
 }
@@ -207,6 +325,10 @@ class SmallOr(
   }
   override fun toString(): String = "Or(${(0 until size).joinToString(", ") { elementAt(it).toString() }})"
 
+  override val referencedRoots: RootSet = RootSet.unionOfChildren(a, b, c, d)
+  override val hasFromNextGen: Boolean = a.hasFromNextGen || b.hasFromNextGen ||
+    (c?.hasFromNextGen == true) || (d?.hasFromNextGen == true)
+
   override fun neg(): AcceptCondition = And.from(buildList(size) {
     add(a.neg()); add(b.neg())
     c?.let { add(it.neg()) }
@@ -230,6 +352,9 @@ class LargeOr(val items: Array<AcceptCondition>) : Or() {
     return items.contentEquals(other.items)
   }
   override fun toString(): String = "Or(${items.joinToString(", ")})"
+
+  override val referencedRoots: RootSet = RootSet.unionOf(items)
+  override val hasFromNextGen: Boolean = items.any { it.hasFromNextGen }
 
   override fun neg(): AcceptCondition = And.from(items.map { it.neg() })
 }
@@ -259,30 +384,42 @@ private fun canonicalSort(arr: Array<AcceptCondition>) {
   }
 }
 
-// leaf conditions — 그대로 유지.
+// leaf conditions — referencedRoots = Single(self root). hasFromNextGen = NoLongerMatch/NeedLongerMatch 의 flag.
 data class NoLongerMatch(val symbolId: Int, val startGen: Int, val fromNextGen: Boolean = false): AcceptCondition() {
   override fun neg(): AcceptCondition = NeedLongerMatch(symbolId, startGen, fromNextGen)
+  override val referencedRoots: RootSet = RootSet.Single(PathRoot(symbolId, startGen))
+  override val hasFromNextGen: Boolean get() = fromNextGen
 }
 
 data class NeedLongerMatch(val symbolId: Int, val startGen: Int, val fromNextGen: Boolean = false):
   AcceptCondition() {
   override fun neg(): AcceptCondition = NoLongerMatch(symbolId, startGen, fromNextGen)
+  override val referencedRoots: RootSet = RootSet.Single(PathRoot(symbolId, startGen))
+  override val hasFromNextGen: Boolean get() = fromNextGen
 }
 
 data class NotExists(val symbolId: Int, val startGen: Int): AcceptCondition() {
   override fun neg(): AcceptCondition = Exists(symbolId, startGen)
+  override val referencedRoots: RootSet = RootSet.Single(PathRoot(symbolId, startGen))
+  override val hasFromNextGen: Boolean get() = false
 }
 
 data class Exists(val symbolId: Int, val startGen: Int): AcceptCondition() {
   override fun neg(): AcceptCondition = NotExists(symbolId, startGen)
+  override val referencedRoots: RootSet = RootSet.Single(PathRoot(symbolId, startGen))
+  override val hasFromNextGen: Boolean get() = false
 }
 
 data class Unless(val symbolId: Int, val startGen: Int): AcceptCondition() {
   override fun neg(): AcceptCondition = OnlyIf(symbolId, startGen)
+  override val referencedRoots: RootSet = RootSet.Single(PathRoot(symbolId, startGen))
+  override val hasFromNextGen: Boolean get() = false
 }
 
 data class OnlyIf(val symbolId: Int, val startGen: Int): AcceptCondition() {
   override fun neg(): AcceptCondition = Unless(symbolId, startGen)
+  override val referencedRoots: RootSet = RootSet.Single(PathRoot(symbolId, startGen))
+  override val hasFromNextGen: Boolean get() = false
 }
 
 // 입력이 모두 처리된 후, 이 condition이 true로 평가될 수 있는지 확인.

@@ -524,20 +524,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     }
 
     val newCondRoots = mutableSetOf<PathRoot>()
-    fun extractRootsFromCond(cond: AcceptCondition) {
-      when (cond) {
-        Always, Never -> {}
-        is And -> cond.forEach { extractRootsFromCond(it) }
-        is Or -> cond.forEach { extractRootsFromCond(it) }
-        is NoLongerMatch -> newCondRoots.add(PathRoot(cond.symbolId, cond.startGen))
-        is NeedLongerMatch -> newCondRoots.add(PathRoot(cond.symbolId, cond.startGen))
-        is NotExists -> newCondRoots.add(PathRoot(cond.symbolId, cond.startGen))
-        is Exists -> newCondRoots.add(PathRoot(cond.symbolId, cond.startGen))
-        is Unless -> newCondRoots.add(PathRoot(cond.symbolId, cond.startGen))
-        is OnlyIf -> newCondRoots.add(PathRoot(cond.symbolId, cond.startGen))
-      }
-    }
-    nextPaths.values.forEach { pm -> pm.values.forEach { extractRootsFromCond(it) } }
+    // condition.referencedRoots metadata 사용 — tree traversal 불필요.
+    nextPaths.values.forEach { pm -> pm.values.forEach { it.referencedRoots.forEach { r -> newCondRoots.add(r) } } }
 
     val newCondRootProgresses = mutableMapOf<PathRoot, AcceptCondition>()
     for (sym in allObservingSyms) {
@@ -656,21 +644,10 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
 
     // step 6: 사용되지 않는 cond path 제거 — mainRoot 는 항상 keep.
     val referencedRoots = mutableSetOf<PathRoot>()
-    fun collectReferenced(cond: AcceptCondition) {
-      when (cond) {
-        Always, Never -> {}
-        is And -> cond.forEach { collectReferenced(it) }
-        is Or -> cond.forEach { collectReferenced(it) }
-        is NoLongerMatch -> referencedRoots.add(PathRoot(cond.symbolId, cond.startGen))
-        is NeedLongerMatch -> referencedRoots.add(PathRoot(cond.symbolId, cond.startGen))
-        is NotExists -> referencedRoots.add(PathRoot(cond.symbolId, cond.startGen))
-        is Exists -> referencedRoots.add(PathRoot(cond.symbolId, cond.startGen))
-        is Unless -> referencedRoots.add(PathRoot(cond.symbolId, cond.startGen))
-        is OnlyIf -> referencedRoots.add(PathRoot(cond.symbolId, cond.startGen))
-      }
-    }
     fun collectFromShape(shape: PathShape, cond: AcceptCondition) {
-      collectReferenced(cond)
+      // condition 의 referenced roots — cached metadata.
+      cond.referencedRoots.forEach { referencedRoots.add(it) }
+      // milestone chain 의 observing 들. 이건 chain walk 필요 (cache 없음 — 이전 시도에서 회귀).
       var mp = shape.milestonePath
       while (mp != null) {
         for (sid in mp.observingCondSymbolIds) {
