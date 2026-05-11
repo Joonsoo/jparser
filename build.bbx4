@@ -330,6 +330,33 @@ def runJUnitTest(lib: jvm.JvmLib) {
   runJUnitTestSuite(lib, .none)
 }
 
+def runJUnitTestExcluding(lib: jvm.JvmLib, excludeClassnameRegex: string) {
+  let runtimeClasspath = lib.transitiveJars + [lib.resourcesDir]
+  let cpArg = jvm.joinClasspath(runtimeClasspath)
+  let cmd = [
+    java.javaCmd(),
+    "-cp", cpArg,
+    "org.junit.platform.console.ConsoleLauncher",
+    "--fail-if-no-tests",
+    "--scan-class-path", lib.classesDir.absolutePath,
+    "--exclude-classname", excludeClassnameRegex,
+  ]
+  let inputs = [lib.classesDir] + runtimeClasspath
+  let s = context.runCommandStream(cmd = cmd, inputs = inputs)
+  let stdoutTask = async {
+    s.stdout.collect { line -> context.log(line) }
+  }
+  let stderrTask = async {
+    s.stderr.collect { line -> context.log(line) }
+  }
+  let _ = stdoutTask.await()
+  let _ = stderrTask.await()
+  let exitCode = s.exit.await()
+  if exitCode != 0 {
+    throw "JUnit failed (exit=${exitCode})"
+  }
+}
+
 def runJUnitTestSuite(lib: jvm.JvmLib, suiteName: optional<string>) {
   let runtimeClasspath = lib.transitiveJars + [lib.resourcesDir]
   let cpArg = jvm.joinClasspath(runtimeClasspath)
@@ -403,7 +430,8 @@ def runMgroup2Test() {
 
 @action
 def runMgroup3Test() {
-  runJUnitTest(mgroup3.test)
+  // Benchmark / profiling suites 는 별도 action 으로만 돌림.
+  runJUnitTestExcluding(mgroup3.test, ".*(Benchmark|Profiling).*")
 }
 
 @action

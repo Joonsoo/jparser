@@ -8,7 +8,6 @@ import com.giyeok.jparser.mgroup3.gen.Mgroup3ParserGenerator
 import com.giyeok.jparser.ktparser.mgroup2.MilestoneGroupParserKt
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.NGrammar
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import kotlin.system.measureNanoTime
 
@@ -126,11 +125,20 @@ class ParserBenchmarkTaxonomyTest {
   )
 
   @Test
-  @Disabled("manual taxonomy benchmark. Unannotate to run via runParserBenchmarkTaxonomy action.")
   fun benchmarkTaxonomy() {
     val defaultSizes = listOf(100, 1000)
     val warmup = 10
     val measureN = 30
+
+    // bibix4 의 stdout streaming 이 build job log 와 섞이며 앞 case 의 출력을 누락. 결과를
+    // 별도 파일에도 같이 기록. 경로: /tmp/jparser-benchmark-taxonomy.txt — 시작 시점에 truncate.
+    val resultFile = java.io.File("/tmp/jparser-benchmark-taxonomy.txt")
+    resultFile.writeText("")
+    fun out(line: String) {
+      println(line)
+      System.out.flush()
+      resultFile.appendText(line + "\n")
+    }
 
     for (case in cases) {
       val grammar: NGrammar = `MetaLanguage3$`.`MODULE$`
@@ -141,10 +149,10 @@ class ParserBenchmarkTaxonomyTest {
       val ktParser = MilestoneGroupParserKt(MilestoneGroupParserDataProtobufConverter.toProto(m2Data))
       val m3Parser = Mgroup3Parser(Mgroup3ParserGenerator(grammar).generate())
 
-      println()
-      println("=== ${case.name} : ${case.description} ===")
-      println("%-6s | %-8s | %-12s %-12s %-12s | ratio m3/kt".format("size", "chars", "m2 median", "kt median", "m3 median"))
-      println("-".repeat(80))
+      out("")
+      out("=== ${case.name} : ${case.description} ===")
+      out("%-6s | %-8s | %-12s %-12s %-12s | ratio m3/kt".format("size", "chars", "m2 median", "kt median", "m3 median"))
+      out("-".repeat(80))
 
       val sizes = case.sizes ?: defaultSizes
       for (size in sizes) {
@@ -161,7 +169,7 @@ class ParserBenchmarkTaxonomyTest {
         } catch (e: Throwable) { false }
 
         if (!m3OK) {
-          println("%-6d | %-8d | mgroup3 did not accept — skip".format(size, input.length))
+          out("%-6d | %-8d | mgroup3 did not accept — skip".format(size, input.length))
           continue
         }
 
@@ -190,7 +198,7 @@ class ParserBenchmarkTaxonomyTest {
         val ktMed = if (ktOK) median(ktTimes) else -1.0
         val m3Med = median(m3Times)
         val ratio = if (ktMed > 0) m3Med / ktMed else -1.0
-        println("%-6d | %-8d | %-12s %-12s %-12s | %s".format(
+        out("%-6d | %-8d | %-12s %-12s %-12s | %s".format(
           size, input.length,
           if (m2OK) formatMs(m2Med) else "OOM/err",
           if (ktOK) formatMs(ktMed) else "OOM/err",

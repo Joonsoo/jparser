@@ -405,7 +405,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     val nextPaths = mutableMapOf<PathRoot, MutableMap<PathShape, AcceptCondition>>()
     val finishesByGroup = mutableListOf<FinishedKernelRecord>()
     val progressesByGroup = mutableListOf<ProgressedKernelRecord>()
-    val observingOut = mutableSetOf<Int>()
+    val observingOut = HashSet<Int>()
     val rootProgresses = mutableMapOf<PathRoot, AcceptCondition>()
     val condRootStartersFromTerm = mutableMapOf<PathRoot, Int>()
 
@@ -510,34 +510,16 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     tPhase = phaseMark(2, tPhase)
 
     // step 3: 새로 등장한 cond symbol 에 대해 cond path 시작.
-    val newCondRootSyms = observingOut.toSet()
-    val allObservingSyms = mutableSetOf<Int>()
-    val queue: Queue<Int> = LinkedList()
-    queue.addAll(newCondRootSyms)
-    while (queue.isNotEmpty()) {
-      val s = queue.poll()
-      if (s !in allObservingSyms) {
-        allObservingSyms.add(s)
-        val info = plain.pathRoots[s]
-        if (info != null) queue.addAll(info.initialCondSymbolIds)
-      }
+    // observingOut 의 transitive closure 를 ParserDataPlain 의 precomputed table 로 union.
+    val allObservingSyms = HashSet<Int>(observingOut.size * 2)
+    for (sym in observingOut) {
+      val closure = plain.transitiveInitialCondSymbols[sym]
+      if (closure != null) allObservingSyms.addAll(closure) else allObservingSyms.add(sym)
     }
 
-    val newCondRoots = mutableSetOf<PathRoot>()
-    fun extractRootsFromCond(cond: AcceptCondition) {
-      when (cond) {
-        Always, Never -> {}
-        is And -> cond.forEach { extractRootsFromCond(it) }
-        is Or -> cond.forEach { extractRootsFromCond(it) }
-        is NoLongerMatch -> newCondRoots.add(PathRoot(cond.symbolId, cond.startGen))
-        is NeedLongerMatch -> newCondRoots.add(PathRoot(cond.symbolId, cond.startGen))
-        is NotExists -> newCondRoots.add(PathRoot(cond.symbolId, cond.startGen))
-        is Exists -> newCondRoots.add(PathRoot(cond.symbolId, cond.startGen))
-        is Unless -> newCondRoots.add(PathRoot(cond.symbolId, cond.startGen))
-        is OnlyIf -> newCondRoots.add(PathRoot(cond.symbolId, cond.startGen))
-      }
-    }
-    nextPaths.values.forEach { pm -> pm.values.forEach { extractRootsFromCond(it) } }
+    val newCondRoots = HashSet<PathRoot>()
+    // condition.referencedRoots metadata 사용 — tree traversal 불필요.
+    nextPaths.values.forEach { pm -> pm.values.forEach { it.referencedRoots.forEach { r -> newCondRoots.add(r) } } }
 
     val newCondRootProgresses = mutableMapOf<PathRoot, AcceptCondition>()
     for (sym in allObservingSyms) {
@@ -607,8 +589,9 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     tPhase = phaseMark(4, tPhase)
 
     // step 5: 모든 path 의 acceptCondition 을 evolve.
-    // activeCondRoots: 살아있는 cond root 들 (mainRoot 제외).
-    val activeCondRoots = nextPaths.keys.filterTo(HashSet()) { it != ctx.mainRoot }
+    // activeCondRoots = nextPaths.keys 그대로 — mainRoot 도 leaf condition 의 root 일 수 있으면
+    // active 로 봐야 옳음 (main path 살아있는 한). filterTo(HashSet()) 새 set 할당 회피.
+    val activeCondRoots: Set<PathRoot> = nextPaths.keys
 
     if (trace) {
       println("  --- step 5 evolve ---")
@@ -655,22 +638,11 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     tPhase = phaseMark(5, tPhase)
 
     // step 6: 사용되지 않는 cond path 제거 — mainRoot 는 항상 keep.
-    val referencedRoots = mutableSetOf<PathRoot>()
-    fun collectReferenced(cond: AcceptCondition) {
-      when (cond) {
-        Always, Never -> {}
-        is And -> cond.forEach { collectReferenced(it) }
-        is Or -> cond.forEach { collectReferenced(it) }
-        is NoLongerMatch -> referencedRoots.add(PathRoot(cond.symbolId, cond.startGen))
-        is NeedLongerMatch -> referencedRoots.add(PathRoot(cond.symbolId, cond.startGen))
-        is NotExists -> referencedRoots.add(PathRoot(cond.symbolId, cond.startGen))
-        is Exists -> referencedRoots.add(PathRoot(cond.symbolId, cond.startGen))
-        is Unless -> referencedRoots.add(PathRoot(cond.symbolId, cond.startGen))
-        is OnlyIf -> referencedRoots.add(PathRoot(cond.symbolId, cond.startGen))
-      }
-    }
+    val referencedRoots = HashSet<PathRoot>()
     fun collectFromShape(shape: PathShape, cond: AcceptCondition) {
-      collectReferenced(cond)
+      // condition 의 referenced roots — cached metadata.
+      cond.referencedRoots.forEach { referencedRoots.add(it) }
+      // milestone chain 의 observing 들. 이건 chain walk 필요 (cache 없음 — 이전 시도에서 회귀).
       var mp = shape.milestonePath
       while (mp != null) {
         for (sid in mp.observingCondSymbolIds) {
