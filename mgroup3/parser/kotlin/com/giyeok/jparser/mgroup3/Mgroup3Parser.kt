@@ -7,6 +7,9 @@ import com.giyeok.jparser.mgroup3.proto.*
 import java.util.*
 
 class Mgroup3Parser(val data: Mgroup3ParserData) {
+  // protobuf data 를 hot path 에서 한 번씩만 변환된 plain Kotlin record 로 wrap.
+  // 모든 hot-path lookup 은 plain.* 사용.
+  private val plain = ParserDataPlain(data)
   private var verbose = false
   // 특정 step (= 이 gen 으로 진행되는 parseStep) 에서 trace 출력.
   // null 이면 trace 안 함. setTrace(gen) 으로 활성.
@@ -50,14 +53,14 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
   private fun traceOn(gen: Int): Boolean = traceGen == gen
 
   // (parent symbol, parent pointer, tip group id) -> edge action
-  val tipEdgeActionsMap: Map<Pair<KernelTemplatePair, Int>, EdgeAction> =
-    data.tipEdgeActionsList.associate {
+  val tipEdgeActionsMap: Map<Pair<KernelTemplatePair, Int>, EdgeActionPlain> =
+    plain.tipEdgeActions.associate {
       Pair(KernelTemplatePair(it.parent.symbolId, it.parent.pointer), it.tipGroupId) to it.edgeAction
     }
 
   // (parent symbol, parent pointer, tip symbol, tip pointer) -> edge action
-  val midEdgeActionsMap: Map<Pair<KernelTemplatePair, KernelTemplatePair>, EdgeAction> =
-    data.midEdgeActionsList.associate {
+  val midEdgeActionsMap: Map<Pair<KernelTemplatePair, KernelTemplatePair>, EdgeActionPlain> =
+    plain.midEdgeActions.associate {
       Pair(
         KernelTemplatePair(it.parent.symbolId, it.parent.pointer),
         KernelTemplatePair(it.tip.symbolId, it.tip.pointer)
@@ -73,9 +76,9 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     while (queue.isNotEmpty()) {
       val symId = queue.poll()
       if (symId !in builder) {
-        val rootInfo = data.pathRootsMap[symId] ?: continue
+        val rootInfo = plain.pathRoots[symId] ?: continue
         builder[symId] = PathShape(null, rootInfo.milestoneGroupId)
-        queue.addAll(rootInfo.initialCondSymbolIdsList)
+        queue.addAll(rootInfo.initialCondSymbolIds)
       }
     }
     return builder.mapKeys { (symId, _) -> PathRoot(symId, gen) }
@@ -83,12 +86,12 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
   }
 
   fun initCtx(startSymbolId: Int): ParsingCtx {
-    val rootInfo = data.pathRootsMap[startSymbolId]
+    val rootInfo = plain.pathRoots[startSymbolId]
       ?: throw IllegalArgumentException("No path root for symbol $startSymbolId")
 
     val mainRoot = PathRoot(startSymbolId, 0)
     val mainPaths: PathMap = mapOf(PathShape(null, rootInfo.milestoneGroupId) to Always)
-    val initialCondPaths = condPathsFor(rootInfo.initialCondSymbolIdsList, 0)
+    val initialCondPaths = condPathsFor(rootInfo.initialCondSymbolIds, 0)
 
     // main + cond 모두 같은 map.
     val allPaths = LinkedHashMap<PathRoot, PathMap>()
@@ -97,10 +100,10 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
 
     val initialFinishedKernels = mutableListOf<FinishedKernelRecord>()
     val initialProgressedKernels = mutableListOf<ProgressedKernelRecord>()
-    if (rootInfo.hasParsingActions()) {
+    if (rootInfo.parsingActions != null) {
       collectInitialActions(rootInfo.parsingActions, 0, initialFinishedKernels, initialProgressedKernels)
     }
-    if (rootInfo.hasSelfFinishAcceptCondition()) {
+    if (rootInfo.selfFinishAcceptCondition != null) {
       initialFinishedKernels.add(
         FinishedKernelRecord(
           Kernel(startSymbolId, 1, 0),
@@ -121,15 +124,15 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     )
   }
 
-  fun initCtx(): ParsingCtx = initCtx(data.startSymbolId)
+  fun initCtx(): ParsingCtx = initCtx(plain.startSymbolId)
 
   private fun collectInitialActions(
-    pa: ParsingActions,
+    pa: ParsingActionsPlain,
     gen: Int,
     finishedOut: MutableList<FinishedKernelRecord>,
     progressedOut: MutableList<ProgressedKernelRecord>,
   ) {
-    for (finished in pa.finishedList) {
+    for (finished in pa.finished) {
       val startGen = resolveGen(finished.startGen, 0, 0, 0)
       finishedOut.add(
         FinishedKernelRecord(
@@ -138,7 +141,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         )
       )
     }
-    for (prog in pa.progressedList) {
+    for (prog in pa.progressed) {
       val startGen = resolveGen(prog.startGen, 0, 0, 0)
       val midGen = resolveGen(prog.midGen, 0, 0, 0)
       progressedOut.add(ProgressedKernelRecord(prog.symbolId, prog.pointer, startGen, midGen, gen))
@@ -149,7 +152,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     val mainPathMap = ctx.paths[ctx.mainRoot] ?: emptyMap()
     val termGroups =
       mainPathMap.keys.flatMap { shape ->
-        data.termActionsMap[shape.tipGroupId]?.actionsList?.map { it.termGroup } ?: listOf()
+        plain.termActions[shape.tipGroupId]?.map { it.termGroup } ?: listOf()
       }
     val termSetBuilder = TermGroupUtil.TermGroupBuilder()
     for (termGroup in termGroups) {
@@ -158,16 +161,13 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     return termSetBuilder.build()
   }
 
-  // (tipGroupId, input) → TermAction? cache. linear scan of actionsList + TermGroupUtil.isMatch
-  // 가 hot path 에서 5-7% 차지. 같은 (tipGroupId, char) 가 매우 자주 반복되므로 cache 효과 큼.
-  // present 키의 value 가 null 인 경우 = "lookup 했으나 no-match" 의미 — containsKey 로 구분.
-  private val termActionCache = HashMap<Long, TermAction?>()
-  fun findApplicableAction(shape: PathShape, input: Char): TermAction? {
+  // (tipGroupId, input) → TermActionPlain? cache.
+  private val termActionCache = HashMap<Long, TermActionPlain?>()
+  fun findApplicableAction(shape: PathShape, input: Char): TermActionPlain? {
     val key = (shape.tipGroupId.toLong() shl 32) or input.code.toLong()
     if (termActionCache.containsKey(key)) return termActionCache[key]
-    val result = data.termActionsMap[shape.tipGroupId]?.actionsList?.find { action ->
-      TermGroupUtil.isMatch(action.termGroup, input)
-    }?.termAction
+    val actions = plain.termActions[shape.tipGroupId]
+    val result = actions?.find { action -> TermGroupUtil.isMatch(action.termGroup, input) }?.termAction
     termActionCache[key] = result
     return result
   }
@@ -181,7 +181,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     oldShape: PathShape,
     oldCondition: AcceptCondition,
     pathRoot: PathRoot,
-    termAction: TermAction,
+    termAction: TermActionPlain,
     midGen: Int,
     gen: Int,
     nextPathsOut: MutableMap<PathShape, AcceptCondition>,
@@ -189,15 +189,14 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     progressesOut: MutableList<ProgressedKernelRecord>,
     rootProgressesOut: MutableMap<PathRoot, AcceptCondition>,
     observingSymbolIdsOut: MutableSet<Int>,
-    // (cond root sym, milestone group id) — mgroup2 의 lookahead_requiring_symbols 처럼,
-    // main path 가 새 milestone 을 attach 하는 시점에 같이 등록할 cond root starter 들.
     condRootStartersOut: MutableMap<PathRoot, Int>,
   ) {
     val parentGen = oldShape.milestonePath?.gen ?: pathRoot.startGen
     val grandGen = oldShape.milestonePath?.milestone?.gen ?: pathRoot.startGen
 
-    if (termAction.hasParsingActions()) {
-      for (finished in termAction.parsingActions.finishedList) {
+    val pa = termAction.parsingActions
+    if (pa != null) {
+      for (finished in pa.finished) {
         val startGen = resolveGen(finished.startGen, parentGen, midGen, gen, grandGen)
         finishesOut.add(
           FinishedKernelRecord(
@@ -206,14 +205,14 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
           )
         )
       }
-      for (prog in termAction.parsingActions.progressedList) {
+      for (prog in pa.progressed) {
         val startGen = resolveGen(prog.startGen, parentGen, midGen, gen, grandGen)
         val mGen = resolveGen(prog.midGen, parentGen, midGen, gen, grandGen)
         progressesOut.add(ProgressedKernelRecord(prog.symbolId, prog.pointer, startGen, mGen, gen))
       }
     }
 
-    for (rea in termAction.replaceAndAppendsList) {
+    for (rea in termAction.replaceAndAppends) {
       val newAcceptCondition = rea.append.acceptCondition.toAcceptCondition(parentGen, midGen, gen, grandGen)
       val combined = And.from(oldCondition, newAcceptCondition)
       if (combined == Never) continue
@@ -223,20 +222,19 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         gen = gen,
         milestone = replaceKernel,
         parent = oldShape.milestonePath,
-        observingCondSymbolIds = rea.append.observingCondSymbolIdsList,
+        observingCondSymbolIds = rea.append.observingCondSymbolIds,
       )
       nextPathsOut.addPath(
         PathShape(milestonePath = newMilestonePath, tipGroupId = rea.append.milestoneGroupId),
         combined,
       )
-      observingSymbolIdsOut.addAll(rea.append.observingCondSymbolIdsList)
-      for (starter in rea.append.condRootStartersList) {
-        // mgroup2 의 lookaheadRequiringSymbols 와 같은 의미: 새 cond root 의 startGen = 이번 input 처리 후 gen.
+      observingSymbolIdsOut.addAll(rea.append.observingCondSymbolIds)
+      for (starter in rea.append.condRootStarters) {
         condRootStartersOut[PathRoot(starter.symbolId, gen)] = starter.milestoneGroupId
       }
     }
 
-    for (rap in termAction.replaceAndProgressesList) {
+    for (rap in termAction.replaceAndProgresses) {
       val newAcceptCondition = rap.acceptCondition.toAcceptCondition(parentGen, midGen, gen, grandGen)
       val combined = And.from(oldCondition, newAcceptCondition)
       if (combined == Never) continue
@@ -286,7 +284,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
   //   GRAND = grand-grand-parent gen
   private fun applyEdgeAction(
     parentPath: MilestonePath,
-    edgeAction: EdgeAction,
+    edgeAction: EdgeActionPlain,
     pathRoot: PathRoot,
     prevCondition: AcceptCondition,
     grandParentGen: Int,
@@ -300,8 +298,9 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     condRootStartersOut: MutableMap<PathRoot, Int>,
   ) {
     val grandGrandParentGen = parentPath.milestone.gen
-    if (edgeAction.hasParsingActions()) {
-      for (finished in edgeAction.parsingActions.finishedList) {
+    val pa = edgeAction.parsingActions
+    if (pa != null) {
+      for (finished in pa.finished) {
         val startGen = resolveGen(finished.startGen, grandParentGen, parentGen, gen, grandGrandParentGen)
         finishesOut.add(
           FinishedKernelRecord(
@@ -310,32 +309,31 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
           )
         )
       }
-      for (prog in edgeAction.parsingActions.progressedList) {
+      for (prog in pa.progressed) {
         val startGen = resolveGen(prog.startGen, grandParentGen, parentGen, gen, grandGrandParentGen)
         val mGen = resolveGen(prog.midGen, grandParentGen, parentGen, gen, grandGrandParentGen)
         progressesOut.add(ProgressedKernelRecord(prog.symbolId, prog.pointer, startGen, mGen, gen))
       }
     }
 
-    for (append in edgeAction.appendMilestoneGroupsList) {
+    for (append in edgeAction.appendMilestoneGroups) {
       val condition = append.acceptCondition.toAcceptCondition(grandParentGen, parentGen, gen, grandGrandParentGen)
       val combined = And.from(prevCondition, condition)
       if (combined == Never) continue
       val newParentPath = parentPath.copy(
-        observingCondSymbolIds = append.observingCondSymbolIdsList,
+        observingCondSymbolIds = append.observingCondSymbolIds,
       )
       nextPathsOut.addPath(
         PathShape(milestonePath = newParentPath, tipGroupId = append.milestoneGroupId),
         combined,
       )
-      observingSymbolIdsOut.addAll(append.observingCondSymbolIdsList)
-      for (starter in append.condRootStartersList) {
-        // edge action 에서도 새 cond root 의 startGen = 이번 input 처리 후 gen.
+      observingSymbolIdsOut.addAll(append.observingCondSymbolIds)
+      for (starter in append.condRootStarters) {
         condRootStartersOut[PathRoot(starter.symbolId, gen)] = starter.milestoneGroupId
       }
     }
 
-    if (edgeAction.hasStartNodeProgress()) {
+    if (edgeAction.startNodeProgress != null) {
       val startNodeProgressCondition =
         edgeAction.startNodeProgress.toAcceptCondition(grandParentGen, parentGen, gen, grandGrandParentGen)
       val combined = And.from(prevCondition, startNodeProgressCondition)
@@ -442,9 +440,9 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
           )
         } else if (!isMain) {
           // cond path 가 input 매치 못해 dead — possible_finishes 검사.
-          val mg = data.milestoneGroupsMap[shape.tipGroupId]
+          val mg = plain.milestoneGroups[shape.tipGroupId]
           if (mg != null) {
-            for (pf in mg.possibleFinishesList) {
+            for (pf in mg.possibleFinishes) {
               if (pf.symbolId == root.symbolId) {
                 val prevGen = shape.milestonePath?.gen ?: root.startGen
                 val midGenLocal = ctx.gen
@@ -474,7 +472,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       if (starterRoot in ctx.paths.keys) continue
       if (starterRoot in nextPaths.keys) continue
       if (starterRoot in ctx.everSeenCondRoots) continue
-      val rootInfo = data.pathRootsMap[starterRoot.symbolId] ?: continue
+      val rootInfo = plain.pathRoots[starterRoot.symbolId] ?: continue
       val starterShape = PathShape(null, mgroupId)
       val ta = findApplicableAction(starterShape, input)
       if (ta != null) {
@@ -500,7 +498,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
           }
         }
       }
-      if (rootInfo.hasSelfFinishAcceptCondition()) {
+      if (rootInfo.selfFinishAcceptCondition != null) {
         val cond = rootInfo.selfFinishAcceptCondition.toAcceptCondition(starterRoot.startGen, starterRoot.startGen, gen)
         val existing = rootProgresses[starterRoot]
         rootProgresses[starterRoot] = if (existing != null) Or.from(existing, cond) else cond
@@ -520,8 +518,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       val s = queue.poll()
       if (s !in allObservingSyms) {
         allObservingSyms.add(s)
-        val info = data.pathRootsMap[s]
-        if (info != null) queue.addAll(info.initialCondSymbolIdsList)
+        val info = plain.pathRoots[s]
+        if (info != null) queue.addAll(info.initialCondSymbolIds)
       }
     }
 
@@ -557,8 +555,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       if (pathRoot == ctx.mainRoot) continue
       if (pathRoot in ctx.paths.keys || pathRoot in nextPaths.keys) continue
       if (pathRoot in everSeenCondRoots) continue
-      val rootInfo = data.pathRootsMap[pathRoot.symbolId] ?: continue
-      if (rootInfo.hasSelfFinishAcceptCondition()) {
+      val rootInfo = plain.pathRoots[pathRoot.symbolId] ?: continue
+      if (rootInfo.selfFinishAcceptCondition != null) {
         val selfCond = rootInfo.selfFinishAcceptCondition.toAcceptCondition(pathRoot.startGen, pathRoot.startGen, gen)
         newCondRootProgresses[pathRoot] = selfCond
       }
@@ -737,7 +735,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
   }
 
   fun isAccepted(ctx: ParsingCtx): Boolean {
-    val startSymbolId = data.startSymbolId
+    val startSymbolId = plain.startSymbolId
     val lastEntry = ctx.history.lastOrNull() ?: return false
     val activeCondPaths = ctx.condPaths.keys
 

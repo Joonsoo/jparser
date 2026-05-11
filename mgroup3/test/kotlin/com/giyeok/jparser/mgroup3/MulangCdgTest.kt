@@ -735,10 +735,10 @@ class MulangCdgTest {
             d++
           }
           // 그 termAction 의 replaceAndAppends / replaceAndProgresses 의 acceptCondition 보기.
-          for (rea in ta.replaceAndAppendsList) {
+          for (rea in ta.replaceAndAppends) {
             println("    rea: replace=(${rea.replace.symbolId}+${rea.replace.pointer}) appendMg=${rea.append.milestoneGroupId} appendCond=${rea.append.acceptCondition.toString().replace("\n", " ").take(200)}")
           }
-          for (rap in ta.replaceAndProgressesList) {
+          for (rap in ta.replaceAndProgresses) {
             println("    rap: replaceMg=${rap.replaceMilestoneGroupId} rapCond=${rap.acceptCondition.toString().replace("\n", " ").take(200)}")
           }
         }
@@ -849,17 +849,18 @@ class MulangCdgTest {
           val ta = parser.findApplicableAction(p.key, c)
           if (ta != null) {
             println("    termAction matches!")
-            for (rea in ta.replaceAndAppendsList) {
+            for (rea in ta.replaceAndAppends) {
               println("    rea: replace=(${rea.replace.symbolId}+${rea.replace.pointer}) appendMgroup=${rea.append.milestoneGroupId} cond=${rea.append.acceptCondition}")
             }
-            for (rap in ta.replaceAndProgressesList) {
+            for (rap in ta.replaceAndProgresses) {
               println("    rap: replaceMgroup=${rap.replaceMilestoneGroupId} cond=${rap.acceptCondition}")
             }
-            if (ta.hasParsingActions()) {
-              for (f in ta.parsingActions.finishedList) {
+            val pa = ta.parsingActions
+            if (pa != null) {
+              for (f in pa.finished) {
                 println("    finish: (${f.symbolId}+${f.pointer}@${f.startGen}) cond=${f.finishCondition}")
               }
-              for (pr in ta.parsingActions.progressedList) {
+              for (pr in pa.progressed) {
                 println("    progress: (${pr.symbolId}+${pr.pointer}@${pr.startGen}+${pr.midGen})")
               }
             }
