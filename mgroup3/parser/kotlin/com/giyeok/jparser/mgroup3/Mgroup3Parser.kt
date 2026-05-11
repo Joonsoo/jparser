@@ -510,17 +510,11 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     tPhase = phaseMark(2, tPhase)
 
     // step 3: 새로 등장한 cond symbol 에 대해 cond path 시작.
-    val newCondRootSyms = observingOut.toSet()
-    val allObservingSyms = mutableSetOf<Int>()
-    val queue: Queue<Int> = LinkedList()
-    queue.addAll(newCondRootSyms)
-    while (queue.isNotEmpty()) {
-      val s = queue.poll()
-      if (s !in allObservingSyms) {
-        allObservingSyms.add(s)
-        val info = plain.pathRoots[s]
-        if (info != null) queue.addAll(info.initialCondSymbolIds)
-      }
+    // observingOut 의 transitive closure 를 ParserDataPlain 의 precomputed table 로 union.
+    val allObservingSyms = HashSet<Int>(observingOut.size * 2)
+    for (sym in observingOut) {
+      val closure = plain.transitiveInitialCondSymbols[sym]
+      if (closure != null) allObservingSyms.addAll(closure) else allObservingSyms.add(sym)
     }
 
     val newCondRoots = mutableSetOf<PathRoot>()

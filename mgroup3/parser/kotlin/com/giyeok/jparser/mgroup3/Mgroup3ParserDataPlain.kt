@@ -42,6 +42,34 @@ class ParserDataPlain(val proto: Mgroup3ParserData) {
 
   val midEdgeActions: List<MidEdgeActionPair> =
     proto.midEdgeActionsList.map { MidEdgeActionPair(it.parent, it.tip, EdgeActionPlain(it.edgeAction)) }
+
+  // 각 symbol 의 transitive initialCondSymbolIds closure (자기 자신 포함).
+  // step3 의 매 step BFS 를 회피. parser data 의 정적 속성.
+  val transitiveInitialCondSymbols: Map<Int, Set<Int>> = run {
+    val out = HashMap<Int, Set<Int>>(pathRoots.size)
+    // memoize: 각 symbol 의 closure 를 한 번씩 계산.
+    fun closureOf(symId: Int, stack: HashSet<Int>): Set<Int> {
+      out[symId]?.let { return it }
+      if (!stack.add(symId)) {
+        // cycle — 자기 자신만 반환 (다른 symbols 는 caller 에서 union).
+        return setOf(symId)
+      }
+      val info = pathRoots[symId] ?: run {
+        stack.remove(symId)
+        return emptySet()
+      }
+      val result = HashSet<Int>()
+      result.add(symId)
+      for (child in info.initialCondSymbolIds) {
+        result.addAll(closureOf(child, stack))
+      }
+      stack.remove(symId)
+      out[symId] = result
+      return result
+    }
+    for (symId in pathRoots.keys) closureOf(symId, HashSet())
+    out
+  }
 }
 
 class PathRootInfoPlain(proto: PathRootInfo) {
