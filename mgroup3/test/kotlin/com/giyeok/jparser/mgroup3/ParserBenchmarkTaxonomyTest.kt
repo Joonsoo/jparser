@@ -8,7 +8,6 @@ import com.giyeok.jparser.mgroup3.gen.Mgroup3ParserGenerator
 import com.giyeok.jparser.ktparser.mgroup2.MilestoneGroupParserKt
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.NGrammar
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import kotlin.system.measureNanoTime
 
@@ -126,7 +125,6 @@ class ParserBenchmarkTaxonomyTest {
   )
 
   @Test
-  @Disabled("manual taxonomy benchmark. Unannotate to run via runParserBenchmarkTaxonomy action.")
   fun benchmarkTaxonomy() {
     val defaultSizes = listOf(100, 1000)
     val warmup = 10

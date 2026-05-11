@@ -8,7 +8,6 @@ import com.giyeok.jparser.mgroup3.gen.Mgroup3ParserGenerator
 import com.giyeok.jparser.ktparser.mgroup2.MilestoneGroupParserKt
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.NGrammar
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import scala.jdk.javaapi.CollectionConverters
 import kotlin.system.measureNanoTime
@@ -20,12 +19,9 @@ class ParserBenchmarkTest {
   // - 세 파서 모두 같은 input 으로 parse 후 accept 여부 검증.
   // - JIT warm-up 후 N 회 측정, median + mean + std 출력.
   //
-  // @Disabled 로 둬서 일반 CI 에는 안 돌고, 수동 실행 시에만.
-  // runMgroup3Test 에서는 @Disabled 로 skip. runParserBenchmark action 은 --include-classname
-  // 으로 명시적으로 이 클래스를 선택해도 @Disabled 면 실행 안 되므로, 일단 수동으로 @Disabled
-  // 해제 후 runParserBenchmark 실행. (간단한 절차로 우선)
+  // runMgroup3Test 의 exclude filter (.*(Benchmark|Profiling).*) 로 일반 test 에서는 skip.
+  // runParserBenchmark action 으로 명시 실행.
   @Test
-  @Disabled("manual benchmark. Unannotate to run via runParserBenchmark action.")
   fun benchmarkThreeParsers() {
     // Grammar: arithmetic with NJoin ("||" must be on Op-token boundary) + NLongest (OpTk = longest Op).
     val grammarText = """

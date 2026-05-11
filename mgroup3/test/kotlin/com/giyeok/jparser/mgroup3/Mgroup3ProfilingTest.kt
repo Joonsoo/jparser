@@ -2,7 +2,6 @@ package com.giyeok.jparser.mgroup3
 
 import com.giyeok.jparser.metalang3.`MetaLanguage3$`
 import com.giyeok.jparser.mgroup3.gen.Mgroup3ParserGenerator
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import java.lang.management.ManagementFactory
 import kotlin.concurrent.thread
@@ -14,7 +13,6 @@ import kotlin.concurrent.thread
 // spent inside applyTermAction, evolveAcceptCondition, etc.).
 class Mgroup3ProfilingTest {
   @Test
-  @Disabled("manual profiling. Unannotate to run via runMgroup3Profile action.")
   fun profile() {
     val grammarText = """
       Grammar = Expr
