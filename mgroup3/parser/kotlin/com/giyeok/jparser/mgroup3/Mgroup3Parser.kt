@@ -12,8 +12,12 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
   // null 이면 trace 안 함. setTrace(gen) 으로 활성.
   private var traceGen: Int? = null
 
-  // Phase timing — debugging/benchmark 용. resetPhaseTimers() 후 parse 하고 reportPhaseTimers() 로 출력.
+  // Phase timing — opt-in for diagnostics only. enablePhaseTiming() 후에만 측정 코드 활성화.
+  // 기본 false 라 parseStep 의 hot path 에 System.nanoTime() 호출이 안 들어감 (JIT branch predict).
+  private var phaseTimingEnabled: Boolean = false
   val phaseNanos: LongArray = LongArray(8)
+  fun enablePhaseTiming() { phaseTimingEnabled = true; resetPhaseTimers() }
+  fun disablePhaseTiming() { phaseTimingEnabled = false }
   fun resetPhaseTimers() { for (i in phaseNanos.indices) phaseNanos[i] = 0L }
   fun reportPhaseTimers(): String {
     val labels = listOf("step1", "step1b", "step2", "step3", "step4", "step5_evolve", "step6_prune", "step7_history")
@@ -25,6 +29,12 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       sb.append("${labels[i]}=${"%.1f".format(ms)}ms(${"%.1f".format(pct)}%) ")
     }
     return sb.toString()
+  }
+  private inline fun phaseMark(slot: Int, t0: Long): Long {
+    if (!phaseTimingEnabled) return 0L
+    val t = System.nanoTime()
+    phaseNanos[slot] += t - t0
+    return t
   }
 
   fun setVerbose(): Mgroup3Parser {
@@ -392,7 +402,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       println("  ctx.mainPaths.size=${ctx.mainPaths.size}, condPaths.size=${ctx.condPaths.size}")
     }
 
-    var tPhase = System.nanoTime()
+    var tPhase = if (phaseTimingEnabled) System.nanoTime() else 0L
 
     // step 1: main paths 에 term action 적용
     for ((idx, entry) in ctx.mainPaths.entries.withIndex()) {
@@ -443,7 +453,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       }
     }
 
-    run { val t = System.nanoTime(); phaseNanos[0] += t - tPhase; tPhase = t }
+    tPhase = phaseMark(0, tPhase)
 
     // step 1b: main path termAction 결과 등록된 condRootStartersFromTerm 의 starter 들에 같은 input 적용.
     val nextCondPaths = mutableMapOf<PathRoot, MutableMap<PathShape, AcceptCondition>>()
@@ -483,7 +493,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       }
     }
 
-    run { val t = System.nanoTime(); phaseNanos[1] += t - tPhase; tPhase = t }
+    tPhase = phaseMark(1, tPhase)
 
     // step 2: cond paths 에 term action 적용
     for ((root, pathMap) in ctx.condPaths) {
@@ -530,7 +540,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       }
     }
 
-    run { val t = System.nanoTime(); phaseNanos[2] += t - tPhase; tPhase = t }
+    tPhase = phaseMark(2, tPhase)
 
     // step 3: 새로 등장한 cond symbol 에 대해 cond path 시작.
     val newCondRootSyms = observingOut.toSet()
@@ -610,7 +620,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     }
 
 
-    run { val t = System.nanoTime(); phaseNanos[3] += t - tPhase; tPhase = t }
+    tPhase = phaseMark(3, tPhase)
 
     // step 4: condPath finish detection
     val condPathFinishes = mutableMapOf<PathRoot, AcceptCondition>()
@@ -626,7 +636,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       }
     }
 
-    run { val t = System.nanoTime(); phaseNanos[4] += t - tPhase; tPhase = t }
+    tPhase = phaseMark(4, tPhase)
 
     // step 5: 모든 path 의 acceptCondition 을 evolve
     val activeCondRoots = nextCondPaths.keys
@@ -669,7 +679,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       println("  after evolve: mainPathsEvolved.size=${mainPathsEvolved.size}")
     }
 
-    run { val t = System.nanoTime(); phaseNanos[5] += t - tPhase; tPhase = t }
+    tPhase = phaseMark(5, tPhase)
 
     // step 6: 사용되지 않는 cond path 제거
     val referencedRoots = mutableSetOf<PathRoot>()
@@ -703,7 +713,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
 
     val condPathsFiltered = condPathsEvolved.filter { (root, _) -> root in referencedRoots }
 
-    run { val t = System.nanoTime(); phaseNanos[6] += t - tPhase; tPhase = t }
+    tPhase = phaseMark(6, tPhase)
 
     // step 7: 입력 종료 시점이 아닌데 main path 모두 사라진 경우 에러
     if (!isLastInput && mainPathsEvolved.isEmpty()) {
@@ -724,7 +734,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     // 이번 step 의 active 를 누적 (Phase 3 의 O(n) traverse 회피).
     ctx.everSeenCondRoots.addAll(historyEntry.activeCondPaths)
 
-    run { val t = System.nanoTime(); phaseNanos[7] += t - tPhase }
+    phaseMark(7, tPhase)
 
     return ParsingCtx(
       gen = gen,

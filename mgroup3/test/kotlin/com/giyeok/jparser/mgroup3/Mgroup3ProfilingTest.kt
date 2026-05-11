@@ -44,9 +44,10 @@ class Mgroup3ProfilingTest {
     repeat(5) { parser.parse(input) }
 
     // Phase timing.
-    parser.resetPhaseTimers()
+    parser.enablePhaseTiming()
     repeat(10) { parser.parse(input) }
     println("Phase timing (10 parses): ${parser.reportPhaseTimers()}")
+    parser.disablePhaseTiming()
 
     val parsingThread = Thread.currentThread()
     val threadId = parsingThread.threadId()
