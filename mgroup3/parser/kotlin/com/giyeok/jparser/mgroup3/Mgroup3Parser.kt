@@ -527,8 +527,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     fun extractRootsFromCond(cond: AcceptCondition) {
       when (cond) {
         Always, Never -> {}
-        is And -> cond.conds.forEach { extractRootsFromCond(it) }
-        is Or -> cond.conds.forEach { extractRootsFromCond(it) }
+        is And -> cond.forEach { extractRootsFromCond(it) }
+        is Or -> cond.forEach { extractRootsFromCond(it) }
         is NoLongerMatch -> newCondRoots.add(PathRoot(cond.symbolId, cond.startGen))
         is NeedLongerMatch -> newCondRoots.add(PathRoot(cond.symbolId, cond.startGen))
         is NotExists -> newCondRoots.add(PathRoot(cond.symbolId, cond.startGen))
@@ -659,8 +659,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     fun collectReferenced(cond: AcceptCondition) {
       when (cond) {
         Always, Never -> {}
-        is And -> cond.conds.forEach { collectReferenced(it) }
-        is Or -> cond.conds.forEach { collectReferenced(it) }
+        is And -> cond.forEach { collectReferenced(it) }
+        is Or -> cond.forEach { collectReferenced(it) }
         is NoLongerMatch -> referencedRoots.add(PathRoot(cond.symbolId, cond.startGen))
         is NeedLongerMatch -> referencedRoots.add(PathRoot(cond.symbolId, cond.startGen))
         is NotExists -> referencedRoots.add(PathRoot(cond.symbolId, cond.startGen))
@@ -756,8 +756,16 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
   ): Boolean = when (cond) {
     Always -> true
     Never -> false
-    is And -> cond.conds.all { evaluateConditionWithHistory(it, history, activeCondPaths) }
-    is Or -> cond.conds.any { evaluateConditionWithHistory(it, history, activeCondPaths) }
+    is And -> {
+      var result = true
+      cond.forEach { if (!evaluateConditionWithHistory(it, history, activeCondPaths)) result = false }
+      result
+    }
+    is Or -> {
+      var result = false
+      cond.forEach { if (evaluateConditionWithHistory(it, history, activeCondPaths)) result = true }
+      result
+    }
 
     is NoLongerMatch -> {
       // evolve 가 매 step 단순화하므로 evaluate 시 살아남은 NoLongerMatch 는
@@ -874,10 +882,10 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     when (conditionCase) {
       AcceptConditionTemplate.ConditionCase.ALWAYS -> Always
       AcceptConditionTemplate.ConditionCase.AND ->
-        And.from(this.and.conditionsList.map { it.toAcceptCondition(prevGen, midGen, gen, grandGen) }.toSet())
+        And.from(this.and.conditionsList.map { it.toAcceptCondition(prevGen, midGen, gen, grandGen) })
 
       AcceptConditionTemplate.ConditionCase.OR ->
-        Or.from(this.or.conditionsList.map { it.toAcceptCondition(prevGen, midGen, gen, grandGen) }.toSet())
+        Or.from(this.or.conditionsList.map { it.toAcceptCondition(prevGen, midGen, gen, grandGen) })
 
       AcceptConditionTemplate.ConditionCase.NO_LONGER_MATCH -> {
         val startGen = resolveGen(noLongerMatch.startGen, prevGen, midGen, gen, grandGen)

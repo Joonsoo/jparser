@@ -15,96 +15,251 @@ data object Never: AcceptCondition() {
   override fun neg(): AcceptCondition = Always
 }
 
-class And(val conds: Set<AcceptCondition>): AcceptCondition() {
-  // Manual hashCode/equals with cached hashCode — data class 의 매번 deep hash 가 hot path 에서 dominant.
-  private var _hashCode: Int = 0
-  private var _hashCodeComputed: Boolean = false
-  override fun hashCode(): Int {
-    if (!_hashCodeComputed) {
-      _hashCode = conds.hashCode()
-      _hashCodeComputed = true
-    }
-    return _hashCode
+// And: AND of multiple AcceptConditions. 자식 element 가 2/3/4 면 SmallAnd, 5+ 면 LargeAnd 로 표현.
+// 둘 다 elements 가 canonical order (hashCode 오름차순 + tie-break by toString) 로 정렬되어 있음.
+// 직접 instantiate 하지 말고 `And.from(...)` 으로.
+sealed class And: AcceptCondition() {
+  abstract val size: Int
+  abstract fun elementAt(i: Int): AcceptCondition
+  inline fun forEach(action: (AcceptCondition) -> Unit) {
+    for (i in 0 until size) action(elementAt(i))
   }
-  override fun equals(other: Any?): Boolean = this === other || (other is And && conds == other.conds)
-  override fun toString(): String = "And(conds=$conds)"
 
   companion object {
-    fun from(a: AcceptCondition, b: AcceptCondition): AcceptCondition =
-      from(setOf(a, b))
+    fun from(a: AcceptCondition, b: AcceptCondition): AcceptCondition {
+      // Most common case — micro-optimized fast path.
+      if (a == Never || b == Never) return Never
+      if (a == Always) return b
+      if (b == Always) return a
+      if (a == b) return a
+      // 둘 다 leaf 면 SmallAnd2 directly.
+      if (a !is And && b !is And) {
+        val (x, y) = canonicalPair(a, b)
+        return SmallAnd(x, y, null, null)
+      }
+      return from(listOf(a, b))
+    }
 
-    fun from(conds: Set<AcceptCondition>): AcceptCondition =
-      if (Never in conds) {
-        Never
-      } else {
-        val filtered = conds.filter { it != Always }
-        if (filtered.isEmpty()) {
-          Always
-        } else {
-          if (filtered.size == 1) {
-            filtered.first()
-          } else {
-            val elems = filtered.flatMap {
-              when (it) {
-                is And -> it.conds
-                else -> listOf(it)
-              }
-            }
-            And(elems.toSet())
+    fun from(conds: Collection<AcceptCondition>): AcceptCondition {
+      val flat = ArrayList<AcceptCondition>(conds.size * 2)
+      for (c in conds) {
+        when (c) {
+          Never -> return Never
+          Always -> {}
+          is SmallAnd -> c.forEach { flat.add(it) }
+          is LargeAnd -> c.forEach { flat.add(it) }
+          else -> flat.add(c)
+        }
+      }
+      // dedup
+      val deduped = if (flat.size <= 1) flat else flat.toCollection(LinkedHashSet()).toList()
+      return when (deduped.size) {
+        0 -> Always
+        1 -> deduped[0]
+        else -> {
+          val arr = deduped.toTypedArray()
+          canonicalSort(arr)
+          when (arr.size) {
+            2 -> SmallAnd(arr[0], arr[1], null, null)
+            3 -> SmallAnd(arr[0], arr[1], arr[2], null)
+            4 -> SmallAnd(arr[0], arr[1], arr[2], arr[3])
+            else -> LargeAnd(arr)
           }
         }
       }
+    }
   }
-
-  override fun neg(): AcceptCondition = Or.from(conds.map { it.neg() }.toSet())
 }
 
-class Or(val conds: Set<AcceptCondition>): AcceptCondition() {
-  private var _hashCode: Int = 0
-  private var _hashCodeComputed: Boolean = false
-  override fun hashCode(): Int {
-    if (!_hashCodeComputed) {
-      _hashCode = conds.hashCode()
-      _hashCodeComputed = true
-    }
-    return _hashCode
+// SmallAnd: size 2/3/4. d != null → 4, c != null → 3, else 2.
+class SmallAnd(
+  val a: AcceptCondition,
+  val b: AcceptCondition,
+  val c: AcceptCondition?,
+  val d: AcceptCondition?,
+) : And() {
+  override val size: Int get() = if (d != null) 4 else if (c != null) 3 else 2
+  override fun elementAt(i: Int): AcceptCondition = when (i) {
+    0 -> a; 1 -> b; 2 -> c!!; 3 -> d!!
+    else -> throw IndexOutOfBoundsException(i)
   }
-  override fun equals(other: Any?): Boolean = this === other || (other is Or && conds == other.conds)
-  override fun toString(): String = "Or(conds=$conds)"
+
+  private val _hash: Int = run {
+    var h = HASH_SEED_AND
+    h = h * 31 + a.hashCode()
+    h = h * 31 + b.hashCode()
+    if (c != null) h = h * 31 + c.hashCode()
+    if (d != null) h = h * 31 + d.hashCode()
+    h
+  }
+  override fun hashCode(): Int = _hash
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (other !is SmallAnd) return false
+    return a == other.a && b == other.b && c == other.c && d == other.d
+  }
+  override fun toString(): String = "And(${(0 until size).joinToString(", ") { elementAt(it).toString() }})"
+
+  override fun neg(): AcceptCondition = Or.from(buildList(size) {
+    add(a.neg()); add(b.neg())
+    c?.let { add(it.neg()) }
+    d?.let { add(it.neg()) }
+  })
+}
+
+// LargeAnd: size >= 5. items canonical-sorted.
+class LargeAnd(val items: Array<AcceptCondition>) : And() {
+  override val size: Int get() = items.size
+  override fun elementAt(i: Int): AcceptCondition = items[i]
+
+  private val _hash: Int = run {
+    var h = HASH_SEED_AND
+    for (e in items) h = h * 31 + e.hashCode()
+    h
+  }
+  override fun hashCode(): Int = _hash
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (other !is LargeAnd) return false
+    return items.contentEquals(other.items)
+  }
+  override fun toString(): String = "And(${items.joinToString(", ")})"
+
+  override fun neg(): AcceptCondition = Or.from(items.map { it.neg() })
+}
+
+// Or: 대칭 구조.
+sealed class Or: AcceptCondition() {
+  abstract val size: Int
+  abstract fun elementAt(i: Int): AcceptCondition
+  inline fun forEach(action: (AcceptCondition) -> Unit) {
+    for (i in 0 until size) action(elementAt(i))
+  }
 
   companion object {
-    fun from(a: AcceptCondition, b: AcceptCondition): AcceptCondition =
-      from(setOf(a, b))
+    fun from(a: AcceptCondition, b: AcceptCondition): AcceptCondition {
+      if (a == Always || b == Always) return Always
+      if (a == Never) return b
+      if (b == Never) return a
+      if (a == b) return a
+      if (a !is Or && b !is Or) {
+        val (x, y) = canonicalPair(a, b)
+        return SmallOr(x, y, null, null)
+      }
+      return from(listOf(a, b))
+    }
 
-    fun from(conds: Set<AcceptCondition>): AcceptCondition =
-      if (Always in conds) {
-        Always
-      } else {
-        val filtered = conds.filter { it != Never }
-        if (filtered.isEmpty()) {
-          Never
-        } else {
-          if (filtered.size == 1) {
-            filtered.first()
-          } else {
-            val elems = filtered.flatMap {
-              when (it) {
-                is Or -> it.conds
-                else -> listOf(it)
-              }
-            }
-            Or(elems.toSet())
+    fun from(conds: Collection<AcceptCondition>): AcceptCondition {
+      val flat = ArrayList<AcceptCondition>(conds.size * 2)
+      for (c in conds) {
+        when (c) {
+          Always -> return Always
+          Never -> {}
+          is SmallOr -> c.forEach { flat.add(it) }
+          is LargeOr -> c.forEach { flat.add(it) }
+          else -> flat.add(c)
+        }
+      }
+      val deduped = if (flat.size <= 1) flat else flat.toCollection(LinkedHashSet()).toList()
+      return when (deduped.size) {
+        0 -> Never
+        1 -> deduped[0]
+        else -> {
+          val arr = deduped.toTypedArray()
+          canonicalSort(arr)
+          when (arr.size) {
+            2 -> SmallOr(arr[0], arr[1], null, null)
+            3 -> SmallOr(arr[0], arr[1], arr[2], null)
+            4 -> SmallOr(arr[0], arr[1], arr[2], arr[3])
+            else -> LargeOr(arr)
           }
         }
       }
+    }
   }
-
-  override fun neg(): AcceptCondition = And.from(conds.map { it.neg() }.toSet())
 }
 
-// fromNextGen: reify step (이 condition 이 path 에 처음 추가된 step) 이면 true.
-// 이 step 의 finish 와 결합 방지용. evolve 가 한 step 만에 fromNextGen=true → false 로 변환.
-// 이후 step 부터 finCond 와 결합 시도. mgroup2 의 NotExists 의 checkFromNextGen 과 같은 의미.
+class SmallOr(
+  val a: AcceptCondition,
+  val b: AcceptCondition,
+  val c: AcceptCondition?,
+  val d: AcceptCondition?,
+) : Or() {
+  override val size: Int get() = if (d != null) 4 else if (c != null) 3 else 2
+  override fun elementAt(i: Int): AcceptCondition = when (i) {
+    0 -> a; 1 -> b; 2 -> c!!; 3 -> d!!
+    else -> throw IndexOutOfBoundsException(i)
+  }
+
+  private val _hash: Int = run {
+    var h = HASH_SEED_OR
+    h = h * 31 + a.hashCode()
+    h = h * 31 + b.hashCode()
+    if (c != null) h = h * 31 + c.hashCode()
+    if (d != null) h = h * 31 + d.hashCode()
+    h
+  }
+  override fun hashCode(): Int = _hash
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (other !is SmallOr) return false
+    return a == other.a && b == other.b && c == other.c && d == other.d
+  }
+  override fun toString(): String = "Or(${(0 until size).joinToString(", ") { elementAt(it).toString() }})"
+
+  override fun neg(): AcceptCondition = And.from(buildList(size) {
+    add(a.neg()); add(b.neg())
+    c?.let { add(it.neg()) }
+    d?.let { add(it.neg()) }
+  })
+}
+
+class LargeOr(val items: Array<AcceptCondition>) : Or() {
+  override val size: Int get() = items.size
+  override fun elementAt(i: Int): AcceptCondition = items[i]
+
+  private val _hash: Int = run {
+    var h = HASH_SEED_OR
+    for (e in items) h = h * 31 + e.hashCode()
+    h
+  }
+  override fun hashCode(): Int = _hash
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (other !is LargeOr) return false
+    return items.contentEquals(other.items)
+  }
+  override fun toString(): String = "Or(${items.joinToString(", ")})"
+
+  override fun neg(): AcceptCondition = And.from(items.map { it.neg() })
+}
+
+// canonical ordering helpers — hashCode-sorted, tie-break by toString (rare path).
+private const val HASH_SEED_AND: Int = 0x6B5F3A7
+private const val HASH_SEED_OR: Int = 0x3D9F7B1
+
+private fun canonicalPair(a: AcceptCondition, b: AcceptCondition): Pair<AcceptCondition, AcceptCondition> {
+  val ha = a.hashCode()
+  val hb = b.hashCode()
+  return when {
+    ha < hb -> Pair(a, b)
+    ha > hb -> Pair(b, a)
+    else -> {
+      val cmp = a.toString().compareTo(b.toString())
+      if (cmp <= 0) Pair(a, b) else Pair(b, a)
+    }
+  }
+}
+
+private fun canonicalSort(arr: Array<AcceptCondition>) {
+  arr.sortWith { a, b ->
+    val ha = a.hashCode()
+    val hb = b.hashCode()
+    if (ha != hb) Integer.compare(ha, hb) else a.toString().compareTo(b.toString())
+  }
+}
+
+// leaf conditions — 그대로 유지.
 data class NoLongerMatch(val symbolId: Int, val startGen: Int, val fromNextGen: Boolean = false): AcceptCondition() {
   override fun neg(): AcceptCondition = NeedLongerMatch(symbolId, startGen, fromNextGen)
 }
@@ -114,41 +269,23 @@ data class NeedLongerMatch(val symbolId: Int, val startGen: Int, val fromNextGen
   override fun neg(): AcceptCondition = NoLongerMatch(symbolId, startGen, fromNextGen)
 }
 
-// evolve:
-//   cond paths의 (symbolId, startGen) 심볼이 finish되었으면 finish된 조건의 neg()로 치환
-//   그렇지 않으면,
-//   cond paths에 (symbolId, startGen) 심볼에서 시작하는 경로가 살아남아 있으면 계속 유지하고,
-//   사라지면 Always로 치환
 data class NotExists(val symbolId: Int, val startGen: Int): AcceptCondition() {
   override fun neg(): AcceptCondition = Exists(symbolId, startGen)
 }
 
-// evolve:
-//   cond paths의 (symbolId, startGen) 심볼이 finish되었으면 finish된 조건으로 치환
-//   그렇지 않으면,
-//   cond paths에 (symbolId, startGen) 심볼에서 시작하는 경로가 살아남아 있으면 계속 유지하고,
-//   사라지면 Never로 치환
 data class Exists(val symbolId: Int, val startGen: Int): AcceptCondition() {
   override fun neg(): AcceptCondition = NotExists(symbolId, startGen)
 }
 
-// evolve:
-//   cond paths의 (symbolId, startGen) 심볼이 finish되었으면 finish된 조건의 neg()로 치환
-//   그렇지 않으면, Always로 치환
 data class Unless(val symbolId: Int, val startGen: Int): AcceptCondition() {
   override fun neg(): AcceptCondition = OnlyIf(symbolId, startGen)
 }
 
-// evolve:
-//   cond paths의 (symbolId, startGen) 심볼이 finish되었으면 finish된 조건으로 치환
-//   그렇지 않으면, Never로 치환
 data class OnlyIf(val symbolId: Int, val startGen: Int): AcceptCondition() {
   override fun neg(): AcceptCondition = Unless(symbolId, startGen)
 }
 
-// 입력이 모두 처리된 후, 이 condition이 true로 평가될 수 있는지 확인
-// condPathFins는 마지막에 finish된 cond path들의 finish condition map
-// activeCondPaths는 입력 끝까지 살아남은 cond path들
+// 입력이 모두 처리된 후, 이 condition이 true로 평가될 수 있는지 확인.
 fun evaluateAcceptCondition(
   cond: AcceptCondition,
   condPathFins: Map<PathRoot, AcceptCondition>,
@@ -156,20 +293,23 @@ fun evaluateAcceptCondition(
 ): Boolean = when (cond) {
   Always -> true
   Never -> false
-  is And -> cond.conds.all { evaluateAcceptCondition(it, condPathFins, activeCondPaths) }
-  is Or -> cond.conds.any { evaluateAcceptCondition(it, condPathFins, activeCondPaths) }
+  is And -> {
+    var result = true
+    cond.forEach { if (!evaluateAcceptCondition(it, condPathFins, activeCondPaths)) result = false }
+    result
+  }
+  is Or -> {
+    var result = false
+    cond.forEach { if (evaluateAcceptCondition(it, condPathFins, activeCondPaths)) result = true }
+    result
+  }
 
   is NoLongerMatch -> {
-    // longest: 더 길게 매치되는 경우가 없으면 true
     val root = PathRoot(cond.symbolId, cond.startGen)
-    // 이미 finish된 적이 있다면 그 finish condition이 false로 나와야 true (즉 더 긴 매치는 invalid)
-    // 그러나 finish 후에도 cond path가 더 살아남아 있을 수 있는데 이 경우 evolveAcceptCondition에서
-    // 이미 처리된 후의 결과가 들어옴. 여기서는 단순히 마지막 상태에서 평가
     val finCond = condPathFins[root]
     if (finCond != null) {
       !evaluateAcceptCondition(finCond, condPathFins, activeCondPaths)
     } else {
-      // active이거나 이미 사라졌거나 모두 더 긴 매치가 없는 것으로 간주
       true
     }
   }
@@ -177,59 +317,34 @@ fun evaluateAcceptCondition(
   is NeedLongerMatch -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
     val finCond = condPathFins[root]
-    if (finCond != null) {
-      evaluateAcceptCondition(finCond, condPathFins, activeCondPaths)
-    } else {
-      false
-    }
+    if (finCond != null) evaluateAcceptCondition(finCond, condPathFins, activeCondPaths) else false
   }
 
   is NotExists -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
     val finCond = condPathFins[root]
-    if (finCond != null) {
-      !evaluateAcceptCondition(finCond, condPathFins, activeCondPaths)
-    } else {
-      // 한 번도 finish되지 않았으므로 lookahead-not 성립
-      true
-    }
+    if (finCond != null) !evaluateAcceptCondition(finCond, condPathFins, activeCondPaths) else true
   }
 
   is Exists -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
     val finCond = condPathFins[root]
-    if (finCond != null) {
-      evaluateAcceptCondition(finCond, condPathFins, activeCondPaths)
-    } else {
-      false
-    }
+    if (finCond != null) evaluateAcceptCondition(finCond, condPathFins, activeCondPaths) else false
   }
 
   is Unless -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
     val finCond = condPathFins[root]
-    if (finCond != null) {
-      !evaluateAcceptCondition(finCond, condPathFins, activeCondPaths)
-    } else {
-      true
-    }
+    if (finCond != null) !evaluateAcceptCondition(finCond, condPathFins, activeCondPaths) else true
   }
 
   is OnlyIf -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
     val finCond = condPathFins[root]
-    if (finCond != null) {
-      evaluateAcceptCondition(finCond, condPathFins, activeCondPaths)
-    } else {
-      false
-    }
+    if (finCond != null) evaluateAcceptCondition(finCond, condPathFins, activeCondPaths) else false
   }
 }
 
-// step별로 cond condition을 진화시킴.
-// condPathFins: 이번 step까지 누적된 finish condition map (모든 종류 포함)
-// activeCondPaths: 이번 step 후에 살아남은 cond path들의 root
-// gen: 이번 step의 gen
 var evolveTrace: Boolean = false
 
 fun evolveAcceptCondition(
@@ -246,8 +361,6 @@ fun evolveAcceptCondition(
   return r
 }
 
-// visiting: 현재 expansion 경로 상에서 finCond 로 대체된 PathRoot 들의 집합.
-// 같은 root 가 다시 등장하면 무한 recursion 방지 위해 condition 그대로 유지.
 private fun evolveAcceptCondition(
   cond: AcceptCondition,
   condPathFins: Map<PathRoot, AcceptCondition>,
@@ -263,24 +376,24 @@ private fun evolveAcceptCondition(
   val result: AcceptCondition = when (cond) {
     Always -> cond
     Never -> cond
-    is And -> And.from(cond.conds.map { rec(it) }.toSet())
-    is Or -> Or.from(cond.conds.map { rec(it) }.toSet())
+    is And -> {
+      val list = ArrayList<AcceptCondition>(cond.size)
+      cond.forEach { list.add(rec(it)) }
+      And.from(list)
+    }
+    is Or -> {
+      val list = ArrayList<AcceptCondition>(cond.size)
+      cond.forEach { list.add(rec(it)) }
+      Or.from(list)
+    }
 
     is NoLongerMatch -> {
-      // fromNextGen=true 이면 이번 step 은 reify step. 같은 step 의 finish 와 결합 안 함.
-      // fromNextGen=false 로만 변환 → 이후 step 의 evolve 가 finCond 검사.
       if (cond.fromNextGen) NoLongerMatch(cond.symbolId, cond.startGen, fromNextGen = false)
       else {
         val root = PathRoot(cond.symbolId, cond.startGen)
         val finCond = condPathFins[root]
         if (finCond != null && root !in visiting) rec(finCond.neg(), visiting + root)
-        else if (root in visiting) {
-          // visiting fallback: 자기 root 가 expansion chain 위에 있음.
-          // 외부에서 finCond.neg() evolve 안에 자기 NoLongerMatch 등장한 케이스.
-          // 의미상 "(r) 의 finish 자체가 invalid (no longer)" — 외부 NoLongerMatch evolve 결과의 한 항이며,
-          // tautology 로 만족 → Always (외부 disjunct/conjunct 에서 단순화에 기여하지 않음).
-          Always
-        }
+        else if (root in visiting) Always
         else if (root in activeCondPaths) cond
         else Always
       }
@@ -292,10 +405,7 @@ private fun evolveAcceptCondition(
         val root = PathRoot(cond.symbolId, cond.startGen)
         val finCond = condPathFins[root]
         if (finCond != null && root !in visiting) rec(finCond, visiting + root)
-        else if (root in visiting) {
-          // visiting fallback: 자기 root 가 expansion chain 위에 있음. tautology — Always.
-          Always
-        }
+        else if (root in visiting) Always
         else if (root in activeCondPaths) cond
         else Never
       }

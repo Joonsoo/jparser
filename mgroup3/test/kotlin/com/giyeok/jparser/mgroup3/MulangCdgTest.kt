@@ -763,14 +763,26 @@ class MulangCdgTest {
   }
 
   private fun flattenAnd(cond: AcceptCondition): List<AcceptCondition> = when (cond) {
-    is And -> cond.conds.flatMap { flattenAnd(it) }
+    is And -> {
+      val out = mutableListOf<AcceptCondition>()
+      cond.forEach { out.addAll(flattenAnd(it)) }
+      out
+    }
     else -> listOf(cond)
   }
 
   private fun depthOf(cond: AcceptCondition): Int = when (cond) {
     Always, Never -> 1
-    is And -> 1 + (cond.conds.maxOfOrNull { depthOf(it) } ?: 0)
-    is Or -> 1 + (cond.conds.maxOfOrNull { depthOf(it) } ?: 0)
+    is And -> {
+      var m = 0
+      cond.forEach { m = maxOf(m, depthOf(it)) }
+      1 + m
+    }
+    is Or -> {
+      var m = 0
+      cond.forEach { m = maxOf(m, depthOf(it)) }
+      1 + m
+    }
     else -> 1
   }
 
