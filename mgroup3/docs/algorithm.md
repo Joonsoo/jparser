@@ -146,8 +146,11 @@ Each accept condition in the grammar is reified into an
 
 - `Always`, `Never`, `And(...)`, `Or(...)` — boolean structure.
 - `NoLongerMatch(symbolId, startGenTag)` — longest-match condition:
-  cond root `(symbolId, ?)` should not finish at any generation
-  *strictly later* than the gen at which this condition was emitted.
+  cond root `(symbolId, startGen)` must not finish again. At reify
+  time the runtime instance gets a `fromNextGen` flag (initially
+  `true`) so the same-step finish that *created* the condition is
+  ignored; the very next evolve flips it to `false` and from there on
+  the standard finCond/active check applies.
 - `LookaheadFound(symbolId, startGenTag)` and
   `LookaheadNotFound(symbolId, startGenTag)` — positive/negative
   lookahead.
@@ -157,14 +160,23 @@ Each accept condition in the grammar is reified into an
   finish from `startGen` onwards (compatible with the main path's
   finish gen).
 
-The `startGenTag` is a `KernelTemplateGen` enum (`CURR / MID / NEXT`)
-which the parser resolves to a concrete `gen` at runtime using three
-context values (`prevGen`, `midGen`, `gen`). The tag corresponds to the
-position of the cond root in the parser graph at *generator* time —
-specifically, to the `startGen` of the `GenNode` from which the
-condition was emitted (= the *derive site* of the atomic symbol that
-introduced the condition). This makes the condition's start gen fully
-determined by the static graph, with no runtime heuristics required.
+The `startGenTag` is a `KernelTemplateGen` enum (`CURR / MID / NEXT /
+GRAND`) which the parser resolves to a concrete `gen` at runtime using
+four context values (`prevGen`, `midGen`, `gen`, `grandGen`). The tag
+corresponds to the position of the cond root in the parser graph at
+*generator* time — specifically, to the `startGen` of the `GenNode`
+from which the condition was emitted (= the *derive site* of the
+atomic symbol that introduced the condition). This makes the
+condition's start gen fully determined by the static graph, with no
+runtime heuristics required.
+
+The runtime form of `NoLongerMatch` is `NoLongerMatch(symbolId,
+startGen, fromNextGen: Boolean)` — a 1-bit flag rather than a separate
+end-generation. This matches mgroup2's
+`NotExists(symbolId, gen, checkFromNextGen)` and is the reason
+duplicate reifies of the same root collapse cleanly: `(s, sg, false)`
+is the single canonical form, so the path's `acceptCondition` does not
+grow an extra `NoLongerMatch` term per step.
 
 ### 3.3 Runtime context
 
@@ -235,8 +247,12 @@ progresses (the start symbol finishing) into `rootProgresses`. New cond
 symbols introduced by the milestone group's `observingCondSymbolIds`
 flow into `observingOut`. Every `CondRootStarter` listed on an
 `AppendMilestoneGroup` is recorded in `condRootStartersFromTerm` with
-`startGen = midGen` — the gen at which the main path *began*
-consuming the new milestone group's body.
+`startGen = gen` — the gen *after* this step's input has been
+consumed. This matches mgroup2's
+`MilestoneGroupPath(Milestone(req.symbolId, 0, gen), ...)`. Registering
+at `midGen` instead would shift the cond root one step earlier and
+produce spurious finishes (the symptom that originally broke
+`testTryLetMu`).
 
 ### Phase 1b — apply input to cond root starters
 
@@ -328,32 +344,44 @@ For every path (main and cond), rewrite its `acceptCondition` against
 `condPathFinishes` and `activeCondRoots := nextCondPaths.keys`. The
 rules are:
 
-| Condition          | This step's gen vs cond.endGen | finCond | active | Result                       |
-| ------------------ | ------------------------------ | ------- | ------ | ---------------------------- |
-| `NoLongerMatch`    | `gen == endGen`                | —       | —      | unchanged (same-step finish) |
-| `NoLongerMatch`    | `gen != endGen`                | non-null| —      | `evolve(finCond.neg())`     |
-| `NoLongerMatch`    | `gen != endGen`                | null    | true   | unchanged                    |
-| `NoLongerMatch`    | `gen != endGen`                | null    | false  | `Always`                     |
-| `Unless` / `NotExists` | —                          | non-null| —      | `evolve(finCond.neg())`     |
-| `Unless` / `NotExists` | —                          | null    | true   | unchanged                    |
-| `Unless` / `NotExists` | —                          | null    | false  | `Always`                     |
-| `OnlyIf` / `Exists` / `NeedLongerMatch` | —             | non-null| —      | `evolve(finCond)`            |
-| `OnlyIf` / `Exists` / `NeedLongerMatch` | —             | null    | true   | unchanged                    |
-| `OnlyIf` / `Exists` / `NeedLongerMatch` | —             | null    | false  | `Never`                      |
+| Condition                               | fromNextGen | finCond  | active | Result                            |
+| --------------------------------------- | ----------- | -------- | ------ | --------------------------------- |
+| `NoLongerMatch`                         | `true`      | —        | —      | drop flag → `(s, sg, false)`      |
+| `NoLongerMatch`                         | `false`     | non-null | —      | `evolve(finCond.neg())`           |
+| `NoLongerMatch`                         | `false`     | null     | true   | unchanged                         |
+| `NoLongerMatch`                         | `false`     | null     | false  | `Always`                          |
+| `NeedLongerMatch`                       | `true`      | —        | —      | drop flag → `(s, sg, false)`      |
+| `NeedLongerMatch`                       | `false`     | non-null | —      | `evolve(finCond)`                 |
+| `NeedLongerMatch`                       | `false`     | null     | true   | unchanged                         |
+| `NeedLongerMatch`                       | `false`     | null     | false  | `Never`                           |
+| `Unless` / `NotExists`                  | —           | non-null | —      | `evolve(finCond.neg())`           |
+| `Unless` / `NotExists`                  | —           | null     | true   | unchanged                         |
+| `Unless` / `NotExists`                  | —           | null     | false  | `Always`                          |
+| `OnlyIf` / `Exists`                     | —           | non-null | —      | `evolve(finCond)`                 |
+| `OnlyIf` / `Exists`                     | —           | null     | true   | unchanged                         |
+| `OnlyIf` / `Exists`                     | —           | null     | false  | `Never`                           |
 
 Paths whose evolved condition is `Never` are pruned. Paths whose
-condition stayed the same are returned as-is, otherwise a new
-`ParsingPath` with the evolved condition is created.
+condition stayed the same are returned as-is, otherwise a new path
+with the evolved condition is created.
+
+`NoLongerMatch` reified by this step's reduces is born with
+`fromNextGen = true`. The first evolve that sees it simply flips the
+flag to `false` *without* consulting `finCond`, so the same-step
+finish that produced the condition does not immediately negate it.
+The next step's evolve, where `fromNextGen = false`, performs the
+normal `finCond.neg()` lookup.
 
 **Cycle protection.** `condPathFinishes[root]` may itself reference
 `root` (e.g. a left-recursive cond path finishes with a condition that
 mentions its own `NoLongerMatch`). The recursive `evolve` carries a
-`visiting: Set<PathRoot>` of roots that have already been expanded on
-the current call chain; when a sub-condition references a root already
-in `visiting`, it is left unchanged instead of expanding again. This
-keeps the rewrite finite without losing information — the condition
-will be re-evaluated against future steps' history in
-`evaluateConditionWithHistory`.
+`visiting: Set<PathRoot>` of roots already expanded on the current
+call chain; if a sub-condition references a root in `visiting`, the
+recursion short-circuits to `Always` (for both `NoLongerMatch` and
+`NeedLongerMatch`). The self-reference is a tautology of the outer
+condition — the outer step already consulted `finCond`, so the inner
+recurrence carries no new information and must not collapse to `Never`
+(which would over-eagerly kill the path).
 
 ### Phase 6 — prune unreferenced cond roots
 
@@ -430,32 +458,27 @@ handling of nested NLongest cases.
 | Path dedup                 | Implicit                                    | Explicit `(milestonePath, tipGroupId) → OR` merge   |
 | History-aware evaluation   | Yes (via `isEventuallyAccepted`)           | Yes (via `collectFinishesAfter` over history)      |
 
-The critical difference for the unresolved NJoin+NLongest issue is the
-**accept-condition representation**. mgroup2's generator carries the
-NaiveParser's actual `(beginGen, endGen)` numbers all the way through:
-when it summarises a step into a `TermAction`, the surviving
-`AcceptCondition.NotExists(beginGen=2, endGen=3, sym)` is unambiguously
-"a longest condition whose body started matching at the current
-step's beginning (slot 2) and finished at next-step's beginning (slot
-3)", and that maps cleanly to `LongestTemplate(beginFromNextGen=true)`
-or `false` based on which slot pair appears
-(`ParserGenBase2.scala:50-93`).
+mgroup3's accept-condition representation differs from mgroup2's
+mainly in how `(startGen, fromNextGen)` is recorded:
 
-mgroup3 throws this `(beginGen, endGen)` information away. Its
-`GenNode.startGen` only records *which graph slot* a node started
-in, not which slot it actually matches from when the condition fires
-later. For most symbols this is fine — NLongest/NExcept inside an
-NRepeat genuinely starts at the iteration boundary — but for a
-multi-character NJoin body like `"||" & OpTk`, the cond symbol's
-match start is several slots earlier than the slot in which the
-NJoin's `progress` task runs, and the abstraction has no way to
-recover that fact.
+- mgroup2 carries the NaiveParser's actual `(beginGen, endGen)`
+  numbers through generation, and the `(beginGen, endGen)` slot pair
+  (0/1/2/3) determines `fromNextGen` by structural pattern matching.
+- mgroup3 records only a `KernelTemplateGen` tag (`CURR`/`MID`/`NEXT`/
+  `GRAND`) per atomic-symbol derive site, and the runtime resolves
+  this tag against `(prevGen, midGen, gen, grandGen)` to produce the
+  concrete `startGen`. `fromNextGen` itself is always `true` at reify
+  and gets unset by the first evolve.
+
+Both representations end up at the same runtime behaviour for the
+cases we need; mgroup3's tag-based form is more explicit about *which
+slot* the derive happened in (a property of the static graph) and
+keeps reify-time runtime work small.
 
 ## 8. Known limitations
 
-The current implementation passes 97 of 98 mgroup3 tests (the failing
-case is `testTryLetMu`, a grammar-interpretation issue rather than an
-algorithmic one). History of resolved limitations:
+The current implementation passes **98 of 98 mgroup3 tests**. History
+of resolved limitations:
 
 - (Resolved) **`NJoin` whose body is a multi-character sequence and
   whose cond-symbol is a `NLongest`** (e.g. mulang's `"||" & OpTk`
@@ -468,31 +491,42 @@ algorithmic one). History of resolved limitations:
 
 - (Resolved) **`evolveAcceptCondition` infinite recursion on self-
   referential `condPathFinishes`**. When a left-recursive cond root
-  finishes with a condition that mentions its own `NoLongerMatch` at
-  a different `endGen`, the unbounded `evolve(finCond.neg())`
-  recursion could oscillate between `NoLongerMatch` and
-  `NeedLongerMatch` forever. Fixed by carrying a `visiting:
-  Set<PathRoot>` through `evolve` and leaving sub-conditions
-  unchanged when they reference a root already on the call chain.
-  The condition is then re-evaluated against history in
-  `evaluateConditionWithHistory`.
+  finishes with a condition that mentions its own `NoLongerMatch`,
+  the unbounded `evolve(finCond.neg())` recursion could oscillate
+  forever. Fixed by carrying a `visiting: Set<PathRoot>` through
+  `evolve`; sub-conditions whose root is already on the call chain
+  short-circuit to `Always` (a tautology of the outer condition).
 
 - (Resolved) **Path explosion / OOM** on the larger mulang examples.
-  Previously the runtime kept `mainPaths: List<ParsingPath>` and
-  required a separate `dedupPaths` post-step to merge paths with the
-  same `(milestonePath, tipGroupId)`. The List-based representation
-  permitted redundant intermediate paths, and on `ccgen.mu` this
-  blew up before dedup could catch up. Fixed by switching the
-  runtime representation to `PathMap = Map<PathShape,
-  AcceptCondition>` — dedup is now a property of the data
-  structure: when two sources produce the same `PathShape`, their
-  `acceptCondition`s OR-merge at insert time. `MilestonePath` uses a
-  manual lazy-cached `hashCode` to keep map operations O(1)
-  amortized despite the linked-list parent chain.
+  Switched the runtime representation from `List<ParsingPath>` to
+  `PathMap = Map<PathShape, AcceptCondition>` — dedup is now a
+  property of the data structure: when two sources produce the same
+  `PathShape`, their `acceptCondition`s OR-merge at insert time.
+  `MilestonePath` uses a manual lazy-cached `hashCode` to keep map
+  operations O(1) amortized despite the linked-list parent chain.
 
-- **Lambda type signatures** (e.g. `(Literal, Literal) -> Expr` in
-  `try_let.mu`) — independent grammar feature whose support is
-  separate from the cond-condition machinery. This is the one
-  remaining test failure (`testTryLetMu`).
+- (Resolved) **`NoLongerMatch.endGen` accumulation**. The original
+  `NoLongerMatch(symbolId, startGen, endGen)` used the current `gen`
+  as `endGen`, so each reify step added a new tuple to the path's
+  `acceptCondition` Set even when the underlying root was the same.
+  Replaced `endGen` with a 1-bit `fromNextGen` flag matching
+  mgroup2's `NotExists(_, _, checkFromNextGen)`. `(s, sg, false)` is
+  the single canonical form per root, so duplicate reifies collapse.
 
-These are tracked as follow-up work.
+- (Resolved) **Off-by-one in cond root starter `startGen`** (the
+  immediate cause of the long-running `testTryLetMu` failure). The
+  parser was registering `CondRootStarter`s at `midGen` (= `ctx.gen`,
+  before consuming this step's input) where mgroup2 registers at the
+  target `gen`. The +1-shifted roots produced spurious finishes (a
+  `(1212, 836)` instead of `(1212, 829)` etc.), which then fed self-
+  referential `NoLongerMatch` into the path's `acceptCondition` and
+  ultimately stranded as `NeedLongerMatch` that next-step's evolve
+  would force to `Never`. Fixed by registering at `gen`.
+
+- (Resolved) **`visiting` fallback collapsing to `Never`**. While
+  fixing the self-reference cycle, an earlier version of the visiting
+  fallback mapped `NeedLongerMatch` to `Never` and `NoLongerMatch` to
+  `Always` — asymmetric and wrong, because both polarities are
+  tautological at that point in the recursion. The corrected fallback
+  returns `Always` for both, which keeps the outer `Or` rich enough
+  to retain a valid disjunct.
