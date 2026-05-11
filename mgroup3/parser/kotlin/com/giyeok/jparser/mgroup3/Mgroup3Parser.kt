@@ -405,7 +405,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     val nextPaths = mutableMapOf<PathRoot, MutableMap<PathShape, AcceptCondition>>()
     val finishesByGroup = mutableListOf<FinishedKernelRecord>()
     val progressesByGroup = mutableListOf<ProgressedKernelRecord>()
-    val observingOut = mutableSetOf<Int>()
+    val observingOut = HashSet<Int>()
     val rootProgresses = mutableMapOf<PathRoot, AcceptCondition>()
     val condRootStartersFromTerm = mutableMapOf<PathRoot, Int>()
 
@@ -517,7 +517,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       if (closure != null) allObservingSyms.addAll(closure) else allObservingSyms.add(sym)
     }
 
-    val newCondRoots = mutableSetOf<PathRoot>()
+    val newCondRoots = HashSet<PathRoot>()
     // condition.referencedRoots metadata 사용 — tree traversal 불필요.
     nextPaths.values.forEach { pm -> pm.values.forEach { it.referencedRoots.forEach { r -> newCondRoots.add(r) } } }
 
@@ -638,7 +638,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     tPhase = phaseMark(5, tPhase)
 
     // step 6: 사용되지 않는 cond path 제거 — mainRoot 는 항상 keep.
-    val referencedRoots = mutableSetOf<PathRoot>()
+    val referencedRoots = HashSet<PathRoot>()
     fun collectFromShape(shape: PathShape, cond: AcceptCondition) {
       // condition 의 referenced roots — cached metadata.
       cond.referencedRoots.forEach { referencedRoots.add(it) }
