@@ -54,9 +54,23 @@ class Mgroup2Test extends AnyFlatSpec {
               ctx.paths.zipWithIndex.foreach { case (path, i) =>
                 println(s"  p[$i] first=(${path.first.symbolId},${path.first.pointer},${path.first.gen}) " +
                   s"tip=mg${path.tip.groupId}@${path.tip.gen} " +
-                  s"cond=${path.acceptCondition.toString.take(300)}")
+                  s"cond=${path.acceptCondition.toString.take(400)}")
                 path.path.zipWithIndex.foreach { case (m, j) =>
                   println(s"    path[$j] (${m.symbolId},${m.pointer},${m.gen})")
+                }
+              }
+              // 같은 step 의 genActions 의 progressed* 도 dump.
+              val ga = ctx.history.head.genActions
+              if (ga.progressedRootMilestones.nonEmpty) {
+                println(s"  -- progressedRootMilestones (${ga.progressedRootMilestones.size}):")
+                ga.progressedRootMilestones.foreach { case (m, cond) =>
+                  println(s"    (${m.symbolId},${m.pointer},${m.gen}) => ${cond.toString.take(300)}")
+                }
+              }
+              if (ga.progressedRootMgroups.nonEmpty) {
+                println(s"  -- progressedRootMgroups (${ga.progressedRootMgroups.size}):")
+                ga.progressedRootMgroups.foreach { case (mg, cond) =>
+                  println(s"    mg${mg.groupId}@${mg.gen} => ${cond.toString.take(300)}")
                 }
               }
             }
