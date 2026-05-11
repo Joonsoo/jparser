@@ -25,6 +25,75 @@ class Mgroup2Test extends AnyFlatSpec {
     assertSameParseResult(grammar, "1 || 2")
   }
 
+  "mulang try_let.mu" should "dump mgroup2 state around fail point of mgroup3 (idx 840-841)" in {
+    val cdgFile = new java.io.File("../mulang/grammar/mulang.cdg")
+    val srcFile = new java.io.File("../mulang/examples/try_let.mu")
+    if (!cdgFile.exists() || !srcFile.exists()) {
+      cancel("mulang.cdg or try_let.mu not found")
+    }
+    val grammarText = scala.io.Source.fromFile(cdgFile).mkString
+    val grammar = MetaLanguage3.analyzeGrammar(grammarText, "CompileUnit").ngrammar
+    val parserData = new MilestoneGroupParserGen(grammar).parserData()
+    val parser = new MilestoneGroupParser(parserData)
+    val src = scala.io.Source.fromFile(srcFile).mkString
+    val inputs = Inputs.fromString(src)
+
+    // step-by-step parse
+    var ctx = parser.initialCtx
+    var lastIdx = -1
+    try {
+      inputs.zipWithIndex.foreach { case (input, idx) =>
+        parser.parseStep(ctx, input) match {
+          case Right(next) =>
+            ctx = next
+            lastIdx = idx
+            // dump idx 838~842 의 state.
+            if (idx >= 838 && idx <= 842) {
+              val ch = input.toShortString
+              println(s"=== mgroup2 after step idx=$idx ('$ch') gen=${ctx.gen} paths=${ctx.paths.size} ===")
+              ctx.paths.zipWithIndex.foreach { case (path, i) =>
+                println(s"  p[$i] first=(${path.first.symbolId},${path.first.pointer},${path.first.gen}) " +
+                  s"tip=mg${path.tip.groupId}@${path.tip.gen} " +
+                  s"cond=${path.acceptCondition.toString.take(300)}")
+                path.path.zipWithIndex.foreach { case (m, j) =>
+                  println(s"    path[$j] (${m.symbolId},${m.pointer},${m.gen})")
+                }
+              }
+            }
+          case Left(err) =>
+            println(s"=== mgroup2 FAILED at idx=$idx: $err ===")
+            throw new RuntimeException(s"mgroup2 failed at idx=$idx")
+        }
+      }
+      println(s"mgroup2 parsed try_let.mu, ${src.length} chars, ${ctx.paths.size} final paths")
+    } catch {
+      case e: Exception =>
+        println(s"caught: $e at lastIdx=$lastIdx")
+        throw e
+    }
+  }
+
+  "mulang ccgen.mu" should "be parsed by mgroup2 (path explosion check)" in {
+    val cdgFile = new java.io.File("../mulang/grammar/mulang.cdg")
+    val ccgenFile = new java.io.File("../mulang/examples/ccgen.mu")
+    if (cdgFile.exists() && ccgenFile.exists()) {
+      val grammarText = scala.io.Source.fromFile(cdgFile).mkString
+      val grammar = MetaLanguage3.analyzeGrammar(grammarText, "CompileUnit").ngrammar
+      val parserData = new MilestoneGroupParserGen(grammar).parserData()
+      val parser = new MilestoneGroupParser(parserData)
+      val src = scala.io.Source.fromFile(ccgenFile).mkString
+      val start = System.currentTimeMillis()
+      val ctx = parser.parse(Inputs.fromString(src))
+      val end = System.currentTimeMillis()
+      ctx match {
+        case Right(_) => println(s"ccgen.mu parsed by mgroup2 in ${end - start} ms, ${src.length} chars")
+        case Left(e) => fail(s"mgroup2 parse failed: $e")
+      }
+    } else {
+      cancel("mulang.cdg or ccgen.mu not found")
+    }
+  }
+
   "nullable condition grammars" should "generate parser data for longest except and join" in {
     val nullableLongest = parserDataFrom(
       """
