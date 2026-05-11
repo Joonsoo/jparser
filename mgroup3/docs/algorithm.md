@@ -174,21 +174,33 @@ The runtime carries:
 ParsingCtx:
   gen, line, col            -- current position
   mainRoot: PathRoot         -- (startSymbolId, 0)
-  mainPaths: List<ParsingPath>
-  condPaths: Map<PathRoot, List<ParsingPath>>
+  mainPaths: PathMap
+  condPaths: Map<PathRoot, PathMap>
   history: List<HistoryEntry>
+
+PathShape:
+  milestonePath: MilestonePath?
+  tipGroupId: Int
+
+PathMap = Map<PathShape, AcceptCondition>
 ```
 
-Each `ParsingPath` is a tuple `(milestonePath, tipGroupId,
-acceptCondition)`:
+A path's *shape* (its position in the milestone graph) is separated
+from the *condition* under which the parser reached that shape. Two
+sources that produce the same shape with different conditions are
+merged at insertion time into a single entry whose value is their
+disjunction — dedup is structural rather than a separate pass.
 
 - `milestonePath` is `null` for a *starter* (a freshly-spawned cond path
   whose tip is the root milestone group), otherwise it is a linked list
   of `MilestonePath` nodes, each carrying its own `gen`, the milestone
   kernel, and the set of cond symbols this milestone wants to observe.
+  `MilestonePath` caches its `hashCode` lazily so that `PathShape` keys
+  do not pay the linked-list traversal cost on every map operation.
 - `tipGroupId` identifies the current milestone group at the tip.
-- `acceptCondition` is an `AcceptCondition` (the runtime form of
-  `AcceptConditionTemplate`, with concrete generations substituted).
+- The map value, an `AcceptCondition` (the runtime form of
+  `AcceptConditionTemplate`, with concrete generations substituted),
+  records under what condition this shape is currently reachable.
   Conjunctions/disjunctions of leaf conditions accumulate as the path
   evolves.
 
@@ -343,20 +355,18 @@ keeps the rewrite finite without losing information — the condition
 will be re-evaluated against future steps' history in
 `evaluateConditionWithHistory`.
 
-### Phase 6 — dedup and prune
+### Phase 6 — prune unreferenced cond roots
 
-Within both `nextMainPaths` and each list inside `nextCondPaths`, group
-paths by `(milestonePath, tipGroupId)` and combine duplicates by
-disjoining their accept conditions:
+`mainPaths` and `condPaths` are already keyed by `PathShape =
+(milestonePath, tipGroupId)`, so duplicate shapes from different
+sources OR-merge their `AcceptCondition`s at insertion time — there is
+no separate dedup step. `MilestonePath` carries a lazy-cached
+`hashCode` to keep map insertion O(1) amortized despite its linked-
+list parent chain.
 
-```
-dedup({(m,t,c1), (m,t,c2)}) = {(m,t, Or(c1, c2))}
-```
-
-This prevents path explosion in highly ambiguous grammars.
-
-Finally, "garbage-collect" cond paths whose root is not referenced by
-any surviving accept condition or any milestone's `observingCondSymbolIds`.
+Garbage-collect cond paths whose root is not referenced by any
+surviving accept condition or any milestone's
+`observingCondSymbolIds`.
 
 ### Phase 7 — emit history and return
 
@@ -443,9 +453,9 @@ recover that fact.
 
 ## 8. Known limitations
 
-The current implementation passes the mgroup3 own-test suite (86/0)
-and most of the mulang example grammar's smaller programs. Known
-failures all reduce to one structural pattern:
+The current implementation passes 97 of 98 mgroup3 tests (the failing
+case is `testTryLetMu`, a grammar-interpretation issue rather than an
+algorithmic one). History of resolved limitations:
 
 - (Resolved) **`NJoin` whose body is a multi-character sequence and
   whose cond-symbol is a `NLongest`** (e.g. mulang's `"||" & OpTk`
@@ -454,16 +464,35 @@ failures all reduce to one structural pattern:
   machinery — the generator emits the cond root starter information
   alongside every new milestone group, and the parser registers and
   applies those starters to the current step's input in lock-step
-  with the main path. See the next section for the encoding details.
+  with the main path.
 
-- **Path explosion** on the largest mulang examples (e.g. `ccgen.mu`)
-  produces an out-of-memory error. The `dedup` step is sufficient for
-  the medium-sized examples (e.g. `cpp_ast.mu`, 7,530 chars) but
-  insufficient for the worst-case ambiguity of the largest
-  programs.
+- (Resolved) **`evolveAcceptCondition` infinite recursion on self-
+  referential `condPathFinishes`**. When a left-recursive cond root
+  finishes with a condition that mentions its own `NoLongerMatch` at
+  a different `endGen`, the unbounded `evolve(finCond.neg())`
+  recursion could oscillate between `NoLongerMatch` and
+  `NeedLongerMatch` forever. Fixed by carrying a `visiting:
+  Set<PathRoot>` through `evolve` and leaving sub-conditions
+  unchanged when they reference a root already on the call chain.
+  The condition is then re-evaluated against history in
+  `evaluateConditionWithHistory`.
+
+- (Resolved) **Path explosion / OOM** on the larger mulang examples.
+  Previously the runtime kept `mainPaths: List<ParsingPath>` and
+  required a separate `dedupPaths` post-step to merge paths with the
+  same `(milestonePath, tipGroupId)`. The List-based representation
+  permitted redundant intermediate paths, and on `ccgen.mu` this
+  blew up before dedup could catch up. Fixed by switching the
+  runtime representation to `PathMap = Map<PathShape,
+  AcceptCondition>` — dedup is now a property of the data
+  structure: when two sources produce the same `PathShape`, their
+  `acceptCondition`s OR-merge at insert time. `MilestonePath` uses a
+  manual lazy-cached `hashCode` to keep map operations O(1)
+  amortized despite the linked-list parent chain.
 
 - **Lambda type signatures** (e.g. `(Literal, Literal) -> Expr` in
   `try_let.mu`) — independent grammar feature whose support is
-  separate from the cond-condition machinery.
+  separate from the cond-condition machinery. This is the one
+  remaining test failure (`testTryLetMu`).
 
 These are tracked as follow-up work.
