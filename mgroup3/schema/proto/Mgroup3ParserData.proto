@@ -91,7 +91,17 @@ message TermAction {
 message AppendMilestoneGroup {
   int32 milestone_group_id = 1;
   AcceptConditionTemplate accept_condition = 2;
+  // Deprecated: cond_root_starters 로 대체. 호환성을 위해 유지.
   repeated int32 observing_cond_symbol_ids = 3;
+  // mgroup2 의 lookahead_requiring_symbols 와 동일한 역할.
+  // main path 가 이 milestone group 을 attach 할 때 등장해야 하는 cond root starter 들.
+  // starter 는 main path 의 input 과 같은 시점부터 진행 (parallel path).
+  repeated CondRootStarter cond_root_starters = 4;
+}
+
+message CondRootStarter {
+  int32 symbol_id = 1;
+  int32 milestone_group_id = 2;
 }
 
 message EdgeAction {

@@ -331,6 +331,16 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
             condSymbols.addAll(g2.observingCondSymbolIds)
             observedCondSymbolsFromAcc(acc, condSymbols)
             append.addAllObservingCondSymbolIds(condSymbols.sorted())
+            // mgroup2 의 lookahead_requiring_symbols 와 동일한 정보: 각 cond root sym 의 starter milestone group id.
+            // runtime 에서 main path 가 이 milestone group 을 attach 하는 시점에 starter 도 같이 시작.
+            for (sym in condSymbols.sorted()) {
+              val rootInfo = rootPaths[sym] ?: genRootPathFromSymbol(sym)
+              rootPaths[sym] = rootInfo
+              replaceAndAppendBuilder.appendBuilder.addCondRootStartersBuilder().apply {
+                symbolId = sym
+                milestoneGroupId = rootInfo.milestoneGroupId
+              }
+            }
           }
         }
       }
@@ -421,6 +431,15 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
       condSymbols.addAll(graph.observingCondSymbolIds)
       observedCondSymbolsFromAcc(acc, condSymbols)
       appendBuilder.addAllObservingCondSymbolIds(condSymbols.sorted())
+      // mgroup2 의 lookahead_requiring_symbols 와 동일.
+      for (sym in condSymbols.sorted()) {
+        val rootInfo = rootPaths[sym] ?: genRootPathFromSymbol(sym)
+        rootPaths[sym] = rootInfo
+        appendBuilder.addCondRootStartersBuilder().apply {
+          symbolId = sym
+          milestoneGroupId = rootInfo.milestoneGroupId
+        }
+      }
     }
 
     // parentNode가 progress되는 경우 (즉, parent의 시작 노드까지 reduce 가능한 경우)

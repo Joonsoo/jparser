@@ -142,6 +142,10 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     progressesOut: MutableList<ProgressedKernelRecord>,
     rootProgressesOut: MutableMap<PathRoot, AcceptCondition>,
     observingSymbolIdsOut: MutableSet<Int>,
+    // (cond root sym, milestone group id) — mgroup2 의 lookahead_requiring_symbols 처럼,
+    // main path 가 새 milestone 을 attach 하는 시점에 같이 등록할 cond root starter 들.
+    // 등록할 PathRoot 의 startGen 은 milestone 의 sequence 시작 시점 (= midGen, ctx.gen).
+    condRootStartersOut: MutableMap<PathRoot, Int>,
   ) {
     // path의 tip이 만들어진 gen (= parent milestone gen)
     val parentGen = oldPath.milestonePath?.gen ?: pathRoot.startGen
@@ -191,6 +195,12 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         )
       )
       observingSymbolIdsOut.addAll(rea.append.observingCondSymbolIdsList)
+      // cond root starter 등록 — main path 가 새 milestone 을 attach 하는 시점이 곧
+      // 그 milestone 의 sequence 시작 시점. starter 도 그 시점부터 input 받기 시작.
+      // startGen = midGen = ctx.gen = main path 의 input 받기 *직전* 시점 = sequence 시작 시점.
+      for (starter in rea.append.condRootStartersList) {
+        condRootStartersOut[PathRoot(starter.symbolId, midGen)] = starter.milestoneGroupId
+      }
     }
 
     // replace_and_progresses: tip의 일부 milestone들이 자체 sequence 끝까지 진행되어 reduce 발생
@@ -236,6 +246,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
             progressesOut = progressesOut,
             rootProgressesOut = rootProgressesOut,
             observingSymbolIdsOut = observingSymbolIdsOut,
+            condRootStartersOut = condRootStartersOut,
           )
         }
       }
@@ -260,6 +271,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     progressesOut: MutableList<ProgressedKernelRecord>,
     rootProgressesOut: MutableMap<PathRoot, AcceptCondition>,
     observingSymbolIdsOut: MutableSet<Int>,
+    condRootStartersOut: MutableMap<PathRoot, Int>,
   ) {
     // edge action 의 GRAND 매핑: parentPath milestone 의 kernel.gen (= beginGen).
     val grandGrandParentGen = parentPath.milestone.gen
@@ -300,6 +312,10 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         )
       )
       observingSymbolIdsOut.addAll(append.observingCondSymbolIdsList)
+      // cond root starter 등록. edge action 의 경우 starter 의 startGen 은 parentGen (Curr 매핑).
+      for (starter in append.condRootStartersList) {
+        condRootStartersOut[PathRoot(starter.symbolId, parentGen)] = starter.milestoneGroupId
+      }
     }
 
     // start node progress: parent 자체가 진행되어 reduce
@@ -343,6 +359,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
               progressesOut = progressesOut,
               rootProgressesOut = rootProgressesOut,
               observingSymbolIdsOut = observingSymbolIdsOut,
+              condRootStartersOut = condRootStartersOut,
             )
           }
         }
@@ -379,6 +396,9 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     val progressesByGroup = mutableListOf<ProgressedKernelRecord>()
     val observingOut = mutableSetOf<Int>()
     val rootProgresses = mutableMapOf<PathRoot, AcceptCondition>()
+    // termAction 처리 도중 main path 가 새 milestone group 을 attach 할 때 같이 등록할
+    // cond root starter들 (mgroup2 의 lookahead_requiring_symbols). PathRoot.startGen 은 midGen.
+    val condRootStartersFromTerm = mutableMapOf<PathRoot, Int>()
 
     // step 1: main paths에 term action 적용
     for (path in ctx.mainPaths) {
@@ -394,6 +414,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         progressesOut = progressesByGroup,
         rootProgressesOut = rootProgresses,
         observingSymbolIdsOut = observingOut,
+        condRootStartersOut = condRootStartersFromTerm,
       )
     }
 
@@ -415,6 +436,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
             progressesOut = progressesByGroup,
             rootProgressesOut = rootProgresses,
             observingSymbolIdsOut = observingOut,
+            condRootStartersOut = condRootStartersFromTerm,
           )
         } else {
           // path 가 input 매치 못해 dead — milestone group의 possible_finishes 에서
@@ -484,10 +506,14 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     // cond root이 등장할 가능성 있음. 그 경우 PathRoot(sym, gen) 으로 등록 (보수적으로).
     val newCondRootProgresses = mutableMapOf<PathRoot, AcceptCondition>()
     for (sym in allObservingSyms) {
-      // 이미 condition에서 발견된 root 외, observing sym 도 새 root 으로 추가 (gen 시점).
-      // 매 step PathRoot(sym, gen) 등록 — condition 안 같은 sym 에 다른 startGen 있을 수도 있어서
-      // 양쪽 모두 추적.
       newCondRoots.add(PathRoot(sym, gen))
+    }
+
+    // condRootStartersFromTerm 의 cond root 들은 main path 가 새 milestone 을 attach 하는 시점에
+    // 같이 등록되어야 하는 starter. mgroup2 의 lookahead_requiring_symbols 와 같은 효과.
+    // startGen 이 midGen (main path 가 input 받기 직전 시점) 이라서, starter 도 이번 step input 받아 main path 와 sync.
+    for ((root, mgroupId) in condRootStartersFromTerm) {
+      newCondRoots.add(root)
     }
 
     // history 에 한 번이라도 등장한 적 있는 cond root 은 skip — 이미 시도되어 dead 된 root.
@@ -517,6 +543,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         val ta = findApplicableAction(starterPath, input)
         if (ta != null) {
           val nextPaths = mutableListOf<ParsingPath>()
+          val ignoredStarters = mutableMapOf<PathRoot, Int>()
           applyTermAction(
             oldPath = starterPath,
             pathRoot = pathRoot,
@@ -528,6 +555,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
             progressesOut = progressesByGroup,
             rootProgressesOut = newCondRootProgresses,
             observingSymbolIdsOut = observingOut,
+            condRootStartersOut = ignoredStarters,
           )
           if (nextPaths.isNotEmpty()) {
             nextCondPaths[pathRoot] = nextPaths
