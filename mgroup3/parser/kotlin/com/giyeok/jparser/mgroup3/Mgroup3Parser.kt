@@ -154,10 +154,19 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     return termSetBuilder.build()
   }
 
-  fun findApplicableAction(shape: PathShape, input: Char): TermAction? =
-    data.termActionsMap[shape.tipGroupId]?.actionsList?.find { action ->
+  // (tipGroupId, input) → TermAction? cache. linear scan of actionsList + TermGroupUtil.isMatch
+  // 가 hot path 에서 5-7% 차지. 같은 (tipGroupId, char) 가 매우 자주 반복되므로 cache 효과 큼.
+  // present 키의 value 가 null 인 경우 = "lookup 했으나 no-match" 의미 — containsKey 로 구분.
+  private val termActionCache = HashMap<Long, TermAction?>()
+  fun findApplicableAction(shape: PathShape, input: Char): TermAction? {
+    val key = (shape.tipGroupId.toLong() shl 32) or input.code.toLong()
+    if (termActionCache.containsKey(key)) return termActionCache[key]
+    val result = data.termActionsMap[shape.tipGroupId]?.actionsList?.find { action ->
       TermGroupUtil.isMatch(action.termGroup, input)
     }?.termAction
+    termActionCache[key] = result
+    return result
+  }
 
   // 한 path 의 (shape, prevCondition) 에 term action 을 적용해서 다음 path 들을 만들고 finish/progress 기록.
   // gen 매핑 (term action):
