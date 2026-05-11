@@ -333,6 +333,16 @@ Paths whose evolved condition is `Never` are pruned. Paths whose
 condition stayed the same are returned as-is, otherwise a new
 `ParsingPath` with the evolved condition is created.
 
+**Cycle protection.** `condPathFinishes[root]` may itself reference
+`root` (e.g. a left-recursive cond path finishes with a condition that
+mentions its own `NoLongerMatch`). The recursive `evolve` carries a
+`visiting: Set<PathRoot>` of roots that have already been expanded on
+the current call chain; when a sub-condition references a root already
+in `visiting`, it is left unchanged instead of expanding again. This
+keeps the rewrite finite without losing information — the condition
+will be re-evaluated against future steps' history in
+`evaluateConditionWithHistory`.
+
 ### Phase 6 — dedup and prune
 
 Within both `nextMainPaths` and each list inside `nextCondPaths`, group

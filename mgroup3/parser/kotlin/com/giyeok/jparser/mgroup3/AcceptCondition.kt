@@ -221,15 +221,25 @@ fun evolveAcceptCondition(
   condPathFins: Map<PathRoot, AcceptCondition>,
   activeCondPaths: Set<PathRoot>,
   gen: Int,
+): AcceptCondition = evolveAcceptCondition(cond, condPathFins, activeCondPaths, gen, emptySet())
+
+// visiting: 현재 expansion 경로 상에서 finCond 로 대체된 PathRoot 들의 집합.
+// 같은 root 가 다시 등장하면 무한 recursion 방지 위해 condition 그대로 유지.
+private fun evolveAcceptCondition(
+  cond: AcceptCondition,
+  condPathFins: Map<PathRoot, AcceptCondition>,
+  activeCondPaths: Set<PathRoot>,
+  gen: Int,
+  visiting: Set<PathRoot>,
 ): AcceptCondition = when (cond) {
   Always -> cond
   Never -> cond
   is And -> And.from(cond.conds.map {
-    evolveAcceptCondition(it, condPathFins, activeCondPaths, gen)
+    evolveAcceptCondition(it, condPathFins, activeCondPaths, gen, visiting)
   }.toSet())
 
   is Or -> Or.from(cond.conds.map {
-    evolveAcceptCondition(it, condPathFins, activeCondPaths, gen)
+    evolveAcceptCondition(it, condPathFins, activeCondPaths, gen, visiting)
   }.toSet())
 
   is NoLongerMatch -> {
@@ -238,10 +248,13 @@ fun evolveAcceptCondition(
     } else {
       val root = PathRoot(cond.symbolId, cond.startGen)
       val finCond = condPathFins[root]
-      if (finCond != null) {
+      if (finCond != null && root !in visiting) {
         // 더 긴 매치가 있었다면 그 condition의 negation을 적용
-        evolveAcceptCondition(finCond.neg(), condPathFins, activeCondPaths, gen)
+        evolveAcceptCondition(finCond.neg(), condPathFins, activeCondPaths, gen, visiting + root)
       } else if (root in activeCondPaths) {
+        cond
+      } else if (finCond != null) {
+        // cycle: finCond 가 자기 자신을 참조. condition 유지하여 다음 step 에서 재시도.
         cond
       } else {
         Always
@@ -255,9 +268,11 @@ fun evolveAcceptCondition(
     } else {
       val root = PathRoot(cond.symbolId, cond.startGen)
       val finCond = condPathFins[root]
-      if (finCond != null) {
-        evolveAcceptCondition(finCond, condPathFins, activeCondPaths, gen)
+      if (finCond != null && root !in visiting) {
+        evolveAcceptCondition(finCond, condPathFins, activeCondPaths, gen, visiting + root)
       } else if (root in activeCondPaths) {
+        cond
+      } else if (finCond != null) {
         cond
       } else {
         Never
@@ -268,9 +283,11 @@ fun evolveAcceptCondition(
   is NotExists -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
     val finCond = condPathFins[root]
-    if (finCond != null) {
-      evolveAcceptCondition(finCond.neg(), condPathFins, activeCondPaths, gen)
+    if (finCond != null && root !in visiting) {
+      evolveAcceptCondition(finCond.neg(), condPathFins, activeCondPaths, gen, visiting + root)
     } else if (root in activeCondPaths) {
+      cond
+    } else if (finCond != null) {
       cond
     } else {
       Always
@@ -280,9 +297,11 @@ fun evolveAcceptCondition(
   is Exists -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
     val finCond = condPathFins[root]
-    if (finCond != null) {
-      evolveAcceptCondition(finCond, condPathFins, activeCondPaths, gen)
+    if (finCond != null && root !in visiting) {
+      evolveAcceptCondition(finCond, condPathFins, activeCondPaths, gen, visiting + root)
     } else if (root in activeCondPaths) {
+      cond
+    } else if (finCond != null) {
       cond
     } else {
       Never
@@ -292,10 +311,12 @@ fun evolveAcceptCondition(
   is Unless -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
     val finCond = condPathFins[root]
-    if (finCond != null) {
-      evolveAcceptCondition(finCond.neg(), condPathFins, activeCondPaths, gen)
+    if (finCond != null && root !in visiting) {
+      evolveAcceptCondition(finCond.neg(), condPathFins, activeCondPaths, gen, visiting + root)
     } else if (root in activeCondPaths) {
       // 아직 finish 가능성이 살아 있음. 유지.
+      cond
+    } else if (finCond != null) {
       cond
     } else {
       // 더 이상 except의 가능성이 없으므로 Always
@@ -306,10 +327,12 @@ fun evolveAcceptCondition(
   is OnlyIf -> {
     val root = PathRoot(cond.symbolId, cond.startGen)
     val finCond = condPathFins[root]
-    if (finCond != null) {
-      evolveAcceptCondition(finCond, condPathFins, activeCondPaths, gen)
+    if (finCond != null && root !in visiting) {
+      evolveAcceptCondition(finCond, condPathFins, activeCondPaths, gen, visiting + root)
     } else if (root in activeCondPaths) {
       // 아직 finish 가능성이 살아 있음. 유지.
+      cond
+    } else if (finCond != null) {
       cond
     } else {
       Never
