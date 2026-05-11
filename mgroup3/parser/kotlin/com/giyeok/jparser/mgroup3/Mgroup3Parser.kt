@@ -589,8 +589,9 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     tPhase = phaseMark(4, tPhase)
 
     // step 5: 모든 path 의 acceptCondition 을 evolve.
-    // activeCondRoots: 살아있는 cond root 들 (mainRoot 제외).
-    val activeCondRoots = nextPaths.keys.filterTo(HashSet()) { it != ctx.mainRoot }
+    // activeCondRoots = nextPaths.keys 그대로 — mainRoot 도 leaf condition 의 root 일 수 있으면
+    // active 로 봐야 옳음 (main path 살아있는 한). filterTo(HashSet()) 새 set 할당 회피.
+    val activeCondRoots: Set<PathRoot> = nextPaths.keys
 
     if (trace) {
       println("  --- step 5 evolve ---")
