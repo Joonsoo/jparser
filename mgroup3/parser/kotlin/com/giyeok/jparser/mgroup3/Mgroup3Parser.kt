@@ -210,7 +210,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         gen = gen,
         milestone = replaceKernel,
         parent = oldShape.milestonePath,
-        observingCondSymbolIds = rea.append.observingCondSymbolIdsList.toSet(),
+        observingCondSymbolIds = rea.append.observingCondSymbolIdsList,
       )
       nextPathsOut.addPath(
         PathShape(milestonePath = newMilestonePath, tipGroupId = rea.append.milestoneGroupId),
@@ -309,7 +309,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       val combined = And.from(prevCondition, condition)
       if (combined == Never) continue
       val newParentPath = parentPath.copy(
-        observingCondSymbolIds = append.observingCondSymbolIdsList.toSet(),
+        observingCondSymbolIds = append.observingCondSymbolIdsList,
       )
       nextPathsOut.addPath(
         PathShape(milestonePath = newParentPath, tipGroupId = append.milestoneGroupId),

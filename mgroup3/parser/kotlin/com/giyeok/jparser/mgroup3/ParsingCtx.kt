@@ -76,7 +76,9 @@ class MilestonePath(
   val gen: Int,
   val milestone: Kernel,
   val parent: MilestonePath?,
-  val observingCondSymbolIds: Set<Int>,
+  // proto list 그대로 reference — `toSet()` 으로 매 path 생성마다 새 HashSet 만드는 걸 회피.
+  // 단순히 iterate 만 하고 (lookup 안 함) 같은 proto 의 같은 ordering 가 같음 비교에서 안전.
+  val observingCondSymbolIds: List<Int>,
 ) {
   private var _hashCode: Int = 0
   private var _hashCodeComputed: Boolean = false
@@ -107,7 +109,7 @@ class MilestonePath(
     gen: Int = this.gen,
     milestone: Kernel = this.milestone,
     parent: MilestonePath? = this.parent,
-    observingCondSymbolIds: Set<Int> = this.observingCondSymbolIds,
+    observingCondSymbolIds: List<Int> = this.observingCondSymbolIds,
   ): MilestonePath = MilestonePath(gen, milestone, parent, observingCondSymbolIds)
 
   override fun toString(): String =
