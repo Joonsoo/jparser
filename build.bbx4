@@ -426,5 +426,10 @@ def runMgroup3AdvancedTest() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Mgroup3ParserAdvancedTest"))
 }
 
+@action
+def runParserBenchmark() {
+  runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.ParserBenchmarkTest"))
+}
+
 
 
