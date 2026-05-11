@@ -1,0 +1,15 @@
+[package]
+name = "mgroup3-native"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+prost = "0.14"
+bytes = "1"
+prost-types = "0.14"
+
+[build-dependencies]
+prost-build = "0.14"
