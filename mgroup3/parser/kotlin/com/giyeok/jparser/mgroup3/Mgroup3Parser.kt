@@ -684,19 +684,23 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       throw ParsingError.UnexpectedInput(ctx.gen, ctx.line, ctx.col, expectedInputsOf(ctx), input)
     }
 
-    val activeCondPathsForHistory = pathsFiltered.keys.filterTo(HashSet()) { it != ctx.mainRoot }
+    val activeCondPathsForHistory: Set<PathRoot> =
+      if (pathsFiltered.size == 1 && ctx.mainRoot in pathsFiltered) emptySet()
+      else pathsFiltered.keys.filterTo(HashSet()) { it != ctx.mainRoot }
 
     val historyEntry = HistoryEntry(
       finishedKernels = finishesByGroup,
       progressedKernels = progressesByGroup,
-      condPathFinishes = condPathFinishes.toMap(),
+      condPathFinishes = if (condPathFinishes.isEmpty()) emptyMap() else condPathFinishes,
       activeCondPaths = activeCondPathsForHistory,
     )
 
     val nextHistory: ArrayList<HistoryEntry> = ctx.history as? ArrayList<HistoryEntry>
       ?: ArrayList(ctx.history)
     nextHistory.add(historyEntry)
-    ctx.everSeenCondRoots.addAll(historyEntry.activeCondPaths)
+    if (historyEntry.activeCondPaths.isNotEmpty()) {
+      ctx.everSeenCondRoots.addAll(historyEntry.activeCondPaths)
+    }
 
     phaseMark(7, tPhase)
 
