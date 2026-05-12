@@ -2,6 +2,7 @@ pub mod accept_condition;
 pub mod parser_data;
 pub mod parsing_ctx;
 pub mod path_root;
+pub mod term_group;
 
 pub mod proto {
     pub mod com {
