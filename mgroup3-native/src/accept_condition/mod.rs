@@ -34,3 +34,12 @@ pub enum AcceptCondition {
     And { items: Vec<AcceptCondition> },
     Or { items: Vec<AcceptCondition> },
 }
+
+impl AcceptCondition {
+    /// The set of `PathRoot`s referenced by leaves anywhere in this tree.
+    /// Walked on demand (no cache). Composite trees should re-cache if this
+    /// shows up in a profile.
+    pub fn referenced_roots(&self) -> RootSet {
+        root_set::referenced_roots(self)
+    }
+}

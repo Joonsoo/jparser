@@ -128,8 +128,9 @@ pub fn union_of_slice(children: &[AcceptCondition]) -> RootSet {
     }
 }
 
-/// `AcceptCondition::referenced_roots` — used during composite construction.
-fn referenced_roots(cond: &AcceptCondition) -> RootSet {
+/// Compute the `RootSet` referenced by `cond`. Public for use by parser code
+/// that needs the set of cond roots a path's condition is sensitive to.
+pub fn referenced_roots(cond: &AcceptCondition) -> RootSet {
     match cond {
         AcceptCondition::Always | AcceptCondition::Never => RootSet::Empty,
         AcceptCondition::NoLongerMatch { symbol_id, start_gen, .. }

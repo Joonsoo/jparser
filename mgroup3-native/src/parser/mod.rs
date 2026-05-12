@@ -1,9 +1,11 @@
 //! Mgroup3 parser. Port of `mgroup3/parser/kotlin/.../Mgroup3Parser.kt`.
 
 pub mod core;
+pub mod eval_with_history;
 pub mod template;
 
 pub use core::Mgroup3Parser;
+pub use eval_with_history::{collect_finishes_at_or_after, evaluate_with_history};
 pub use template::{build_condition, resolve_gen};
 
 use crate::term_group::TermSet;
