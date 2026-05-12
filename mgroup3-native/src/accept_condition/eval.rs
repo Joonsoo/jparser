@@ -85,17 +85,17 @@ pub fn evolve_accept_condition(
     cond: &AcceptCondition,
     cond_path_fins: &HashMap<PathRoot, AcceptCondition>,
     active_cond_paths: &HashSet<PathRoot>,
-    gen_step: i32,
+    gen_idx: i32,
 ) -> AcceptCondition {
     let visiting = HashSet::new();
-    evolve_inner(cond, cond_path_fins, active_cond_paths, gen_step, &visiting)
+    evolve_inner(cond, cond_path_fins, active_cond_paths, gen_idx, &visiting)
 }
 
 fn evolve_inner(
     cond: &AcceptCondition,
     cond_path_fins: &HashMap<PathRoot, AcceptCondition>,
     active_cond_paths: &HashSet<PathRoot>,
-    gen_step: i32,
+    gen_idx: i32,
     visiting: &HashSet<PathRoot>,
 ) -> AcceptCondition {
     match cond {
@@ -103,14 +103,14 @@ fn evolve_inner(
         AcceptCondition::And { items } => {
             let evolved: Vec<_> = items
                 .iter()
-                .map(|c| evolve_inner(c, cond_path_fins, active_cond_paths, gen_step, visiting))
+                .map(|c| evolve_inner(c, cond_path_fins, active_cond_paths, gen_idx, visiting))
                 .collect();
             AcceptCondition::and_from(evolved)
         }
         AcceptCondition::Or { items } => {
             let evolved: Vec<_> = items
                 .iter()
-                .map(|c| evolve_inner(c, cond_path_fins, active_cond_paths, gen_step, visiting))
+                .map(|c| evolve_inner(c, cond_path_fins, active_cond_paths, gen_idx, visiting))
                 .collect();
             AcceptCondition::or_from(evolved)
         }
@@ -131,7 +131,7 @@ fn evolve_inner(
                             &fin.neg(),
                             cond_path_fins,
                             active_cond_paths,
-                            gen_step,
+                            gen_idx,
                             &next_visiting,
                         );
                     }
@@ -162,7 +162,7 @@ fn evolve_inner(
                             fin,
                             cond_path_fins,
                             active_cond_paths,
-                            gen_step,
+                            gen_idx,
                             &next_visiting,
                         );
                     }
@@ -186,7 +186,7 @@ fn evolve_inner(
                         &fin.neg(),
                         cond_path_fins,
                         active_cond_paths,
-                        gen_step,
+                        gen_idx,
                         &next_visiting,
                     );
                 }
@@ -209,7 +209,7 @@ fn evolve_inner(
                         fin,
                         cond_path_fins,
                         active_cond_paths,
-                        gen_step,
+                        gen_idx,
                         &next_visiting,
                     );
                 }
@@ -232,7 +232,7 @@ fn evolve_inner(
                         &fin.neg(),
                         cond_path_fins,
                         active_cond_paths,
-                        gen_step,
+                        gen_idx,
                         &next_visiting,
                     );
                 }
@@ -255,7 +255,7 @@ fn evolve_inner(
                         fin,
                         cond_path_fins,
                         active_cond_paths,
-                        gen_step,
+                        gen_idx,
                         &next_visiting,
                     );
                 }
