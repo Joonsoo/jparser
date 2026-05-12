@@ -52,6 +52,10 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
 
   private fun traceOn(gen: Int): Boolean = traceGen == gen
 
+  private inline fun collectReferencedRoots(cond: AcceptCondition, out: MutableSet<PathRoot>?) {
+    if (out != null) cond.referencedRoots.forEach { out.add(it) }
+  }
+
   // (parent symbol, parent pointer, tip group id) -> edge action
   val tipEdgeActionsMap: Map<Pair<KernelTemplatePair, Int>, EdgeActionPlain> =
     plain.tipEdgeActions.associate {
@@ -190,6 +194,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     rootProgressesOut: MutableMap<PathRoot, AcceptCondition>,
     observingSymbolIdsOut: MutableSet<Int>,
     condRootStartersOut: MutableMap<PathRoot, Int>,
+    referencedRootsOut: MutableSet<PathRoot>?,
   ) {
     val parentGen = oldShape.milestonePath?.gen ?: pathRoot.startGen
     val grandGen = oldShape.milestonePath?.milestone?.gen ?: pathRoot.startGen
@@ -228,6 +233,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         PathShape(milestonePath = newMilestonePath, tipGroupId = rea.append.milestoneGroupId),
         combined,
       )
+      collectReferencedRoots(combined, referencedRootsOut)
       observingSymbolIdsOut.addAll(rea.append.observingCondSymbolIds)
       for (starter in rea.append.condRootStarters) {
         condRootStartersOut[PathRoot(starter.symbolId, gen)] = starter.milestoneGroupId
@@ -271,6 +277,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
             rootProgressesOut = rootProgressesOut,
             observingSymbolIdsOut = observingSymbolIdsOut,
             condRootStartersOut = condRootStartersOut,
+            referencedRootsOut = referencedRootsOut,
           )
         }
       }
@@ -296,6 +303,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     rootProgressesOut: MutableMap<PathRoot, AcceptCondition>,
     observingSymbolIdsOut: MutableSet<Int>,
     condRootStartersOut: MutableMap<PathRoot, Int>,
+    referencedRootsOut: MutableSet<PathRoot>?,
   ) {
     val grandGrandParentGen = parentPath.milestone.gen
     val pa = edgeAction.parsingActions
@@ -327,6 +335,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         PathShape(milestonePath = newParentPath, tipGroupId = append.milestoneGroupId),
         combined,
       )
+      collectReferencedRoots(combined, referencedRootsOut)
       observingSymbolIdsOut.addAll(append.observingCondSymbolIds)
       for (starter in append.condRootStarters) {
         condRootStartersOut[PathRoot(starter.symbolId, gen)] = starter.milestoneGroupId
@@ -369,6 +378,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
               rootProgressesOut = rootProgressesOut,
               observingSymbolIdsOut = observingSymbolIdsOut,
               condRootStartersOut = condRootStartersOut,
+              referencedRootsOut = referencedRootsOut,
             )
           }
         }
@@ -408,6 +418,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     val observingOut = HashSet<Int>()
     val rootProgresses = mutableMapOf<PathRoot, AcceptCondition>()
     val condRootStartersFromTerm = mutableMapOf<PathRoot, Int>()
+    val referencedRootsFromNewPaths = HashSet<PathRoot>()
 
     val trace = traceOn(gen)
     if (trace) {
@@ -437,6 +448,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
             rootProgressesOut = rootProgresses,
             observingSymbolIdsOut = observingOut,
             condRootStartersOut = condRootStartersFromTerm,
+            referencedRootsOut = referencedRootsFromNewPaths,
           )
         } else if (!isMain) {
           // cond path 가 input 매치 못해 dead — possible_finishes 검사.
@@ -491,6 +503,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
           rootProgressesOut = rootProgresses,
           observingSymbolIdsOut = observingOut,
           condRootStartersOut = ignoredStarters,
+          referencedRootsOut = referencedRootsFromNewPaths,
         )
         if (perStarterNext.isNotEmpty()) {
           nextPaths.getOrPut(starterRoot) { mutableMapOf() }.also { acc ->
@@ -518,8 +531,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     }
 
     val newCondRoots = HashSet<PathRoot>()
-    // condition.referencedRoots metadata 사용 — tree traversal 불필요.
-    nextPaths.values.forEach { pm -> pm.values.forEach { it.referencedRoots.forEach { r -> newCondRoots.add(r) } } }
+    newCondRoots.addAll(referencedRootsFromNewPaths)
 
     val newCondRootProgresses = mutableMapOf<PathRoot, AcceptCondition>()
     for (sym in allObservingSyms) {
@@ -560,6 +572,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
           rootProgressesOut = newCondRootProgresses,
           observingSymbolIdsOut = observingOut,
           condRootStartersOut = ignoredStarters,
+          referencedRootsOut = null,
         )
       }
       if (starterNextPaths.isNotEmpty()) {
