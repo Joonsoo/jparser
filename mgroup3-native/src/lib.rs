@@ -1,3 +1,6 @@
+pub mod accept_condition;
+pub mod path_root;
+
 pub mod proto {
     pub mod com {
         pub mod giyeok {
