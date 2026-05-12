@@ -272,6 +272,7 @@ mgroup3(basePath="mgroup3") {
     schema = protobuf.schema(
       srcs = [
         "Mgroup3ParserData.proto",
+        "Mgroup3ParserResult.proto",
       ],
       deps = [base.proto.schema],
     )
@@ -305,6 +306,18 @@ mgroup3(basePath="mgroup3") {
     ],
   )
 
+  nativeParser = ktjvm.library(
+    srcs = withBasePath("nativeParser/kotlin") {
+      file.glob("**.kt")
+    },
+    deps = [
+      parserDataSchema.javalib,
+      parser,
+      ktlib.main,
+      base.proto.javalib,
+    ],
+  )
+
   test = ktjvm.library(
     srcs = withBasePath("test/kotlin") {
       file.glob("**.kt")
@@ -313,6 +326,7 @@ mgroup3(basePath="mgroup3") {
     deps = [
       gen,
       parser,
+      nativeParser,
       metalang.main,
       mgroup2.gen,
       mgroup2.parser,

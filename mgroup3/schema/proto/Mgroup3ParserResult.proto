@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package com.giyeok.jparser.mgroup3.proto;
+
+import "TermGroupProto.proto";
+
+option java_multiple_files = true;
+
+// One kernel — matches com.giyeok.jparser.ktlib.Kernel(symbolId, pointer, beginGen, endGen).
+message KernelMsg {
+  int32 symbol_id = 1;
+  int32 pointer = 2;
+  int32 begin_gen = 3;
+  int32 end_gen = 4;
+}
+
+// One generation's worth of kernels. Encoders SHOULD sort by
+// (symbol_id, pointer, begin_gen, end_gen) so two encoders produce
+// byte-identical output. Decoders treat the list as set semantics —
+// duplicates are tolerated but not expected.
+message KernelGen {
+  repeated KernelMsg kernels = 1;
+}
+
+// kernels_history(ctx) — one KernelGen per generation, gen 0 first.
+message KernelsHistoryMsg {
+  repeated KernelGen entries = 1;
+}
+
+// Mirrors the mgroup3.ParsingError sealed class.
+message ParseErrorMsg {
+  message UnexpectedInput {
+    int32 loc = 1;
+    int32 line = 2;
+    int32 col = 3;
+    repeated com.giyeok.jparser.proto.TermGroup expected_term_groups = 4;
+    // Unicode scalar value. Kotlin reconstructs via Char(codepoint) for BMP;
+    // supplementary planes are not exercised by the current grammar corpus.
+    int32 actual_codepoint = 5;
+  }
+  message UnexpectedEof {
+    int32 loc = 1;
+    int32 line = 2;
+    int32 col = 3;
+    repeated com.giyeok.jparser.proto.TermGroup expected_term_groups = 4;
+  }
+  oneof error {
+    UnexpectedInput unexpected_input = 1;
+    UnexpectedEof unexpected_eof = 2;
+  }
+}
+
+// Top-level result returned by the native parser. The `accepted` boolean is
+// redundant with the oneof discriminator but useful for callers that want to
+// branch before touching the oneof. Phase B will add a third `ast` arm to
+// `outcome`; existing decoders will ignore it per proto3 rules.
+message Mgroup3ParseResult {
+  bool accepted = 1;
+  oneof outcome {
+    KernelsHistoryMsg history = 2;
+    ParseErrorMsg error = 3;
+  }
+}
