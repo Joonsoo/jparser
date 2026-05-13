@@ -1,6 +1,7 @@
 # Performance — findings & open work
 
-Last updated after step 6.6 (FxHash switch) on branch `mg3native-claude`.
+Last updated after the inverted-index + Ord-canonical_sort follow-ups on
+branch `mg3native-claude`.
 
 This document captures what was learned about mgroup3-native's wall-clock
 performance vs the Kotlin reference, why earlier numbers were misleading,
@@ -15,14 +16,22 @@ restarting performance work.
   encoded protobuf because that work lives inside the FFI `encode_parse_result`.
 - **Fair benchmark** (both sides materialize `kernels_history`) on the
   unmodified code: kt/rs 0.54–0.76×, i.e. Rust ~1.3-1.9× slower.
-- **Single change — std `HashMap` → `rustc_hash::FxHashMap` everywhere** —
-  brought Rust to **1.16× to 2.46× *faster*** than Kotlin on every measured
-  workload (lead widens on bigger inputs). Standalone CLI shows 2-3×
-  per-input speedup.
-- Profile still shows `evaluate_with_history` / `collect_finishes_at_or_after`
-  as the top hot spot, but no longer dominated by hashing. Further work is
-  algorithmic (memoize / invert the cond-path-finishes index) rather than
-  data-structure-substitution.
+- **Step 6.6 (FxHash, commit `da9d2999`)** brought Rust to **1.16× to
+  2.46× *faster*** than Kotlin (FFM channel). Standalone CLI 2-3×.
+- **Step 6.7 (inverted index for `cond_path_finishes`, commit `05a1f249`)**
+  collapsed `collect_finishes_at_or_after` from O(N) history-scan-per-leaf
+  to O(1)+O(k). `parser_diff` integration test 19s → 7.15s.
+- **Step 6.8 (canonical_sort uses derived `Ord`, commit `1757131d`)** —
+  the post-6.7 profile flagged `Display::fmt`+`RawVec::reserve` inside
+  `and_from`'s `sort_by(|a,b| a.to_string().cmp(...))`. Adding
+  `PartialOrd/Ord` derives on `AcceptCondition` and switching to
+  `children.sort()` eliminated the per-comparison String allocation.
+  `parser_diff` 7.15s → 3.82s on top of 6.7.
+- **End state (FFM JVM channel):** Rust **1.44× to 10.26× faster** than
+  Kotlin across mulang inputs. Standalone CLI 540–620 ms vs 3620–4720
+  ms pre-FxHash (4–9× cumulative on big inputs).
+- Memoizing `evaluate_with_history` is **not pursued** — after 6.7 it is
+  no longer dominant in the profile.
 
 ## Timeline & numbers
 
@@ -69,22 +78,27 @@ release build, GC + 5ms sleep between rounds. Both sides materialize
 | 09_exprs | 1374 | 1825.070 ms | 1029.465 ms | **1.77×** |
 | 07_try_let | 1495 | 1545.851 ms | 905.662 ms | **1.71×** |
 | 06_match | 1843 | 3150.976 ms | 1283.389 ms | **2.46×** |
+| **Phase 4: fair + FxHash + inverted-index + Ord-sort (commit `1757131d`)** | | | | |
+| annotation_defs | 118 | 6.051 ms | 4.426 ms | **1.44×** |
+| 09_exprs | 1374 | 1966.519 ms | 338.506 ms | **6.05×** |
+| 07_try_let | 1495 | 1496.359 ms | 339.770 ms | **4.46×** |
+| 06_match | 1843 | 3152.894 ms | 312.000 ms | **10.26×** |
 
-Headline: **Rust beats the Kotlin reference 1.16-2.46×** across the four
-mulang inputs, with the lead widening on larger workloads (the
-`kernels_history` post-processing is where FxHash gives the most leverage).
+Headline: **Rust beats the Kotlin reference 1.44–10.26× via FFM**, with
+the lead widening sharply on larger workloads. The big-input wins come
+from the inverted index (no more O(history) scans per leaf) and from
+removing String allocations in `and_from`'s sort.
 
-Standalone CLI (Rust only) shows the same speedup from FxHash without any
-JVM in the path:
+Standalone CLI (Rust only, no JVM in the path):
 
-| Input | Before FxHash | After FxHash | Speedup |
-|---|---|---|---|
-| 09_exprs | 3620 ms | 1280 ms | 2.8× |
-| 07_try_let | 2420 ms | 1140 ms | 2.1× |
-| 06_match | 4720 ms | 1520 ms | 3.1× |
+| Input | Pre-FxHash | Post-FxHash | Post-invIndex | Post-Ord | Cumulative |
+|---|---|---|---|---|---|
+| 09_exprs | 3620 ms | 1280 ms | 900 ms | 590 ms | **6.1×** |
+| 07_try_let | 2420 ms | 1140 ms | 930 ms | 620 ms | **3.9×** |
+| 06_match | 4720 ms | 1520 ms | 850 ms | 540 ms | **8.7×** |
 
-Bonus measurement: `parser_diff` integration test (14 cases / 75 inputs
-including all of mulang) dropped from ~74 s to ~19 s on release.
+`parser_diff` integration test (14 cases / 75 inputs including mulang):
+~74 s → ~19 s → 7.15 s → **3.82 s** on release.
 
 ## Why the unfair benchmark was misleading
 
@@ -140,58 +154,48 @@ Default::default())`. Mechanical only — no algorithm change.
 
 ## What's still on the table (next session)
 
-These are the obvious follow-ups, in priority order. Numbers are estimated
-based on the pre-FxHash profile and likely remain the hot spots after
-FxHash (just less dominant).
+### Done in this round
 
-### 1. Cache `kernels_history` finishes by root (highest ROI)
+- **Inverted index for `cond_path_finishes`** — landed in `05a1f249`.
+  `HistoryIndex::build` runs once per `is_accepted` / `kernels_history`,
+  and `evaluate_with_history` now uses `partition_point` over a sorted
+  per-root list instead of scanning history.
+- **Ord-based canonical_sort** — landed in `1757131d`. Derive
+  `PartialOrd/Ord` on `AcceptCondition`; switch `canonical_sort` to
+  `children.sort()`. Removes `to_string()` allocation per comparison.
 
-`collect_finishes_at_or_after(history, root, min_gen)` walks the entire
-`history` Vec on every call. `evaluate_with_history` recurses through
-every leaf in every finished kernel's condition, so this is called O(N ×
-M) times for a parse of N gens with M leaves per condition. Each call is
-O(N) over history.
+### Dropped
 
-Fix: at the start of `kernels_history`, build an inverted index `HashMap<PathRoot,
-Vec<(gen_idx, &AcceptCondition)>>` from the history once. Then
-`collect_finishes_at_or_after` becomes O(1) lookup + O(k) filter, where
-`k` is the number of finishes for that root.
+- **Memoizing `evaluate_with_history`** — after the inverted index lands,
+  the function no longer dominates the profile and the inputs we measured
+  don't show obviously redundant subtree evaluations. Skip unless a
+  future workload re-promotes it.
 
-Expected payoff: another 2-3× on `kernels_history`-dominated inputs.
+### Still open
 
-### 2. Memoize `evaluate_with_history` (medium ROI)
-
-A given (condition, history-tail) pair is evaluated multiple times if the
-same leaf appears in multiple kernel conditions, or if `kernels_history`
-loops include redundant subtrees. Memoize by `(condition pointer, history
-length)`.
-
-Expected payoff: workload-dependent. Larger savings on inputs where
-condition trees overlap a lot (left-recursive grammars).
-
-### 3. Skip protobuf encode when caller only wants accept/reject (medium ROI)
+#### 1. Skip protobuf encode when caller only wants accept/reject (medium ROI)
 
 `mgroup3_parser_parse` currently always calls `encode_parse_result`, which
 runs `kernels_history` + protobuf encode. For benchmarks and "did this
 parse succeed?" callers, that's wasted work. Add a sibling FFI
 `mgroup3_parser_parse_accept_only(...) -> i32` that returns 0/1/error
-without producing any output buffer. The benchmark already shows the
-difference: Kotlin `parse-only` is faster than `parse+kernels_history` by
-roughly 5× on big inputs.
+without producing any output buffer.
 
 Expected payoff: makes the FFM `Mgroup3NativeParser.isAccepted(input)` use
-case match the Kotlin one in cost.
+case match the Kotlin one in cost, and matters most for short inputs
+where `kernels_history` + protobuf is a relatively big slice.
 
-### 4. Vec<AcceptCondition> → Rc<AcceptCondition> sharing in And/Or (low ROI, big change)
+#### 2. Vec<AcceptCondition> → Rc<AcceptCondition> sharing in And/Or (low ROI, big change)
 
 Currently `And { items: Vec<AcceptCondition> }` deep-clones children on
 every `and_from` / `or_from` / `neg` / `evolve` recursion. Switching to
 `Vec<Rc<AcceptCondition>>` would let `evolve` reuse subtrees that didn't
 change. But this is a larger refactor (touches every `match` arm,
-`Display`, `parse`, equality), and the profile doesn't currently flag
-clone overhead as dominant. **Defer until evidence demands it.**
+`Display`, `parse`, equality, and the new `Ord` derive). The current
+profile doesn't flag clone overhead as dominant. **Defer until evidence
+demands it.**
 
-### 5. Reusing the term_action_cache across parses (very small ROI)
+#### 3. Reusing the term_action_cache across parses (very small ROI)
 
 `Mgroup3Parser` clears its `RefCell<HashMap>` cache between parses via
 construction. But the cache is keyed by `(tip_group_id, char)`, which is
