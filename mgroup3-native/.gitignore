@@ -1,0 +1,6 @@
+target/
+
+# Locally-regenerated fixtures (large data.pb / golden.txt files driven by
+# real grammars). Re-create via `bibix4 runMgroup3Test` — ParserFixtureGenTest
+# walks the corpus and rebuilds anything missing.
+tests/fixtures/parser_generated/

@@ -32,10 +32,17 @@ class Mgroup3NativeResultBridgeTest {
 
   @Test
   fun all_fixtures() {
-    val fixturesRoot = resolveFixturesRoot()
-    val cases = fixturesRoot.listFiles { f -> f.isDirectory }
-      ?.sortedBy { it.name } ?: error("no fixture cases under $fixturesRoot")
-    assertTrue(cases.isNotEmpty(), "no fixture cases under $fixturesRoot")
+    val nativeRoot = resolveNativeRoot()
+    val committedRoot = File(nativeRoot, "tests/fixtures/parser")
+    val generatedRoot = File(nativeRoot, "tests/fixtures/parser_generated")
+    val cases = buildList {
+      for (root in listOf(committedRoot, generatedRoot)) {
+        if (root.isDirectory) {
+          addAll(root.listFiles { f -> f.isDirectory }.orEmpty().toList())
+        }
+      }
+    }.sortedBy { it.name }
+    assertTrue(cases.isNotEmpty(), "no fixture cases under $committedRoot or $generatedRoot")
 
     val failures = mutableListOf<String>()
     var inputCount = 0
@@ -126,7 +133,7 @@ class Mgroup3NativeResultBridgeTest {
         "--", dataPath.absolutePath, inputPath.absolutePath,
       )
     }
-    val workDir = if (prebuilt != null) null else File(resolveNativeRoot())
+    val workDir = if (prebuilt != null) null else resolveNativeRoot()
     val proc = ProcessBuilder(cmd)
       .also { if (workDir != null) it.directory(workDir) }
       .redirectErrorStream(false)
@@ -144,14 +151,11 @@ class Mgroup3NativeResultBridgeTest {
     return stdout.toByteArray()
   }
 
-  private fun resolveFixturesRoot(): File =
-    File(resolveNativeRoot(), "tests/fixtures/parser")
-
-  private fun resolveNativeRoot(): String {
+  private fun resolveNativeRoot(): File {
     var dir: File? = File(System.getProperty("user.dir")).absoluteFile
     while (dir != null) {
       val candidate = File(dir, "mgroup3-native")
-      if (candidate.isDirectory) return candidate.absolutePath
+      if (candidate.isDirectory) return candidate
       dir = dir.parentFile
     }
     error("could not locate mgroup3-native/ from cwd=${System.getProperty("user.dir")}")

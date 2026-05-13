@@ -109,12 +109,16 @@ Tests:
 tests/
 ├── accept_condition_diff.rs  # reads fixtures/accept_condition.txt,
 │                             #   asserts 94 blocks via enum equality
-├── parser_diff.rs            # walks fixtures/parser/<case>/, runs parse(),
+├── parser_diff.rs            # walks fixtures/parser/<case>/ AND
+│                             #   fixtures/parser_generated/<case>/, runs parse(),
 │                             #   serializes kernels_history, byte-compares
 │                             #   against Kotlin-written golden.txt
 └── fixtures/
-    ├── accept_condition.txt
-    └── parser/<case>/{data.pb, grammar.txt, inputs/<idx>_<slug>/...}
+    ├── accept_condition.txt           # committed
+    ├── parser/<case>/...              # committed (small inline grammars)
+    └── parser_generated/<case>/...    # gitignored (large grammars like
+                                       #   mulang.cdg; regenerate locally
+                                       #   via `bibix4 runMgroup3FixtureGen`)
 ```
 
 ## Running
@@ -130,15 +134,24 @@ network — fixtures are checked in.
 
 ### Regenerating fixtures (requires Kotlin/bibix4)
 Fixtures are written by Kotlin tests that drive `Mgroup3ParserGenerator` and
-`Mgroup3Parser`. Re-run when the grammar corpus or the Kotlin parser semantics
-change:
-```sh
-/Users/joonsoo/Documents/apps/bibix4/bibix4 runMgroup3Test
-```
-This runs every JUnit test under `mgroup3.test`, including
-`AcceptConditionFixtureGenTest` (which writes
-`tests/fixtures/accept_condition.txt`) and `ParserFixtureGenTest` (which
-writes everything under `tests/fixtures/parser/`).
+`Mgroup3Parser`. Two scopes:
+
+- **Committed fixtures** under `tests/fixtures/parser/<case>/` — small
+  inline grammars. Regenerate whenever the Kotlin semantics change so the
+  goldens match. Drive via:
+  ```sh
+  /Users/joonsoo/Documents/apps/bibix4/bibix4 runMgroup3FixtureGen
+  ```
+
+- **Generated-only fixtures** under `tests/fixtures/parser_generated/<case>/`
+  — large grammars like `mulang.cdg` whose `data.pb` and golden text run
+  into tens of MB. Gitignored. The same `runMgroup3FixtureGen` action
+  populates them; without that step the Rust `parser_diff` test still
+  passes against the committed cases and prints a note about the missing
+  generated dir.
+
+Running the broader `runMgroup3Test` action also drives both fixture
+generators along with the rest of the mgroup3 JUnit suite.
 
 ### Sanity binary
 ```sh

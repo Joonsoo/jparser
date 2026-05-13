@@ -23,8 +23,12 @@ use mgroup3_native::parsing_ctx::KtlibKernel;
 use mgroup3_native::proto::com::giyeok::jparser::mgroup3::proto::Mgroup3ParserData;
 use prost::Message;
 
-fn fixtures_root() -> PathBuf {
+fn committed_fixtures_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/parser")
+}
+
+fn generated_fixtures_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/parser_generated")
 }
 
 fn serialize_kernels_history(history: &[std::collections::HashSet<KtlibKernel>]) -> String {
@@ -124,15 +128,36 @@ fn indent(s: &str, prefix: &str) -> String {
 
 #[test]
 fn diff_against_kotlin_parser_fixture() {
-    let root = fixtures_root();
-    assert!(root.exists(), "fixture dir {} missing — run runMgroup3Test", root.display());
-    let mut case_dirs: Vec<PathBuf> = fs::read_dir(&root)
-        .expect("read_dir fixtures")
-        .filter_map(|e| e.ok().map(|e| e.path()))
-        .filter(|p| p.is_dir())
-        .collect();
+    let committed = committed_fixtures_root();
+    let generated = generated_fixtures_root();
+    assert!(
+        committed.exists(),
+        "committed fixture dir {} missing — run `bibix4 runMgroup3Test` to regenerate",
+        committed.display()
+    );
+
+    let mut case_dirs: Vec<PathBuf> = Vec::new();
+    for root in [&committed, &generated] {
+        if !root.exists() {
+            continue;
+        }
+        case_dirs.extend(
+            fs::read_dir(root)
+                .unwrap_or_else(|e| panic!("read_dir {}: {}", root.display(), e))
+                .filter_map(|e| e.ok().map(|e| e.path()))
+                .filter(|p| p.is_dir()),
+        );
+    }
     case_dirs.sort();
-    assert!(!case_dirs.is_empty(), "no fixture cases under {}", root.display());
+    assert!(!case_dirs.is_empty(), "no fixture cases under {} or {}", committed.display(), generated.display());
+
+    if !generated.exists() || fs::read_dir(&generated).map(|it| it.count()).unwrap_or(0) == 0 {
+        eprintln!(
+            "note: {} is empty — large grammar cases (e.g. mulang) are skipped. \
+             Run `bibix4 runMgroup3Test` to populate.",
+            generated.display()
+        );
+    }
 
     let mut total_inputs = 0usize;
     let mut all_failures: Vec<String> = Vec::new();

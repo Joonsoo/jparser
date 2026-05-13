@@ -453,6 +453,22 @@ def runMgroup3GenTest() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.ParserGenTest"))
 }
 
+// Regenerate the parser fixtures consumed by mgroup3-native's Rust tests
+// (parser_diff.rs and Mgroup3NativeResultBridgeTest). Writes data.pb +
+// input.txt + golden.txt under either
+//   mgroup3-native/tests/fixtures/parser/             (committed cases) or
+//   mgroup3-native/tests/fixtures/parser_generated/   (gitignored cases —
+//   typically real grammars like mulang.cdg with multi-MB artifacts).
+//
+// Run this action after editing the corpus in ParserFixtureGenTest.kt, or
+// once after cloning if the parser_generated/ cases are needed locally.
+// `runMgroup3Test` invokes the same test as part of the full suite — this
+// action is just a faster way to drive only ParserFixtureGenTest.
+@action
+def runMgroup3FixtureGen() {
+  runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.ParserFixtureGenTest"))
+}
+
 @action
 def runMgroup3ParserTest() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Mgroup3ParserTest"))
