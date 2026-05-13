@@ -109,7 +109,6 @@ pub fn collect_finishes_at_or_after<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
 
     fn entry_with_finish(root: PathRoot, c: AcceptCondition) -> HistoryEntry {
         let mut e = HistoryEntry::default();
