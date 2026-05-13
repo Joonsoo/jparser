@@ -507,6 +507,19 @@ def runMgroup3NativeTest() {
   )
 }
 
+// mgroup3 Kotlin vs mgroup3-native (FFM) wall-clock benchmark across the
+// mulang corpus. Mulang fixtures must be present (run
+// `runMgroup3FixtureGen` once first).
+@action
+def runMgroup3NativeBenchmark() {
+  buildMgroup3NativeRelease()
+  runJUnitTestSuiteWithEnv(
+    mgroup3.test,
+    .some("com.giyeok.jparser.mgroup3.Mgroup3NativeBenchmarkTest"),
+    {"MGROUP3_NATIVE_BENCH": "1"},
+  )
+}
+
 @action
 def runMgroup3ParserTest() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Mgroup3ParserTest"))
