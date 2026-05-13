@@ -16,8 +16,9 @@ restarting performance work.
 - **Fair benchmark** (both sides materialize `kernels_history`) on the
   unmodified code: kt/rs 0.54–0.76×, i.e. Rust ~1.3-1.9× slower.
 - **Single change — std `HashMap` → `rustc_hash::FxHashMap` everywhere** —
-  brought Rust to **1.16× to 1.77× *faster*** than Kotlin on every measured
-  workload. Standalone CLI shows 2-3× per-input speedup.
+  brought Rust to **1.16× to 2.46× *faster*** than Kotlin on every measured
+  workload (lead widens on bigger inputs). Standalone CLI shows 2-3×
+  per-input speedup.
 - Profile still shows `evaluate_with_history` / `collect_finishes_at_or_after`
   as the top hot spot, but no longer dominated by hashing. Further work is
   algorithmic (memoize / invert the cond-path-finishes index) rather than
@@ -67,7 +68,11 @@ release build, GC + 5ms sleep between rounds. Both sides materialize
 | annotation_defs | 118 | 6.417 ms | 5.541 ms | **1.16×** |
 | 09_exprs | 1374 | 1825.070 ms | 1029.465 ms | **1.77×** |
 | 07_try_let | 1495 | 1545.851 ms | 905.662 ms | **1.71×** |
-| (06_match still measuring as of doc write) | | | | |
+| 06_match | 1843 | 3150.976 ms | 1283.389 ms | **2.46×** |
+
+Headline: **Rust beats the Kotlin reference 1.16-2.46×** across the four
+mulang inputs, with the lead widening on larger workloads (the
+`kernels_history` post-processing is where FxHash gives the most leverage).
 
 Standalone CLI (Rust only) shows the same speedup from FxHash without any
 JVM in the path:
