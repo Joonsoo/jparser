@@ -6,6 +6,7 @@ import java
 import jvm
 import maven
 import scala2
+import jar
 
 protobufVersion = "4.31.1"
 scalaVersion = "2.13"
@@ -334,6 +335,81 @@ mgroup3(basePath="mgroup3") {
       kttestutils.main,
     ] + testDeps,
   )
+
+  genCli = ktjvm.library(
+    srcs = withBasePath("genCli/kotlin") {
+      file.glob("**.kt")
+    },
+    deps = [gen],
+  )
+
+  genCliJar = jar.executableUberJar(
+    deps = [genCli],
+    mainClass = "com.giyeok.jparser.mgroup3.GenCliKt",
+  )
+
+  class RustParser {
+    // mgroup3 parser data 파일 경로
+    parserData: path
+    // AST data type 들을 serialize할 수 있는 protobuf 정의
+    protoSchema: path
+    // rustSrcsRoot 밑에는 mgroup3-native 에 dependency를 갖는,
+    // rust parser crate가 생성되며, srcs, Cargo.toml, bulid.rs 가 있어야 함.
+    // rust crate 에는 AST data class들이 포함되어 있고,
+    // AST data class 들은 protobuf로 serialize할 수 있다.
+    // 생성되는 rust crate는 input string을 받아 파싱을 수행하고,
+    // 성공시엔 AST data type을, 실패시엔 에러 내용을 반환하는 기능을 포함한다.
+    rustSrcsRoot: path
+    // kotlinAdtRoot 에는 AST data type 구조를 정의한 코드가 포함되고,
+    // protoSchema 에 정의된 protobuf Message 로부터 각 AST data type으로 변환하는 코드가 포함된다.
+    kotlinAdtRoot: path
+  }
+
+  def genRustParser(
+    cdgFile: path,
+    parserDataFileName: string = "mgroup3-parserdata.pb",
+    astProtoFileName: string = "ast-datatypes.proto",
+    genKotlinBinding: bool = true,
+  ): RustParser {
+    let outDir = context.destDirectory()
+    let dataFile = outDir / "data" / parserDataFileName
+    let protoFile = outDir / "proto" / astProtoFileName
+    let rust = outDir / "rust"
+    let kotlin = outDir / "kotlin"
+
+    file.createDirectory(outDir / "data")
+    file.createDirectory(outDir / "proto")
+    file.createDirectory(rust)
+    file.createDirectory(kotlin)
+    context.runCommand([
+      "java",
+      "-jar", genCliJar.jarFile,
+      cdgFile,
+      "-parserdata", dataFile,
+      "-proto", protoFile,
+      "-rust", rust,
+      // TODO disable kotlin gen if genKotlinBinding is false
+      "-kotlin", kotlin,
+    ])
+    return RustParser(
+      parserData = dataFile,
+      protoSchema = protoFile,
+      rustSrcsRoot = rust,
+      kotlinAdtRoot = kotlin
+    )
+  }
+
+  def genFastParser(
+    cdgFile: path,
+    parserDataFileName: string = "mgroup3-parserdata.pb",
+    astProtoFileName: string = "ast-datatypes.proto",
+    // TODO target arch
+  ): jvm.JvmLib {
+    let rust = genRustParser(cdgFile, parserDataFileName, astProtoFileName)
+
+    // TODO 생성된 rust -> so, dll, dylib 으로 컴파일하고, kotlin 코드 컴파일해서 반환
+    return ktjvm.library()
+  }
 }
 
 def runScalaTest(lib: jvm.JvmLib) {
