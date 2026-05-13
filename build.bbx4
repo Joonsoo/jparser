@@ -347,8 +347,12 @@ def runJUnitTest(lib: jvm.JvmLib) {
 def runJUnitTestExcluding(lib: jvm.JvmLib, excludeClassnameRegex: string) {
   let runtimeClasspath = lib.transitiveJars + [lib.resourcesDir]
   let cpArg = jvm.joinClasspath(runtimeClasspath)
+  // --enable-native-access=ALL-UNNAMED: required on JDK 22+ for FFM (JEP 454)
+  // downcalls from the unnamed module. mgroup3.nativeParser uses FFM; the
+  // flag is no-op for tests that don't load native libs, so we always pass it.
   let cmd = [
     java.javaCmd(),
+    "--enable-native-access=ALL-UNNAMED",
     "-cp", cpArg,
     "org.junit.platform.console.ConsoleLauncher",
     "--fail-if-no-tests",
@@ -374,8 +378,11 @@ def runJUnitTestExcluding(lib: jvm.JvmLib, excludeClassnameRegex: string) {
 def runJUnitTestSuite(lib: jvm.JvmLib, suiteName: optional<string>) {
   let runtimeClasspath = lib.transitiveJars + [lib.resourcesDir]
   let cpArg = jvm.joinClasspath(runtimeClasspath)
+  // --enable-native-access=ALL-UNNAMED: required on JDK 22+ for FFM (JEP 454)
+  // downcalls; no-op for tests that don't touch native libs.
   let baseCmd = [
     java.javaCmd(),
+    "--enable-native-access=ALL-UNNAMED",
     "-cp", cpArg,
     "org.junit.platform.console.ConsoleLauncher",
     "--fail-if-no-tests",
