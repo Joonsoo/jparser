@@ -5,17 +5,72 @@
 //!
 //! Port of `Mgroup3Parser.kt:724-804`.
 
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 
 use crate::accept_condition::AcceptCondition;
 use crate::parsing_ctx::HistoryEntry;
 use crate::path_root::PathRoot;
 
-/// Evaluate `cond` given the full parse history and the set of cond roots that
-/// are still active at the end of parsing.
+/// Pre-built inverted index over `history[*].cond_path_finishes`.
+///
+/// For each `PathRoot` that ever finishes, stores the list of
+/// `(gen_idx, &AcceptCondition)` pairs in history order. This replaces the
+/// O(N) scan `collect_finishes_at_or_after` was doing per `Exists` / `NotExists`
+/// / `Unless` / `OnlyIf` leaf with an O(1) lookup + O(k) filter, where `k` is
+/// the number of finishes for that root.
+///
+/// Also caches `history.len()` so `NoLongerMatch` / `NeedLongerMatch` can
+/// answer "the last entry's finish for this root" without re-walking.
+pub struct HistoryIndex<'a> {
+    /// Per-root list of `(gen_idx, &cond)`, in ascending `gen_idx` order.
+    by_root: FxHashMap<PathRoot, Vec<(i32, &'a AcceptCondition)>>,
+    /// Number of entries in the underlying history (cached for last-entry lookups).
+    history_len: usize,
+}
+
+impl<'a> HistoryIndex<'a> {
+    pub fn build(history: &'a [HistoryEntry]) -> Self {
+        let mut by_root: FxHashMap<PathRoot, Vec<(i32, &'a AcceptCondition)>> =
+            FxHashMap::default();
+        for (gen_idx, entry) in history.iter().enumerate() {
+            let gen_idx = gen_idx as i32;
+            for (root, cond) in &entry.cond_path_finishes {
+                by_root.entry(*root).or_default().push((gen_idx, cond));
+            }
+        }
+        Self { by_root, history_len: history.len() }
+    }
+
+    /// Finish recorded for `root` in the last history entry (if any).
+    fn last_entry_finish(&self, root: PathRoot) -> Option<&'a AcceptCondition> {
+        if self.history_len == 0 {
+            return None;
+        }
+        let last_gen = (self.history_len - 1) as i32;
+        let v = self.by_root.get(&root)?;
+        // Last entry in the per-root list is the latest finish; check that its
+        // gen_idx matches the last history index.
+        match v.last() {
+            Some((g, c)) if *g == last_gen => Some(*c),
+            _ => None,
+        }
+    }
+
+    /// All finishes for `root` at history gens `>= min_gen`, history order.
+    fn finishes_at_or_after(&self, root: PathRoot, min_gen: i32) -> &[(i32, &'a AcceptCondition)] {
+        let Some(v) = self.by_root.get(&root) else { return &[] };
+        // Vector is sorted by gen_idx ascending (built that way). Binary-search
+        // for the first entry with gen_idx >= min_gen.
+        let start = v.partition_point(|(g, _)| *g < min_gen);
+        &v[start..]
+    }
+}
+
+/// Evaluate `cond` given the pre-built history index and the set of cond roots
+/// that are still active at the end of parsing.
 pub fn evaluate_with_history(
     cond: &AcceptCondition,
-    history: &[HistoryEntry],
+    index: &HistoryIndex<'_>,
     active_cond_paths: &HashSet<PathRoot>,
 ) -> bool {
     match cond {
@@ -23,22 +78,19 @@ pub fn evaluate_with_history(
         AcceptCondition::Never => false,
         AcceptCondition::And { items } => items
             .iter()
-            .all(|c| evaluate_with_history(c, history, active_cond_paths)),
+            .all(|c| evaluate_with_history(c, index, active_cond_paths)),
         AcceptCondition::Or { items } => items
             .iter()
-            .any(|c| evaluate_with_history(c, history, active_cond_paths)),
+            .any(|c| evaluate_with_history(c, index, active_cond_paths)),
 
         AcceptCondition::NoLongerMatch { symbol_id, start_gen, from_next_gen } => {
-            // Survived NoLongerMatch leaves are decided by the LAST history
-            // entry's cond_path_finishes. fromNextGen=true → trivially true
-            // (this step's finish doesn't combine yet).
             if *from_next_gen {
                 return true;
             }
             let root = PathRoot::new(*symbol_id, *start_gen);
-            match history.last().and_then(|e| e.cond_path_finishes.get(&root)) {
+            match index.last_entry_finish(root) {
                 None => true,
-                Some(fin) => !evaluate_with_history(fin, history, active_cond_paths),
+                Some(fin) => !evaluate_with_history(fin, index, active_cond_paths),
             }
         }
 
@@ -47,63 +99,52 @@ pub fn evaluate_with_history(
                 return false;
             }
             let root = PathRoot::new(*symbol_id, *start_gen);
-            match history.last().and_then(|e| e.cond_path_finishes.get(&root)) {
+            match index.last_entry_finish(root) {
                 None => false,
-                Some(fin) => evaluate_with_history(fin, history, active_cond_paths),
+                Some(fin) => evaluate_with_history(fin, index, active_cond_paths),
             }
         }
 
         AcceptCondition::NotExists { symbol_id, start_gen } => {
             let root = PathRoot::new(*symbol_id, *start_gen);
-            let finishes = collect_finishes_at_or_after(history, root, *start_gen);
+            let finishes = index.finishes_at_or_after(root, *start_gen);
             if finishes.is_empty() {
                 true
             } else {
-                !finishes.iter().any(|c| evaluate_with_history(c, history, active_cond_paths))
+                !finishes
+                    .iter()
+                    .any(|(_, c)| evaluate_with_history(c, index, active_cond_paths))
             }
         }
 
         AcceptCondition::Exists { symbol_id, start_gen } => {
             let root = PathRoot::new(*symbol_id, *start_gen);
-            let finishes = collect_finishes_at_or_after(history, root, *start_gen);
-            finishes.iter().any(|c| evaluate_with_history(c, history, active_cond_paths))
+            let finishes = index.finishes_at_or_after(root, *start_gen);
+            finishes
+                .iter()
+                .any(|(_, c)| evaluate_with_history(c, index, active_cond_paths))
         }
 
         AcceptCondition::Unless { symbol_id, start_gen } => {
             let root = PathRoot::new(*symbol_id, *start_gen);
-            let finishes = collect_finishes_at_or_after(history, root, *start_gen);
+            let finishes = index.finishes_at_or_after(root, *start_gen);
             if finishes.is_empty() {
                 true
             } else {
-                !finishes.iter().any(|c| evaluate_with_history(c, history, active_cond_paths))
+                !finishes
+                    .iter()
+                    .any(|(_, c)| evaluate_with_history(c, index, active_cond_paths))
             }
         }
 
         AcceptCondition::OnlyIf { symbol_id, start_gen } => {
             let root = PathRoot::new(*symbol_id, *start_gen);
-            let finishes = collect_finishes_at_or_after(history, root, *start_gen);
-            finishes.iter().any(|c| evaluate_with_history(c, history, active_cond_paths))
+            let finishes = index.finishes_at_or_after(root, *start_gen);
+            finishes
+                .iter()
+                .any(|(_, c)| evaluate_with_history(c, index, active_cond_paths))
         }
     }
-}
-
-/// Collect every `cond_path_finishes[root]` from history entries at gen index
-/// `>= min_gen`. The list preserves history order.
-pub fn collect_finishes_at_or_after<'a>(
-    history: &'a [HistoryEntry],
-    root: PathRoot,
-    min_gen: i32,
-) -> Vec<&'a AcceptCondition> {
-    let mut out = Vec::new();
-    for (gen_idx, entry) in history.iter().enumerate() {
-        if (gen_idx as i32) < min_gen {
-            continue;
-        }
-        if let Some(c) = entry.cond_path_finishes.get(&root) {
-            out.push(c);
-        }
-    }
-    out
 }
 
 #[cfg(test)]
@@ -120,12 +161,17 @@ mod tests {
         (PathRoot::new(s, g), AcceptCondition::Always)
     }
 
+    fn eval(cond: &AcceptCondition, history: &[HistoryEntry], active: &HashSet<PathRoot>) -> bool {
+        let idx = HistoryIndex::build(history);
+        evaluate_with_history(cond, &idx, active)
+    }
+
     #[test]
     fn always_and_never() {
         let h: Vec<HistoryEntry> = vec![];
         let a: HashSet<PathRoot> = HashSet::default();
-        assert!(evaluate_with_history(&AcceptCondition::Always, &h, &a));
-        assert!(!evaluate_with_history(&AcceptCondition::Never, &h, &a));
+        assert!(eval(&AcceptCondition::Always, &h, &a));
+        assert!(!eval(&AcceptCondition::Never, &h, &a));
     }
 
     #[test]
@@ -134,7 +180,7 @@ mod tests {
         let a: HashSet<PathRoot> = HashSet::default();
         let c =
             AcceptCondition::NoLongerMatch { symbol_id: 1, start_gen: 0, from_next_gen: true };
-        assert!(evaluate_with_history(&c, &h, &a));
+        assert!(eval(&c, &h, &a));
     }
 
     #[test]
@@ -143,7 +189,7 @@ mod tests {
         let a: HashSet<PathRoot> = HashSet::default();
         let c =
             AcceptCondition::NoLongerMatch { symbol_id: 1, start_gen: 0, from_next_gen: false };
-        assert!(evaluate_with_history(&c, &h, &a));
+        assert!(eval(&c, &h, &a));
     }
 
     #[test]
@@ -153,7 +199,7 @@ mod tests {
         let a: HashSet<PathRoot> = HashSet::default();
         let c =
             AcceptCondition::NoLongerMatch { symbol_id: 1, start_gen: 0, from_next_gen: false };
-        assert!(!evaluate_with_history(&c, &h, &a));
+        assert!(!eval(&c, &h, &a));
     }
 
     #[test]
@@ -162,7 +208,7 @@ mod tests {
         let a: HashSet<PathRoot> = HashSet::default();
         let c =
             AcceptCondition::NeedLongerMatch { symbol_id: 1, start_gen: 0, from_next_gen: true };
-        assert!(!evaluate_with_history(&c, &h, &a));
+        assert!(!eval(&c, &h, &a));
     }
 
     #[test]
@@ -173,7 +219,7 @@ mod tests {
         h.push(entry_with_finish(root, fin));
         let a: HashSet<PathRoot> = HashSet::default();
         let c = AcceptCondition::Exists { symbol_id: 5, start_gen: 2 };
-        assert!(evaluate_with_history(&c, &h, &a));
+        assert!(eval(&c, &h, &a));
     }
 
     #[test]
@@ -184,7 +230,7 @@ mod tests {
         h.push(HistoryEntry::default());
         let a: HashSet<PathRoot> = HashSet::default();
         let c = AcceptCondition::Exists { symbol_id: 5, start_gen: 2 };
-        assert!(!evaluate_with_history(&c, &h, &a));
+        assert!(!eval(&c, &h, &a));
     }
 
     #[test]
@@ -193,7 +239,7 @@ mod tests {
         let a: HashSet<PathRoot> = HashSet::default();
         let c = AcceptCondition::NotExists { symbol_id: 1, start_gen: 0 };
         // No finishes → true
-        assert!(evaluate_with_history(&c, &h, &a));
+        assert!(eval(&c, &h, &a));
     }
 
     #[test]
@@ -207,7 +253,7 @@ mod tests {
             AcceptCondition::NeedLongerMatch { symbol_id: 1, start_gen: 0, from_next_gen: false }; // false
         let and = AcceptCondition::and_from([nlm.clone(), need.clone()]);
         let or = AcceptCondition::or_from([nlm, need]);
-        assert!(!evaluate_with_history(&and, &h, &a));
-        assert!(evaluate_with_history(&or, &h, &a));
+        assert!(!eval(&and, &h, &a));
+        assert!(eval(&or, &h, &a));
     }
 }

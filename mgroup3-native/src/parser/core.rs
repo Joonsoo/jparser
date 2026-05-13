@@ -9,7 +9,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use std::rc::Rc;
 
 use crate::accept_condition::AcceptCondition;
-use crate::parser::eval_with_history::evaluate_with_history;
+use crate::parser::eval_with_history::{evaluate_with_history, HistoryIndex};
 use crate::parser::template::{build_condition, resolve_gen_i32};
 use crate::parser_data::{EdgeActionPlain, ParserDataPlain, TermActionPlain};
 use crate::parsing_ctx::{
@@ -608,11 +608,12 @@ impl Mgroup3Parser {
             .copied()
             .filter(|r| *r != ctx.main_root)
             .collect();
+        let index = HistoryIndex::build(&ctx.history);
         for rec in &last_entry.finished_kernels {
             if rec.kernel.symbol_id == start
                 && rec.kernel.gen_idx == 0
                 && rec.kernel.pointer >= 1
-                && evaluate_with_history(&rec.condition, &ctx.history, &active_cond_paths)
+                && evaluate_with_history(&rec.condition, &index, &active_cond_paths)
             {
                 return true;
             }
@@ -629,6 +630,7 @@ impl Mgroup3Parser {
             .copied()
             .filter(|r| *r != ctx.main_root)
             .collect();
+        let index = HistoryIndex::build(&ctx.history);
         let mut out = Vec::with_capacity(ctx.history.len());
         for (gen_idx, entry) in ctx.history.iter().enumerate() {
             let gen_idx = gen_idx as i32;
@@ -636,7 +638,7 @@ impl Mgroup3Parser {
             for rec in &entry.finished_kernels {
                 if evaluate_with_history(
                     &rec.condition,
-                    &ctx.history,
+                    &index,
                     &final_active_cond_paths,
                 ) {
                     kernels.insert(KtlibKernel {
