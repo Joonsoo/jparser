@@ -340,7 +340,7 @@ mgroup3(basePath="mgroup3") {
     srcs = withBasePath("genCli/kotlin") {
       file.glob("**.kt")
     },
-    deps = [gen],
+    deps = [gen, metalang.main],
   )
 
   genCliJar = jar.executableUberJar(
@@ -408,7 +408,7 @@ mgroup3(basePath="mgroup3") {
     let rust = genRustParser(cdgFile, parserDataFileName, astProtoFileName)
 
     // TODO 생성된 rust -> so, dll, dylib 으로 컴파일하고, kotlin 코드 컴파일해서 반환
-    return ktjvm.library()
+    return ktjvm.library(srcs = [])
   }
 }
 
