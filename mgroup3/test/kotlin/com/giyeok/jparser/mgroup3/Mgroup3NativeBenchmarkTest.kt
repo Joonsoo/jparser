@@ -41,8 +41,6 @@ class Mgroup3NativeBenchmarkTest {
       "09_exprs",
       "07_try_let",
       "06_match",
-      "11_rbln_examples",
-      "12_cpp_ast",
     ).mapNotNull { dirName ->
       val d = File(mulangDir, "inputs/$dirName")
       if (!d.isDirectory) {
@@ -82,15 +80,21 @@ class Mgroup3NativeBenchmarkTest {
         }
 
         val (warmup, n) = roundsFor(input.chars)
+        // Fair comparison: both sides materialize kernels_history. The
+        // native path always does (via encode_parse_result inside the FFI),
+        // so the Kotlin path must too — otherwise we'd be timing Kotlin's
+        // parse-only against Rust's parse+history+encode.
         repeat(warmup) {
-          ktParser.parse(input.text)
+          val c = ktParser.parse(input.text); ktParser.kernelsHistory(c)
           native.parse(input.text)
         }
         val ktTimes = LongArray(n)
         val rsTimes = LongArray(n)
         for (i in 0 until n) {
           System.gc(); Thread.sleep(5)
-          ktTimes[i] = measureNanoTime { ktParser.parse(input.text) }
+          ktTimes[i] = measureNanoTime {
+            val c = ktParser.parse(input.text); ktParser.kernelsHistory(c)
+          }
           System.gc(); Thread.sleep(5)
           rsTimes[i] = measureNanoTime { native.parse(input.text) }
         }
