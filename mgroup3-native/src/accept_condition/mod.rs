@@ -21,7 +21,7 @@ pub use root_set::RootSet;
 ///   they apply canonicalization (short-circuit, flatten, dedup, sort).
 ///   Direct construction is fine for tests and for parser-internal code that
 ///   has already canonicalized.
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub enum AcceptCondition {
     Always,
     Never,

@@ -1,15 +1,16 @@
 //! Deterministic ordering for `AcceptCondition` children so that `And(X, Y)` and
 //! `And(Y, X)` collapse to the same canonical form.
 //!
-//! Kotlin sorts by `(hashCode, toString)`. Rust uses just `Display` as the key —
-//! `Display` already uniquely identifies a condition (the parser round-trips),
-//! so this is a total order without needing to mirror JVM hashing.
+//! Kotlin sorts by `(hashCode, toString)`. Rust uses the derived `Ord` directly
+//! on `AcceptCondition`: any total order suffices — what matters is that
+//! `and_from([X, Y])` and `and_from([Y, X])` produce equal values. Sorting on
+//! `Ord` avoids the String allocations the previous Display-based key forced.
 
 use super::AcceptCondition;
 
 /// Sort two children into canonical order, returning them as a `(low, high)` pair.
 pub fn canonical_pair(a: AcceptCondition, b: AcceptCondition) -> (AcceptCondition, AcceptCondition) {
-    if a.to_string() <= b.to_string() {
+    if a <= b {
         (a, b)
     } else {
         (b, a)
@@ -18,7 +19,7 @@ pub fn canonical_pair(a: AcceptCondition, b: AcceptCondition) -> (AcceptConditio
 
 /// Sort an `&mut Vec` of children into canonical order in place.
 pub fn canonical_sort(children: &mut [AcceptCondition]) {
-    children.sort_by(|a, b| a.to_string().cmp(&b.to_string()));
+    children.sort();
 }
 
 #[cfg(test)]
@@ -32,16 +33,15 @@ mod tests {
     #[test]
     fn pair_in_order() {
         let (lo, hi) = canonical_pair(ex(1, 0), ex(2, 0));
-        assert_eq!(lo.to_string(), "Exists(symbolId=1, startGen=0)");
-        assert_eq!(hi.to_string(), "Exists(symbolId=2, startGen=0)");
+        assert_eq!(lo, ex(1, 0));
+        assert_eq!(hi, ex(2, 0));
     }
 
     #[test]
     fn pair_reorders() {
-        // "Exists(symbolId=2..)" > "Exists(symbolId=1..)" lexicographically
         let (lo, hi) = canonical_pair(ex(2, 0), ex(1, 0));
-        assert_eq!(lo.to_string(), "Exists(symbolId=1, startGen=0)");
-        assert_eq!(hi.to_string(), "Exists(symbolId=2, startGen=0)");
+        assert_eq!(lo, ex(1, 0));
+        assert_eq!(hi, ex(2, 0));
     }
 
     #[test]
@@ -54,16 +54,16 @@ mod tests {
             AcceptCondition::Never,
         ];
         canonical_sort(&mut v);
-        let names: Vec<String> = v.iter().map(|c| c.to_string()).collect();
-        // Lex order: Always < Exists(1..) < Exists(2..) < Exists(3..) < Never
+        // Derived Ord: variant index first (Always(0), Never(1), Exists(5)),
+        // then fields lex-on-tuple for same-variant entries.
         assert_eq!(
-            names,
+            v,
             vec![
-                "Always",
-                "Exists(symbolId=1, startGen=0)",
-                "Exists(symbolId=2, startGen=0)",
-                "Exists(symbolId=3, startGen=0)",
-                "Never",
+                AcceptCondition::Always,
+                AcceptCondition::Never,
+                ex(1, 0),
+                ex(2, 0),
+                ex(3, 0),
             ]
         );
     }
