@@ -11,6 +11,10 @@ prost = "0.14"
 bytes = "1"
 prost-types = "0.14"
 unicode-general-category = "1"
+flate2 = "1"
 
 [build-dependencies]
 prost-build = "0.14"
+
+[dev-dependencies]
+libloading = "0.8"
