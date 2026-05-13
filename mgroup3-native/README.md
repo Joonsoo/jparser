@@ -22,7 +22,9 @@ Branch: `mg3native-claude` (forked from `mgroup3_claude`).
 | 3.7 | `ParserFixtureGenTest.kt` + `parser_diff.rs` — 13 grammars / 59 inputs all green | `d546850a` | done |
 | 4 (Phase A) | Result serialization (Rust → Kotlin via protobuf) | `f7f9a26c`–`648f069c` | done |
 | 5 | mulang corpus + split fixture dirs | `0018e030` | done |
-| 6 | JVM ↔ Rust channel via FFM (JEP 454) + in-process bridge test | `8646a95c`–`44bebc38` + action | done |
+| 6.1–6.4 | JVM ↔ Rust channel via FFM (JEP 454) + in-process bridge test | `8646a95c`–`44bebc38` + action | done |
+| 6.5 | Mgroup3NativeBenchmarkTest + bibix4 action | `b181f598` | done |
+| 6.6 | std HashMap → rustc_hash::FxHash, 2-3× speedup. See `PERFORMANCE.md`. | `da9d2999` | done |
 | 7 (Phase B) | Grammar-specific AST schemas — Rust does reconstruction | — | future |
 
 Test totals at end of Step 3.7:
