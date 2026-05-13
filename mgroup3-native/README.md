@@ -20,9 +20,10 @@ Branch: `mg3native-claude` (forked from `mgroup3_claude`).
 | 3.5 | `Mgroup3Parser` struct, `init_ctx`, `cond_paths_for`, `find_applicable_action`, `expected_inputs_of` | `debb803a` | done |
 | 3.6 | `parse_step` (7 phases), `apply_term_action`, `apply_edge_action`, `parse`, `is_accepted`, `kernels_history`, `evaluate_with_history` | `fa1d47b3` | done |
 | 3.7 | `ParserFixtureGenTest.kt` + `parser_diff.rs` — 13 grammars / 59 inputs all green | `d546850a` | done |
-| 4 (Phase A) | Result serialization (Rust → Kotlin via protobuf) | — | in progress |
-| 4 (channel) | JNI or JEP 442 FFM — undecided | — | future |
-| 5 (Phase B) | Grammar-specific AST schemas — Rust does reconstruction | — | future |
+| 4 (Phase A) | Result serialization (Rust → Kotlin via protobuf) | `f7f9a26c`–`648f069c` | done |
+| 5 | mulang corpus + split fixture dirs | `0018e030` | done |
+| 6 | JVM ↔ Rust channel via FFM (JEP 454) + in-process bridge test | `8646a95c`–`44bebc38` + action | done |
+| 7 (Phase B) | Grammar-specific AST schemas — Rust does reconstruction | — | future |
 
 Test totals at end of Step 3.7:
 - 124 Rust unit tests
@@ -131,6 +132,31 @@ cargo test
 ```
 Runs lib tests + accept_condition_diff + parser_diff. No JVM dependency, no
 network — fixtures are checked in.
+
+### In-process FFM bridge — Kotlin calls Rust directly
+The Kotlin `Mgroup3NativeParser` class (in `mgroup3.nativeParser`) loads
+`libmgroup3_native.{dylib,so,dll}` via FFM (JEP 454, stable since JDK 22)
+and calls the parser without an intermediate process. Run the bridge test
+through bibix4:
+```sh
+/Users/joonsoo/Documents/apps/bibix4/bibix4 runMgroup3NativeTest
+```
+That action runs `cargo build --release`, then JUnit with
+`--enable-native-access=ALL-UNNAMED` and `MGROUP3_NATIVE_INPROC=1` set in
+the spawned JVM. The bridge test walks the same fixture corpus as the
+subprocess-based test and asserts every parse result matches the Kotlin
+reference. JDK 22+ required.
+
+For ad-hoc invocations from a hand-launched JVM, pass the same flag and
+env var, e.g.:
+```sh
+java --enable-native-access=ALL-UNNAMED -cp ... \
+     -DMGROUP3_NATIVE_LIB=/abs/path/to/libmgroup3_native.dylib \
+     ...
+```
+The native library is located via `MGROUP3_NATIVE_LIB` env first; failing
+that, the facade walks up from `user.dir` looking for
+`mgroup3-native/target/{release,debug}/libmgroup3_native.<ext>`.
 
 ### Regenerating fixtures (requires Kotlin/bibix4)
 Fixtures are written by Kotlin tests that drive `Mgroup3ParserGenerator` and

@@ -376,10 +376,14 @@ def runJUnitTestExcluding(lib: jvm.JvmLib, excludeClassnameRegex: string) {
 }
 
 def runJUnitTestSuite(lib: jvm.JvmLib, suiteName: optional<string>) {
+  runJUnitTestSuiteWithEnv(lib, suiteName, {})
+}
+
+// runJUnitTestSuite 와 동일하지만 env 변수를 spawn 되는 java process 에 forward.
+// mgroup3.nativeParser FFM bridge 가 MGROUP3_NATIVE_INPROC=1 같은 env 가 필요해서.
+def runJUnitTestSuiteWithEnv(lib: jvm.JvmLib, suiteName: optional<string>, env: map<string, string>) {
   let runtimeClasspath = lib.transitiveJars + [lib.resourcesDir]
   let cpArg = jvm.joinClasspath(runtimeClasspath)
-  // --enable-native-access=ALL-UNNAMED: required on JDK 22+ for FFM (JEP 454)
-  // downcalls; no-op for tests that don't touch native libs.
   let baseCmd = [
     java.javaCmd(),
     "--enable-native-access=ALL-UNNAMED",
@@ -393,7 +397,7 @@ def runJUnitTestSuite(lib: jvm.JvmLib, suiteName: optional<string>) {
   }
   let cmd = baseCmd + suiteArgs
   let inputs = [lib.classesDir] + runtimeClasspath
-  let s = context.runCommandStream(cmd = cmd, inputs = inputs)
+  let s = context.runCommandStream(cmd = cmd, inputs = inputs, env = env)
   let stdoutTask = async {
     s.stdout.collect { line -> context.log(line) }
   }
@@ -405,6 +409,20 @@ def runJUnitTestSuite(lib: jvm.JvmLib, suiteName: optional<string>) {
   let exitCode = s.exit.await()
   if exitCode != 0 {
     throw "JUnit failed (exit=${exitCode})"
+  }
+}
+
+// Build the mgroup3-native cdylib via `cargo build --release`. The Kotlin
+// facade's Mgroup3NativeLibrary walks up from cwd to find
+// mgroup3-native/target/release/libmgroup3_native.{dylib,so,dll} on its own,
+// so we don't need to compute the path here — just make sure the artifact
+// exists by the time the JVM looks for it.
+def buildMgroup3NativeRelease() {
+  let res = context.runCommand(
+    cmd = ["cargo", "build", "--release", "--manifest-path", "mgroup3-native/Cargo.toml"],
+  )
+  if res.exitCode != 0 {
+    throw "cargo build --release failed (exit=${res.exitCode})"
   }
 }
 
@@ -474,6 +492,19 @@ def runMgroup3GenTest() {
 @action
 def runMgroup3FixtureGen() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.ParserFixtureGenTest"))
+}
+
+// 자동으로 mgroup3-native cdylib 빌드 후, FFM in-process bridge 테스트를 실행.
+// MGROUP3_NATIVE_INPROC=1 을 전파해 JUnit 의 @EnabledIfEnvironmentVariable 게이트를 해제.
+// HotSpot 전용 — GraalVM native-image AOT 의 upcall 미지원과 무관.
+@action
+def runMgroup3NativeTest() {
+  buildMgroup3NativeRelease()
+  runJUnitTestSuiteWithEnv(
+    mgroup3.test,
+    .some("com.giyeok.jparser.mgroup3.Mgroup3NativeInProcessBridgeTest"),
+    {"MGROUP3_NATIVE_INPROC": "1"},
+  )
 }
 
 @action
