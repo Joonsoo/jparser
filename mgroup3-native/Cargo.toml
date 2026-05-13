@@ -12,6 +12,7 @@ bytes = "1"
 prost-types = "0.14"
 unicode-general-category = "1"
 flate2 = "1"
+rustc-hash = "2.1.2"
 
 [build-dependencies]
 prost-build = "0.14"

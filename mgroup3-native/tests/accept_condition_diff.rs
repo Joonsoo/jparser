@@ -6,7 +6,7 @@
 //! `mgroup3/test/kotlin/.../AcceptConditionFixtureGenTest.kt`. To regenerate:
 //! `/Users/joonsoo/Documents/apps/bibix4/bibix4 runMgroup3Test`.
 
-use std::collections::{HashMap, HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use std::fs;
 
 use mgroup3_native::accept_condition::eval::{evaluate_accept_condition, evolve_accept_condition};
@@ -26,7 +26,7 @@ fn load_blocks() -> Vec<Block> {
     let text = fs::read_to_string(path)
         .unwrap_or_else(|e| panic!("failed to read {}: {} (run runMgroup3Test to regenerate)", path, e));
     let mut blocks = Vec::new();
-    let mut current_fields = HashMap::new();
+    let mut current_fields = HashMap::default();
     let mut current_kind: Option<String> = None;
     let mut block_start = 0usize;
     for (i, raw_line) in text.lines().enumerate() {
@@ -81,7 +81,7 @@ fn parse_fins(block: &Block) -> HashMap<PathRoot, AcceptCondition> {
         ks.len(),
         vs.len()
     );
-    let mut out = HashMap::new();
+    let mut out = HashMap::default();
     for (k, v) in ks.into_iter().zip(vs.into_iter()) {
         let root = parse_path_root(k).unwrap_or_else(|e| panic!("block @ line {}: bad PathRoot {:?}: {}", block.line_no, k, e));
         let cond = parse_condition(v).unwrap_or_else(|e| panic!("block @ line {}: bad AcceptCondition {:?}: {}", block.line_no, v, e));
@@ -115,7 +115,7 @@ fn parse_cond_field(block: &Block, name: &str) -> AcceptCondition {
 fn diff_against_kotlin_fixture() {
     let blocks = load_blocks();
     assert!(blocks.len() > 50, "fixture too small ({} blocks)", blocks.len());
-    let mut counts: HashMap<String, usize> = HashMap::new();
+    let mut counts: HashMap<String, usize> = HashMap::default();
 
     for (idx, block) in blocks.iter().enumerate() {
         *counts.entry(block.kind.clone()).or_default() += 1;

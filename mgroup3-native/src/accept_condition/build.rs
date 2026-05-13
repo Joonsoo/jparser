@@ -7,7 +7,7 @@
 //! Rust port — see plan §"Guiding principle". What matters is that
 //! `And::from([X, Y])` and `And::from([Y, X])` return equal values.
 
-use std::collections::HashSet;
+use rustc_hash::FxHashSet as HashSet;
 
 use super::canonical::canonical_sort;
 use super::AcceptCondition;
@@ -81,7 +81,8 @@ fn dedup_inplace(items: &mut Vec<AcceptCondition>) {
         return;
     }
     let original = std::mem::take(items);
-    let mut seen: HashSet<AcceptCondition> = HashSet::with_capacity(original.len());
+    let mut seen: HashSet<AcceptCondition> =
+        HashSet::with_capacity_and_hasher(original.len(), Default::default());
     items.reserve(original.len());
     for c in original {
         if seen.insert(c.clone()) {

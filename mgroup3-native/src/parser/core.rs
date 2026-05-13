@@ -4,7 +4,8 @@
 //! helpers land in Step 3.6.
 
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::VecDeque;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use std::rc::Rc;
 
 use crate::accept_condition::AcceptCondition;
@@ -71,7 +72,7 @@ impl Mgroup3Parser {
             plain,
             tip_edge_actions,
             mid_edge_actions,
-            term_action_cache: RefCell::new(HashMap::new()),
+            term_action_cache: RefCell::new(HashMap::default()),
         }
     }
 
@@ -116,12 +117,12 @@ impl Mgroup3Parser {
             .unwrap_or_else(|| panic!("No path root for symbol {}", start_symbol_id));
 
         let main_root = PathRoot::new(start_symbol_id, 0);
-        let mut main_paths: PathMap = PathMap::new();
+        let mut main_paths: PathMap = PathMap::default();
         main_paths.insert(PathShape::new(None, root_info.milestone_group_id), AcceptCondition::Always);
 
         let initial_cond_paths = self.cond_paths_for(&root_info.initial_cond_symbol_ids, 0);
 
-        let mut all_paths: HashMap<PathRoot, PathMap> = HashMap::new();
+        let mut all_paths: HashMap<PathRoot, PathMap> = HashMap::default();
         all_paths.insert(main_root, main_paths);
         for (k, v) in initial_cond_paths {
             all_paths.insert(k, v);
@@ -168,7 +169,7 @@ impl Mgroup3Parser {
         let initial_entry = HistoryEntry {
             finished_kernels: initial_finished,
             progressed_kernels: initial_progressed,
-            cond_path_finishes: HashMap::new(),
+            cond_path_finishes: HashMap::default(),
             active_cond_paths: Default::default(),
         };
 
@@ -191,7 +192,7 @@ impl Mgroup3Parser {
         cond_symbol_ids: &[i32],
         gen_idx: i32,
     ) -> HashMap<PathRoot, PathMap> {
-        let mut builder: HashMap<i32, PathShape> = HashMap::new();
+        let mut builder: HashMap<i32, PathShape> = HashMap::default();
         let mut queue: VecDeque<i32> = VecDeque::new();
         queue.extend(cond_symbol_ids.iter().copied());
         while let Some(sym_id) = queue.pop_front() {
@@ -205,7 +206,7 @@ impl Mgroup3Parser {
         builder
             .into_iter()
             .map(|(sym_id, shape)| {
-                let mut pm = PathMap::new();
+                let mut pm = PathMap::default();
                 pm.insert(shape, AcceptCondition::Always);
                 (PathRoot::new(sym_id, gen_idx), pm)
             })
@@ -284,17 +285,17 @@ impl Mgroup3Parser {
             (ctx.line, ctx.col + 1)
         };
 
-        let mut next_paths: HashMap<PathRoot, PathMap> = HashMap::new();
+        let mut next_paths: HashMap<PathRoot, PathMap> = HashMap::default();
         let mut finishes: Vec<FinishedKernelRecord> = Vec::new();
         let mut progresses: Vec<ProgressedKernelRecord> = Vec::new();
-        let mut observing: HashSet<i32> = HashSet::new();
-        let mut root_progresses: HashMap<PathRoot, AcceptCondition> = HashMap::new();
-        let mut cond_root_starters_from_term: HashMap<PathRoot, i32> = HashMap::new();
+        let mut observing: HashSet<i32> = HashSet::default();
+        let mut root_progresses: HashMap<PathRoot, AcceptCondition> = HashMap::default();
+        let mut cond_root_starters_from_term: HashMap<PathRoot, i32> = HashMap::default();
 
         // ----- step 1+2: main and cond paths both run through applyTermAction -----
         for (root, path_map) in &ctx.paths {
             let is_main = *root == ctx.main_root;
-            let mut per_root_next: PathMap = PathMap::new();
+            let mut per_root_next: PathMap = PathMap::default();
             for (shape, cond) in path_map {
                 let ta = self.find_applicable_action(shape, input);
                 if let Some(ta) = ta {
@@ -363,8 +364,8 @@ impl Mgroup3Parser {
             let starter_shape = PathShape::new(None, mgroup_id);
             let ta = self.find_applicable_action(&starter_shape, input);
             if let Some(ta) = ta {
-                let mut per_starter_next: PathMap = PathMap::new();
-                let mut ignored_starters: HashMap<PathRoot, i32> = HashMap::new();
+                let mut per_starter_next: PathMap = PathMap::default();
+                let mut ignored_starters: HashMap<PathRoot, i32> = HashMap::default();
                 self.apply_term_action(
                     &starter_shape,
                     &AcceptCondition::Always,
@@ -380,7 +381,7 @@ impl Mgroup3Parser {
                     &mut ignored_starters,
                 );
                 if !per_starter_next.is_empty() {
-                    let acc = next_paths.entry(starter_root).or_insert_with(PathMap::new);
+                    let acc = next_paths.entry(starter_root).or_insert_with(PathMap::default);
                     for (s, c) in per_starter_next {
                         add_path(acc, s, c);
                     }
@@ -399,7 +400,8 @@ impl Mgroup3Parser {
         }
 
         // ----- step 3: new cond paths from observing closure + condition.referenced_roots -----
-        let mut all_observing: HashSet<i32> = HashSet::with_capacity(observing.len() * 2);
+        let mut all_observing: HashSet<i32> =
+            HashSet::with_capacity_and_hasher(observing.len() * 2, Default::default());
         for sym in &observing {
             if let Some(closure) = self.plain.transitive_initial_cond_symbols.get(sym) {
                 all_observing.extend(closure.iter().copied());
@@ -408,7 +410,7 @@ impl Mgroup3Parser {
             }
         }
 
-        let mut new_cond_roots: HashSet<PathRoot> = HashSet::new();
+        let mut new_cond_roots: HashSet<PathRoot> = HashSet::default();
         for pm in next_paths.values() {
             for cond in pm.values() {
                 cond.referenced_roots().for_each(|r| {
@@ -423,7 +425,7 @@ impl Mgroup3Parser {
             new_cond_roots.insert(root);
         }
 
-        let mut new_cond_root_progresses: HashMap<PathRoot, AcceptCondition> = HashMap::new();
+        let mut new_cond_root_progresses: HashMap<PathRoot, AcceptCondition> = HashMap::default();
         // Iterate over a sorted-by-(sym,next_gen) copy to keep step3 deterministic
         // across HashSet iteration orders.
         let mut new_cond_roots_sorted: Vec<PathRoot> = new_cond_roots.into_iter().collect();
@@ -453,9 +455,9 @@ impl Mgroup3Parser {
             }
             let starter_shape = PathShape::new(None, root_info.milestone_group_id);
             let ta = self.find_applicable_action(&starter_shape, input);
-            let mut starter_next_paths: PathMap = PathMap::new();
+            let mut starter_next_paths: PathMap = PathMap::default();
             if let Some(ta) = ta {
-                let mut ignored_starters: HashMap<PathRoot, i32> = HashMap::new();
+                let mut ignored_starters: HashMap<PathRoot, i32> = HashMap::default();
                 self.apply_term_action(
                     &starter_shape,
                     &AcceptCondition::Always,
@@ -474,14 +476,14 @@ impl Mgroup3Parser {
             if !starter_next_paths.is_empty() {
                 next_paths.insert(path_root, starter_next_paths);
             } else if path_root.start_gen == next_gen {
-                let mut fallback = PathMap::new();
+                let mut fallback = PathMap::default();
                 fallback.insert(starter_shape, AcceptCondition::Always);
                 next_paths.insert(path_root, fallback);
             }
         }
 
         // ----- step 4: cond path finish detection -----
-        let mut cond_path_finishes: HashMap<PathRoot, AcceptCondition> = HashMap::new();
+        let mut cond_path_finishes: HashMap<PathRoot, AcceptCondition> = HashMap::default();
         for (root, cond) in &root_progresses {
             if *root != ctx.main_root {
                 cond_path_finishes.insert(*root, cond.clone());
@@ -495,9 +497,9 @@ impl Mgroup3Parser {
 
         // ----- step 5: evolve every condition in every path -----
         let active_cond_roots: HashSet<PathRoot> = next_paths.keys().copied().collect();
-        let mut paths_evolved: HashMap<PathRoot, PathMap> = HashMap::new();
+        let mut paths_evolved: HashMap<PathRoot, PathMap> = HashMap::default();
         for (root, pm) in &next_paths {
-            let mut result: PathMap = PathMap::new();
+            let mut result: PathMap = PathMap::default();
             for (shape, cond) in pm {
                 let evolved = evolve_accept_condition(
                     cond,
@@ -518,7 +520,7 @@ impl Mgroup3Parser {
             paths_evolved.get(&ctx.main_root).cloned().unwrap_or_default();
 
         // ----- step 6: prune unreferenced cond paths -----
-        let mut referenced_roots: HashSet<PathRoot> = HashSet::new();
+        let mut referenced_roots: HashSet<PathRoot> = HashSet::default();
         for pm in paths_evolved.values() {
             for (shape, cond) in pm {
                 cond.referenced_roots().for_each(|r| {
@@ -536,7 +538,7 @@ impl Mgroup3Parser {
                 }
             }
         }
-        let mut paths_filtered: HashMap<PathRoot, PathMap> = HashMap::new();
+        let mut paths_filtered: HashMap<PathRoot, PathMap> = HashMap::default();
         for (root, pm) in paths_evolved {
             if root == ctx.main_root || referenced_roots.contains(&root) {
                 paths_filtered.insert(root, pm);
@@ -630,7 +632,7 @@ impl Mgroup3Parser {
         let mut out = Vec::with_capacity(ctx.history.len());
         for (gen_idx, entry) in ctx.history.iter().enumerate() {
             let gen_idx = gen_idx as i32;
-            let mut kernels: HashSet<KtlibKernel> = HashSet::new();
+            let mut kernels: HashSet<KtlibKernel> = HashSet::default();
             for rec in &entry.finished_kernels {
                 if evaluate_with_history(
                     &rec.condition,

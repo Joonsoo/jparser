@@ -4,7 +4,7 @@
 //! `mgroup3-native/src/parser/`.
 
 use std::cell::OnceCell;
-use std::collections::{HashMap, HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
@@ -352,14 +352,14 @@ mod tests {
 
     #[test]
     fn add_path_drops_never() {
-        let mut m: PathMap = HashMap::new();
+        let mut m: PathMap = HashMap::default();
         add_path(&mut m, PathShape::new(None, 1), AcceptCondition::Never);
         assert!(m.is_empty());
     }
 
     #[test]
     fn add_path_or_merges() {
-        let mut m: PathMap = HashMap::new();
+        let mut m: PathMap = HashMap::default();
         let shape = PathShape::new(None, 1);
         add_path(&mut m, shape.clone(), ex(1, 0));
         add_path(&mut m, shape.clone(), ex(2, 0));
@@ -370,8 +370,8 @@ mod tests {
     #[test]
     fn parsing_ctx_main_paths_view() {
         let main_root = PathRoot::new(1, 0);
-        let mut paths: HashMap<PathRoot, PathMap> = HashMap::new();
-        let mut mp = PathMap::new();
+        let mut paths: HashMap<PathRoot, PathMap> = HashMap::default();
+        let mut mp = PathMap::default();
         mp.insert(PathShape::new(None, 5), AcceptCondition::Always);
         paths.insert(main_root, mp);
         let ctx = ParsingCtx {
@@ -381,7 +381,7 @@ mod tests {
             main_root,
             paths,
             history: vec![],
-            ever_seen_cond_roots: HashSet::new(),
+            ever_seen_cond_roots: HashSet::default(),
         };
         assert_eq!(ctx.main_paths().unwrap().len(), 1);
         assert_eq!(ctx.cond_paths().count(), 0);

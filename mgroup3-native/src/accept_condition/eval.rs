@@ -8,7 +8,7 @@
 //!   self-referential fins; the cycle-fallback per variant follows the table in
 //!   the plan.
 
-use std::collections::{HashMap, HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::path_root::PathRoot;
 
@@ -87,7 +87,7 @@ pub fn evolve_accept_condition(
     active_cond_paths: &HashSet<PathRoot>,
     gen_idx: i32,
 ) -> AcceptCondition {
-    let visiting = HashSet::new();
+    let visiting = HashSet::default();
     evolve_inner(cond, cond_path_fins, active_cond_paths, gen_idx, &visiting)
 }
 
@@ -304,7 +304,7 @@ mod tests {
     }
 
     fn empty_active() -> HashSet<PathRoot> {
-        HashSet::new()
+        HashSet::default()
     }
 
     fn fins(items: Vec<(PathRoot, AcceptCondition)>) -> HashMap<PathRoot, AcceptCondition> {
@@ -313,7 +313,7 @@ mod tests {
 
     #[test]
     fn always_never() {
-        let f = HashMap::new();
+        let f = HashMap::default();
         let a = empty_active();
         assert!(evaluate_accept_condition(&AcceptCondition::Always, &f, &a));
         assert!(!evaluate_accept_condition(&AcceptCondition::Never, &f, &a));
@@ -321,7 +321,7 @@ mod tests {
 
     #[test]
     fn no_longer_match_no_fin_is_true() {
-        let f = HashMap::new();
+        let f = HashMap::default();
         let a = empty_active();
         assert!(evaluate_accept_condition(&nlm(1, 2), &f, &a));
     }
@@ -335,7 +335,7 @@ mod tests {
 
     #[test]
     fn need_longer_match_no_fin_is_false() {
-        let f = HashMap::new();
+        let f = HashMap::default();
         let a = empty_active();
         assert!(!evaluate_accept_condition(&need(1, 2), &f, &a));
     }
@@ -398,7 +398,7 @@ mod tests {
 
     #[test]
     fn evolve_constants_passthrough() {
-        let f = HashMap::new();
+        let f = HashMap::default();
         let a = empty_active();
         assert_eq!(
             evolve_accept_condition(&AcceptCondition::Always, &f, &a, 0),
@@ -412,7 +412,7 @@ mod tests {
 
     #[test]
     fn evolve_strips_from_next_gen() {
-        let f = HashMap::new();
+        let f = HashMap::default();
         let a = empty_active();
         let c =
             AcceptCondition::NoLongerMatch { symbol_id: 1, start_gen: 2, from_next_gen: true };
@@ -435,7 +435,7 @@ mod tests {
 
     #[test]
     fn evolve_nlm_no_fin_no_active_is_always() {
-        let f = HashMap::new();
+        let f = HashMap::default();
         let a = empty_active();
         let c = nlm(1, 2);
         assert_eq!(evolve_accept_condition(&c, &f, &a, 0), AcceptCondition::Always);
@@ -443,7 +443,7 @@ mod tests {
 
     #[test]
     fn evolve_nlm_active_keeps_cond() {
-        let f = HashMap::new();
+        let f = HashMap::default();
         let a = active_with(&[pr(1, 2)]);
         let c = nlm(1, 2);
         assert_eq!(evolve_accept_condition(&c, &f, &a, 0), c);
@@ -459,7 +459,7 @@ mod tests {
 
     #[test]
     fn evolve_need_no_fin_no_active_is_never() {
-        let f = HashMap::new();
+        let f = HashMap::default();
         let a = empty_active();
         assert_eq!(evolve_accept_condition(&need(1, 2), &f, &a, 0), AcceptCondition::Never);
     }
@@ -473,28 +473,28 @@ mod tests {
 
     #[test]
     fn evolve_exists_no_fin_no_active_is_never() {
-        let f = HashMap::new();
+        let f = HashMap::default();
         let a = empty_active();
         assert_eq!(evolve_accept_condition(&ex(1, 2), &f, &a, 0), AcceptCondition::Never);
     }
 
     #[test]
     fn evolve_notexists_no_fin_no_active_is_always() {
-        let f = HashMap::new();
+        let f = HashMap::default();
         let a = empty_active();
         assert_eq!(evolve_accept_condition(&nex(1, 2), &f, &a, 0), AcceptCondition::Always);
     }
 
     #[test]
     fn evolve_unless_no_fin_no_active_is_always() {
-        let f = HashMap::new();
+        let f = HashMap::default();
         let a = empty_active();
         assert_eq!(evolve_accept_condition(&unless(1, 2), &f, &a, 0), AcceptCondition::Always);
     }
 
     #[test]
     fn evolve_only_if_no_fin_no_active_is_never() {
-        let f = HashMap::new();
+        let f = HashMap::default();
         let a = empty_active();
         assert_eq!(evolve_accept_condition(&only_if(1, 2), &f, &a, 0), AcceptCondition::Never);
     }

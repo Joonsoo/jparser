@@ -31,7 +31,7 @@ fn generated_fixtures_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/parser_generated")
 }
 
-fn serialize_kernels_history(history: &[std::collections::HashSet<KtlibKernel>]) -> String {
+fn serialize_kernels_history(history: &[rustc_hash::FxHashSet<KtlibKernel>]) -> String {
     let mut out = String::new();
     out.push_str("ACCEPTED\n");
     for (gen_idx, kernels) in history.iter().enumerate() {

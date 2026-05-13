@@ -4,7 +4,7 @@
 //! the hot path doesn't pay protobuf accessor cost. Construction happens once
 //! per parser; everything is then immutable.
 
-use std::collections::{HashMap, HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use std::rc::Rc;
 
 use crate::proto::com::giyeok::jparser::mgroup3::proto as pb;
@@ -95,8 +95,9 @@ impl ParserDataPlain {
 fn compute_transitive_initial_cond_symbols(
     path_roots: &HashMap<i32, Rc<PathRootInfoPlain>>,
 ) -> HashMap<i32, HashSet<i32>> {
-    let mut out: HashMap<i32, HashSet<i32>> = HashMap::with_capacity(path_roots.len());
-    let mut stack: HashSet<i32> = HashSet::new();
+    let mut out: HashMap<i32, HashSet<i32>> =
+        HashMap::with_capacity_and_hasher(path_roots.len(), Default::default());
+    let mut stack: HashSet<i32> = HashSet::default();
 
     fn closure_of(
         sym_id: i32,
@@ -109,15 +110,15 @@ fn compute_transitive_initial_cond_symbols(
         }
         if !stack.insert(sym_id) {
             // Cycle — return self only.
-            let mut s = HashSet::new();
+            let mut s = HashSet::default();
             s.insert(sym_id);
             return s;
         }
         let Some(info) = path_roots.get(&sym_id) else {
             stack.remove(&sym_id);
-            return HashSet::new();
+            return HashSet::default();
         };
-        let mut result = HashSet::new();
+        let mut result = HashSet::default();
         result.insert(sym_id);
         for child in info.initial_cond_symbol_ids.iter().copied() {
             for sym in closure_of(child, path_roots, out, stack) {

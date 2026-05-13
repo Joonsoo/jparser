@@ -5,7 +5,7 @@
 //!
 //! Port of `Mgroup3Parser.kt:724-804`.
 
-use std::collections::HashSet;
+use rustc_hash::FxHashSet as HashSet;
 
 use crate::accept_condition::AcceptCondition;
 use crate::parsing_ctx::HistoryEntry;
@@ -123,7 +123,7 @@ mod tests {
     #[test]
     fn always_and_never() {
         let h: Vec<HistoryEntry> = vec![];
-        let a: HashSet<PathRoot> = HashSet::new();
+        let a: HashSet<PathRoot> = HashSet::default();
         assert!(evaluate_with_history(&AcceptCondition::Always, &h, &a));
         assert!(!evaluate_with_history(&AcceptCondition::Never, &h, &a));
     }
@@ -131,7 +131,7 @@ mod tests {
     #[test]
     fn no_longer_match_from_next_gen_true() {
         let h: Vec<HistoryEntry> = vec![];
-        let a: HashSet<PathRoot> = HashSet::new();
+        let a: HashSet<PathRoot> = HashSet::default();
         let c =
             AcceptCondition::NoLongerMatch { symbol_id: 1, start_gen: 0, from_next_gen: true };
         assert!(evaluate_with_history(&c, &h, &a));
@@ -140,7 +140,7 @@ mod tests {
     #[test]
     fn no_longer_match_no_fin_true() {
         let h: Vec<HistoryEntry> = vec![HistoryEntry::default()];
-        let a: HashSet<PathRoot> = HashSet::new();
+        let a: HashSet<PathRoot> = HashSet::default();
         let c =
             AcceptCondition::NoLongerMatch { symbol_id: 1, start_gen: 0, from_next_gen: false };
         assert!(evaluate_with_history(&c, &h, &a));
@@ -150,7 +150,7 @@ mod tests {
     fn no_longer_match_with_true_fin_false() {
         let (root, fin) = always_pr(1, 0);
         let h = vec![entry_with_finish(root, fin)];
-        let a: HashSet<PathRoot> = HashSet::new();
+        let a: HashSet<PathRoot> = HashSet::default();
         let c =
             AcceptCondition::NoLongerMatch { symbol_id: 1, start_gen: 0, from_next_gen: false };
         assert!(!evaluate_with_history(&c, &h, &a));
@@ -159,7 +159,7 @@ mod tests {
     #[test]
     fn need_longer_match_from_next_gen_false() {
         let h: Vec<HistoryEntry> = vec![];
-        let a: HashSet<PathRoot> = HashSet::new();
+        let a: HashSet<PathRoot> = HashSet::default();
         let c =
             AcceptCondition::NeedLongerMatch { symbol_id: 1, start_gen: 0, from_next_gen: true };
         assert!(!evaluate_with_history(&c, &h, &a));
@@ -171,7 +171,7 @@ mod tests {
         let (root, fin) = always_pr(5, 2);
         let mut h = vec![HistoryEntry::default(), HistoryEntry::default(), HistoryEntry::default()];
         h.push(entry_with_finish(root, fin));
-        let a: HashSet<PathRoot> = HashSet::new();
+        let a: HashSet<PathRoot> = HashSet::default();
         let c = AcceptCondition::Exists { symbol_id: 5, start_gen: 2 };
         assert!(evaluate_with_history(&c, &h, &a));
     }
@@ -182,7 +182,7 @@ mod tests {
         let (root, fin) = always_pr(5, 2);
         let mut h = vec![HistoryEntry::default(), entry_with_finish(root, fin)];
         h.push(HistoryEntry::default());
-        let a: HashSet<PathRoot> = HashSet::new();
+        let a: HashSet<PathRoot> = HashSet::default();
         let c = AcceptCondition::Exists { symbol_id: 5, start_gen: 2 };
         assert!(!evaluate_with_history(&c, &h, &a));
     }
@@ -190,7 +190,7 @@ mod tests {
     #[test]
     fn not_exists_inverse_of_exists() {
         let h: Vec<HistoryEntry> = vec![HistoryEntry::default()];
-        let a: HashSet<PathRoot> = HashSet::new();
+        let a: HashSet<PathRoot> = HashSet::default();
         let c = AcceptCondition::NotExists { symbol_id: 1, start_gen: 0 };
         // No finishes → true
         assert!(evaluate_with_history(&c, &h, &a));
@@ -199,7 +199,7 @@ mod tests {
     #[test]
     fn and_or_combine() {
         let h: Vec<HistoryEntry> = vec![HistoryEntry::default()];
-        let a: HashSet<PathRoot> = HashSet::new();
+        let a: HashSet<PathRoot> = HashSet::default();
         // (true ∧ false) = false; (true ∨ false) = true.
         let nlm =
             AcceptCondition::NoLongerMatch { symbol_id: 1, start_gen: 0, from_next_gen: false }; // true
