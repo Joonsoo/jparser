@@ -35,9 +35,9 @@ base(basePath="base") {
       ]
     )
 
-    javacode = protobuf.java(schema=schema)
+    javacode = protobuf.java(schema=proto.schema)
     javalib = java.library(
-      srcs = javacode.javaFiles,
+      srcs = proto.javacode.javaFiles,
       deps = [
         maven.resolve("com.google.protobuf", "protobuf-java", protobufVersion),
       ],
@@ -55,7 +55,7 @@ base(basePath="base") {
     srcs = withBasePath("test/scala") {
       file.glob("**.scala")
     },
-    deps = [base.main] + scalaTestDeps,
+    deps = [...scalaTestDeps, base.main],
   )
 }
 
@@ -66,6 +66,8 @@ naive(basePath="naive") {
     },
     deps = [base.main],
   )
+
+  // test
 }
 
 utils(basePath="utils") {
@@ -77,116 +79,9 @@ utils(basePath="utils") {
   )
 }
 
-milestone2(basePath="milestone2") {
-  proto {
-    schema = protobuf.schema(
-      srcs = withBasePath("data/proto") { [
-        "MilestoneParserData.proto",
-      ] },
-      deps = [base.proto.schema],
-    )
-
-    javacode = protobuf.java(schema=schema)
-    javalib = java.library(
-      srcs = javacode.javaFiles,
-      deps = [base.proto.javalib],
-    )
-  }
-
-  data = scala2.library(
-    srcs = withBasePath("data/scala") {
-      file.glob("**.scala")
-    },
-    deps = [naive.main, proto.javalib],
-  )
-
-  parser = scala2.library(
-    srcs = withBasePath("parser/scala") {
-      file.glob("**.scala")
-    },
-    deps = [base.main, data, utils.main],
-  )
-
-  gen = scala2.library(
-    srcs = withBasePath("gen/scala") {
-      file.glob("**.scala")
-    },
-    deps = [naive.main, metalang.main, data, utils.main],
-  )
-
-  test = scala2.library(
-    srcs = withBasePath("test/scala") {
-      file.glob("**.scala")
-    },
-    resourceDirs = ["test/resources"],
-    deps = [
-      data,
-      gen,
-      parser,
-      naive.main,
-      examples.naiveExamples,
-      examples.metalang3,
-      examples.generated,
-    ] + scalaTestDeps,
-  )
-}
-
-mgroup2(basePath="mgroup2") {
-  proto {
-    schema = protobuf.schema(
-      srcs = withBasePath("data/proto") { [
-        "MilestoneGroupParserData.proto",
-      ] },
-      deps = [milestone2.proto.schema],
-    )
-
-    javacode = protobuf.java(schema=schema)
-    javalib = java.library(
-      srcs = javacode.javaFiles,
-      deps = [milestone2.proto.javalib],
-    )
-  }
-
-  data = scala2.library(
-    srcs = withBasePath("data/scala") {
-      file.glob("**.scala")
-    },
-    deps = [milestone2.data, proto.javalib],
-  )
-
-  parser = scala2.library(
-    srcs = withBasePath("parser/scala") {
-      file.glob("**.scala")
-    },
-    deps = [milestone2.parser, base.main, data, utils.main],
-  )
-
-  gen = scala2.library(
-    srcs = withBasePath("gen/scala") {
-      file.glob("**.scala")
-    },
-    deps = [milestone2.gen, data],
-  )
-
-  test = scala2.library(
-    srcs = withBasePath("test/scala") {
-      file.glob("**.scala")
-    },
-    resourceDirs = ["test/resources"],
-    deps = [
-      data,
-      gen,
-      parser,
-      naive.main,
-      examples.metalang3,
-      milestone2.gen,
-      milestone2.parser,
-      milestone2.test,
-    ] + scalaTestDeps,
-  )
-}
-
 metalang(basePath="metalang") {
+  // TODO generate parser
+
   generatedParser = scala2.library(
     srcs = withBasePath("generated/scala") {
       file.glob("**.scala")
@@ -201,75 +96,183 @@ metalang(basePath="metalang") {
     },
     deps = [naive.main, utils.main, generatedParser],
   )
+
+  // TODO test
 }
 
-ktlib(basePath="ktlib") {
-  main = ktjvm.library(
-    srcs = withBasePath("main/kotlin") {
-      file.glob("**.kt")
-    },
-    deps = [mgroup2.proto.javalib],
-  )
-}
+milestone2(basePath="milestone2") {
+  proto {
+    schema = protobuf.schema(
+      srcs = withBasePath("data/proto") { [
+        "MilestoneParserData.proto",
+      ] },
+      deps = [base.proto.schema],
+    )
 
-examples(basePath="examples") {
-  naiveExamples = scala2.library(
-    srcs = withBasePath("naive/scala") {
+    javacode = protobuf.java(schema=proto.schema)
+    javalib = java.library(
+      srcs = proto.javacode.javaFiles,
+      deps = [base.proto.javalib],
+    )
+  }
+
+  data = scala2.library(
+    srcs = withBasePath("data/scala") {
       file.glob("**.scala")
     },
-    deps = [base.main],
+    deps = [naive.main, proto.javalib],
   )
 
-  metalang3 = ktjvm.library(
-    srcs = withBasePath("metalang3/kotlin") {
-      file.glob("**.kt")
+  gen = scala2.library(
+    srcs = withBasePath("gen/scala") {
+      file.glob("**.scala")
     },
-    resourceDirs = ["metalang3/resources"],
-    deps = [base.test, naiveExamples],
+    deps = [naive.main, metalang.main, data, utils.main],
   )
 
-  generated = ktjvm.library(
-    srcs = withBasePath("generated/kotlin") {
-      file.glob("**.kt")
+  parser = scala2.library(
+    srcs = withBasePath("parser/scala") {
+      file.glob("**.scala")
     },
-    resourceDirs = ["generated/resources"],
+    deps = [base.main, data, utils.main],
+  )
+
+  test = scala2.library(
+    srcs = withBasePath("test/scala") {
+      file.glob("**.scala")
+    },
+    resourceDirs = ["test/resources"],
     deps = [
-      milestone2.parser,
-      mgroup2.parser,
-      ktlib.main,
+      ...scalaTestDeps,
+      data,
+      gen,
+      parser,
+      naive.main,
+      examples.naiveExamples,
       examples.metalang3,
+      examples.generated,
     ],
   )
 }
 
-gsonDep = maven.resolve("com.google.code.gson", "gson", "2.13.1")
+mgroup2(basePath="mgroup2") {
+  proto {
+    schema = protobuf.schema(
+      srcs = withBasePath("data/proto") { [
+        "MilestoneGroupParserData.proto",
+      ] },
+      deps = [milestone2.proto.schema],
+    )
 
-ktparser(basePath="ktparser") {
-  main = ktjvm.library(
-    srcs = withBasePath("main/kotlin") {
-      file.glob("**.kt")
+    javacode = protobuf.java(schema=proto.schema)
+    javalib = java.library(
+      srcs = proto.javacode.javaFiles,
+      deps = [milestone2.proto.javalib],
+    )
+  }
+
+  data = scala2.library(
+    srcs = withBasePath("data/scala") {
+      file.glob("**.scala")
     },
+    deps = [milestone2.data, proto.javalib],
+  )
+
+  gen = scala2.library(
+    srcs = withBasePath("gen/scala") {
+      file.glob("**.scala")
+    },
+    deps = [milestone2.gen, data],
+  )
+
+  parser = scala2.library(
+    srcs = withBasePath("parser/scala") {
+      file.glob("**.scala")
+    },
+    deps = [milestone2.parser, base.main, data, utils.main],
+  )
+
+  test = scala2.library(
+    srcs = withBasePath("test/scala") {
+      file.glob("**.scala")
+    },
+    resourceDirs = ["test/resources"],
     deps = [
-      ktlib.main,
-      gsonDep,
+      ...scalaTestDeps,
+      data,
+      gen,
+      parser,
+      naive.main,
+      examples.metalang3,
+      milestone2.gen,
+      milestone2.parser,
+      milestone2.test,
     ],
   )
-}
 
-kttestutils(basePath="kttestutils") {
-  main = ktjvm.library(
-    srcs = withBasePath("main/kotlin") {
-      file.glob("**.kt")
-    },
+  genCliJar = jar.executableUberJar(
     deps = [
-      ktlib.main,
-      metalang.main,
+      ktjvm.library(
+        srcs = withBasePath("genCli/kotlin") {
+          file.glob("**.kt")
+        },
+        deps = [gen, metalang.main],
+      ),
     ],
+    mainClass = "com.giyeok.jparser.mgroup2.GenCliKt",
   )
+
+  class KotlinParser {
+    srcsRoot: path
+    astifier: path
+    parserData: path
+  }
+
+  def genKtParser(
+    cdgFile: path,
+    astifierClassName: string,
+    parserDataFileName: string = "mgroup2-parserdata.pb",
+    trimParserData: bool = true,
+  ): KotlinParser {
+    let outDir = context.destDirectory()
+    let srcsRoot = outDir / "srcs"
+    let parserData = outDir / "data" / parserDataFileName
+    // astifierClassName 의 마지막 컴포넌트 = 클래스명, 그 앞 = 패키지명.
+    // 패키지 경로 / 클래스명.kt 는 CLI 가 srcs 안에 만들지만, KotlinParser 의 astifier 필드는
+    // 그 정확한 파일 경로를 가리켜야 한다. 여기선 외부에서 알 수 없으므로 srcsRoot 자체로 둔다.
+    // (소비측은 srcsRoot 디렉토리 전체를 컴파일하면 된다)
+    file.createDirectory(srcsRoot)
+    file.createDirectory(outDir / "data")
+    if trimParserData {
+      context.runCommand([
+        "java",
+        "-jar", genCliJar.jarFile,
+        cdgFile,
+        "-astifierClass", astifierClassName,
+        "-parserdata", parserData,
+        "-srcs", srcsRoot,
+        "-trim",
+      ])
+    } else {
+      context.runCommand([
+        "java",
+        "-jar", genCliJar.jarFile,
+        cdgFile,
+        "-astifierClass", astifierClassName,
+        "-parserdata", parserData,
+        "-srcs", srcsRoot,
+      ])
+    }
+    return KotlinParser(
+      srcsRoot = srcsRoot,
+      astifier = srcsRoot,
+      parserData = parserData,
+    )
+  }
 }
 
 mgroup3(basePath="mgroup3") {
-  parserDataSchema(basePath="schema/proto") {
+  proto(basePath="schema/proto") {
     schema = protobuf.schema(
       srcs = [
         "Mgroup3ParserData.proto",
@@ -278,9 +281,9 @@ mgroup3(basePath="mgroup3") {
       deps = [base.proto.schema],
     )
 
-    javacode = protobuf.java(schema=schema)
+    javacode = protobuf.java(schema=proto.schema)
     javalib = java.library(
-      srcs = javacode.javaFiles,
+      srcs = proto.javacode.javaFiles,
       deps = [base.proto.javalib],
     )
   }
@@ -290,7 +293,7 @@ mgroup3(basePath="mgroup3") {
       file.glob("**.kt")
     },
     deps = [
-      parserDataSchema.javalib,
+      proto.javalib,
       base.main,
       utils.main,
       maven.resolve("com.google.guava", "guava", "33.4.8-jre"),
@@ -302,7 +305,7 @@ mgroup3(basePath="mgroup3") {
       file.glob("**.kt")
     },
     deps = [
-      parserDataSchema.javalib,
+      proto.javalib,
       ktlib.main,
     ],
   )
@@ -312,7 +315,7 @@ mgroup3(basePath="mgroup3") {
       file.glob("**.kt")
     },
     deps = [
-      parserDataSchema.javalib,
+      proto.javalib,
       parser,
       ktlib.main,
       base.proto.javalib,
@@ -325,9 +328,9 @@ mgroup3(basePath="mgroup3") {
     },
     resourceDirs = ["test/resources"],
     deps = [
-      gen,
-      parser,
-      nativeParser,
+      mgroup3.gen,
+      mgroup3.parser,
+      mgroup3.nativeParser,
       metalang.main,
       mgroup2.gen,
       mgroup2.parser,
@@ -336,15 +339,15 @@ mgroup3(basePath="mgroup3") {
     ] + testDeps,
   )
 
-  genCli = ktjvm.library(
-    srcs = withBasePath("genCli/kotlin") {
-      file.glob("**.kt")
-    },
-    deps = [gen, metalang.main],
-  )
-
   genCliJar = jar.executableUberJar(
-    deps = [genCli],
+    deps = [
+      ktjvm.library(
+        srcs = withBasePath("genCli/kotlin") {
+          file.glob("**.kt")
+        },
+        deps = [gen, metalang.main],
+      ),
+    ],
     mainClass = "com.giyeok.jparser.mgroup3.GenCliKt",
   )
 
@@ -410,6 +413,71 @@ mgroup3(basePath="mgroup3") {
     // TODO 생성된 rust -> so, dll, dylib 으로 컴파일하고, kotlin 코드 컴파일해서 반환
     return ktjvm.library(srcs = [])
   }
+}
+
+ktlib(basePath="ktlib") {
+  main = ktjvm.library(
+    srcs = withBasePath("main/kotlin") {
+      file.glob("**.kt")
+    },
+    deps = [mgroup2.proto.javalib],
+  )
+}
+
+examples(basePath="examples") {
+  naiveExamples = scala2.library(
+    srcs = withBasePath("naive/scala") {
+      file.glob("**.scala")
+    },
+    deps = [base.main],
+  )
+
+  metalang3 = ktjvm.library(
+    srcs = withBasePath("metalang3/kotlin") {
+      file.glob("**.kt")
+    },
+    resourceDirs = ["metalang3/resources"],
+    deps = [base.test, examples.naiveExamples],
+  )
+
+  generated = ktjvm.library(
+    srcs = withBasePath("generated/kotlin") {
+      file.glob("**.kt")
+    },
+    resourceDirs = ["generated/resources"],
+    deps = [
+      milestone2.parser,
+      mgroup2.parser,
+      ktlib.main,
+      examples.metalang3,
+    ],
+  )
+}
+
+gsonDep = maven.resolve("com.google.code.gson", "gson", "2.13.1")
+
+ktparser(basePath="ktparser") {
+  main = ktjvm.library(
+    srcs = withBasePath("main/kotlin") {
+      file.glob("**.kt")
+    },
+    deps = [
+      ktlib.main,
+      gsonDep,
+    ],
+  )
+}
+
+kttestutils(basePath="kttestutils") {
+  main = ktjvm.library(
+    srcs = withBasePath("main/kotlin") {
+      file.glob("**.kt")
+    },
+    deps = [
+      ktlib.main,
+      metalang.main,
+    ],
+  )
 }
 
 def runScalaTest(lib: jvm.JvmLib) {
