@@ -12,18 +12,18 @@ protobufVersion = "4.31.1"
 scalaVersion = "2.13"
 truthVersion = "1.4.2"
 
-junitConsoleDep = maven.resolve("org.junit.platform", "junit-platform-console-standalone", "1.8.2")
+junitConsoleDep = maven.javaLib("org.junit.platform", "junit-platform-console-standalone", "1.8.2")
 
 testDeps = [
-  maven.resolve("org.junit.jupiter", "junit-jupiter-api", "5.8.2"),
+  maven.javaLib("org.junit.jupiter", "junit-jupiter-api", "5.8.2"),
   junitConsoleDep,
-  maven.resolve("com.google.truth", "truth", truthVersion),
-  maven.resolve("com.google.truth.extensions", "truth-proto-extension", truthVersion),
+  maven.javaLib("com.google.truth", "truth", truthVersion),
+  maven.javaLib("com.google.truth.extensions", "truth-proto-extension", truthVersion),
 ]
 
 scalaTestDeps = [
   ...testDeps,
-  maven.resolve("org.scalatest", "scalatest_${scalaVersion}", "3.2.15"),
+  maven.javaLib("org.scalatest", "scalatest_${scalaVersion}", "3.2.15"),
 ]
 
 base(basePath="base") {
@@ -39,7 +39,7 @@ base(basePath="base") {
     javalib = java.library(
       srcs = proto.javacode.javaFiles,
       deps = [
-        maven.resolve("com.google.protobuf", "protobuf-java", protobufVersion),
+        maven.javaLib("com.google.protobuf", "protobuf-java", protobufVersion),
       ],
     )
   }
@@ -296,7 +296,7 @@ mgroup3(basePath="mgroup3") {
       proto.javalib,
       base.main,
       utils.main,
-      maven.resolve("com.google.guava", "guava", "33.4.8-jre"),
+      maven.javaLib("com.google.guava", "guava", "33.4.8-jre"),
     ],
   )
 
@@ -454,7 +454,7 @@ examples(basePath="examples") {
   )
 }
 
-gsonDep = maven.resolve("com.google.code.gson", "gson", "2.13.1")
+gsonDep = maven.javaLib("com.google.code.gson", "gson", "2.13.1")
 
 ktparser(basePath="ktparser") {
   main = ktjvm.library(
@@ -480,6 +480,22 @@ kttestutils(basePath="kttestutils") {
   )
 }
 
+// ScalaTest 의 `-R <runpath>` 같이 space-separated path list 가 single arg 로 들어가는
+// 자리에서 사용. jvm.joinClasspath 가 `:` 만 지원하므로 별도 helper.
+def joinPathsBySpace(paths: list<path>): string {
+  let out: string = ""
+  let first: bool = true
+  for p in paths {
+    if first {
+      out = p.absolutePath
+      first = false
+    } else {
+      out = out + " " + p.absolutePath
+    }
+  }
+  return out
+}
+
 def runScalaTest(lib: jvm.JvmLib) {
   runScalaTestSuite(lib, .none)
 }
@@ -489,8 +505,12 @@ def runJUnitTest(lib: jvm.JvmLib) {
 }
 
 def runJUnitTestExcluding(lib: jvm.JvmLib, excludeClassnameRegex: string) {
-  let runtimeClasspath = lib.transitiveJars + [lib.resourcesDir]
+  let runtimeClasspath = lib.transitiveJars + lib.transitiveResourceDirs
   let cpArg = jvm.joinClasspath(runtimeClasspath)
+  // 그래프 전체의 classes dir 들 — ConsoleLauncher 의 `--scan-class-path` 는
+  // path-separated list 를 수용.
+  let classDirs = lib.transitiveClassDirs
+  let scanPathArg = jvm.joinClasspath(classDirs)
   // --enable-native-access=ALL-UNNAMED: required on JDK 22+ for FFM (JEP 454)
   // downcalls from the unnamed module. mgroup3.nativeParser uses FFM; the
   // flag is no-op for tests that don't load native libs, so we always pass it.
@@ -500,10 +520,10 @@ def runJUnitTestExcluding(lib: jvm.JvmLib, excludeClassnameRegex: string) {
     "-cp", cpArg,
     "org.junit.platform.console.ConsoleLauncher",
     "--fail-if-no-tests",
-    "--scan-class-path", lib.classesDir.absolutePath,
+    "--scan-class-path", scanPathArg,
     "--exclude-classname", excludeClassnameRegex,
   ]
-  let inputs = [lib.classesDir] + runtimeClasspath
+  let inputs = classDirs + runtimeClasspath
   let s = context.runCommandStream(cmd = cmd, inputs = inputs)
   let stdoutTask = async {
     s.stdout.collect { line -> context.log(line) }
@@ -526,8 +546,10 @@ def runJUnitTestSuite(lib: jvm.JvmLib, suiteName: optional<string>) {
 // runJUnitTestSuite 와 동일하지만 env 변수를 spawn 되는 java process 에 forward.
 // mgroup3.nativeParser FFM bridge 가 MGROUP3_NATIVE_INPROC=1 같은 env 가 필요해서.
 def runJUnitTestSuiteWithEnv(lib: jvm.JvmLib, suiteName: optional<string>, env: map<string, string>) {
-  let runtimeClasspath = lib.transitiveJars + [lib.resourcesDir]
+  let runtimeClasspath = lib.transitiveJars + lib.transitiveResourceDirs
   let cpArg = jvm.joinClasspath(runtimeClasspath)
+  let classDirs = lib.transitiveClassDirs
+  let scanPathArg = jvm.joinClasspath(classDirs)
   let baseCmd = [
     java.javaCmd(),
     "--enable-native-access=ALL-UNNAMED",
@@ -537,10 +559,10 @@ def runJUnitTestSuiteWithEnv(lib: jvm.JvmLib, suiteName: optional<string>, env: 
   ]
   let suiteArgs = match suiteName {
     case .some(s) -> ["--select-class", s]
-    case .none -> ["--scan-class-path", lib.classesDir.absolutePath]
+    case .none -> ["--scan-class-path", scanPathArg]
   }
   let cmd = baseCmd + suiteArgs
-  let inputs = [lib.classesDir] + runtimeClasspath
+  let inputs = classDirs + runtimeClasspath
   let s = context.runCommandStream(cmd = cmd, inputs = inputs, env = env)
   let stdoutTask = async {
     s.stdout.collect { line -> context.log(line) }
@@ -571,13 +593,16 @@ def buildMgroup3NativeRelease() {
 }
 
 def runScalaTestSuite(lib: jvm.JvmLib, suiteName: optional<string>) {
-  let runtimeClasspath = lib.transitiveJars + [lib.resourcesDir]
+  let runtimeClasspath = lib.transitiveJars + lib.transitiveResourceDirs
   let cpArg = jvm.joinClasspath(runtimeClasspath)
+  let classDirs = lib.transitiveClassDirs
+  // ScalaTest 의 `-R <runpath>` 은 single arg 에 space-separated paths 를 허용.
+  let runpathArg: string = joinPathsBySpace(classDirs)
   let baseCmd = [
     java.javaCmd(),
     "-cp", cpArg,
     "org.scalatest.tools.Runner",
-    "-R", lib.classesDir.absolutePath,
+    "-R", runpathArg,
     "-o",
   ]
   let suiteArgs = match suiteName {
@@ -585,7 +610,7 @@ def runScalaTestSuite(lib: jvm.JvmLib, suiteName: optional<string>) {
     case .none -> []
   }
   let cmd = baseCmd + suiteArgs
-  let inputs = [lib.classesDir] + runtimeClasspath
+  let inputs = classDirs + runtimeClasspath
   let s = context.runCommandStream(cmd = cmd, inputs = inputs)
   let stdoutTask = async {
     s.stdout.collect { line -> context.log(line) }
