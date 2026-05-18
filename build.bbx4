@@ -5,6 +5,7 @@ import ktjvm
 import java
 import jvm
 import maven
+import utils
 import scala2
 import jar
 
@@ -480,22 +481,6 @@ kttestutils(basePath="kttestutils") {
   )
 }
 
-// ScalaTest 의 `-R <runpath>` 같이 space-separated path list 가 single arg 로 들어가는
-// 자리에서 사용. jvm.joinClasspath 가 `:` 만 지원하므로 별도 helper.
-def joinPathsBySpace(paths: list<path>): string {
-  let out: string = ""
-  let first: bool = true
-  for p in paths {
-    if first {
-      out = p.absolutePath
-      first = false
-    } else {
-      out = out + " " + p.absolutePath
-    }
-  }
-  return out
-}
-
 def runScalaTest(lib: jvm.JvmLib) {
   runScalaTestSuite(lib, .none)
 }
@@ -506,11 +491,11 @@ def runJUnitTest(lib: jvm.JvmLib) {
 
 def runJUnitTestExcluding(lib: jvm.JvmLib, excludeClassnameRegex: string) {
   let runtimeClasspath = lib.transitiveJars + lib.transitiveResourceDirs
-  let cpArg = jvm.joinClasspath(runtimeClasspath)
+  let cpArg = runtimeClasspath.joinToString(":") { p -> p.absolutePath }
   // 그래프 전체의 classes dir 들 — ConsoleLauncher 의 `--scan-class-path` 는
   // path-separated list 를 수용.
   let classDirs = lib.transitiveClassDirs
-  let scanPathArg = jvm.joinClasspath(classDirs)
+  let scanPathArg = classDirs.joinToString(":") { p -> p.absolutePath }
   // --enable-native-access=ALL-UNNAMED: required on JDK 22+ for FFM (JEP 454)
   // downcalls from the unnamed module. mgroup3.nativeParser uses FFM; the
   // flag is no-op for tests that don't load native libs, so we always pass it.
@@ -547,9 +532,9 @@ def runJUnitTestSuite(lib: jvm.JvmLib, suiteName: optional<string>) {
 // mgroup3.nativeParser FFM bridge 가 MGROUP3_NATIVE_INPROC=1 같은 env 가 필요해서.
 def runJUnitTestSuiteWithEnv(lib: jvm.JvmLib, suiteName: optional<string>, env: map<string, string>) {
   let runtimeClasspath = lib.transitiveJars + lib.transitiveResourceDirs
-  let cpArg = jvm.joinClasspath(runtimeClasspath)
+  let cpArg = runtimeClasspath.joinToString(":") { p -> p.absolutePath }
   let classDirs = lib.transitiveClassDirs
-  let scanPathArg = jvm.joinClasspath(classDirs)
+  let scanPathArg = classDirs.joinToString(":") { p -> p.absolutePath }
   let baseCmd = [
     java.javaCmd(),
     "--enable-native-access=ALL-UNNAMED",
@@ -594,10 +579,10 @@ def buildMgroup3NativeRelease() {
 
 def runScalaTestSuite(lib: jvm.JvmLib, suiteName: optional<string>) {
   let runtimeClasspath = lib.transitiveJars + lib.transitiveResourceDirs
-  let cpArg = jvm.joinClasspath(runtimeClasspath)
+  let cpArg = runtimeClasspath.joinToString(":") { p -> p.absolutePath }
   let classDirs = lib.transitiveClassDirs
   // ScalaTest 의 `-R <runpath>` 은 single arg 에 space-separated paths 를 허용.
-  let runpathArg: string = joinPathsBySpace(classDirs)
+  let runpathArg: string = classDirs.joinToString(" ") { p -> p.absolutePath }
   let baseCmd = [
     java.javaCmd(),
     "-cp", cpArg,

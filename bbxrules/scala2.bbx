@@ -19,6 +19,7 @@
 import jvm
 import maven
 import java
+import utils
 
 namespace scala2 {
   // ===== 사용자 설정 =====
@@ -39,10 +40,10 @@ namespace scala2 {
     let sLib = scalacLib()
     let sCp = jvm.collectClasspath(sLib)
     // scalac 자체 실행에 필요한 cp (`java -cp <cp> scala.tools.nsc.Main`).
-    let runtimeCp = jvm.joinClasspath(sCp)
+    let runtimeCp = sCp.joinToString(":") { p -> p.absolutePath }
     // 사용자 컴파일 시 사용할 cp = 사용자 deps + scalac sibling jars (scala-library 등).
     let combinedCp: list<path> = classpath + sCp
-    let userCp = jvm.joinClasspath(combinedCp)
+    let userCp = combinedCp.joinToString(":") { p -> p.absolutePath }
     let srcArgs: list<string> = []
     for s in srcs {
       srcArgs = srcArgs + [s.absolutePath]
