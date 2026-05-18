@@ -1,13 +1,17 @@
 // bibix4 번들 stdlib — Scala 2 JVM 빌드 룰.
 //
 // JVM 공용 추상 (`JvmLib`, classpath helper) 은 [jvm.bbx], Java 실행 helper 는 [java.bbx].
-// 이 파일은 Scala 2 compiler (`scala.tools.nsc.Main`) 외부 프로세스 호출만 담당.
+// 이 파일은 Scala 2 compiler (`scala.tools.nsc.Main`) 외부 프로세스 호출과 사용자-노출
+// `scala-library` dep 그래프 합성 담당.
 //
 // ## 외부 프로세스 모델
 //
 // scalac 는 외부 `java` 프로세스로 실행 (JDK 버전 격리). `scala-compiler` jar 는
 // `maven.javaLib(...)` 로 받는다. scala-compiler 의 transitive deps 에 scala-library /
-// scala-reflect 가 포함되며, 사용자 코드 컴파일 cp 와 runtime cp 에 함께 포함한다.
+// scala-reflect 가 포함되며, scalac 자체 실행 cp 와 사용자 코드 컴파일 cp 에 그대로
+// 사용. 단 사용자 모듈의 dep 으로 노출되는 건 `scala-library` 만 — compiler internals
+// (`scala.tools.nsc.*` 등) 가 사용자 코드에 보이는 건 부적절하고, IntelliJ library 모델은
+// lib→lib transitive 가 없어서 사용자 모듈에서 scala-library 가 직접 보여야 함.
 //
 // ## 캐싱
 //
@@ -26,10 +30,17 @@ namespace scala2 {
   // Scala 2 compiler 버전 — `org.scala-lang:scala-compiler` maven coord version.
   let scalaVersion: string = "2.13.14"
   // ===== 내부 helper =====
-  // scala-compiler + transitive deps (scala-library / scala-reflect 등) 의 [jvm.JvmLib] 그래프.
-  // Scala 로 컴파일된 코드는 런타임에 scala-library 가 필요하므로 self 의 dep 으로 같이 묶음.
+  // scala-compiler + transitive deps (scala-library / scala-reflect 등) 의 [jvm.JvmLib]
+  // 그래프. scalac 자체 실행 (`java -cp <sCp> scala.tools.nsc.Main`) 과 사용자 컴파일 cp 에
+  // 사용. 사용자 모듈의 runtime / IDE dep 에는 노출하지 않음 — 그건 [scalaLibraryLib] 담당.
   private def scalacLib(): jvm.JvmLib =
     maven.javaLib("org.scala-lang", "scala-compiler", scalaVersion)
+
+  // scala-library — scalac 산출 .class 가 `scala.collection.*` 등 stdlib 심볼을 참조하므로
+  // 사용자 코드의 runtime cp 에 필수. scala2.library 산출 [jvm.JvmLib] 의 self 노드 dep
+  // 으로 끼워 transitive 로 전파. compiler-internals 노출은 회피.
+  private def scalaLibraryLib(): jvm.JvmLib =
+    maven.javaLib("org.scala-lang", "scala-library", scalaVersion)
   // scalac 외부 프로세스 호출. exit code != 0 이면 에러 리포트.
   // 식별자는 `context.thisTargetName` 자동 사용.
   private def invokeScalac(
@@ -95,11 +106,10 @@ namespace scala2 {
         }
       }
       invokeScalac(srcs, compileCp, classesDir)
-      // scalac 산출 .class 가 scala-library 심볼을 참조하므로 runtime cp 에
-      // scala-library / scala-reflect 가 있어야. scalac sibling jars 를 self 의 dep 으로
-      // 끼워서 그래프 그대로 흘려보냄.
-      let sLib = scalacLib()
-      let allDeps: list<jvm.JvmLib> = deps + [sLib]
+      // scalac 산출 .class 가 scala-library 심볼을 참조하므로 사용자 모듈 runtime cp 에
+      // scala-library 가 있어야. compiler internals 전체가 아니라 scala-library 만 self 의
+      // dep 으로 끼워서 그래프 그대로 흘려보냄 ([scalaLibraryLib] 참고).
+      let allDeps: list<jvm.JvmLib> = deps + [scalaLibraryLib()]
 
       let selfId = context.thisCallId
       let mergedNodes = jvm.mergeDepNodes(allDeps)
