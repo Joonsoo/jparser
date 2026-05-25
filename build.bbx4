@@ -13,9 +13,11 @@ protobufVersion = "4.31.1"
 scalaVersion = "2.13"
 truthVersion = "1.4.2"
 
+protobufJavaLib = maven.javaLib("com.google.protobuf", "protobuf-java", protobufVersion)
 junitConsoleDep = maven.javaLib("org.junit.platform", "junit-platform-console-standalone", "1.8.2")
 
 testDeps = [
+  protobufJavaLib,
   maven.javaLib("org.junit.jupiter", "junit-jupiter-api", "5.8.2"),
   junitConsoleDep,
   maven.javaLib("com.google.truth", "truth", truthVersion),
@@ -36,11 +38,11 @@ base(basePath="base") {
       ]
     )
 
-    javacode = protobuf.java(schema=proto.schema)
+    javacode = protobuf.java(schema=base.proto.schema)
     javalib = java.library(
-      srcs = proto.javacode.javaFiles,
+      srcs = javacode.javaFiles,
       deps = [
-        maven.javaLib("com.google.protobuf", "protobuf-java", protobufVersion),
+        protobufJavaLib,
       ],
     )
   }
@@ -71,7 +73,7 @@ naive(basePath="naive") {
   // test
 }
 
-utils(basePath="utils") {
+parseutils(basePath="utils") {
   main = scala2.library(
     srcs = withBasePath("main/scala") {
       file.glob("**.scala")
@@ -95,24 +97,24 @@ metalang(basePath="metalang") {
     srcs = withBasePath("main/scala") {
       file.glob("**.scala")
     },
-    deps = [naive.main, utils.main, generatedParser],
+    deps = [naive.main, parseutils.main, generatedParser],
   )
 
   // TODO test
 }
 
 milestone2(basePath="milestone2") {
-  proto {
+  proto(basePath="data/proto") {
     schema = protobuf.schema(
-      srcs = withBasePath("data/proto") { [
+      srcs = [
         "MilestoneParserData.proto",
-      ] },
+      ],
       deps = [base.proto.schema],
     )
 
-    javacode = protobuf.java(schema=proto.schema)
+    javacode = protobuf.java(schema=milestone2.proto.schema)
     javalib = java.library(
-      srcs = proto.javacode.javaFiles,
+      srcs = milestone2.proto.javacode.javaFiles,
       deps = [base.proto.javalib],
     )
   }
@@ -128,14 +130,14 @@ milestone2(basePath="milestone2") {
     srcs = withBasePath("gen/scala") {
       file.glob("**.scala")
     },
-    deps = [naive.main, metalang.main, data, utils.main],
+    deps = [naive.main, metalang.main, data, parseutils.main],
   )
 
   parser = scala2.library(
     srcs = withBasePath("parser/scala") {
       file.glob("**.scala")
     },
-    deps = [base.main, data, utils.main],
+    deps = [base.main, data, parseutils.main],
   )
 
   test = scala2.library(
@@ -157,17 +159,17 @@ milestone2(basePath="milestone2") {
 }
 
 mgroup2(basePath="mgroup2") {
-  proto {
+  proto(basePath="data/proto") {
     schema = protobuf.schema(
-      srcs = withBasePath("data/proto") { [
+      srcs = [
         "MilestoneGroupParserData.proto",
-      ] },
+      ],
       deps = [milestone2.proto.schema],
     )
 
-    javacode = protobuf.java(schema=proto.schema)
+    javacode = protobuf.java(schema=mgroup2.proto.schema)
     javalib = java.library(
-      srcs = proto.javacode.javaFiles,
+      srcs = mgroup2.proto.javacode.javaFiles,
       deps = [milestone2.proto.javalib],
     )
   }
@@ -190,7 +192,7 @@ mgroup2(basePath="mgroup2") {
     srcs = withBasePath("parser/scala") {
       file.glob("**.scala")
     },
-    deps = [milestone2.parser, base.main, data, utils.main],
+    deps = [milestone2.parser, base.main, data, parseutils.main],
   )
 
   test = scala2.library(
@@ -211,22 +213,22 @@ mgroup2(basePath="mgroup2") {
     ],
   )
 
+  genCli = ktjvm.library(
+    srcs = withBasePath("genCli/kotlin") {
+      file.glob("**.kt")
+    },
+    deps = [gen, metalang.main],
+  )
+
   genCliJar = jar.executableUberJar(
-    deps = [
-      ktjvm.library(
-        srcs = withBasePath("genCli/kotlin") {
-          file.glob("**.kt")
-        },
-        deps = [gen, metalang.main],
-      ),
-    ],
+    deps = [genCli],
     mainClass = "com.giyeok.jparser.mgroup2.GenCliKt",
   )
 
   class KotlinParser {
-    srcsRoot: path
-    astifier: path
-    parserData: path
+    srcsRoot: artifact
+    astifier: artifact
+    parserData: artifact
   }
 
   def genKtParser(
@@ -242,32 +244,33 @@ mgroup2(basePath="mgroup2") {
     // 패키지 경로 / 클래스명.kt 는 CLI 가 srcs 안에 만들지만, KotlinParser 의 astifier 필드는
     // 그 정확한 파일 경로를 가리켜야 한다. 여기선 외부에서 알 수 없으므로 srcsRoot 자체로 둔다.
     // (소비측은 srcsRoot 디렉토리 전체를 컴파일하면 된다)
-    file.createDirectory(srcsRoot)
-    file.createDirectory(outDir / "data")
-    if trimParserData {
-      context.runCommand([
+    let srcsArtifact = artifact.build(srcsRoot) {
+      file.createDirectory(srcsRoot)
+      file.createDirectory(outDir / "data")
+      let genJar = genCliJar.jarFile.await()
+      let baseCmd: list<string> = [
         "java",
-        "-jar", genCliJar.jarFile,
-        cdgFile,
+        "-jar", genJar.absolutePath,
+        cdgFile.absolutePath,
         "-astifierClass", astifierClassName,
-        "-parserdata", parserData,
-        "-srcs", srcsRoot,
-        "-trim",
-      ])
-    } else {
-      context.runCommand([
-        "java",
-        "-jar", genCliJar.jarFile,
-        cdgFile,
-        "-astifierClass", astifierClassName,
-        "-parserdata", parserData,
-        "-srcs", srcsRoot,
-      ])
+        "-parserdata", parserData.absolutePath,
+        "-srcs", srcsRoot.absolutePath,
+      ]
+      let cmd: list<string> = if trimParserData then baseCmd + ["-trim"] else baseCmd
+      let result = context.runCommand(cmd)
+      if result.exitCode != 0 {
+        throw "mgroup2.genKtParser ${context.thisTargetName} (exit=${result.exitCode}): ${result.stderr}"
+      }
+      srcsRoot
+    }
+    let parserDataArtifact = artifact.build(parserData) {
+      let _ = srcsArtifact.await()
+      parserData
     }
     return KotlinParser(
-      srcsRoot = srcsRoot,
-      astifier = srcsRoot,
-      parserData = parserData,
+      srcsRoot = srcsArtifact,
+      astifier = srcsArtifact,
+      parserData = parserDataArtifact,
     )
   }
 }
@@ -282,9 +285,9 @@ mgroup3(basePath="mgroup3") {
       deps = [base.proto.schema],
     )
 
-    javacode = protobuf.java(schema=proto.schema)
+    javacode = protobuf.java(schema=mgroup3.proto.schema)
     javalib = java.library(
-      srcs = proto.javacode.javaFiles,
+      srcs = mgroup3.proto.javacode.javaFiles,
       deps = [base.proto.javalib],
     )
   }
@@ -296,7 +299,7 @@ mgroup3(basePath="mgroup3") {
     deps = [
       proto.javalib,
       base.main,
-      utils.main,
+      parseutils.main,
       maven.javaLib("com.google.guava", "guava", "33.4.8-jre"),
     ],
   )
@@ -340,33 +343,33 @@ mgroup3(basePath="mgroup3") {
     ] + testDeps,
   )
 
+  genCli = ktjvm.library(
+    srcs = withBasePath("genCli/kotlin") {
+      file.glob("**.kt")
+    },
+    deps = [gen, metalang.main],
+  )
+
   genCliJar = jar.executableUberJar(
-    deps = [
-      ktjvm.library(
-        srcs = withBasePath("genCli/kotlin") {
-          file.glob("**.kt")
-        },
-        deps = [gen, metalang.main],
-      ),
-    ],
+    deps = [genCli],
     mainClass = "com.giyeok.jparser.mgroup3.GenCliKt",
   )
 
   class RustParser {
     // mgroup3 parser data 파일 경로
-    parserData: path
+    parserData: artifact
     // AST data type 들을 serialize할 수 있는 protobuf 정의
-    protoSchema: path
+    protoSchema: artifact
     // rustSrcsRoot 밑에는 mgroup3-native 에 dependency를 갖는,
     // rust parser crate가 생성되며, srcs, Cargo.toml, bulid.rs 가 있어야 함.
     // rust crate 에는 AST data class들이 포함되어 있고,
     // AST data class 들은 protobuf로 serialize할 수 있다.
     // 생성되는 rust crate는 input string을 받아 파싱을 수행하고,
     // 성공시엔 AST data type을, 실패시엔 에러 내용을 반환하는 기능을 포함한다.
-    rustSrcsRoot: path
+    rustSrcsRoot: artifact
     // kotlinAdtRoot 에는 AST data type 구조를 정의한 코드가 포함되고,
     // protoSchema 에 정의된 protobuf Message 로부터 각 AST data type으로 변환하는 코드가 포함된다.
-    kotlinAdtRoot: path
+    kotlinAdtRoot: artifact
   }
 
   def genRustParser(
@@ -381,25 +384,44 @@ mgroup3(basePath="mgroup3") {
     let rust = outDir / "rust"
     let kotlin = outDir / "kotlin"
 
-    file.createDirectory(outDir / "data")
-    file.createDirectory(outDir / "proto")
-    file.createDirectory(rust)
-    file.createDirectory(kotlin)
-    context.runCommand([
-      "java",
-      "-jar", genCliJar.jarFile,
-      cdgFile,
-      "-parserdata", dataFile,
-      "-proto", protoFile,
-      "-rust", rust,
-      // TODO disable kotlin gen if genKotlinBinding is false
-      "-kotlin", kotlin,
-    ])
+    let rustArtifact = artifact.build(rust) {
+      file.createDirectory(outDir / "data")
+      file.createDirectory(outDir / "proto")
+      file.createDirectory(rust)
+      file.createDirectory(kotlin)
+      let genJar = genCliJar.jarFile.await()
+      let result = context.runCommand([
+        "java",
+        "-jar", genJar.absolutePath,
+        cdgFile.absolutePath,
+        "-parserdata", dataFile.absolutePath,
+        "-proto", protoFile.absolutePath,
+        "-rust", rust.absolutePath,
+        // TODO disable kotlin gen if genKotlinBinding is false
+        "-kotlin", kotlin.absolutePath,
+      ])
+      if result.exitCode != 0 {
+        throw "mgroup3.genRustParser ${context.thisTargetName} (exit=${result.exitCode}): ${result.stderr}"
+      }
+      rust
+    }
+    let parserDataArtifact = artifact.build(dataFile) {
+      let _ = rustArtifact.await()
+      dataFile
+    }
+    let protoSchemaArtifact = artifact.build(protoFile) {
+      let _ = rustArtifact.await()
+      protoFile
+    }
+    let kotlinArtifact = artifact.build(kotlin) {
+      let _ = rustArtifact.await()
+      kotlin
+    }
     return RustParser(
-      parserData = dataFile,
-      protoSchema = protoFile,
-      rustSrcsRoot = rust,
-      kotlinAdtRoot = kotlin
+      parserData = parserDataArtifact,
+      protoSchema = protoSchemaArtifact,
+      rustSrcsRoot = rustArtifact,
+      kotlinAdtRoot = kotlinArtifact
     )
   }
 
@@ -490,11 +512,13 @@ def runJUnitTest(lib: jvm.JvmLib) {
 }
 
 def runJUnitTestExcluding(lib: jvm.JvmLib, excludeClassnameRegex: string) {
-  let runtimeClasspath = lib.transitiveJars + lib.transitiveResourceDirs
+  let runtimeClasspath = artifact.awaitAll(
+    jvm.collectClasspathArtifacts(lib) + jvm.collectAllResourceDirArtifacts(lib)
+  )
   let cpArg = runtimeClasspath.joinToString(":") { p -> p.absolutePath }
   // 그래프 전체의 classes dir 들 — ConsoleLauncher 의 `--scan-class-path` 는
   // path-separated list 를 수용.
-  let classDirs = lib.transitiveClassDirs
+  let classDirs = artifact.awaitAll(jvm.collectAllClassDirArtifacts(lib))
   let scanPathArg = classDirs.joinToString(":") { p -> p.absolutePath }
   // --enable-native-access=ALL-UNNAMED: required on JDK 22+ for FFM (JEP 454)
   // downcalls from the unnamed module. mgroup3.nativeParser uses FFM; the
@@ -508,8 +532,7 @@ def runJUnitTestExcluding(lib: jvm.JvmLib, excludeClassnameRegex: string) {
     "--scan-class-path", scanPathArg,
     "--exclude-classname", excludeClassnameRegex,
   ]
-  let inputs = classDirs + runtimeClasspath
-  let s = context.runCommandStream(cmd = cmd, inputs = inputs)
+  let s = context.runCommandStream(cmd = cmd)
   let stdoutTask = async {
     s.stdout.collect { line -> context.log(line) }
   }
@@ -531,9 +554,11 @@ def runJUnitTestSuite(lib: jvm.JvmLib, suiteName: optional<string>) {
 // runJUnitTestSuite 와 동일하지만 env 변수를 spawn 되는 java process 에 forward.
 // mgroup3.nativeParser FFM bridge 가 MGROUP3_NATIVE_INPROC=1 같은 env 가 필요해서.
 def runJUnitTestSuiteWithEnv(lib: jvm.JvmLib, suiteName: optional<string>, env: map<string, string>) {
-  let runtimeClasspath = lib.transitiveJars + lib.transitiveResourceDirs
+  let runtimeClasspath = artifact.awaitAll(
+    jvm.collectClasspathArtifacts(lib) + jvm.collectAllResourceDirArtifacts(lib)
+  )
   let cpArg = runtimeClasspath.joinToString(":") { p -> p.absolutePath }
-  let classDirs = lib.transitiveClassDirs
+  let classDirs = artifact.awaitAll(jvm.collectAllClassDirArtifacts(lib))
   let scanPathArg = classDirs.joinToString(":") { p -> p.absolutePath }
   let baseCmd = [
     java.javaCmd(),
@@ -547,8 +572,7 @@ def runJUnitTestSuiteWithEnv(lib: jvm.JvmLib, suiteName: optional<string>, env: 
     case .none -> ["--scan-class-path", scanPathArg]
   }
   let cmd = baseCmd + suiteArgs
-  let inputs = classDirs + runtimeClasspath
-  let s = context.runCommandStream(cmd = cmd, inputs = inputs, env = env)
+  let s = context.runCommandStream(cmd = cmd, env = env)
   let stdoutTask = async {
     s.stdout.collect { line -> context.log(line) }
   }
@@ -578,9 +602,11 @@ def buildMgroup3NativeRelease() {
 }
 
 def runScalaTestSuite(lib: jvm.JvmLib, suiteName: optional<string>) {
-  let runtimeClasspath = lib.transitiveJars + lib.transitiveResourceDirs
+  let runtimeClasspath = artifact.awaitAll(
+    jvm.collectClasspathArtifacts(lib) + jvm.collectAllResourceDirArtifacts(lib)
+  )
   let cpArg = runtimeClasspath.joinToString(":") { p -> p.absolutePath }
-  let classDirs = lib.transitiveClassDirs
+  let classDirs = artifact.awaitAll(jvm.collectAllClassDirArtifacts(lib))
   // ScalaTest 의 `-R <runpath>` 은 single arg 에 space-separated paths 를 허용.
   let runpathArg: string = classDirs.joinToString(" ") { p -> p.absolutePath }
   let baseCmd = [
@@ -595,8 +621,7 @@ def runScalaTestSuite(lib: jvm.JvmLib, suiteName: optional<string>) {
     case .none -> []
   }
   let cmd = baseCmd + suiteArgs
-  let inputs = classDirs + runtimeClasspath
-  let s = context.runCommandStream(cmd = cmd, inputs = inputs)
+  let s = context.runCommandStream(cmd = cmd)
   let stdoutTask = async {
     s.stdout.collect { line -> context.log(line) }
   }
@@ -704,5 +729,9 @@ def runParserBenchmarkTaxonomy() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.ParserBenchmarkTaxonomyTest"))
 }
 
-
-
+// IntelliJ `.iml` + `.idea/modules.xml` + `.idea/libraries/*.xml` 을 생성. workspace.json
+// 대안 — Kotlin LSP 가 workspace.json 인덱싱에 실패할 때 fallback.
+@action
+def exportIml() {
+  intellij.exportIml()
+}

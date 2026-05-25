@@ -1,0 +1,355 @@
+// IntelliJ `.iml` + `.idea/modules.xml` + `.idea/libraries/*.xml` export.
+//
+// stdlib `kotlinlsp.exportWorkspaceJson` 의 workspace.json 으로는 Kotlin LSP 가 코드
+// 인덱싱 / inspection 을 정상 수행하지 못하는 케이스가 있어서, IntelliJ 가 1급으로
+// 지원하는 `.iml` 포맷을 직접 emit 하는 fallback. 형식은 bibix3 가 생성한
+// `.idea/mulang.*.iml` reference 와 동일.
+//
+// 사용:
+//   @action def exportIml() { intellij.exportIml() }
+//
+// 출력 위치: `.idea/<projectName>.<moduleName>.iml`, `.idea/modules.xml`,
+// `.idea/libraries/<sanitized>.xml`. `.iml` 안의 path 는 `$MODULE_DIR$/...` 형태로
+// emit — bibix3 reference 와 동일하게 `$MODULE_DIR$` 가 project root 를 가리킨다고
+// 가정한다 (모든 iml 이 `.idea/` 평면 배치).
+
+import jvm
+import junit
+import file
+import utils
+
+namespace intellij {
+  def absPath(p: path): string = p.absolutePath
+
+  // .iml export entry point. 반드시 `@action` 컨텍스트.
+  // [projectName] 은 .iml 파일명 prefix (기본 디렉토리 이름).
+  // [sdkName] / [sdkType] 은 `<orderEntry type="jdk" jdkName=".." jdkType=".." />` 자리.
+  //   - sdkName 은 IntelliJ Project Structure 의 SDK 이름과 일치해야 한다. 매칭 안 되면
+  //     IDE 가 빨간색 표시. 사용자가 IDE 에서 같은 이름의 JDK 를 등록해 두면 끝.
+  def exportIml(
+    projectName: string = "jparser",
+    sdkName: string = "openjdk-25",
+    sdkType: string = "JavaSDK",
+  ) {
+    // 1) JvmLib / JunitTestLib 모두 수집.
+    let allLibs: list<jvm.JvmLib> = []
+    for info in collectTargets<jvm.JvmLib>() {
+      try {
+        allLibs = allLibs + [info.targetSkippingCommands()]
+      } catch {
+        case e ->
+          context.warning("intellij.exportIml: ${info.targetName} skipped (evaluation failed) $e")
+        else -> context.warning("intellij.exportIml: ${info.targetName} skipped (evaluation failed)")
+      }
+    }
+    for info in collectTargets<junit.JunitTestLib>() {
+      try {
+        allLibs = allLibs + [info.targetSkippingCommands().testLib]
+      } catch {
+        else -> context.warning("intellij.exportIml: ${info.targetName} skipped (evaluation failed)")
+      }
+    }
+
+    // 2) 노드 union — 같은 id 는 첫 등장 노드 유지.
+    let mergedNodes: map<string, jvm.JvmLibNode> = {}
+    for lib in allLibs {
+      for (id, node) in lib.nodes {
+        match mergedNodes[id] {
+          case .some(_) -> {}
+          case .none -> mergedNodes[id] = node
+        }
+      }
+    }
+
+    // 3) Module / library partition. maven 노드는 library, 나머지는 module.
+    let moduleIds: list<string> = []
+    let libraryIds: list<string> = []
+    for (id, node) in mergedNodes {
+      if id.startsWith("maven:") {
+        libraryIds = libraryIds + [id]
+      } else {
+        moduleIds = moduleIds + [id]
+      }
+    }
+
+    // 4) `.idea/libraries/` 디렉토리 생성 + 각 library xml emit.
+    let ideaDir: path = ".idea"
+    let librariesDir: path = ".idea/libraries"
+    file.createDirectory(librariesDir)
+    let libNameById: map<string, string> = {}
+    let libFileNameById: map<string, string> = {}
+    for id in libraryIds {
+      match mergedNodes[id] {
+        case .none -> {}
+        case .some(node) -> {
+          let libName = _libraryName(node.name)
+          let safeName = _sanitizeFileName(libName)
+          libNameById[id] = libName
+          libFileNameById[id] = safeName
+          let xml = _libraryXml(libName, node)
+          file.writeText(absPath(".idea/libraries/${safeName}.xml"), xml)
+        }
+      }
+    }
+
+    // 5) 각 module 의 `.iml` emit.
+    let moduleFileNames: list<string> = []
+    for id in moduleIds {
+      context.log("module $id")
+      match mergedNodes[id] {
+        case .none -> {}
+        case .some(node) -> {
+          let imlFileName = "${projectName}.${node.name}.iml"
+          moduleFileNames = moduleFileNames + [imlFileName]
+          let xml = _moduleImlXml(node, mergedNodes, libNameById, sdkName, sdkType, projectName)
+          file.writeText(absPath(".idea/${imlFileName}"), xml)
+        }
+      }
+    }
+
+    // 6) project root iml (`<projectName>.iml`) — bibix3 reference 처럼 root 를 한 module 로.
+    let rootImlFileName = "${projectName}.iml"
+    file.writeText(absPath(".idea/${rootImlFileName}"), _rootImlXml(projectName))
+    moduleFileNames = [rootImlFileName] + moduleFileNames
+
+    // 7) `.idea/modules.xml` — 모든 iml 인덱스.
+    file.writeText(absPath(".idea/modules.xml"), _modulesXml(moduleFileNames))
+
+    context.log(
+      "intellij.exportIml: wrote ${moduleIds.size} modules, ${libraryIds.size} libraries " +
+      "to .idea/"
+    )
+  }
+
+  // ===== module .iml =====
+
+  private def _moduleImlXml(
+    node: jvm.JvmLibNode,
+    mergedNodes: map<string, jvm.JvmLibNode>,
+    libNameById: map<string, string>,
+    sdkName: string,
+    sdkType: string,
+    projectName: string,
+  ): string {
+    let moduleId = "${projectName}.${node.name}"
+    let isTest = match node.kind {
+      case .MAIN -> false
+      case .TEST -> true
+    }
+
+    // contentRoot = sourceDirs 의 한 계층 위 (단일 dir) 또는 공통 prefix (여러).
+    let contentRootStr: string = match jvm.deriveModuleRoot(node.sourceDirs) {
+      case .some(p) -> _toModuleDirUrl(p.absolutePath)
+      case .none -> "file://\$MODULE_DIR\$"
+    }
+
+    let sourceFolders: string = ""
+    for d in node.sourceDirs {
+      let url = _toModuleDirUrl(d.absolutePath)
+      let isTestSrc = if isTest then "true" else "false"
+      sourceFolders = sourceFolders + "      <sourceFolder url=\"${url}\" isTestSource=\"${isTestSrc}\" />\n"
+    }
+    for d in node.resourceDirs {
+      let url = _toModuleDirUrl(d.absolutePath)
+      let resType = if isTest then "java-test-resource" else "java-resource"
+      sourceFolders = sourceFolders + "      <sourceFolder url=\"${url}\" type=\"${resType}\" />\n"
+    }
+
+    // orderEntry — JDK + sourceFolder + 각 dep (transitive flatten).
+    //
+    // bibix4 의 [jvm.JvmLib] 그래프는 node→node 의존을 BFS 로 완전히 풀어둔다 (예:
+    // `maven.javaLib` 가 root artifact 의 transitive maven 노드를 모두 별개 노드로
+    // 만들어 두고 `depIds` 로 연결). IntelliJ iml 모델은 module→module 의 `exported=""`
+    // transitive 는 따라가지만 library→library 의존 관계 자체가 모델에 없어서, 어떤
+    // module 이 library X 를 dep 으로 적어도 X 의 자식 library Y 는 IDE 의 cp 에 안
+    // 들어온다. 그래서 emit 시점에 그래프를 평탄화해 reachable 모두를 orderEntry 로
+    // 적는다 (module/library 구분 없이 통일).
+    let orderEntries: string = ""
+    orderEntries = orderEntries + "    <orderEntry type=\"jdk\" jdkName=\"${sdkName}\" jdkType=\"${sdkType}\" />\n"
+    let forTests = if isTest then "true" else "false"
+    orderEntries = orderEntries + "    <orderEntry type=\"sourceFolder\" forTests=\"${forTests}\" />\n"
+    let flatDepIds = _flattenTransitiveDepIds(node.depIds, mergedNodes)
+    for childId in flatDepIds {
+      let entry = _depOrderEntry(childId, mergedNodes, libNameById, projectName)
+      if entry.size > 0u64 {
+        orderEntries = orderEntries + entry
+      }
+    }
+
+    // `external.system.id="BIBIX"` 같은 external-system 속성을 박지 않는다 — IntelliJ 에
+    // `BIBIX` 라는 external system plugin 이 없으므로 IDE 가 그 id 를 가진 module 을
+    // "외부 시스템 관리" 로 인식해 자체 file watcher 의 auto-reload 를 끄게 된다. 일반
+    // IntelliJ-managed module 로 emit 하면 .iml 변경 시 "Reload project" 배너가 뜸.
+    return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+      "<module type=\"JAVA_MODULE\" version=\"4\">\n" +
+      "  <component name=\"NewModuleRootManager\" inherit-compiler-output=\"true\">\n" +
+      "    <exclude-output />\n" +
+      "    <content url=\"${contentRootStr}\">\n" +
+      sourceFolders +
+      "    </content>\n" +
+      orderEntries +
+      "  </component>\n" +
+      "</module>\n"
+  }
+
+  // [direct] 에서 출발해서 mergedNodes 그래프를 BFS 로 따라가, 도달 가능한 모든
+  // dep id 를 처음 만난 순서로 반환. 그래프에 cycle 이 있어도 visited set 으로 한 번씩만.
+  // [direct] 자신은 결과에 포함, 자기 자신을 가리키는 id (self-loop) 는 제외.
+  private def _flattenTransitiveDepIds(
+    direct: list<string>,
+    mergedNodes: map<string, jvm.JvmLibNode>,
+  ): list<string> {
+    let result: list<string> = []
+    let visited: map<string, bool> = {}
+    let queue: list<string> = direct
+    while queue.size > 0u64 {
+      let id = queue[0u64]
+      queue = queue.tail()
+      match visited[id] {
+        case .some(_) -> {}
+        case .none -> {
+          visited[id] = true
+          result = result + [id]
+          match mergedNodes[id] {
+            case .none -> {}
+            case .some(n) -> {
+              for child in n.depIds {
+                queue = queue + [child]
+              }
+            }
+          }
+        }
+      }
+    }
+    return result
+  }
+
+  // dep 한 개의 `<orderEntry>` 줄. mergedNodes 에 없는 id 는 빈 string.
+  //
+  // 모든 orderEntry 에 `exported=""` 를 붙여서 transitive dep 를 IntelliJ 가 자동
+  // 전파하도록 한다. emit 단계에서도 BFS 로 평탄화해 적기는 하지만 (위
+  // `_flattenTransitiveDepIds` 참고), module→module transitive 가 IDE 의 reload 타이밍
+  // 에 따라 IDE 측 module index 가 먼저 잡히는 경우가 있어 `exported=""` 도 같이 보냄.
+  private def _depOrderEntry(
+    childId: string,
+    mergedNodes: map<string, jvm.JvmLibNode>,
+    libNameById: map<string, string>,
+    projectName: string,
+  ): string {
+    if childId.startsWith("maven:") {
+      let libName = match libNameById[childId] {
+        case .some(n) -> n
+        case .none -> return ""
+      }
+      return "    <orderEntry type=\"library\" name=\"${libName}\" level=\"project\" exported=\"\" />\n"
+    }
+    let n = match mergedNodes[childId] {
+      case .some(x) -> x
+      case .none -> return ""
+    }
+    return "    <orderEntry type=\"module\" module-name=\"${projectName}.${n.name}\" exported=\"\" />\n"
+  }
+
+  // ===== root iml =====
+
+  private def _rootImlXml(projectName: string): string =
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+    "<module type=\"JAVA_MODULE\" version=\"4\">\n" +
+    "  <component name=\"NewModuleRootManager\" inherit-compiler-output=\"true\">\n" +
+    "    <exclude-output />\n" +
+    "    <content url=\"file://\$MODULE_DIR\$\">\n" +
+    "      <sourceFolder url=\"file://\$MODULE_DIR\$\" isTestSource=\"false\" />\n" +
+    "      <excludeFolder url=\"file://\$MODULE_DIR\$/bbxbuild\" />\n" +
+    "    </content>\n" +
+    "    <orderEntry type=\"inheritedJdk\" />\n" +
+    "    <orderEntry type=\"sourceFolder\" forTests=\"false\" />\n" +
+    "  </component>\n" +
+    "</module>\n"
+
+  // ===== modules.xml =====
+
+  private def _modulesXml(imlFileNames: list<string>): string {
+    let entries: string = ""
+    for name in imlFileNames {
+      entries = entries +
+        "      <module fileurl=\"file://\$PROJECT_DIR\$/.idea/${name}\" filepath=\"\$PROJECT_DIR\$/.idea/${name}\" />\n"
+    }
+    return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+      "<project version=\"4\">\n" +
+      "  <component name=\"ProjectModuleManager\">\n" +
+      "    <modules>\n" +
+      entries +
+      "    </modules>\n" +
+      "  </component>\n" +
+      "</project>\n"
+  }
+
+  // ===== library xml =====
+
+  // maven 노드의 IntelliJ library 이름. bibix3 reference 와 비슷한 형식:
+  //   `Bibix: maven: central:<group>:<artifact>:<version>:`
+  // 여기선 단순히 node.name 을 prefix 와 함께 노출.
+  private def _libraryName(nodeName: string): string =
+    "Bibix: maven: ${nodeName}"
+
+  private def _libraryXml(libName: string, node: jvm.JvmLibNode): string {
+    let classes: string = ""
+    for j in node.jars {
+      classes = classes + "      <root url=\"jar://${j.absolutePath}!/\" />\n"
+    }
+    let sources: string = ""
+    for sj in node.sourceJars {
+      sources = sources + "      <root url=\"jar://${sj.absolutePath}!/\" />\n"
+    }
+    return "<component name=\"libraryTable\">\n" +
+      "  <library name=\"${libName}\">\n" +
+      "    <CLASSES>\n" +
+      classes +
+      "    </CLASSES>\n" +
+      "    <JAVADOC />\n" +
+      "    <SOURCES>\n" +
+      sources +
+      "    </SOURCES>\n" +
+      "  </library>\n" +
+      "</component>\n"
+  }
+
+  // ===== helpers =====
+
+  // 절대 path 를 `$MODULE_DIR$/...` 형태의 file URL 로. project root (= `file.cwd()`) 와
+  // 일치하면 `$MODULE_DIR$` 단독. 그 안쪽이면 `$MODULE_DIR$/<rel>`. project root 밖이면
+  // fallback 으로 절대 path 사용 (이상하긴 하지만 안전).
+  private def _toModuleDirUrl(absPath: string): string {
+    let root = file.cwd()
+    if absPath == root {
+      return "file://\$MODULE_DIR\$"
+    }
+    let prefix = "${root}/"
+    if absPath.startsWith(prefix) {
+      let rel = absPath.substring(prefix.size, absPath.size)
+      return "file://\$MODULE_DIR\$/${rel}"
+    }
+    return "file://${absPath}"
+  }
+
+  // library 파일 이름으로 쓸 수 있게 sanitize. IntelliJ reference 는 `:` 와 `.` 같은
+  // 특수문자를 `_` 로 치환한 형태 — 정확히 같진 않아도 일관되기만 하면 동작.
+  private def _sanitizeFileName(name: string): string {
+    let buf: string = ""
+    let i: u64 = 0u64
+    while i < name.size {
+      let c = name.substring(i, i + 1u64)
+      buf = buf + (if _isSafe(c) then c else "_")
+      i = i + 1u64
+    }
+    return buf
+  }
+
+  private def _isSafe(c: string): bool {
+    if c >= "a" && c <= "z" { return true }
+    if c >= "A" && c <= "Z" { return true }
+    if c >= "0" && c <= "9" { return true }
+    return false
+  }
+
+}

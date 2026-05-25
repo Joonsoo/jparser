@@ -44,42 +44,50 @@ namespace scala2 {
   // scalac 외부 프로세스 호출. exit code != 0 이면 에러 리포트.
   // 식별자는 `context.thisTargetName` 자동 사용.
   private def invokeScalac(
-    srcs: list<path>,
-    classpath: list<path>,
+    srcs: list<artifact>,
+    classpath: list<artifact>,
     outDir: path,
-  ) {
+  ): artifact {
     let sLib = scalacLib()
-    let sCp = jvm.collectClasspath(sLib)
-    // scalac 자체 실행에 필요한 cp (`java -cp <cp> scala.tools.nsc.Main`).
-    let runtimeCp = sCp.joinToString(":") { p -> p.absolutePath }
-    // 사용자 컴파일 시 사용할 cp = 사용자 deps + scalac sibling jars (scala-library 등).
-    let combinedCp: list<path> = classpath + sCp
-    let userCp = combinedCp.joinToString(":") { p -> p.absolutePath }
-    let srcArgs: list<string> = []
-    for s in srcs {
-      srcArgs = srcArgs + [s.absolutePath]
-    }
-    let baseCmd: list<string> = [
-      java.javaCmd(),
-      "-cp", runtimeCp,
-      "scala.tools.nsc.Main",
-      "-d", outDir.absolutePath,
-    ]
-    let cmdWithCp: list<string> = if userCp.size > 0u64 then {
-      baseCmd + ["-classpath", userCp]
-    } else {
-      baseCmd
-    }
-    let cmd: list<string> = cmdWithCp + srcArgs
+    let sCpArtifacts = jvm.collectClasspathArtifacts(sLib)
+    let combinedCpArtifacts: list<artifact> = classpath + sCpArtifacts
     let targetName = context.thisTargetName
-    context.scheduleCommand(
-      cmd = cmd,
-      inputs = srcs + classpath,
-      outputs = [outDir],
-    ) { ctx, result ->
-      if ctx.exitCode != 0 {
-        result.reportError("scala2.library ${targetName} (exit=${ctx.exitCode}): ${ctx.stderr}")
+
+    return artifact.build(outDir) {
+      file.createDirectory(outDir)
+
+      let sCp = artifact.awaitAll(sCpArtifacts)
+      // scalac 자체 실행에 필요한 cp (`java -cp <cp> scala.tools.nsc.Main`).
+      let runtimeCp = sCp.joinToString(":") { p -> p.absolutePath }
+
+      // 사용자 컴파일 시 사용할 cp = 사용자 deps + scalac sibling jars (scala-library 등).
+      let combinedCp = artifact.awaitAll(combinedCpArtifacts)
+      let userCp = combinedCp.joinToString(":") { p -> p.absolutePath }
+
+      let srcPaths = artifact.awaitAll(srcs)
+      let srcArgs: list<string> = []
+      for s in srcPaths {
+        srcArgs = srcArgs + [s.absolutePath]
       }
+
+      let baseCmd: list<string> = [
+        java.javaCmd(),
+        "-cp", runtimeCp,
+        "scala.tools.nsc.Main",
+        "-d", outDir.absolutePath,
+      ]
+      let cmdWithCp: list<string> = if userCp.size > 0u64 then {
+        baseCmd + ["-classpath", userCp]
+      } else {
+        baseCmd
+      }
+      let cmd: list<string> = cmdWithCp + srcArgs
+
+      let result = context.runCommand(cmd)
+      if result.exitCode != 0 {
+        throw "scala2.library ${targetName} (exit=${result.exitCode}): ${result.stderr}"
+      }
+      outDir
     }
   }
   // ===== public API =====
@@ -89,23 +97,22 @@ namespace scala2 {
   // hash 를 끼워 넣지 않으면 src 내용 변경 시 cache 가 stale 해진다 (deps 의 JvmLib 는
   // upstream cached() 가 만든 hash-bearing 디렉토리라 자동 cascade).
   def library(
-    srcs: list<path>,
+    srcs: list<artifact>,
     deps: list<jvm.JvmLib> = [],
-    resourceDirs: list<path> = [],
+    resourceDirs: list<artifact> = [],
   ): jvm.JvmLib {
-    let srcHash = file.contentHashOf(srcs + resourceDirs)
+    let srcHash = file.contentHashOf(artifact.awaitAll(srcs + resourceDirs))
     return cached("scala2.library.${context.thisTargetName}.${srcHash}") {
       let destDir = context.destDirectory()
       let classesDir = destDir / "classes"
-      file.createDirectory(classesDir)
       // 컴파일에 사용할 cp = deps 의 모든 transitive classpath (classDirs + jars).
-      let compileCp: list<path> = []
+      let compileCp: list<artifact> = []
       for d in deps {
-        for p in jvm.collectClasspath(d) {
+        for p in jvm.collectClasspathArtifacts(d) {
           compileCp = compileCp + [p]
         }
       }
-      invokeScalac(srcs, compileCp, classesDir)
+      let classesArtifact = invokeScalac(srcs, compileCp, classesDir)
       // scalac 산출 .class 가 scala-library 심볼을 참조하므로 사용자 모듈 runtime cp 에
       // scala-library 가 있어야. compiler internals 전체가 아니라 scala-library 만 self 의
       // dep 으로 끼워서 그래프 그대로 흘려보냄 ([scalaLibraryLib] 참고).
@@ -115,17 +122,20 @@ namespace scala2 {
       let mergedNodes = jvm.mergeDepNodes(allDeps)
       mergedNodes[selfId] = jvm.JvmLibNode(
         name = context.thisTargetName,
-        classDirs = [classesDir],
+        classDirs = [classesArtifact],
         jars = [],
+        sourceDirs = jvm.deriveSourceRoots(jvm.artifactDests(srcs)),
+        sourceJars = [],
         resourceDirs = resourceDirs,
         depIds = jvm.depMainIds(allDeps),
+        kind = .MAIN,
       )
 
       jvm.JvmLib(
         mainNodeId = selfId,
         nodes = mergedNodes,
+        jdkVersion = java.jdkVersion,
       )
     }
   }
 }
-
