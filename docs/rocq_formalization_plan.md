@@ -1,11 +1,15 @@
 # Rocq Formalization Plan — 목표 B (Match Predicate Mechanization)
 
-> **STATUS UPDATE (2026-06-11)**: Step 1–6의 목표가 `proofs/`에 구현됨 (Rocq
-> 9.1.1, Homebrew). Theorem 3.3 core가 **axiom-free로 기계화 완료**: 층화 구성
-> (EvalN/MatchO/nt_level), 층 안정성, level/witness 독립성, 연산자별 clause
-> lemma 10개(자기참조 negation clause 포함), 검증된 예제(aⁿbⁿ, keyword
-> exclusion, longest, aⁿbⁿcⁿ join) + 실행 가능한 fuel checker. 잔여: decidability
-> (`cdgmatch_dec`, 유일한 Admitted)와 목표 A. 상세는 `proofs/README.md`.
+> **STATUS UPDATE (2026-06-11)**: **목표 B 완료.** Step 1–6의 목표가 `proofs/`에
+> 구현됨 (Rocq 9.1.1, Homebrew). Theorem 3.3 전체가 **Admitted 0, axiom 0으로
+> 기계화 완료**: 층화 구성(EvalN/MatchO/nt_level), 층 안정성, level/witness
+> 독립성, 연산자별 clause lemma 10개(자기참조 negation clause 포함),
+> decidability(`Decidability.v`: 높이 지표 매치 + 유한 우주 포화 비둘기집),
+> 검증된 예제(aⁿbⁿ, keyword exclusion, longest, aⁿbⁿcⁿ join) + 실행 가능한
+> fuel checker. decidability는 문법의 유한 support만 필요하고 stratification은
+> 불필요함이 증명에서 드러남(층 고정 관계는 항상 결정 가능; stratification은
+> 정준화 담당). 잔여: 목표 A (Naive ACP, paper Thm 4.1/4.2). 상세는
+> `proofs/README.md`.
 >
 > **본 계획 대비 두 가지 설계 변경** (둘 다 계획의 결함 수정):
 > 1. Step 5/6의 `match_fuel_monotone`은 negation 하에서 **거짓** — fuel 증가가

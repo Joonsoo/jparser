@@ -154,22 +154,12 @@ Proof.
     exact (proj1 (eval_match_agree G rk R Hstrat a Hna w i k) Hc).
 Qed.
 
-(** ** Decidability (deferred)
+(** ** Decidability
 
-    The last clause of paper Theorem 3.3 (decidability of [Match] on
-    finite inputs) is not yet mechanized.  The intended route is the
-    fuel-bounded decision procedure of [MatchFuel.v] together with an
-    exactness theorem at sufficient fuel for strict stratified grammars.
-    Note that fuel-monotonicity of the two-valued procedure is FALSE in
-    the presence of negation (a fuel-starved sub-result can flip a
-    negation), so exactness must be proved stratum by stratum, not by
-    naive monotonicity; see the discussion in [MatchFuel.v]. *)
-
-Theorem cdgmatch_dec :
-  forall G rk R,
-    strict_stratified G rk ->
-    rank_bound G rk R ->
-    forall s w i j,
-      (forall B, In B (nts_of s) -> rk B < R) ->
-      {CDGMatch G R s w i j} + {~ CDGMatch G R s w i j}.
-Admitted.
+    The last clause of paper Theorem 3.3 — decidability of [Match] on
+    finite inputs — is proved in [Decidability.v] ([cdgmatch_dec]).  Its
+    hypotheses are weaker than one might expect: finite support of the
+    grammar suffices, and stratification is not needed at a fixed level.
+    Stratification is what makes the levels stabilize into the canonical
+    [Match] (the theorems above), at which point [Decidability.cdgmatch_dec]
+    decides it. *)

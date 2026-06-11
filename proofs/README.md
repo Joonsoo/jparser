@@ -17,22 +17,29 @@ make -j4
 | `theories/Stratification.v` | `strict_stratified` (rank-function form, **corrected** — see below), `rank_bound` | Def 3.2 |
 | `theories/Match.v` | `EvalN` (structural evaluator with NT oracle), `MatchO` (inductive match, negation via `EvalN`), `nt_level` (stratum iteration), `CDGMatch`, span validity, per-operator clause lemmas | §3 Match clauses |
 | `theories/Agreement.v` | Oracle-agreement lemmas, `nt_level_stable` (stability of the stratified construction), `eval_match_agree` | Thm 3.3 (core) |
-| `theories/WellDefined.v` | `cdgmatch_level_indep`, `cdgmatch_witness_indep`, self-referential negation clauses; decidability stated (Admitted) | Thm 3.3 |
+| `theories/WellDefined.v` | `cdgmatch_level_indep`, `cdgmatch_witness_indep`, self-referential negation clauses | Thm 3.3 |
+| `theories/Decidability.v` | `cdgmatch_dec`: decidability via height-indexed match + finite-universe saturation (counting pigeonhole); `matchb`, `matchb_dec`, `stab_complete`, `eval_dec` | Thm 3.3 (decidability) |
 | `theories/CounterExample.v` | `BadG` (`B → C; C → !B`): satisfies the paper's Def 3.2 literally, admits **no** model (`badg_no_model`) | Def 3.2 fix |
 | `theories/MatchFuel.v` | Executable fuel-bounded checker (test oracle; exactness future work) | — |
 | `theories/Examples.v` | Verified unit tests: aⁿbⁿ, keyword exclusion (`Id - "if"`), maximal munch (`<A>`), aⁿbⁿcⁿ via join; boolean fuel tests | §3 examples |
 
 ## Status
 
-- **Proved, axiom-free** (checked with `Print Assumptions`): span validity,
-  all ten per-operator clause lemmas, oracle agreement, `nt_level_stable`,
-  `eval_match_agree`, level independence, rank-witness independence, the
-  self-referential negation clauses, the `BadG` no-model theorem, and all
-  examples.
-- **Admitted (1)**: `cdgmatch_dec` (decidability clause of Thm 3.3).
-  Intended route: exactness of `match_fuel` at sufficient fuel, stratum by
-  stratum. Note the original plan's `match_fuel_monotone` is false under
-  negation (documented in `MatchFuel.v`).
+**Theorem 3.3 (목표 B) fully mechanized: zero `Admitted`, zero axioms**
+(checked with `Print Assumptions`). This covers: span validity, all ten
+per-operator clause lemmas, oracle agreement, `nt_level_stable`,
+`eval_match_agree`, level independence, rank-witness independence, the
+self-referential negation clauses, decidability (`cdgmatch_dec`), the
+`BadG` no-model theorem, and all examples.
+
+Notable refinement surfaced by the decidability proof: **decidability
+needs only finite support of the grammar** (a list of its defined
+nonterminals) and holds for every level of the iteration; stratification
+plays no role in it. Stratification is exactly what makes the levels
+stabilize into the canonical `Match`.
+
+Next target (목표 A): Naive ACP soundness/completeness (paper Thms
+4.1/4.2) against this mechanized semantics.
 
 ## Findings that require paper changes
 
