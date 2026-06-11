@@ -56,8 +56,9 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
     var naive1Ctx = naive1Parser.initialContext
     var naive2Ctx = naive2Parser.initialParsingHistoryContext
 
-    // TODO initial ctx는 왜 다르지..?
-    // assertEqualCtx(naive1Ctx, naive2Ctx)
+    // NaiveParser2가 gen 0 조건 평가/트리밍을 수행하도록 수정되어(2026-06-12)
+    // 초기 컨텍스트도 v1과 일치한다.
+    assertEqualCtx(naive1Ctx, naive2Ctx)
 
     inputs.foreach { input =>
       if (naive2Ctx.gen % 100 == 0) {

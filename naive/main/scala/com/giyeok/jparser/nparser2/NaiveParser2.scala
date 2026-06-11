@@ -17,15 +17,20 @@ class NaiveParser2(val grammar: NGrammar) {
   val initialParsingContext: ParsingContext = {
     val startCtx = ParsingContext(KernelGraph(Set(startKernel), Set()), Map(startKernel -> Always))
     runTasks(0, List(DeriveTask(startKernel)), startCtx)
-    // TODO initialContext도 conditions update, filtering, trimming이 필요한가?
   }
 
-  val initialParsingHistoryContext: ParsingHistoryContext = ParsingHistoryContext(
-    0,
-    initialParsingContext,
-    List(),
-    List(initialParsingContext),
-    AcceptConditionsTracker(initialParsingContext.acceptConditions.values.map(cond => cond -> cond).toMap))
+  // 초기 컨텍스트에서도 parseStep과 동일하게 gen 0에 대한 accept condition 평가와
+  // trimming을 수행해야 한다. gen 0에서 progress된 nullable join/except/lookahead가
+  // 만드는 endGen=0 조건들(OnlyIf/Unless/Exists/NotExists)을 gen 1에서 뒤늦게
+  // 평가하면 Unless/OnlyIf는 무조건 Always/Never로 퇴화하고 Exists/NotExists는
+  // gen 0에서 끝난 매치를 놓친다. (NaiveParser(v1)의 initialContext와 같은 동작)
+  val initialParsingHistoryContext: ParsingHistoryContext = {
+    val tracker0 = AcceptConditionsTracker(
+      initialParsingContext.acceptConditions.values.map(cond => cond -> cond).toMap)
+    val (updated, tracker) = updateAcceptConditions(0, initialParsingContext, tracker0)
+    val trimmed = trimParsingContext(startKernel, 0, updated)
+    ParsingHistoryContext(0, trimmed, List(), List(updated), tracker)
+  }
 
   private def isFinal(kernel: Kernel): Boolean = {
     grammar.symbolOf(kernel.symbolId) match {
