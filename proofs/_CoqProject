@@ -1,0 +1,11 @@
+-Q theories CDG
+-arg -w -arg -notation-overridden
+
+theories/Syntax.v
+theories/Stratification.v
+theories/Match.v
+theories/Agreement.v
+theories/WellDefined.v
+theories/CounterExample.v
+theories/MatchFuel.v
+theories/Examples.v
