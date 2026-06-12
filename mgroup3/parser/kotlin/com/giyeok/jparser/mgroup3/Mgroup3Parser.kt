@@ -124,9 +124,24 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       initialMainRootFinish = selfFinishCond
     }
 
+    // gen 0 의 zero-width self-finish: 초기 cond root 가 빈 span (0,0) 으로 완성될
+    // 수 있으면 entry 0 의 condPathFinishes 에 등록 — 빈 입력(또는 gen 0 에 end 가
+    // 걸린 bounded 조건)의 평가가 이를 본다. 없으면 nullable join (OnlyIf@gen0) 이
+    // finish 부재로 Never 가 되어 빈 입력이 거부된다.
+    val initialCondPathFinishes = mutableMapOf<PathRoot, AcceptCondition>()
+    for (condRoot in initialCondPaths.keys) {
+      val condRootInfo = plain.pathRoots[condRoot.symbolId] ?: continue
+      if (condRootInfo.selfFinishAcceptCondition != null) {
+        initialCondPathFinishes[condRoot] =
+          condRootInfo.selfFinishAcceptCondition.toAcceptCondition(0, 0, 0)
+      }
+    }
+
     val initialEntry = HistoryEntry(
       actionApplications = initialApps,
       finishedKernels = initialFinishedKernels,
+      condPathFinishes = initialCondPathFinishes.toMap(),
+      activeCondPaths = initialCondPaths.keys,
       mainRootFinish = initialMainRootFinish,
       // 초기 cond root 들은 모두 보고 대상 (m2 의 초기 in-graph closure 에 대응).
       reportedCondRoots = initialCondPaths.keys,
@@ -438,6 +453,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     val addedByGroup = mutableListOf<AddedKernelRecord>()
     val observingOut = HashSet<Int>()
     val rootProgresses = mutableMapOf<PathRoot, AcceptCondition>()
+    // 죽는 cond path 의 possible-finish — end 가 직전 gen 인 late 채널.
+    val latePfProgresses = mutableMapOf<PathRoot, AcceptCondition>()
     val condRootStartersFromTerm = mutableMapOf<PathRoot, Int>()
 
     val trace = traceOn(gen)
@@ -473,6 +490,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
           )
         } else if (!isMain) {
           // cond path 가 input 매치 못해 dead — possible_finishes 검사.
+          // 이 finish 의 end 는 직전 gen (ctx.gen) — eager finish 와 end 가 다르므로
+          // late 채널로 분리 등록한다 (bounded/longest 의 정확한 span discharge 용).
           val mg = plain.milestoneGroups[shape.tipGroupId]
           if (mg != null) {
             for (pf in mg.possibleFinishes) {
@@ -482,8 +501,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
                 val pfCond = pf.acceptCondition.toAcceptCondition(prevGen, midGenLocal, gen)
                 val combined = And.from(cond, pfCond)
                 if (combined != Never) {
-                  val existing = rootProgresses[root]
-                  rootProgresses[root] = if (existing != null) Or.from(existing, combined) else combined
+                  val existing = latePfProgresses[root]
+                  latePfProgresses[root] = if (existing != null) Or.from(existing, combined) else combined
                 }
               }
             }
@@ -614,7 +633,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
 
     tPhase = phaseMark(3, tPhase)
 
-    // step 4: condPath finish detection
+    // step 4: condPath finish detection — eager (end = gen) 와 late (end = gen-1) 분리.
     val condPathFinishes = mutableMapOf<PathRoot, AcceptCondition>()
     for ((root, cond) in rootProgresses) {
       if (root != ctx.mainRoot) {
@@ -625,6 +644,12 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       if (root != ctx.mainRoot) {
         val existing = condPathFinishes[root]
         condPathFinishes[root] = if (existing != null) Or.from(existing, cond) else cond
+      }
+    }
+    val lateCondPathFinishes = mutableMapOf<PathRoot, AcceptCondition>()
+    for ((root, cond) in latePfProgresses) {
+      if (root != ctx.mainRoot) {
+        lateCondPathFinishes[root] = cond
       }
     }
 
@@ -653,7 +678,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
           println("    in : ${cond.toString().take(300)}")
           evolveTrace = true
         }
-        val evolved = evolveAcceptCondition(cond, condPathFinishes, activeCondRoots, gen)
+        val evolved = evolveAcceptCondition(cond, condPathFinishes, lateCondPathFinishes, activeCondRoots, gen)
         if (trace && label == "main") {
           evolveTrace = false
           println("    out: ${evolved.toString().take(300)}")
@@ -734,6 +759,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       actionApplications = appsByGroup.filterTo(LinkedHashSet()) { reportableRoot(it.root) }.toList(),
       finishedKernels = finishesByGroup.filterTo(LinkedHashSet()) { reportableRoot(it.root) }.toList(),
       condPathFinishes = condPathFinishes.toMap(),
+      lateCondPathFinishes = lateCondPathFinishes.toMap(),
       activeCondPaths = activeCondPathsForHistory,
       mainRootFinish = rootProgresses[ctx.mainRoot],
       addedKernels = addedByGroup.filterTo(LinkedHashSet()) { reportableRoot(it.root) }.toList(),
@@ -774,7 +800,33 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     // accept 판정에 영향을 주지 않는다.
     val lastEntry = ctx.history.lastOrNull() ?: return false
     val cond = lastEntry.mainRootFinish ?: return false
-    return evaluateRecordCondition(cond, ctx.history, ctx.history.size - 1)
+    return evaluateRecordCondition(cond, ctx.history, ctx.history.size - 1, endOfInputLateFins(ctx))
+  }
+
+  // 입력 끝에서 아직 살아있는 cond path 들의 zero-width possible-finish 들 —
+  // 입력이 끝나서 "죽음" 이 더는 step 으로 관찰되지 않으므로, 마지막 gen 에 끝나는
+  // finish 들을 여기서 한 번 쓸어 모아 최종 평가의 가상 late step 으로 사용한다.
+  // (end = ctx.gen — bounded 조건의 endGen == 마지막 gen 인 경우의 discharge 용.)
+  private fun endOfInputLateFins(ctx: ParsingCtx): Map<PathRoot, AcceptCondition> {
+    val result = mutableMapOf<PathRoot, AcceptCondition>()
+    for ((root, pathMap) in ctx.paths) {
+      if (root == ctx.mainRoot) continue
+      for ((shape, cond) in pathMap) {
+        val mg = plain.milestoneGroups[shape.tipGroupId] ?: continue
+        for (pf in mg.possibleFinishes) {
+          if (pf.symbolId == root.symbolId) {
+            val prevGen = shape.milestonePath?.gen ?: root.startGen
+            val pfCond = pf.acceptCondition.toAcceptCondition(prevGen, ctx.gen, ctx.gen + 1)
+            val combined = And.from(cond, pfCond)
+            if (combined != Never) {
+              val existing = result[root]
+              result[root] = if (existing != null) Or.from(existing, combined) else combined
+            }
+          }
+        }
+      }
+    }
+    return result
   }
 
   // record 가 생성된 시점(recordGen)부터 매 step 의 evolve 를 재생한 뒤 최종 평가.
@@ -786,13 +838,20 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     cond: AcceptCondition,
     history: List<HistoryEntry>,
     recordGen: Int,
+    endLateFins: Map<PathRoot, AcceptCondition> = emptyMap(),
   ): Boolean {
     var c = cond
     for (g in recordGen until history.size) {
       if (c == Always) return true
       if (c == Never) return false
       val entry = history[g]
-      c = evolveAcceptCondition(c, entry.condPathFinishes, entry.activeCondPaths, g)
+      c = evolveAcceptCondition(c, entry.condPathFinishes, entry.lateCondPathFinishes, entry.activeCondPaths, g)
+    }
+    if (c == Always) return true
+    if (c == Never) return false
+    // 가상 late step: 입력 끝에서 살아있던 root 들의 마지막-gen zero-width finish 들.
+    if (endLateFins.isNotEmpty()) {
+      c = evolveAcceptCondition(c, emptyMap(), endLateFins, emptySet(), history.size)
     }
     return evaluateAtEndOfInput(c)
   }
@@ -833,6 +892,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
   }
 
   fun kernelsHistory(ctx: ParsingCtx): List<KernelSet> {
+    val endLateFins = endOfInputLateFins(ctx)
     return ctx.history.mapIndexed { gen, entry ->
       // root 기반 보고 필터(main root + 이번/직전 entry 의 reportedCondRoots)는
       // parseStep 의 record/application 저장 시점에 이미 적용됨.
@@ -843,11 +903,11 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       for (app in entry.actionApplications) {
         // edge action 은 그 적용을 구동한 runtime 조건으로 전체 게이팅 (m2 kernelsHistory 의
         // progressedKgroups/progressedKernels 조건 게이트 대응).
-        if (app.condition != Always && !evaluateRecordCondition(app.condition, ctx.history, gen)) continue
+        if (app.condition != Always && !evaluateRecordCondition(app.condition, ctx.history, gen, endLateFins)) continue
         val pa = app.actions
         for (finished in pa.finished) {
           val cond = finished.finishCondition.toAcceptCondition(app.rtCurr, app.rtMid, app.next, app.rtGrand)
-          if (evaluateRecordCondition(cond, ctx.history, gen)) {
+          if (evaluateRecordCondition(cond, ctx.history, gen, endLateFins)) {
             val begin = resolveGen(finished.startGen, app.repCurr, app.repMid, app.next, app.repGrand)
             kernels.add(
               com.giyeok.jparser.ktlib.Kernel(finished.symbolId, finished.pointer, begin, gen)
@@ -860,7 +920,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         // 의 진행) 이 새어 나온다.
         for (added in pa.added) {
           val cond = added.acceptCondition.toAcceptCondition(app.rtCurr, app.rtMid, app.next, app.rtGrand)
-          if (evaluateRecordCondition(cond, ctx.history, gen)) {
+          if (evaluateRecordCondition(cond, ctx.history, gen, endLateFins)) {
             kernels.add(
               com.giyeok.jparser.ktlib.Kernel(
                 added.symbolId,
@@ -873,7 +933,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         }
       }
       for (rec in entry.finishedKernels) {
-        if (evaluateRecordCondition(rec.condition, ctx.history, gen)) {
+        if (evaluateRecordCondition(rec.condition, ctx.history, gen, endLateFins)) {
           kernels.add(
             com.giyeok.jparser.ktlib.Kernel(
               rec.kernel.symbolId,
@@ -885,7 +945,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         }
       }
       for (rec in entry.addedKernels) {
-        if (evaluateRecordCondition(rec.condition, ctx.history, gen)) {
+        if (evaluateRecordCondition(rec.condition, ctx.history, gen, endLateFins)) {
           kernels.add(
             com.giyeok.jparser.ktlib.Kernel(
               rec.symbolId,
@@ -900,6 +960,10 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     }
   }
 
+  // bounded shape (except/join) 의 span end 와 longest 의 본문 end 는 템플릿의
+  // end 태그가 정적으로 지정한다 (조건 방출 시점의 시뮬레이션 위치 — curr-phase 의
+  // zero-width/pop 체인 진행은 MID, post-char 진행은 NEXT 등). 런타임 바인딩으로
+  // resolve 하면 정확한 span 의 finish 만 discharge 에 쓰인다.
   private fun AcceptConditionTemplate.toAcceptCondition(prevGen: Int, midGen: Int, gen: Int, grandGen: Int = prevGen): AcceptCondition =
     when (conditionCase) {
       AcceptConditionTemplate.ConditionCase.ALWAYS -> Always
@@ -911,7 +975,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
 
       AcceptConditionTemplate.ConditionCase.NO_LONGER_MATCH -> {
         val startGen = resolveGen(noLongerMatch.startGen, prevGen, midGen, gen, grandGen)
-        NoLongerMatch(noLongerMatch.symbolId, startGen, fromNextGen = true)
+        val bodyEndGen = resolveGen(noLongerMatch.bodyEndGen, prevGen, midGen, gen, grandGen)
+        NoLongerMatch(noLongerMatch.symbolId, startGen, minEndGen = bodyEndGen + 1)
       }
 
       AcceptConditionTemplate.ConditionCase.LOOKAHEAD_FOUND -> {
@@ -926,12 +991,14 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
 
       AcceptConditionTemplate.ConditionCase.EXCEPT -> {
         val startGen = resolveGen(except.startGen, prevGen, midGen, gen, grandGen)
-        Unless(except.symbolId, startGen)
+        val endGen = resolveGen(except.endGen, prevGen, midGen, gen, grandGen)
+        Unless(except.symbolId, startGen, endGen)
       }
 
       AcceptConditionTemplate.ConditionCase.JOIN -> {
         val startGen = resolveGen(join.startGen, prevGen, midGen, gen, grandGen)
-        OnlyIf(join.symbolId, startGen)
+        val endGen = resolveGen(join.endGen, prevGen, midGen, gen, grandGen)
+        OnlyIf(join.symbolId, startGen, endGen)
       }
 
       AcceptConditionTemplate.ConditionCase.CONDITION_NOT_SET ->

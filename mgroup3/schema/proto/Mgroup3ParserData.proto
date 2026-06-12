@@ -142,6 +142,8 @@ message AcceptConditionTemplate {
 message NoLongerMatchTemplate {
   int32 symbol_id = 1;
   KernelTemplateGen start_gen = 2;
+  // longest 본문이 끝난 시점 — 이보다 strictly 긴 (end > body_end) 매치만 조건을 위반한다.
+  KernelTemplateGen body_end_gen = 3;
 }
 message LookaheadFoundTemplate {
   int32 symbol_id = 1;
@@ -154,10 +156,14 @@ message LookaheadNotFoundTemplate {
 message ExceptTemplate {
   int32 symbol_id = 1;
   KernelTemplateGen start_gen = 2;
+  // except 본문 span 의 end — 정확히 (start_gen, end_gen) 의 매치만 조건을 위반한다.
+  KernelTemplateGen end_gen = 3;
 }
 message JoinTemplate {
   int32 symbol_id = 1;
   KernelTemplateGen start_gen = 2;
+  // join 본문 span 의 end — 정확히 (start_gen, end_gen) 의 매치가 있어야 한다.
+  KernelTemplateGen end_gen = 3;
 }
 
 message MultiAcceptConditions {

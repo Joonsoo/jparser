@@ -709,15 +709,15 @@ fun GenAcceptCondition.toProto(): AcceptConditionTemplate {
     }
 
     is GenAcceptCondition.NoLongerMatch ->
-      b.noLongerMatch = NoLongerMatchTemplate.newBuilder().setSymbolId(symbolId).setStartGen(startGen.toProto()).build()
+      b.noLongerMatch = NoLongerMatchTemplate.newBuilder().setSymbolId(symbolId).setStartGen(startGen.toProto()).setBodyEndGen(bodyEndGen.toProto()).build()
     is GenAcceptCondition.Exists ->
       b.lookaheadFound = LookaheadFoundTemplate.newBuilder().setSymbolId(symbolId).setStartGen(startGen.toProto()).build()
     is GenAcceptCondition.NotExists ->
       b.lookaheadNotfound = LookaheadNotFoundTemplate.newBuilder().setSymbolId(symbolId).setStartGen(startGen.toProto()).build()
     is GenAcceptCondition.Unless ->
-      b.except = ExceptTemplate.newBuilder().setSymbolId(symbolId).setStartGen(startGen.toProto()).build()
+      b.except = ExceptTemplate.newBuilder().setSymbolId(symbolId).setStartGen(startGen.toProto()).setEndGen(endGen.toProto()).build()
     is GenAcceptCondition.OnlyIf ->
-      b.join = JoinTemplate.newBuilder().setSymbolId(symbolId).setStartGen(startGen.toProto()).build()
+      b.join = JoinTemplate.newBuilder().setSymbolId(symbolId).setStartGen(startGen.toProto()).setEndGen(endGen.toProto()).build()
   }
   return b.build()
 }

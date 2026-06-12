@@ -200,9 +200,9 @@ sealed class GenAcceptCondition: Comparable<GenAcceptCondition> {
 
   // startGen: cond path 시작 시점. condition이 등장한 atomic symbol (NLongest, Lookahead 등) 의
   // derive 시점에 해당. GenNodeGeneration 으로 표현 (Prev/Curr/Mid/Next).
-  data class NoLongerMatch(val symbolId: Int, val startGen: GenNodeGeneration = GenNodeGeneration.Prev): GenAcceptCondition()
+  data class NoLongerMatch(val symbolId: Int, val startGen: GenNodeGeneration = GenNodeGeneration.Prev, val bodyEndGen: GenNodeGeneration = GenNodeGeneration.Next): GenAcceptCondition()
   data class NotExists(val symbolId: Int, val startGen: GenNodeGeneration = GenNodeGeneration.Prev): GenAcceptCondition()
   data class Exists(val symbolId: Int, val startGen: GenNodeGeneration = GenNodeGeneration.Prev): GenAcceptCondition()
-  data class Unless(val symbolId: Int, val startGen: GenNodeGeneration = GenNodeGeneration.Prev): GenAcceptCondition()
-  data class OnlyIf(val symbolId: Int, val startGen: GenNodeGeneration = GenNodeGeneration.Prev): GenAcceptCondition()
+  data class Unless(val symbolId: Int, val startGen: GenNodeGeneration = GenNodeGeneration.Prev, val endGen: GenNodeGeneration = GenNodeGeneration.Next): GenAcceptCondition()
+  data class OnlyIf(val symbolId: Int, val startGen: GenNodeGeneration = GenNodeGeneration.Prev, val endGen: GenNodeGeneration = GenNodeGeneration.Next): GenAcceptCondition()
 }

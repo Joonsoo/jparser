@@ -56,7 +56,12 @@ data class HistoryEntry(
   val finishedKernels: List<FinishedKernelRecord> = emptyList(),
   val addedKernels: List<AddedKernelRecord> = emptyList(),
   // 이 step 에서 finish 된 cond path 들의 root → finish accept condition (Or 로 묶임).
+  // end gen = 이 entry 의 gen (eager — replaceAndProgress 류).
   val condPathFinishes: Map<PathRoot, AcceptCondition> = emptyMap(),
+  // 이 step 에서 죽은 cond path 의 possible-finish — end gen 이 직전 gen (entry gen - 1).
+  // bounded (Unless/OnlyIf) 와 longest (NoLongerMatch) 의 정확한 span discharge 를 위해
+  // eager 채널과 분리 기록한다.
+  val lateCondPathFinishes: Map<PathRoot, AcceptCondition> = emptyMap(),
   // 이 step 후 살아남은 cond path 들의 root.
   val activeCondPaths: Set<PathRoot> = emptySet(),
   // 이 step 에서 main root (start symbol) 가 progress(=전체 입력 매치 완료) 한 경우의

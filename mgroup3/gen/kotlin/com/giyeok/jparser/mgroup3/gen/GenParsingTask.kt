@@ -345,15 +345,15 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
       }
 
       is NGrammar.NExcept -> {
-        processAtomicSymbol(GenAcceptCondition.Unless(symbol.except(), node.startGen))
+        processAtomicSymbol(GenAcceptCondition.Unless(symbol.except(), node.startGen, nextGen))
       }
 
       is NGrammar.NJoin -> {
-        processAtomicSymbol(GenAcceptCondition.OnlyIf(symbol.join(), node.startGen))
+        processAtomicSymbol(GenAcceptCondition.OnlyIf(symbol.join(), node.startGen, nextGen))
       }
 
       is NGrammar.NLongest -> {
-        processAtomicSymbol(GenAcceptCondition.NoLongerMatch(symbol.body(), node.startGen))
+        processAtomicSymbol(GenAcceptCondition.NoLongerMatch(symbol.body(), node.startGen, nextGen))
       }
 
       is NGrammar.NLookaheadExcept -> {

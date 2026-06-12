@@ -68,21 +68,21 @@ class AcceptConditionFixtureGenTest {
     val cases = listOf<AcceptCondition>(
       Always,
       Never,
-      NoLongerMatch(1, 2, false),
-      NoLongerMatch(1, 2, true),
-      NoLongerMatch(0, 0, false),
-      NoLongerMatch(-1, Int.MAX_VALUE, false),
-      NeedLongerMatch(1, 2, false),
-      NeedLongerMatch(1, 2, true),
-      NeedLongerMatch(0, 0, false),
+      NoLongerMatch(1, 2, 0),
+      NoLongerMatch(1, 2, 3),
+      NoLongerMatch(0, 0, 0),
+      NoLongerMatch(-1, Int.MAX_VALUE, 0),
+      NeedLongerMatch(1, 2, 0),
+      NeedLongerMatch(1, 2, 3),
+      NeedLongerMatch(0, 0, 0),
       NotExists(3, 5),
       NotExists(0, 0),
       Exists(3, 5),
       Exists(0, 0),
-      Unless(3, 5),
-      Unless(0, 0),
-      OnlyIf(3, 5),
-      OnlyIf(0, 0),
+      Unless(3, 5, 7),
+      Unless(0, 0, 0),
+      OnlyIf(3, 5, 7),
+      OnlyIf(0, 0, 0),
       // Composites of size 2, 3, 4, 5
       And.from(listOf(Exists(1, 0), NotExists(2, 0))),
       And.from(listOf(Exists(1, 0), NotExists(2, 0), Exists(3, 0))),
@@ -102,13 +102,13 @@ class AcceptConditionFixtureGenTest {
   private fun emitNeg(out: StringBuilder) {
     val cases = listOf<AcceptCondition>(
       Always, Never,
-      NoLongerMatch(1, 2, false),
-      NoLongerMatch(1, 2, true),
-      NeedLongerMatch(0, 0, false),
+      NoLongerMatch(1, 2, 0),
+      NoLongerMatch(1, 2, 3),
+      NeedLongerMatch(0, 0, 0),
       Exists(3, 5),
       NotExists(3, 5),
-      Unless(3, 5),
-      OnlyIf(3, 5),
+      Unless(3, 5, 7),
+      OnlyIf(3, 5, 7),
       And.from(listOf(Exists(1, 0), NotExists(2, 0))),
       Or.from(listOf(Exists(1, 0), And.from(listOf(NotExists(2, 0), Exists(3, 0))))),
     )
@@ -179,20 +179,20 @@ class AcceptConditionFixtureGenTest {
       EvCase(Always, emptyMap(), emptySet(), true),
       EvCase(Never, emptyMap(), emptySet(), false),
       // NoLongerMatch: no fin → true; fin=Always → false
-      EvCase(NoLongerMatch(1, 2, false), emptyMap(), emptySet(), true),
-      EvCase(NoLongerMatch(1, 2, false), mapOf(PathRoot(1, 2) to Always), emptySet(), false),
+      EvCase(NoLongerMatch(1, 2, 0), emptyMap(), emptySet(), true),
+      EvCase(NoLongerMatch(1, 2, 0), mapOf(PathRoot(1, 2) to Always), emptySet(), false),
       // NeedLongerMatch: no fin → false; fin=Always → true
-      EvCase(NeedLongerMatch(1, 2, false), emptyMap(), emptySet(), false),
-      EvCase(NeedLongerMatch(1, 2, false), mapOf(PathRoot(1, 2) to Always), emptySet(), true),
+      EvCase(NeedLongerMatch(1, 2, 0), emptyMap(), emptySet(), false),
+      EvCase(NeedLongerMatch(1, 2, 0), mapOf(PathRoot(1, 2) to Always), emptySet(), true),
       // Exists/NotExists/Unless/OnlyIf
       EvCase(Exists(1, 2), mapOf(PathRoot(1, 2) to Always), emptySet(), true),
       EvCase(Exists(9, 9), emptyMap(), emptySet(), false),
       EvCase(NotExists(1, 2), mapOf(PathRoot(1, 2) to Always), emptySet(), false),
       EvCase(NotExists(9, 9), emptyMap(), emptySet(), true),
-      EvCase(Unless(1, 2), mapOf(PathRoot(1, 2) to Always), emptySet(), false),
-      EvCase(Unless(9, 9), emptyMap(), emptySet(), true),
-      EvCase(OnlyIf(1, 2), mapOf(PathRoot(1, 2) to Always), emptySet(), true),
-      EvCase(OnlyIf(9, 9), emptyMap(), emptySet(), false),
+      EvCase(Unless(1, 2, 2), mapOf(PathRoot(1, 2) to Always), emptySet(), false),
+      EvCase(Unless(9, 9, 9), emptyMap(), emptySet(), true),
+      EvCase(OnlyIf(1, 2, 2), mapOf(PathRoot(1, 2) to Always), emptySet(), true),
+      EvCase(OnlyIf(9, 9, 9), emptyMap(), emptySet(), false),
       // composites
       EvCase(
         And.from(listOf(Exists(1, 0), Exists(2, 0))),
@@ -238,12 +238,12 @@ class AcceptConditionFixtureGenTest {
 
     // 6 leaves x {no fin/no active, fin no cycle, fin with cycle, active only}
     val leafFactories: List<(Int, Int) -> AcceptCondition> = listOf(
-      { s, g -> NoLongerMatch(s, g, false) },
-      { s, g -> NeedLongerMatch(s, g, false) },
+      { s, g -> NoLongerMatch(s, g, 0) },
+      { s, g -> NeedLongerMatch(s, g, 0) },
       { s, g -> NotExists(s, g) },
       { s, g -> Exists(s, g) },
-      { s, g -> Unless(s, g) },
-      { s, g -> OnlyIf(s, g) },
+      { s, g -> Unless(s, g, 10) },
+      { s, g -> OnlyIf(s, g, 10) },
     )
     for (mk in leafFactories) {
       val leaf = mk(1, 0)
@@ -258,24 +258,24 @@ class AcceptConditionFixtureGenTest {
       cases.add(EvolveCase(leaf, emptyMap(), setOf(root), 10))
     }
     // fromNextGen=true strips flag
-    cases.add(EvolveCase(NoLongerMatch(1, 2, true), emptyMap(), emptySet(), 10))
-    cases.add(EvolveCase(NeedLongerMatch(1, 2, true), emptyMap(), emptySet(), 10))
+    cases.add(EvolveCase(NoLongerMatch(1, 2, 3), emptyMap(), emptySet(), 10))
+    cases.add(EvolveCase(NeedLongerMatch(1, 2, 3), emptyMap(), emptySet(), 10))
     // composite
     cases.add(EvolveCase(
-      And.from(listOf(NoLongerMatch(2, 4, false), Exists(5, 1))),
+      And.from(listOf(NoLongerMatch(2, 4, 0), Exists(5, 1))),
       mapOf(PathRoot(2, 4) to NotExists(2, 4), PathRoot(5, 1) to Always),
       setOf(PathRoot(5, 1)),
       10,
     ))
     cases.add(EvolveCase(
-      Or.from(listOf(NoLongerMatch(2, 4, false), Exists(5, 1))),
+      Or.from(listOf(NoLongerMatch(2, 4, 0), Exists(5, 1))),
       mapOf(PathRoot(2, 4) to NotExists(2, 4)),
       emptySet(),
       10,
     ))
 
     for (c in cases) {
-      val expected = evolveAcceptCondition(c.cond, c.fins, c.active, c.gen)
+      val expected = evolveAcceptCondition(c.cond, c.fins, emptyMap(), c.active, c.gen)
       emitBlock(
         out, "evolve",
         listOf(

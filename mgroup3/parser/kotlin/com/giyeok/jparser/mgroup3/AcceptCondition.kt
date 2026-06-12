@@ -384,18 +384,24 @@ private fun canonicalSort(arr: Array<AcceptCondition>) {
   }
 }
 
-// leaf conditions — referencedRoots = Single(self root). hasFromNextGen = NoLongerMatch/NeedLongerMatch 의 flag.
-data class NoLongerMatch(val symbolId: Int, val startGen: Int, val fromNextGen: Boolean = false): AcceptCondition() {
-  override fun neg(): AcceptCondition = NeedLongerMatch(symbolId, startGen, fromNextGen)
+// leaf conditions — referencedRoots = Single(self root).
+// NoLongerMatch/NeedLongerMatch: minEndGen = 이 조건이 인정하는 finish 의 최소 end gen.
+//   longest 의 "본문보다 strictly 긴 매치만" 이 본문 end+1 로 표현된다 (이전의
+//   fromNextGen 1-bit 를 명시적 end 경계로 대체 — 같은 end 의 finish 를 흡수해
+//   span 이 어긋나는 버그 방지).
+// Unless/OnlyIf: endGen = 감시 대상이 정확히 매치해야 하는 span 의 end gen.
+//   bounded shape 이므로 endGen 의 finish 만 보고 resolve 된다.
+data class NoLongerMatch(val symbolId: Int, val startGen: Int, val minEndGen: Int): AcceptCondition() {
+  override fun neg(): AcceptCondition = NeedLongerMatch(symbolId, startGen, minEndGen)
   override val referencedRoots: RootSet = RootSet.Single(PathRoot(symbolId, startGen))
-  override val hasFromNextGen: Boolean get() = fromNextGen
+  override val hasFromNextGen: Boolean get() = false
 }
 
-data class NeedLongerMatch(val symbolId: Int, val startGen: Int, val fromNextGen: Boolean = false):
+data class NeedLongerMatch(val symbolId: Int, val startGen: Int, val minEndGen: Int):
   AcceptCondition() {
-  override fun neg(): AcceptCondition = NoLongerMatch(symbolId, startGen, fromNextGen)
+  override fun neg(): AcceptCondition = NoLongerMatch(symbolId, startGen, minEndGen)
   override val referencedRoots: RootSet = RootSet.Single(PathRoot(symbolId, startGen))
-  override val hasFromNextGen: Boolean get() = fromNextGen
+  override val hasFromNextGen: Boolean get() = false
 }
 
 data class NotExists(val symbolId: Int, val startGen: Int): AcceptCondition() {
@@ -410,14 +416,14 @@ data class Exists(val symbolId: Int, val startGen: Int): AcceptCondition() {
   override val hasFromNextGen: Boolean get() = false
 }
 
-data class Unless(val symbolId: Int, val startGen: Int): AcceptCondition() {
-  override fun neg(): AcceptCondition = OnlyIf(symbolId, startGen)
+data class Unless(val symbolId: Int, val startGen: Int, val endGen: Int): AcceptCondition() {
+  override fun neg(): AcceptCondition = OnlyIf(symbolId, startGen, endGen)
   override val referencedRoots: RootSet = RootSet.Single(PathRoot(symbolId, startGen))
   override val hasFromNextGen: Boolean get() = false
 }
 
-data class OnlyIf(val symbolId: Int, val startGen: Int): AcceptCondition() {
-  override fun neg(): AcceptCondition = Unless(symbolId, startGen)
+data class OnlyIf(val symbolId: Int, val startGen: Int, val endGen: Int): AcceptCondition() {
+  override fun neg(): AcceptCondition = Unless(symbolId, startGen, endGen)
   override val referencedRoots: RootSet = RootSet.Single(PathRoot(symbolId, startGen))
   override val hasFromNextGen: Boolean get() = false
 }
@@ -484,16 +490,22 @@ fun evaluateAcceptCondition(
 
 var evolveTrace: Boolean = false
 
+// condPathFins: 이번 step 에서 *이번 gen 에 끝나는* finish (eager — replaceAndProgress 류).
+// lateCondPathFins: 이번 step 에서 발견됐지만 *직전 gen (gen-1) 에 끝난* finish —
+//   cond path 가 이번 input 을 매치하지 못해 죽으면서 possible_finishes 로 등록한 것.
+//   두 채널의 end gen 이 다르므로 분리해서 전달해야 bounded shape (Unless/OnlyIf) 와
+//   longest (NoLongerMatch) 가 정확한 span 으로 discharge 된다.
 fun evolveAcceptCondition(
   cond: AcceptCondition,
   condPathFins: Map<PathRoot, AcceptCondition>,
+  lateCondPathFins: Map<PathRoot, AcceptCondition>,
   activeCondPaths: Set<PathRoot>,
   gen: Int,
 ): AcceptCondition {
   if (evolveTrace) {
     println("EV TOP  cond=${cond.toString().take(300)}")
   }
-  val r = evolveAcceptCondition(cond, condPathFins, activeCondPaths, gen, emptySet(), 0)
+  val r = evolveAcceptCondition(cond, condPathFins, lateCondPathFins, activeCondPaths, gen, emptySet(), 0)
   if (evolveTrace) println("EV TOP-> ${r.toString().take(300)}")
   return r
 }
@@ -501,13 +513,14 @@ fun evolveAcceptCondition(
 private fun evolveAcceptCondition(
   cond: AcceptCondition,
   condPathFins: Map<PathRoot, AcceptCondition>,
+  lateCondPathFins: Map<PathRoot, AcceptCondition>,
   activeCondPaths: Set<PathRoot>,
   gen: Int,
   visiting: Set<PathRoot>,
   depth: Int = 0,
 ): AcceptCondition {
   fun rec(c: AcceptCondition, v: Set<PathRoot> = visiting): AcceptCondition =
-    evolveAcceptCondition(c, condPathFins, activeCondPaths, gen, v, depth + 1)
+    evolveAcceptCondition(c, condPathFins, lateCondPathFins, activeCondPaths, gen, v, depth + 1)
   val indent = "  ".repeat(depth)
   if (evolveTrace) println("${indent}EV($depth) $cond visiting=$visiting")
   val result: AcceptCondition = when (cond) {
@@ -524,64 +537,108 @@ private fun evolveAcceptCondition(
       Or.from(list)
     }
 
+    // longest: 본문 end 이후 (minEndGen 이상) 에 끝나는 매치가 없어야 한다.
+    // eager fin 의 end = gen, late fin 의 end = gen-1 — 각각 minEndGen 과 비교해
+    // 정확한 end 의 finish 만 흡수한다. root 가 살아있는 동안은 흡수 후에도
+    // pending 을 유지한다 (이전 구현은 fin 흡수 시 pending 을 버려서 이후
+    // 매치 관찰 의무가 사라졌다).
     is NoLongerMatch -> {
-      if (cond.fromNextGen) NoLongerMatch(cond.symbolId, cond.startGen, fromNextGen = false)
+      val root = PathRoot(cond.symbolId, cond.startGen)
+      if (root in visiting) Always
       else {
-        val root = PathRoot(cond.symbolId, cond.startGen)
-        val finCond = condPathFins[root]
-        if (finCond != null && root !in visiting) rec(finCond.neg(), visiting + root)
-        else if (root in visiting) Always
-        else if (root in activeCondPaths) cond
-        else Always
+        val parts = ArrayList<AcceptCondition>(3)
+        val eagerFin = if (gen >= cond.minEndGen) condPathFins[root] else null
+        val lateFin = if (gen - 1 >= cond.minEndGen) lateCondPathFins[root] else null
+        if (eagerFin != null) parts.add(rec(eagerFin.neg(), visiting + root))
+        if (lateFin != null) parts.add(rec(lateFin.neg(), visiting + root))
+        if (root in activeCondPaths) parts.add(cond)
+        if (parts.isEmpty()) Always else And.from(parts)
       }
     }
 
     is NeedLongerMatch -> {
-      if (cond.fromNextGen) NeedLongerMatch(cond.symbolId, cond.startGen, fromNextGen = false)
+      val root = PathRoot(cond.symbolId, cond.startGen)
+      if (root in visiting) Always
       else {
-        val root = PathRoot(cond.symbolId, cond.startGen)
-        val finCond = condPathFins[root]
-        if (finCond != null && root !in visiting) rec(finCond, visiting + root)
-        else if (root in visiting) Always
-        else if (root in activeCondPaths) cond
-        else Never
+        val parts = ArrayList<AcceptCondition>(3)
+        val eagerFin = if (gen >= cond.minEndGen) condPathFins[root] else null
+        val lateFin = if (gen - 1 >= cond.minEndGen) lateCondPathFins[root] else null
+        if (eagerFin != null) parts.add(rec(eagerFin, visiting + root))
+        if (lateFin != null) parts.add(rec(lateFin, visiting + root))
+        if (root in activeCondPaths) parts.add(cond)
+        if (parts.isEmpty()) Never else Or.from(parts)
       }
     }
 
+    // lookahead: startGen 에서 시작하는 매치가 (end 무관하게) 존재하는지 — eager 와
+    // late fin 모두 유효하다. root 가 살아있으면 pending 유지.
     is NotExists -> {
       val root = PathRoot(cond.symbolId, cond.startGen)
-      val finCond = condPathFins[root]
-      if (finCond != null && root !in visiting) rec(finCond.neg(), visiting + root)
-      else if (root in activeCondPaths) cond
-      else if (finCond != null) cond
-      else Always
+      if (root in visiting) cond
+      else {
+        val parts = ArrayList<AcceptCondition>(3)
+        condPathFins[root]?.let { parts.add(rec(it.neg(), visiting + root)) }
+        lateCondPathFins[root]?.let { parts.add(rec(it.neg(), visiting + root)) }
+        if (root in activeCondPaths) parts.add(cond)
+        if (parts.isEmpty()) Always else And.from(parts)
+      }
     }
 
     is Exists -> {
       val root = PathRoot(cond.symbolId, cond.startGen)
-      val finCond = condPathFins[root]
-      if (finCond != null && root !in visiting) rec(finCond, visiting + root)
-      else if (root in activeCondPaths) cond
-      else if (finCond != null) cond
-      else Never
+      if (root in visiting) cond
+      else {
+        val parts = ArrayList<AcceptCondition>(3)
+        condPathFins[root]?.let { parts.add(rec(it, visiting + root)) }
+        lateCondPathFins[root]?.let { parts.add(rec(it, visiting + root)) }
+        if (root in activeCondPaths) parts.add(cond)
+        if (parts.isEmpty()) Never else Or.from(parts)
+      }
     }
 
+    // bounded (except/join): 정확히 (startGen, endGen) span 의 매치 여부로만 결정.
+    // endGen 에 끝나는 finish 는 eager 로는 gen == endGen 에, late (죽으면서 등록)
+    // 로는 gen == endGen+1 에 관찰된다. 그 외의 finish 는 다른 span — 무시.
     is Unless -> {
       val root = PathRoot(cond.symbolId, cond.startGen)
-      val finCond = condPathFins[root]
-      if (finCond != null && root !in visiting) rec(finCond.neg(), visiting + root)
-      else if (root in activeCondPaths) cond
-      else if (finCond != null) cond
-      else Always
+      if (root in visiting) cond
+      else when {
+        gen < cond.endGen -> cond
+        gen == cond.endGen -> {
+          val finCond = condPathFins[root]
+          when {
+            finCond != null -> rec(finCond.neg(), visiting + root)
+            root in activeCondPaths -> cond // 죽으면서 등록되는 late fin 가능성 — 한 step 만 더 대기
+            else -> Always
+          }
+        }
+        gen == cond.endGen + 1 -> {
+          val lateFin = lateCondPathFins[root]
+          if (lateFin != null) rec(lateFin.neg(), visiting + root) else Always
+        }
+        else -> Always
+      }
     }
 
     is OnlyIf -> {
       val root = PathRoot(cond.symbolId, cond.startGen)
-      val finCond = condPathFins[root]
-      if (finCond != null && root !in visiting) rec(finCond, visiting + root)
-      else if (root in activeCondPaths) cond
-      else if (finCond != null) cond
-      else Never
+      if (root in visiting) cond
+      else when {
+        gen < cond.endGen -> cond
+        gen == cond.endGen -> {
+          val finCond = condPathFins[root]
+          when {
+            finCond != null -> rec(finCond, visiting + root)
+            root in activeCondPaths -> cond
+            else -> Never
+          }
+        }
+        gen == cond.endGen + 1 -> {
+          val lateFin = lateCondPathFins[root]
+          if (lateFin != null) rec(lateFin, visiting + root) else Never
+        }
+        else -> Never
+      }
     }
   }
   if (evolveTrace) println("${indent}EV($depth)-> $result")
