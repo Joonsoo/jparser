@@ -55,12 +55,12 @@ pub fn build_condition(
         ),
         Condition::NoLongerMatch(t) => {
             let start_gen = resolve_gen_i32(t.start_gen, prev_gen, mid_gen, gen_idx, grand_gen);
+            let body_end = resolve_gen_i32(t.body_end_gen, prev_gen, mid_gen, gen_idx, grand_gen);
             AcceptCondition::NoLongerMatch {
                 symbol_id: t.symbol_id,
                 start_gen,
-                // Kotlin sets fromNextGen=true at materialization time.
-                // evolveAcceptCondition strips the flag on its first pass.
-                from_next_gen: true,
+                // only matches strictly longer than the body violate the condition
+                min_end_gen: body_end + 1,
             }
         }
         Condition::LookaheadFound(t) => AcceptCondition::Exists {
@@ -74,10 +74,12 @@ pub fn build_condition(
         Condition::Except(t) => AcceptCondition::Unless {
             symbol_id: t.symbol_id,
             start_gen: resolve_gen_i32(t.start_gen, prev_gen, mid_gen, gen_idx, grand_gen),
+            end_gen: resolve_gen_i32(t.end_gen, prev_gen, mid_gen, gen_idx, grand_gen),
         },
         Condition::Join(t) => AcceptCondition::OnlyIf {
             symbol_id: t.symbol_id,
             start_gen: resolve_gen_i32(t.start_gen, prev_gen, mid_gen, gen_idx, grand_gen),
+            end_gen: resolve_gen_i32(t.end_gen, prev_gen, mid_gen, gen_idx, grand_gen),
         },
     }
 }
@@ -109,15 +111,16 @@ mod tests {
     }
 
     #[test]
-    fn no_longer_match_sets_from_next_gen_true() {
+    fn no_longer_match_min_end_is_body_end_plus_one() {
         let t = tpl(Condition::NoLongerMatch(NoLongerMatchTemplate {
             symbol_id: 5,
             start_gen: KernelTemplateGen::Curr as i32,
+            body_end_gen: KernelTemplateGen::Next as i32,
         }));
-        let result = build_condition(&t, 7, 0, 0, 0);
+        let result = build_condition(&t, 7, 0, 9, 0);
         assert_eq!(
             result,
-            AcceptCondition::NoLongerMatch { symbol_id: 5, start_gen: 7, from_next_gen: true }
+            AcceptCondition::NoLongerMatch { symbol_id: 5, start_gen: 7, min_end_gen: 10 }
         );
     }
 
@@ -146,9 +149,10 @@ mod tests {
         let t = tpl(Condition::Except(ExceptTemplate {
             symbol_id: 9,
             start_gen: KernelTemplateGen::Grand as i32,
+            end_gen: KernelTemplateGen::Next as i32,
         }));
-        let result = build_condition(&t, 0, 0, 0, 13);
-        assert_eq!(result, AcceptCondition::Unless { symbol_id: 9, start_gen: 13 });
+        let result = build_condition(&t, 0, 0, 15, 13);
+        assert_eq!(result, AcceptCondition::Unless { symbol_id: 9, start_gen: 13, end_gen: 15 });
     }
 
     #[test]
@@ -156,9 +160,10 @@ mod tests {
         let t = tpl(Condition::Join(JoinTemplate {
             symbol_id: 9,
             start_gen: KernelTemplateGen::Curr as i32,
+            end_gen: KernelTemplateGen::Next as i32,
         }));
-        let result = build_condition(&t, 14, 0, 0, 0);
-        assert_eq!(result, AcceptCondition::OnlyIf { symbol_id: 9, start_gen: 14 });
+        let result = build_condition(&t, 14, 0, 16, 0);
+        assert_eq!(result, AcceptCondition::OnlyIf { symbol_id: 9, start_gen: 14, end_gen: 16 });
     }
 
     #[test]

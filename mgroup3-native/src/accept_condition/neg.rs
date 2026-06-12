@@ -1,7 +1,7 @@
 //! Logical negation. Mirrors Kotlin `AcceptCondition.kt:118, 124, 218-222, 246,
 //! 389, 396, 402, 408, 414, 420`.
 //!
-//! `from_next_gen` is preserved across `NoLongerMatch ↔ NeedLongerMatch`.
+//! `min_end_gen` is preserved across `NoLongerMatch ↔ NeedLongerMatch`.
 //! Negation of composites flips And/Or via De Morgan and recurses through the
 //! canonical builders.
 
@@ -12,18 +12,18 @@ impl AcceptCondition {
         match self {
             AcceptCondition::Always => AcceptCondition::Never,
             AcceptCondition::Never => AcceptCondition::Always,
-            AcceptCondition::NoLongerMatch { symbol_id, start_gen, from_next_gen } => {
+            AcceptCondition::NoLongerMatch { symbol_id, start_gen, min_end_gen } => {
                 AcceptCondition::NeedLongerMatch {
                     symbol_id: *symbol_id,
                     start_gen: *start_gen,
-                    from_next_gen: *from_next_gen,
+                    min_end_gen: *min_end_gen,
                 }
             }
-            AcceptCondition::NeedLongerMatch { symbol_id, start_gen, from_next_gen } => {
+            AcceptCondition::NeedLongerMatch { symbol_id, start_gen, min_end_gen } => {
                 AcceptCondition::NoLongerMatch {
                     symbol_id: *symbol_id,
                     start_gen: *start_gen,
-                    from_next_gen: *from_next_gen,
+                    min_end_gen: *min_end_gen,
                 }
             }
             AcceptCondition::NotExists { symbol_id, start_gen } => {
@@ -32,11 +32,11 @@ impl AcceptCondition {
             AcceptCondition::Exists { symbol_id, start_gen } => {
                 AcceptCondition::NotExists { symbol_id: *symbol_id, start_gen: *start_gen }
             }
-            AcceptCondition::Unless { symbol_id, start_gen } => {
-                AcceptCondition::OnlyIf { symbol_id: *symbol_id, start_gen: *start_gen }
+            AcceptCondition::Unless { symbol_id, start_gen, end_gen } => {
+                AcceptCondition::OnlyIf { symbol_id: *symbol_id, start_gen: *start_gen, end_gen: *end_gen }
             }
-            AcceptCondition::OnlyIf { symbol_id, start_gen } => {
-                AcceptCondition::Unless { symbol_id: *symbol_id, start_gen: *start_gen }
+            AcceptCondition::OnlyIf { symbol_id, start_gen, end_gen } => {
+                AcceptCondition::Unless { symbol_id: *symbol_id, start_gen: *start_gen, end_gen: *end_gen }
             }
             AcceptCondition::And { items } => {
                 AcceptCondition::or_from(items.iter().map(|c| c.neg()))
@@ -52,11 +52,11 @@ impl AcceptCondition {
 mod tests {
     use super::*;
 
-    fn nlm(s: i32, g: i32, fng: bool) -> AcceptCondition {
-        AcceptCondition::NoLongerMatch { symbol_id: s, start_gen: g, from_next_gen: fng }
+    fn nlm(s: i32, g: i32, fng: i32) -> AcceptCondition {
+        AcceptCondition::NoLongerMatch { symbol_id: s, start_gen: g, min_end_gen: fng }
     }
-    fn need(s: i32, g: i32, fng: bool) -> AcceptCondition {
-        AcceptCondition::NeedLongerMatch { symbol_id: s, start_gen: g, from_next_gen: fng }
+    fn need(s: i32, g: i32, fng: i32) -> AcceptCondition {
+        AcceptCondition::NeedLongerMatch { symbol_id: s, start_gen: g, min_end_gen: fng }
     }
     fn ex(s: i32, g: i32) -> AcceptCondition {
         AcceptCondition::Exists { symbol_id: s, start_gen: g }
@@ -65,10 +65,10 @@ mod tests {
         AcceptCondition::NotExists { symbol_id: s, start_gen: g }
     }
     fn unless(s: i32, g: i32) -> AcceptCondition {
-        AcceptCondition::Unless { symbol_id: s, start_gen: g }
+        AcceptCondition::Unless { symbol_id: s, start_gen: g, end_gen: g }
     }
     fn only_if(s: i32, g: i32) -> AcceptCondition {
-        AcceptCondition::OnlyIf { symbol_id: s, start_gen: g }
+        AcceptCondition::OnlyIf { symbol_id: s, start_gen: g, end_gen: g }
     }
 
     #[test]
@@ -78,15 +78,15 @@ mod tests {
     }
 
     #[test]
-    fn neg_no_longer_match_preserves_from_next_gen() {
-        assert_eq!(nlm(1, 2, false).neg(), need(1, 2, false));
-        assert_eq!(nlm(1, 2, true).neg(), need(1, 2, true));
+    fn neg_no_longer_match_preserves_min_end_gen() {
+        assert_eq!(nlm(1, 2, 0).neg(), need(1, 2, 0));
+        assert_eq!(nlm(1, 2, 3).neg(), need(1, 2, 3));
     }
 
     #[test]
-    fn neg_need_longer_match_preserves_from_next_gen() {
-        assert_eq!(need(1, 2, false).neg(), nlm(1, 2, false));
-        assert_eq!(need(1, 2, true).neg(), nlm(1, 2, true));
+    fn neg_need_longer_match_preserves_min_end_gen() {
+        assert_eq!(need(1, 2, 0).neg(), nlm(1, 2, 0));
+        assert_eq!(need(1, 2, 3).neg(), nlm(1, 2, 3));
     }
 
     #[test]
@@ -119,9 +119,9 @@ mod tests {
         let cases = [
             AcceptCondition::Always,
             AcceptCondition::Never,
-            nlm(1, 2, false),
-            nlm(1, 2, true),
-            need(0, 0, true),
+            nlm(1, 2, 0),
+            nlm(1, 2, 3),
+            need(0, 0, 1),
             ex(3, 5),
             nex(3, 5),
             unless(3, 5),

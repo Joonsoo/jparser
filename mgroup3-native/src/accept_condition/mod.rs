@@ -25,12 +25,12 @@ pub use root_set::RootSet;
 pub enum AcceptCondition {
     Always,
     Never,
-    NoLongerMatch { symbol_id: i32, start_gen: i32, from_next_gen: bool },
-    NeedLongerMatch { symbol_id: i32, start_gen: i32, from_next_gen: bool },
+    NoLongerMatch { symbol_id: i32, start_gen: i32, min_end_gen: i32 },
+    NeedLongerMatch { symbol_id: i32, start_gen: i32, min_end_gen: i32 },
     NotExists { symbol_id: i32, start_gen: i32 },
     Exists { symbol_id: i32, start_gen: i32 },
-    Unless { symbol_id: i32, start_gen: i32 },
-    OnlyIf { symbol_id: i32, start_gen: i32 },
+    Unless { symbol_id: i32, start_gen: i32, end_gen: i32 },
+    OnlyIf { symbol_id: i32, start_gen: i32, end_gen: i32 },
     And { items: Vec<AcceptCondition> },
     Or { items: Vec<AcceptCondition> },
 }

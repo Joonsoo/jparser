@@ -155,12 +155,27 @@ impl Mgroup3Parser {
             initial_main_root_finish = Some(cond);
         }
 
+        // gen 0 zero-width self-finish: 초기 cond root 가 빈 span (0,0) 으로 완성
+        // 가능하면 entry 0 의 cond_path_finishes 에 등록 (빈 입력 수용; Kotlin
+        // initCtx 대응).
+        let mut initial_cond_path_finishes: HashMap<PathRoot, AcceptCondition> =
+            HashMap::default();
+        for cond_root in &initial_cond_roots {
+            if let Some(info) = self.plain.path_roots.get(&cond_root.symbol_id) {
+                if let Some(tpl) = &info.self_finish_accept_condition {
+                    initial_cond_path_finishes
+                        .insert(*cond_root, build_condition(tpl, 0, 0, 0, 0));
+                }
+            }
+        }
+
         let initial_entry = HistoryEntry {
             action_applications: initial_apps,
             finished_kernels: initial_finished,
             added_kernels: Vec::new(),
-            cond_path_finishes: HashMap::default(),
-            active_cond_paths: Default::default(),
+            cond_path_finishes: initial_cond_path_finishes,
+            late_cond_path_finishes: HashMap::default(),
+            active_cond_paths: initial_cond_roots.iter().copied().collect(),
             main_root_finish: initial_main_root_finish,
             reported_cond_roots: initial_cond_roots.into_iter().collect(),
         };
@@ -286,6 +301,8 @@ impl Mgroup3Parser {
         let mut added: Vec<AddedKernelRecord> = Vec::new();
         let mut observing: HashSet<i32> = HashSet::default();
         let mut root_progresses: HashMap<PathRoot, AcceptCondition> = HashMap::default();
+        // 죽는 cond path 의 possible-finish — end 가 직전 gen 인 late 채널.
+        let mut late_pf_progresses: HashMap<PathRoot, AcceptCondition> = HashMap::default();
         let mut cond_root_starters_from_term: HashMap<PathRoot, i32> = HashMap::default();
 
         // ----- step 1+2: main and cond paths both run through applyTermAction -----
@@ -334,7 +351,7 @@ impl Mgroup3Parser {
                                 let combined =
                                     AcceptCondition::and_from([cond.clone(), pf_cond]);
                                 if !matches!(combined, AcceptCondition::Never) {
-                                    or_merge(&mut root_progresses, *root, combined);
+                                    or_merge(&mut late_pf_progresses, *root, combined);
                                 }
                             }
                         }
@@ -343,6 +360,54 @@ impl Mgroup3Parser {
             }
             if !per_root_next.is_empty() {
                 next_paths.insert(*root, per_root_next);
+            }
+        }
+
+        // fresh / same-input 시동 판별 — NEXT 경계(next_gen)에 anchoring 된
+        // Exists/NotExists 의 root 는 span 이 새 boundary 에서 시작하므로 이번
+        // 입력을 먹이면 가짜 finish 가 생긴다. fresh 로 시동만 한다. bounded/
+        // longest 류가 참조하는 root 는 -1 anchoring (same-input). 충돌 시
+        // same-input 우선. (Kotlin classifyStarterKinds 대응.)
+        let mut fresh_lookahead_roots: HashSet<PathRoot> = HashSet::default();
+        let mut same_input_wanted: HashSet<PathRoot> = HashSet::default();
+        {
+            fn classify(
+                c: &AcceptCondition,
+                gen_idx: i32,
+                fresh: &mut HashSet<PathRoot>,
+                same: &mut HashSet<PathRoot>,
+            ) {
+                match c {
+                    AcceptCondition::And { items } | AcceptCondition::Or { items } => {
+                        for it in items {
+                            classify(it, gen_idx, fresh, same);
+                        }
+                    }
+                    AcceptCondition::Exists { symbol_id, start_gen }
+                    | AcceptCondition::NotExists { symbol_id, start_gen } => {
+                        if *start_gen == gen_idx {
+                            fresh.insert(PathRoot::new(*symbol_id, *start_gen));
+                        }
+                    }
+                    AcceptCondition::Unless { symbol_id, start_gen, .. }
+                    | AcceptCondition::OnlyIf { symbol_id, start_gen, .. }
+                    | AcceptCondition::NoLongerMatch { symbol_id, start_gen, .. }
+                    | AcceptCondition::NeedLongerMatch { symbol_id, start_gen, .. } => {
+                        same.insert(PathRoot::new(*symbol_id, *start_gen));
+                    }
+                    _ => {}
+                }
+            }
+            for pm in next_paths.values() {
+                for cond in pm.values() {
+                    classify(cond, next_gen, &mut fresh_lookahead_roots, &mut same_input_wanted);
+                }
+            }
+            for cond in root_progresses.values() {
+                classify(cond, next_gen, &mut fresh_lookahead_roots, &mut same_input_wanted);
+            }
+            for r in &same_input_wanted {
+                fresh_lookahead_roots.remove(r);
             }
         }
 
@@ -355,6 +420,9 @@ impl Mgroup3Parser {
                 continue;
             }
             if ctx.ever_seen_cond_roots.contains(&starter_root) {
+                continue;
+            }
+            if fresh_lookahead_roots.contains(&starter_root) {
                 continue;
             }
             let Some(root_info) = self.plain.path_roots.get(&starter_root.symbol_id).cloned()
@@ -458,7 +526,12 @@ impl Mgroup3Parser {
                 new_cond_root_progresses.insert(path_root, self_cond);
             }
             let starter_shape = PathShape::new(None, root_info.milestone_group_id);
-            let ta = self.find_applicable_action(&starter_shape, input);
+            // fresh lookahead root: 이번 입력을 먹이지 않고 시동만.
+            let ta = if fresh_lookahead_roots.contains(&path_root) {
+                None
+            } else {
+                self.find_applicable_action(&starter_shape, input)
+            };
             let mut starter_next_paths: PathMap = PathMap::default();
             if let Some(ta) = ta {
                 // same-input 적용 — span 은 (생성 gen - 1) 부터 (이번 gen 시작 root 에 한함).
@@ -507,6 +580,12 @@ impl Mgroup3Parser {
                 or_merge(&mut cond_path_finishes, *root, cond.clone());
             }
         }
+        let mut late_cond_path_finishes: HashMap<PathRoot, AcceptCondition> = HashMap::default();
+        for (root, cond) in &late_pf_progresses {
+            if *root != ctx.main_root {
+                late_cond_path_finishes.insert(*root, cond.clone());
+            }
+        }
 
         // ----- step 5: evolve every condition in every path -----
         let active_cond_roots: HashSet<PathRoot> = next_paths.keys().copied().collect();
@@ -517,6 +596,7 @@ impl Mgroup3Parser {
                 let evolved = evolve_accept_condition(
                     cond,
                     &cond_path_finishes,
+                    &late_cond_path_finishes,
                     &active_cond_roots,
                     next_gen,
                 );
@@ -618,6 +698,7 @@ impl Mgroup3Parser {
             added_kernels: added_dedup,
             main_root_finish: root_progresses.get(&ctx.main_root).cloned(),
             cond_path_finishes,
+            late_cond_path_finishes,
             active_cond_paths: active_cond_paths_for_history.clone(),
             reported_cond_roots,
         };
@@ -656,13 +737,54 @@ impl Mgroup3Parser {
     pub fn is_accepted(&self, ctx: &ParsingCtx) -> bool {
         let Some(last_entry) = ctx.history.last() else { return false };
         let Some(cond) = &last_entry.main_root_finish else { return false };
-        evaluate_record_condition(cond, &ctx.history, ctx.history.len() as i32 - 1)
+        let end_late = self.end_of_input_late_fins(ctx);
+        evaluate_record_condition(cond, &ctx.history, ctx.history.len() as i32 - 1, &end_late)
+    }
+
+    /// 입력 끝에서 아직 살아있는 cond path 들의 zero-width possible-finish —
+    /// 죽음이 더는 step 으로 관찰되지 않으므로 마지막 gen 에 끝나는 finish 들을
+    /// 한 번 쓸어 모아 최종 평가의 가상 late step 으로 쓴다. Kotlin
+    /// `endOfInputLateFins` 대응.
+    fn end_of_input_late_fins(&self, ctx: &ParsingCtx) -> HashMap<PathRoot, AcceptCondition> {
+        let mut result: HashMap<PathRoot, AcceptCondition> = HashMap::default();
+        for (root, path_map) in &ctx.paths {
+            if *root == ctx.main_root {
+                continue;
+            }
+            for (shape, cond) in path_map {
+                let Some(mg) = self.plain.milestone_groups.get(&shape.tip_group_id) else {
+                    continue;
+                };
+                for pf in &mg.possible_finishes {
+                    if pf.symbol_id == root.symbol_id {
+                        let prev_gen = shape
+                            .milestone_path
+                            .as_ref()
+                            .map(|mp| mp.gen_idx)
+                            .unwrap_or(root.start_gen);
+                        let pf_cond = build_condition(
+                            &pf.accept_condition,
+                            prev_gen,
+                            ctx.gen_idx,
+                            ctx.gen_idx + 1,
+                            prev_gen,
+                        );
+                        let combined = AcceptCondition::and_from([cond.clone(), pf_cond]);
+                        if !matches!(combined, AcceptCondition::Never) {
+                            or_merge(&mut result, *root, combined);
+                        }
+                    }
+                }
+            }
+        }
+        result
     }
 
     /// One `KtlibKernel` set per generation. Lazily resolves the recorded
     /// action applications: conditions via runtime bindings (replay-evaluated),
     /// kernel coordinates via report bindings. Mirrors Kotlin `kernelsHistory`.
     pub fn kernels_history(&self, ctx: &ParsingCtx) -> Vec<HashSet<KtlibKernel>> {
+        let end_late = self.end_of_input_late_fins(ctx);
         let mut out = Vec::with_capacity(ctx.history.len());
         for (gen_idx, entry) in ctx.history.iter().enumerate() {
             let gen_idx = gen_idx as i32;
@@ -670,7 +792,7 @@ impl Mgroup3Parser {
             for app in &entry.action_applications {
                 // edge action 은 구동 조건으로 전체 게이팅.
                 if !matches!(app.condition, AcceptCondition::Always)
-                    && !evaluate_record_condition(&app.condition, &ctx.history, gen_idx)
+                    && !evaluate_record_condition(&app.condition, &ctx.history, gen_idx, &end_late)
                 {
                     continue;
                 }
@@ -682,7 +804,7 @@ impl Mgroup3Parser {
                         .expect("FinishedKernelTemplate.finish_condition missing");
                     let cond =
                         build_condition(cond_tpl, app.rt_curr, app.rt_mid, app.next, app.rt_grand);
-                    if evaluate_record_condition(&cond, &ctx.history, gen_idx) {
+                    if evaluate_record_condition(&cond, &ctx.history, gen_idx, &end_late) {
                         let begin = resolve_gen_i32(
                             finished.start_gen,
                             app.rep_curr,
@@ -706,7 +828,7 @@ impl Mgroup3Parser {
                         .expect("AddedKernelTemplate.accept_condition missing");
                     let cond =
                         build_condition(cond_tpl, app.rt_curr, app.rt_mid, app.next, app.rt_grand);
-                    if evaluate_record_condition(&cond, &ctx.history, gen_idx) {
+                    if evaluate_record_condition(&cond, &ctx.history, gen_idx, &end_late) {
                         kernels.insert(KtlibKernel {
                             symbol_id: added.symbol_id,
                             pointer: added.pointer,
@@ -729,7 +851,7 @@ impl Mgroup3Parser {
                 }
             }
             for rec in &entry.finished_kernels {
-                if evaluate_record_condition(&rec.condition, &ctx.history, gen_idx) {
+                if evaluate_record_condition(&rec.condition, &ctx.history, gen_idx, &end_late) {
                     kernels.insert(KtlibKernel {
                         symbol_id: rec.kernel.symbol_id,
                         pointer: rec.kernel.pointer,
@@ -739,7 +861,7 @@ impl Mgroup3Parser {
                 }
             }
             for rec in &entry.added_kernels {
-                if evaluate_record_condition(&rec.condition, &ctx.history, gen_idx) {
+                if evaluate_record_condition(&rec.condition, &ctx.history, gen_idx, &end_late) {
                     kernels.insert(KtlibKernel {
                         symbol_id: rec.symbol_id,
                         pointer: rec.pointer,
@@ -1086,6 +1208,7 @@ pub fn evaluate_record_condition(
     cond: &AcceptCondition,
     history: &[HistoryEntry],
     record_gen: i32,
+    end_late_fins: &HashMap<PathRoot, AcceptCondition>,
 ) -> bool {
     let mut c = cond.clone();
     let len = history.len() as i32;
@@ -1098,8 +1221,26 @@ pub fn evaluate_record_condition(
             return false;
         }
         let entry = &history[g as usize];
-        c = evolve_accept_condition(&c, &entry.cond_path_finishes, &entry.active_cond_paths, g);
+        c = evolve_accept_condition(
+            &c,
+            &entry.cond_path_finishes,
+            &entry.late_cond_path_finishes,
+            &entry.active_cond_paths,
+            g,
+        );
         g += 1;
+    }
+    if matches!(c, AcceptCondition::Always) {
+        return true;
+    }
+    if matches!(c, AcceptCondition::Never) {
+        return false;
+    }
+    // 가상 late step: 입력 끝에서 살아있던 root 들의 마지막-gen zero-width finish.
+    if !end_late_fins.is_empty() {
+        let no_fins: HashMap<PathRoot, AcceptCondition> = HashMap::default();
+        let no_active: HashSet<PathRoot> = HashSet::default();
+        c = evolve_accept_condition(&c, &no_fins, end_late_fins, &no_active, len);
     }
     evaluate_at_end_of_input(&c)
 }

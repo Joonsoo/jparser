@@ -1,12 +1,16 @@
 //! `evaluate_accept_condition` and `evolve_accept_condition`.
 //!
-//! Mirror of Kotlin `AcceptCondition.kt:426-589`:
+//! Mirror of Kotlin `AcceptCondition.kt` after the exact-span discharge fix:
 //! - `evaluate_accept_condition`: pure walker. No history; per-leaf table reads
 //!   from `cond_path_fins`.
-//! - `evolve_accept_condition`: walks the tree, expanding leaves whose root has
-//!   a `condPathFins` entry. The `visiting` set prevents infinite recursion on
-//!   self-referential fins; the cycle-fallback per variant follows the table in
-//!   the plan.
+//! - `evolve_accept_condition`: per-generation rewrite. Two finish channels:
+//!   `cond_path_fins` (eager — finishes ending at `gen_idx`) and
+//!   `late_cond_path_fins` (registered by dying cond paths — finishes ending
+//!   at `gen_idx - 1`). Bounded shapes (Unless/OnlyIf) discharge only at their
+//!   exact `end_gen` (eager at `gen == end`, late at `gen == end + 1`);
+//!   NoLongerMatch/NeedLongerMatch absorb only finishes with end >= min_end_gen
+//!   and keep their pending obligation while the root lives; NotExists/Exists
+//!   absorb both channels and stay pending while the root lives.
 
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -32,42 +36,18 @@ pub fn evaluate_accept_condition(
             .iter()
             .any(|c| evaluate_accept_condition(c, cond_path_fins, active_cond_paths)),
 
-        AcceptCondition::NoLongerMatch { symbol_id, start_gen, .. } => {
+        AcceptCondition::NoLongerMatch { symbol_id, start_gen, .. }
+        | AcceptCondition::NotExists { symbol_id, start_gen }
+        | AcceptCondition::Unless { symbol_id, start_gen, .. } => {
             let root = PathRoot::new(*symbol_id, *start_gen);
             match cond_path_fins.get(&root) {
                 Some(fin) => !evaluate_accept_condition(fin, cond_path_fins, active_cond_paths),
                 None => true,
             }
         }
-        AcceptCondition::NeedLongerMatch { symbol_id, start_gen, .. } => {
-            let root = PathRoot::new(*symbol_id, *start_gen);
-            match cond_path_fins.get(&root) {
-                Some(fin) => evaluate_accept_condition(fin, cond_path_fins, active_cond_paths),
-                None => false,
-            }
-        }
-        AcceptCondition::NotExists { symbol_id, start_gen } => {
-            let root = PathRoot::new(*symbol_id, *start_gen);
-            match cond_path_fins.get(&root) {
-                Some(fin) => !evaluate_accept_condition(fin, cond_path_fins, active_cond_paths),
-                None => true,
-            }
-        }
-        AcceptCondition::Exists { symbol_id, start_gen } => {
-            let root = PathRoot::new(*symbol_id, *start_gen);
-            match cond_path_fins.get(&root) {
-                Some(fin) => evaluate_accept_condition(fin, cond_path_fins, active_cond_paths),
-                None => false,
-            }
-        }
-        AcceptCondition::Unless { symbol_id, start_gen } => {
-            let root = PathRoot::new(*symbol_id, *start_gen);
-            match cond_path_fins.get(&root) {
-                Some(fin) => !evaluate_accept_condition(fin, cond_path_fins, active_cond_paths),
-                None => true,
-            }
-        }
-        AcceptCondition::OnlyIf { symbol_id, start_gen } => {
+        AcceptCondition::NeedLongerMatch { symbol_id, start_gen, .. }
+        | AcceptCondition::Exists { symbol_id, start_gen }
+        | AcceptCondition::OnlyIf { symbol_id, start_gen, .. } => {
             let root = PathRoot::new(*symbol_id, *start_gen);
             match cond_path_fins.get(&root) {
                 Some(fin) => evaluate_accept_condition(fin, cond_path_fins, active_cond_paths),
@@ -77,193 +57,205 @@ pub fn evaluate_accept_condition(
     }
 }
 
-/// Public entry. Walks `cond` rewriting leaves whose root has an entry in
-/// `cond_path_fins`. The `gen` parameter is currently unused by the walker; it
-/// is plumbed through so the signature lines up with the Kotlin parser hooks
-/// that will land in Step 3+.
+/// Public entry. See module docs for the two finish channels and per-shape
+/// discharge rules.
 pub fn evolve_accept_condition(
     cond: &AcceptCondition,
     cond_path_fins: &HashMap<PathRoot, AcceptCondition>,
+    late_cond_path_fins: &HashMap<PathRoot, AcceptCondition>,
     active_cond_paths: &HashSet<PathRoot>,
     gen_idx: i32,
 ) -> AcceptCondition {
     let visiting = HashSet::default();
-    evolve_inner(cond, cond_path_fins, active_cond_paths, gen_idx, &visiting)
+    evolve_inner(cond, cond_path_fins, late_cond_path_fins, active_cond_paths, gen_idx, &visiting)
 }
 
 fn evolve_inner(
     cond: &AcceptCondition,
     cond_path_fins: &HashMap<PathRoot, AcceptCondition>,
+    late_cond_path_fins: &HashMap<PathRoot, AcceptCondition>,
     active_cond_paths: &HashSet<PathRoot>,
     gen_idx: i32,
     visiting: &HashSet<PathRoot>,
 ) -> AcceptCondition {
+    let rec = |c: &AcceptCondition, v: &HashSet<PathRoot>| {
+        evolve_inner(c, cond_path_fins, late_cond_path_fins, active_cond_paths, gen_idx, v)
+    };
     match cond {
         AcceptCondition::Always | AcceptCondition::Never => cond.clone(),
         AcceptCondition::And { items } => {
-            let evolved: Vec<_> = items
-                .iter()
-                .map(|c| evolve_inner(c, cond_path_fins, active_cond_paths, gen_idx, visiting))
-                .collect();
+            let evolved: Vec<_> = items.iter().map(|c| rec(c, visiting)).collect();
             AcceptCondition::and_from(evolved)
         }
         AcceptCondition::Or { items } => {
-            let evolved: Vec<_> = items
-                .iter()
-                .map(|c| evolve_inner(c, cond_path_fins, active_cond_paths, gen_idx, visiting))
-                .collect();
+            let evolved: Vec<_> = items.iter().map(|c| rec(c, visiting)).collect();
             AcceptCondition::or_from(evolved)
         }
-        AcceptCondition::NoLongerMatch { symbol_id, start_gen, from_next_gen } => {
-            if *from_next_gen {
-                AcceptCondition::NoLongerMatch {
-                    symbol_id: *symbol_id,
-                    start_gen: *start_gen,
-                    from_next_gen: false,
+
+        // longest: only matches strictly longer than the body (end >= min_end_gen)
+        // violate the condition. Eager fins end at gen_idx, late fins at gen_idx-1.
+        // Keep the pending obligation while the root lives.
+        AcceptCondition::NoLongerMatch { symbol_id, start_gen, min_end_gen } => {
+            let root = PathRoot::new(*symbol_id, *start_gen);
+            if visiting.contains(&root) {
+                return AcceptCondition::Always;
+            }
+            let mut parts: Vec<AcceptCondition> = Vec::new();
+            if gen_idx >= *min_end_gen {
+                if let Some(fin) = cond_path_fins.get(&root) {
+                    let nv = with_added(visiting, root);
+                    parts.push(rec(&fin.neg(), &nv));
                 }
+            }
+            if gen_idx - 1 >= *min_end_gen {
+                if let Some(fin) = late_cond_path_fins.get(&root) {
+                    let nv = with_added(visiting, root);
+                    parts.push(rec(&fin.neg(), &nv));
+                }
+            }
+            if active_cond_paths.contains(&root) {
+                parts.push(cond.clone());
+            }
+            if parts.is_empty() {
+                AcceptCondition::Always
             } else {
-                let root = PathRoot::new(*symbol_id, *start_gen);
-                let fin = cond_path_fins.get(&root);
-                if let Some(fin) = fin {
-                    if !visiting.contains(&root) {
-                        let next_visiting = with_added(visiting, root);
-                        return evolve_inner(
-                            &fin.neg(),
-                            cond_path_fins,
-                            active_cond_paths,
-                            gen_idx,
-                            &next_visiting,
-                        );
-                    }
+                AcceptCondition::and_from(parts)
+            }
+        }
+
+        AcceptCondition::NeedLongerMatch { symbol_id, start_gen, min_end_gen } => {
+            let root = PathRoot::new(*symbol_id, *start_gen);
+            if visiting.contains(&root) {
+                return AcceptCondition::Always;
+            }
+            let mut parts: Vec<AcceptCondition> = Vec::new();
+            if gen_idx >= *min_end_gen {
+                if let Some(fin) = cond_path_fins.get(&root) {
+                    let nv = with_added(visiting, root);
+                    parts.push(rec(fin, &nv));
                 }
-                if visiting.contains(&root) {
-                    AcceptCondition::Always
+            }
+            if gen_idx - 1 >= *min_end_gen {
+                if let Some(fin) = late_cond_path_fins.get(&root) {
+                    let nv = with_added(visiting, root);
+                    parts.push(rec(fin, &nv));
+                }
+            }
+            if active_cond_paths.contains(&root) {
+                parts.push(cond.clone());
+            }
+            if parts.is_empty() {
+                AcceptCondition::Never
+            } else {
+                AcceptCondition::or_from(parts)
+            }
+        }
+
+        // lookahead: any end counts — absorb both channels; keep pending while
+        // the root lives.
+        AcceptCondition::NotExists { symbol_id, start_gen } => {
+            let root = PathRoot::new(*symbol_id, *start_gen);
+            if visiting.contains(&root) {
+                return cond.clone();
+            }
+            let mut parts: Vec<AcceptCondition> = Vec::new();
+            if let Some(fin) = cond_path_fins.get(&root) {
+                let nv = with_added(visiting, root);
+                parts.push(rec(&fin.neg(), &nv));
+            }
+            if let Some(fin) = late_cond_path_fins.get(&root) {
+                let nv = with_added(visiting, root);
+                parts.push(rec(&fin.neg(), &nv));
+            }
+            if active_cond_paths.contains(&root) {
+                parts.push(cond.clone());
+            }
+            if parts.is_empty() {
+                AcceptCondition::Always
+            } else {
+                AcceptCondition::and_from(parts)
+            }
+        }
+
+        AcceptCondition::Exists { symbol_id, start_gen } => {
+            let root = PathRoot::new(*symbol_id, *start_gen);
+            if visiting.contains(&root) {
+                return cond.clone();
+            }
+            let mut parts: Vec<AcceptCondition> = Vec::new();
+            if let Some(fin) = cond_path_fins.get(&root) {
+                let nv = with_added(visiting, root);
+                parts.push(rec(fin, &nv));
+            }
+            if let Some(fin) = late_cond_path_fins.get(&root) {
+                let nv = with_added(visiting, root);
+                parts.push(rec(fin, &nv));
+            }
+            if active_cond_paths.contains(&root) {
+                parts.push(cond.clone());
+            }
+            if parts.is_empty() {
+                AcceptCondition::Never
+            } else {
+                AcceptCondition::or_from(parts)
+            }
+        }
+
+        // bounded (except/join): only the exact (start, end) span decides.
+        // A finish ending at end_gen is seen eagerly at gen == end_gen, or as a
+        // late registration at gen == end_gen + 1; anything else is another span.
+        AcceptCondition::Unless { symbol_id, start_gen, end_gen } => {
+            let root = PathRoot::new(*symbol_id, *start_gen);
+            if visiting.contains(&root) {
+                return cond.clone();
+            }
+            if gen_idx < *end_gen {
+                cond.clone()
+            } else if gen_idx == *end_gen {
+                if let Some(fin) = cond_path_fins.get(&root) {
+                    let nv = with_added(visiting, root);
+                    rec(&fin.neg(), &nv)
                 } else if active_cond_paths.contains(&root) {
+                    // a late finish may still surface when the root dies next step
                     cond.clone()
                 } else {
                     AcceptCondition::Always
                 }
-            }
-        }
-        AcceptCondition::NeedLongerMatch { symbol_id, start_gen, from_next_gen } => {
-            if *from_next_gen {
-                AcceptCondition::NeedLongerMatch {
-                    symbol_id: *symbol_id,
-                    start_gen: *start_gen,
-                    from_next_gen: false,
+            } else if gen_idx == *end_gen + 1 {
+                if let Some(fin) = late_cond_path_fins.get(&root) {
+                    let nv = with_added(visiting, root);
+                    rec(&fin.neg(), &nv)
+                } else {
+                    AcceptCondition::Always
                 }
             } else {
-                let root = PathRoot::new(*symbol_id, *start_gen);
-                let fin = cond_path_fins.get(&root);
-                if let Some(fin) = fin {
-                    if !visiting.contains(&root) {
-                        let next_visiting = with_added(visiting, root);
-                        return evolve_inner(
-                            fin,
-                            cond_path_fins,
-                            active_cond_paths,
-                            gen_idx,
-                            &next_visiting,
-                        );
-                    }
-                }
-                if visiting.contains(&root) {
-                    AcceptCondition::Always
+                AcceptCondition::Always
+            }
+        }
+
+        AcceptCondition::OnlyIf { symbol_id, start_gen, end_gen } => {
+            let root = PathRoot::new(*symbol_id, *start_gen);
+            if visiting.contains(&root) {
+                return cond.clone();
+            }
+            if gen_idx < *end_gen {
+                cond.clone()
+            } else if gen_idx == *end_gen {
+                if let Some(fin) = cond_path_fins.get(&root) {
+                    let nv = with_added(visiting, root);
+                    rec(fin, &nv)
                 } else if active_cond_paths.contains(&root) {
                     cond.clone()
                 } else {
                     AcceptCondition::Never
                 }
-            }
-        }
-        AcceptCondition::NotExists { symbol_id, start_gen } => {
-            let root = PathRoot::new(*symbol_id, *start_gen);
-            let fin = cond_path_fins.get(&root);
-            if let Some(fin) = fin {
-                if !visiting.contains(&root) {
-                    let next_visiting = with_added(visiting, root);
-                    return evolve_inner(
-                        &fin.neg(),
-                        cond_path_fins,
-                        active_cond_paths,
-                        gen_idx,
-                        &next_visiting,
-                    );
+            } else if gen_idx == *end_gen + 1 {
+                if let Some(fin) = late_cond_path_fins.get(&root) {
+                    let nv = with_added(visiting, root);
+                    rec(fin, &nv)
+                } else {
+                    AcceptCondition::Never
                 }
-            }
-            if active_cond_paths.contains(&root) {
-                cond.clone()
-            } else if fin.is_some() {
-                cond.clone()
-            } else {
-                AcceptCondition::Always
-            }
-        }
-        AcceptCondition::Exists { symbol_id, start_gen } => {
-            let root = PathRoot::new(*symbol_id, *start_gen);
-            let fin = cond_path_fins.get(&root);
-            if let Some(fin) = fin {
-                if !visiting.contains(&root) {
-                    let next_visiting = with_added(visiting, root);
-                    return evolve_inner(
-                        fin,
-                        cond_path_fins,
-                        active_cond_paths,
-                        gen_idx,
-                        &next_visiting,
-                    );
-                }
-            }
-            if active_cond_paths.contains(&root) {
-                cond.clone()
-            } else if fin.is_some() {
-                cond.clone()
-            } else {
-                AcceptCondition::Never
-            }
-        }
-        AcceptCondition::Unless { symbol_id, start_gen } => {
-            let root = PathRoot::new(*symbol_id, *start_gen);
-            let fin = cond_path_fins.get(&root);
-            if let Some(fin) = fin {
-                if !visiting.contains(&root) {
-                    let next_visiting = with_added(visiting, root);
-                    return evolve_inner(
-                        &fin.neg(),
-                        cond_path_fins,
-                        active_cond_paths,
-                        gen_idx,
-                        &next_visiting,
-                    );
-                }
-            }
-            if active_cond_paths.contains(&root) {
-                cond.clone()
-            } else if fin.is_some() {
-                cond.clone()
-            } else {
-                AcceptCondition::Always
-            }
-        }
-        AcceptCondition::OnlyIf { symbol_id, start_gen } => {
-            let root = PathRoot::new(*symbol_id, *start_gen);
-            let fin = cond_path_fins.get(&root);
-            if let Some(fin) = fin {
-                if !visiting.contains(&root) {
-                    let next_visiting = with_added(visiting, root);
-                    return evolve_inner(
-                        fin,
-                        cond_path_fins,
-                        active_cond_paths,
-                        gen_idx,
-                        &next_visiting,
-                    );
-                }
-            }
-            if active_cond_paths.contains(&root) {
-                cond.clone()
-            } else if fin.is_some() {
-                cond.clone()
             } else {
                 AcceptCondition::Never
             }
@@ -284,271 +276,132 @@ mod tests {
     fn pr(s: i32, g: i32) -> PathRoot {
         PathRoot::new(s, g)
     }
-    fn ex(s: i32, g: i32) -> AcceptCondition {
-        AcceptCondition::Exists { symbol_id: s, start_gen: g }
-    }
     fn nex(s: i32, g: i32) -> AcceptCondition {
         AcceptCondition::NotExists { symbol_id: s, start_gen: g }
     }
-    fn nlm(s: i32, g: i32) -> AcceptCondition {
-        AcceptCondition::NoLongerMatch { symbol_id: s, start_gen: g, from_next_gen: false }
+    fn nlm(s: i32, g: i32, m: i32) -> AcceptCondition {
+        AcceptCondition::NoLongerMatch { symbol_id: s, start_gen: g, min_end_gen: m }
     }
-    fn need(s: i32, g: i32) -> AcceptCondition {
-        AcceptCondition::NeedLongerMatch { symbol_id: s, start_gen: g, from_next_gen: false }
-    }
-    fn unless(s: i32, g: i32) -> AcceptCondition {
-        AcceptCondition::Unless { symbol_id: s, start_gen: g }
-    }
-    fn only_if(s: i32, g: i32) -> AcceptCondition {
-        AcceptCondition::OnlyIf { symbol_id: s, start_gen: g }
+    fn unless(s: i32, b: i32, e: i32) -> AcceptCondition {
+        AcceptCondition::Unless { symbol_id: s, start_gen: b, end_gen: e }
     }
 
-    fn empty_active() -> HashSet<PathRoot> {
-        HashSet::default()
+    fn no_fins() -> HashMap<PathRoot, AcceptCondition> {
+        HashMap::default()
     }
-
     fn fins(items: Vec<(PathRoot, AcceptCondition)>) -> HashMap<PathRoot, AcceptCondition> {
+        items.into_iter().collect()
+    }
+    fn active(items: Vec<PathRoot>) -> HashSet<PathRoot> {
         items.into_iter().collect()
     }
 
     #[test]
-    fn always_never() {
-        let f = HashMap::default();
-        let a = empty_active();
+    fn evaluate_constants() {
+        let f = no_fins();
+        let a = active(vec![]);
         assert!(evaluate_accept_condition(&AcceptCondition::Always, &f, &a));
         assert!(!evaluate_accept_condition(&AcceptCondition::Never, &f, &a));
     }
 
     #[test]
-    fn no_longer_match_no_fin_is_true() {
-        let f = HashMap::default();
-        let a = empty_active();
-        assert!(evaluate_accept_condition(&nlm(1, 2), &f, &a));
-    }
-
-    #[test]
-    fn no_longer_match_with_true_fin_is_false() {
+    fn unless_eager_absorbs_only_at_end_gen() {
         let f = fins(vec![(pr(1, 2), AcceptCondition::Always)]);
-        let a = empty_active();
-        assert!(!evaluate_accept_condition(&nlm(1, 2), &f, &a));
-    }
-
-    #[test]
-    fn need_longer_match_no_fin_is_false() {
-        let f = HashMap::default();
-        let a = empty_active();
-        assert!(!evaluate_accept_condition(&need(1, 2), &f, &a));
-    }
-
-    #[test]
-    fn need_longer_match_with_true_fin_is_true() {
-        let f = fins(vec![(pr(1, 2), AcceptCondition::Always)]);
-        let a = empty_active();
-        assert!(evaluate_accept_condition(&need(1, 2), &f, &a));
-    }
-
-    #[test]
-    fn exists_family_with_and_without_fin() {
-        let f = fins(vec![(pr(1, 2), AcceptCondition::Always)]);
-        let a = empty_active();
-        assert!(evaluate_accept_condition(&ex(1, 2), &f, &a));
-        assert!(!evaluate_accept_condition(&ex(9, 9), &f, &a)); // no fin
-        assert!(!evaluate_accept_condition(&nex(1, 2), &f, &a));
-        assert!(evaluate_accept_condition(&nex(9, 9), &f, &a));
-        assert!(!evaluate_accept_condition(&unless(1, 2), &f, &a));
-        assert!(evaluate_accept_condition(&unless(9, 9), &f, &a));
-        assert!(evaluate_accept_condition(&only_if(1, 2), &f, &a));
-        assert!(!evaluate_accept_condition(&only_if(9, 9), &f, &a));
-    }
-
-    #[test]
-    fn and_all_true_or_any_true() {
-        let f = fins(vec![
-            (pr(1, 0), AcceptCondition::Always),
-            (pr(2, 0), AcceptCondition::Always),
-        ]);
-        let a = empty_active();
-        let cand = AcceptCondition::and_from([ex(1, 0), ex(2, 0)]);
-        assert!(evaluate_accept_condition(&cand, &f, &a));
-
-        let f_partial = fins(vec![(pr(1, 0), AcceptCondition::Always)]);
-        assert!(!evaluate_accept_condition(&cand, &f_partial, &a));
-
-        let cor = AcceptCondition::or_from([ex(1, 0), ex(2, 0)]);
-        assert!(evaluate_accept_condition(&cor, &f_partial, &a));
-    }
-
-    #[test]
-    fn nested_fin_recurses() {
-        // root pr(1,0) has fin Exists(2,0); root pr(2,0) has fin Always.
-        // Eval of Exists(1,0) recurses through both.
-        let f = fins(vec![
-            (pr(1, 0), ex(2, 0)),
-            (pr(2, 0), AcceptCondition::Always),
-        ]);
-        let a = empty_active();
-        assert!(evaluate_accept_condition(&ex(1, 0), &f, &a));
-    }
-
-    // ---- evolve tests ----
-
-    fn active_with(roots: &[PathRoot]) -> HashSet<PathRoot> {
-        roots.iter().copied().collect()
-    }
-
-    #[test]
-    fn evolve_constants_passthrough() {
-        let f = HashMap::default();
-        let a = empty_active();
+        let l = no_fins();
+        let a = active(vec![]);
+        // gen == end: fin present -> Never
         assert_eq!(
-            evolve_accept_condition(&AcceptCondition::Always, &f, &a, 0),
+            evolve_accept_condition(&unless(1, 2, 5), &f, &l, &a, 5),
+            AcceptCondition::Never
+        );
+        // gen > end+1: fin of another span is ignored -> Always
+        assert_eq!(
+            evolve_accept_condition(&unless(1, 2, 4), &f, &l, &a, 6),
             AcceptCondition::Always
         );
+        // gen < end: pending
         assert_eq!(
-            evolve_accept_condition(&AcceptCondition::Never, &f, &a, 0),
+            evolve_accept_condition(&unless(1, 2, 7), &f, &l, &a, 5),
+            unless(1, 2, 7)
+        );
+    }
+
+    #[test]
+    fn unless_waits_one_step_for_late_fin() {
+        let f = no_fins();
+        let l = no_fins();
+        let a = active(vec![pr(1, 2)]);
+        // root alive at end gen, no eager fin -> wait for late
+        assert_eq!(
+            evolve_accept_condition(&unless(1, 2, 5), &f, &l, &a, 5),
+            unless(1, 2, 5)
+        );
+        // late fin at end+1 -> absorb
+        let l2 = fins(vec![(pr(1, 2), AcceptCondition::Always)]);
+        assert_eq!(
+            evolve_accept_condition(&unless(1, 2, 5), &f, &l2, &active(vec![]), 6),
+            AcceptCondition::Never
+        );
+        // no late fin at end+1 -> resolved Always
+        assert_eq!(
+            evolve_accept_condition(&unless(1, 2, 5), &f, &no_fins(), &active(vec![]), 6),
+            AcceptCondition::Always
+        );
+    }
+
+    #[test]
+    fn no_longer_match_respects_min_end_gen() {
+        let f = fins(vec![(pr(1, 2), AcceptCondition::Always)]);
+        let l = no_fins();
+        let a = active(vec![]);
+        // fin ends at gen 5 < min_end 6: ignored -> Always
+        assert_eq!(
+            evolve_accept_condition(&nlm(1, 2, 6), &f, &l, &a, 5),
+            AcceptCondition::Always
+        );
+        // fin ends at gen 6 >= min_end 6: absorbed -> Never
+        assert_eq!(
+            evolve_accept_condition(&nlm(1, 2, 6), &f, &l, &a, 6),
             AcceptCondition::Never
         );
     }
 
     #[test]
-    fn evolve_strips_from_next_gen() {
-        let f = HashMap::default();
-        let a = empty_active();
-        let c =
-            AcceptCondition::NoLongerMatch { symbol_id: 1, start_gen: 2, from_next_gen: true };
-        let expected = AcceptCondition::NoLongerMatch {
-            symbol_id: 1,
-            start_gen: 2,
-            from_next_gen: false,
-        };
-        assert_eq!(evolve_accept_condition(&c, &f, &a, 0), expected);
-
-        let c2 =
-            AcceptCondition::NeedLongerMatch { symbol_id: 1, start_gen: 2, from_next_gen: true };
-        let expected2 = AcceptCondition::NeedLongerMatch {
-            symbol_id: 1,
-            start_gen: 2,
-            from_next_gen: false,
-        };
-        assert_eq!(evolve_accept_condition(&c2, &f, &a, 0), expected2);
-    }
-
-    #[test]
-    fn evolve_nlm_no_fin_no_active_is_always() {
-        let f = HashMap::default();
-        let a = empty_active();
-        let c = nlm(1, 2);
-        assert_eq!(evolve_accept_condition(&c, &f, &a, 0), AcceptCondition::Always);
-    }
-
-    #[test]
-    fn evolve_nlm_active_keeps_cond() {
-        let f = HashMap::default();
-        let a = active_with(&[pr(1, 2)]);
-        let c = nlm(1, 2);
-        assert_eq!(evolve_accept_condition(&c, &f, &a, 0), c);
-    }
-
-    #[test]
-    fn evolve_nlm_with_fin_expands_neg() {
-        // fin pr(1,2) = Always → !Always = Never
-        let f = fins(vec![(pr(1, 2), AcceptCondition::Always)]);
-        let a = empty_active();
-        assert_eq!(evolve_accept_condition(&nlm(1, 2), &f, &a, 0), AcceptCondition::Never);
-    }
-
-    #[test]
-    fn evolve_need_no_fin_no_active_is_never() {
-        let f = HashMap::default();
-        let a = empty_active();
-        assert_eq!(evolve_accept_condition(&need(1, 2), &f, &a, 0), AcceptCondition::Never);
-    }
-
-    #[test]
-    fn evolve_need_with_fin_expands() {
-        let f = fins(vec![(pr(1, 2), AcceptCondition::Always)]);
-        let a = empty_active();
-        assert_eq!(evolve_accept_condition(&need(1, 2), &f, &a, 0), AcceptCondition::Always);
-    }
-
-    #[test]
-    fn evolve_exists_no_fin_no_active_is_never() {
-        let f = HashMap::default();
-        let a = empty_active();
-        assert_eq!(evolve_accept_condition(&ex(1, 2), &f, &a, 0), AcceptCondition::Never);
-    }
-
-    #[test]
-    fn evolve_notexists_no_fin_no_active_is_always() {
-        let f = HashMap::default();
-        let a = empty_active();
-        assert_eq!(evolve_accept_condition(&nex(1, 2), &f, &a, 0), AcceptCondition::Always);
-    }
-
-    #[test]
-    fn evolve_unless_no_fin_no_active_is_always() {
-        let f = HashMap::default();
-        let a = empty_active();
-        assert_eq!(evolve_accept_condition(&unless(1, 2), &f, &a, 0), AcceptCondition::Always);
-    }
-
-    #[test]
-    fn evolve_only_if_no_fin_no_active_is_never() {
-        let f = HashMap::default();
-        let a = empty_active();
-        assert_eq!(evolve_accept_condition(&only_if(1, 2), &f, &a, 0), AcceptCondition::Never);
-    }
-
-    #[test]
-    fn evolve_cycle_nlm_falls_back_to_always() {
-        // fin pr(1,0) references the same root (cycle).
-        // First descent: visiting={}, fin found → recurse fin.neg() with visiting={pr(1,0)}.
-        // fin.neg() = NeedLongerMatch(1,0). Recurse with visiting={pr(1,0)} but no fin
-        // entry for any new root → wait, fin IS Exists(1,0) below. Let's craft cleaner:
-        // fin = NoLongerMatch(1,0) itself. Then fin.neg() = NeedLongerMatch(1,0), and the
-        // root of that leaf is pr(1,0), which is in visiting → falls back to Always.
-        let f = fins(vec![(pr(1, 0), nlm(1, 0))]);
-        let a = empty_active();
-        assert_eq!(evolve_accept_condition(&nlm(1, 0), &f, &a, 0), AcceptCondition::Always);
-    }
-
-    #[test]
-    fn evolve_cycle_exists_falls_back_appropriately() {
-        // fin pr(1,0) = Exists(1,0). Eval Exists(1,0):
-        //   visiting={}, fin found, !visiting → recurse fin with visiting={pr(1,0)}.
-        //   fin = Exists(1,0). Now root in visiting. fin lookup hits cond_path_fins again
-        //   but visiting blocks recursion → fall through. fin.is_some() && !active → return cond.
-        let f = fins(vec![(pr(1, 0), ex(1, 0))]);
-        let a = empty_active();
-        // The walker returns the leaf with fin.is_some() && !active branch.
-        // Hard to assert exact form without running; verify result is deterministic and finite.
-        let result = evolve_accept_condition(&ex(1, 0), &f, &a, 0);
-        // It should not panic / loop. The exact form for Exists cycle is `cond` (the inner ex).
-        assert_eq!(result, ex(1, 0));
-    }
-
-    #[test]
-    fn evolve_recurses_through_and() {
-        let f = fins(vec![
-            (pr(1, 0), AcceptCondition::Always),
-            (pr(2, 0), AcceptCondition::Never),
+    fn no_longer_match_keeps_pending_after_conditional_fin() {
+        let fin_cond = nex(9, 9);
+        let f = fins(vec![(pr(1, 2), fin_cond.clone())]);
+        let l = no_fins();
+        let a = active(vec![pr(1, 2), pr(9, 9)]);
+        let result = evolve_accept_condition(&nlm(1, 2, 3), &f, &l, &a, 4);
+        // ¬fin ∧ still-pending — both parts must be present
+        let expected = AcceptCondition::and_from([
+            AcceptCondition::Exists { symbol_id: 9, start_gen: 9 },
+            nlm(1, 2, 3),
         ]);
-        let a = empty_active();
-        // And(Exists(1), Exists(2)) → Exists(1) evolves to Always (via fin), Exists(2) to Never.
-        // And(Always, Never) → Never.
-        let c = AcceptCondition::and_from([ex(1, 0), ex(2, 0)]);
-        assert_eq!(evolve_accept_condition(&c, &f, &a, 0), AcceptCondition::Never);
+        assert_eq!(result, expected);
     }
 
     #[test]
-    fn evolve_recurses_through_or() {
-        let f = fins(vec![
-            (pr(1, 0), AcceptCondition::Always),
-            (pr(2, 0), AcceptCondition::Never),
-        ]);
-        let a = empty_active();
-        let c = AcceptCondition::or_from([ex(1, 0), ex(2, 0)]);
-        // Or(Always, Never) → Always
-        assert_eq!(evolve_accept_condition(&c, &f, &a, 0), AcceptCondition::Always);
+    fn not_exists_absorbs_late_fins() {
+        let f = no_fins();
+        let l = fins(vec![(pr(1, 2), AcceptCondition::Always)]);
+        let a = active(vec![]);
+        assert_eq!(
+            evolve_accept_condition(&nex(1, 2), &f, &l, &a, 7),
+            AcceptCondition::Never
+        );
+    }
+
+    #[test]
+    fn not_exists_pending_while_root_alive() {
+        let f = no_fins();
+        let l = no_fins();
+        let a = active(vec![pr(1, 2)]);
+        assert_eq!(evolve_accept_condition(&nex(1, 2), &f, &l, &a, 7), nex(1, 2));
+        // root dead, nothing seen -> Always
+        assert_eq!(
+            evolve_accept_condition(&nex(1, 2), &f, &l, &active(vec![]), 7),
+            AcceptCondition::Always
+        );
     }
 }

@@ -519,11 +519,40 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
 
     tPhase = phaseMark(0, tPhase)
 
+    // fresh / same-input 시동 판별 — 조건 leaf 의 종류와 anchoring 으로 결정:
+    //  - NEXT 경계(gen)에 anchoring 된 Exists/NotExists 의 root: span 이 새 boundary
+    //    에서 시작 → 첫 글자는 다음 step 입력. 이번 입력(position gen-1)을 먹이면
+    //    가짜 finish 가 생긴다 (maximal-munch: 'abc' 의 watcher 가 'c' 를 보고 즉시
+    //    매치 → NotExists 오판). fresh 로 시동만 한다.
+    //  - Unless/OnlyIf/NoLongerMatch 류가 참조하는 root (-1 anchoring): span 이
+    //    gen-1 에서 시작 → same-input 이 맞다. 같은 root 를 두 종류가 동시에
+    //    참조하면 same-input 우선.
+    val freshLookaheadRoots = HashSet<PathRoot>()
+    val sameInputWantedRoots = HashSet<PathRoot>()
+    fun classifyStarterKinds(c: AcceptCondition) {
+      when (c) {
+        is And -> c.forEach { classifyStarterKinds(it) }
+        is Or -> c.forEach { classifyStarterKinds(it) }
+        is Exists -> if (c.startGen == gen) freshLookaheadRoots.add(PathRoot(c.symbolId, c.startGen))
+        is NotExists -> if (c.startGen == gen) freshLookaheadRoots.add(PathRoot(c.symbolId, c.startGen))
+        is Unless -> sameInputWantedRoots.add(PathRoot(c.symbolId, c.startGen))
+        is OnlyIf -> sameInputWantedRoots.add(PathRoot(c.symbolId, c.startGen))
+        is NoLongerMatch -> sameInputWantedRoots.add(PathRoot(c.symbolId, c.startGen))
+        is NeedLongerMatch -> sameInputWantedRoots.add(PathRoot(c.symbolId, c.startGen))
+        else -> {}
+      }
+    }
+    nextPaths.values.forEach { pm -> pm.values.forEach { classifyStarterKinds(it) } }
+    rootProgresses.values.forEach { classifyStarterKinds(it) }
+    freshLookaheadRoots.removeAll(sameInputWantedRoots)
+
     // step 1b: main path 가 새 milestone 추가 시 같이 등록된 cond root starter 들에 같은 input 적용.
+    // (fresh lookahead root 는 시동만 — step 3 의 fresh seeding 이 처리.)
     for ((starterRoot, mgroupId) in condRootStartersFromTerm) {
       if (starterRoot in ctx.paths.keys) continue
       if (starterRoot in nextPaths.keys) continue
       if (starterRoot in ctx.everSeenCondRoots) continue
+      if (starterRoot in freshLookaheadRoots) continue
       val rootInfo = plain.pathRoots[starterRoot.symbolId] ?: continue
       val starterShape = PathShape(null, mgroupId)
       val ta = findApplicableAction(starterShape, input)
@@ -599,7 +628,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         newCondRootProgresses[pathRoot] = selfCond
       }
       val starterShape = PathShape(null, rootInfo.milestoneGroupId)
-      val ta = findApplicableAction(starterShape, input)
+      // fresh lookahead root: 이번 입력을 먹이지 않고 시동만 — 소비는 다음 step 부터.
+      val ta = if (pathRoot in freshLookaheadRoots) null else findApplicableAction(starterShape, input)
       val starterNextPaths = mutableMapOf<PathShape, AcceptCondition>()
       if (ta != null) {
         // same-input 적용 — span 은 (생성 gen - 1) 부터 (이번 gen 의 시작 root 에 한함).

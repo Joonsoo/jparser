@@ -137,8 +137,8 @@ pub fn referenced_roots(cond: &AcceptCondition) -> RootSet {
         | AcceptCondition::NeedLongerMatch { symbol_id, start_gen, .. }
         | AcceptCondition::NotExists { symbol_id, start_gen }
         | AcceptCondition::Exists { symbol_id, start_gen }
-        | AcceptCondition::Unless { symbol_id, start_gen }
-        | AcceptCondition::OnlyIf { symbol_id, start_gen } => {
+        | AcceptCondition::Unless { symbol_id, start_gen, .. }
+        | AcceptCondition::OnlyIf { symbol_id, start_gen, .. } => {
             RootSet::Single(PathRoot::new(*symbol_id, *start_gen))
         }
         // Composites haven't gotten their cached field yet (Task 6). For Task 3
@@ -167,7 +167,7 @@ mod tests {
     }
 
     fn nlm(s: i32, g: i32) -> AcceptCondition {
-        AcceptCondition::NoLongerMatch { symbol_id: s, start_gen: g, from_next_gen: false }
+        AcceptCondition::NoLongerMatch { symbol_id: s, start_gen: g, min_end_gen: 0 }
     }
 
     #[test]

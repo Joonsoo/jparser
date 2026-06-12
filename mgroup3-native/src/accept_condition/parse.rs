@@ -125,21 +125,21 @@ impl<'a> Parser<'a> {
         }
         // Leaf: longest first ("NoLongerMatch" / "NeedLongerMatch" before "NotExists")
         if self.try_consume_str("NoLongerMatch(") {
-            let (sym, gen_v, fng) = self.parse_three_field_leaf()?;
+            let (sym, gen_v, min_end) = self.parse_min_end_leaf()?;
             self.consume_str(")")?;
             return Ok(AcceptCondition::NoLongerMatch {
                 symbol_id: sym,
                 start_gen: gen_v,
-                from_next_gen: fng,
+                min_end_gen: min_end,
             });
         }
         if self.try_consume_str("NeedLongerMatch(") {
-            let (sym, gen_v, fng) = self.parse_three_field_leaf()?;
+            let (sym, gen_v, min_end) = self.parse_min_end_leaf()?;
             self.consume_str(")")?;
             return Ok(AcceptCondition::NeedLongerMatch {
                 symbol_id: sym,
                 start_gen: gen_v,
-                from_next_gen: fng,
+                min_end_gen: min_end,
             });
         }
         if self.try_consume_str("NotExists(") {
@@ -153,14 +153,14 @@ impl<'a> Parser<'a> {
             return Ok(AcceptCondition::Exists { symbol_id: sym, start_gen: gen_v });
         }
         if self.try_consume_str("Unless(") {
-            let (sym, gen_v) = self.parse_two_field_leaf()?;
+            let (sym, gen_v, end_v) = self.parse_end_gen_leaf()?;
             self.consume_str(")")?;
-            return Ok(AcceptCondition::Unless { symbol_id: sym, start_gen: gen_v });
+            return Ok(AcceptCondition::Unless { symbol_id: sym, start_gen: gen_v, end_gen: end_v });
         }
         if self.try_consume_str("OnlyIf(") {
-            let (sym, gen_v) = self.parse_two_field_leaf()?;
+            let (sym, gen_v, end_v) = self.parse_end_gen_leaf()?;
             self.consume_str(")")?;
-            return Ok(AcceptCondition::OnlyIf { symbol_id: sym, start_gen: gen_v });
+            return Ok(AcceptCondition::OnlyIf { symbol_id: sym, start_gen: gen_v, end_gen: end_v });
         }
         Err(self.err("expected AcceptCondition".to_string()))
     }
@@ -181,11 +181,18 @@ impl<'a> Parser<'a> {
         Ok((sym, gen_v))
     }
 
-    fn parse_three_field_leaf(&mut self) -> Result<(i32, i32, bool), ParseError> {
+    fn parse_min_end_leaf(&mut self) -> Result<(i32, i32, i32), ParseError> {
         let (sym, gen_v) = self.parse_two_field_leaf()?;
-        self.consume_str(", fromNextGen=")?;
-        let fng = self.parse_bool()?;
-        Ok((sym, gen_v, fng))
+        self.consume_str(", minEndGen=")?;
+        let min_end = self.parse_signed_int()?;
+        Ok((sym, gen_v, min_end))
+    }
+
+    fn parse_end_gen_leaf(&mut self) -> Result<(i32, i32, i32), ParseError> {
+        let (sym, gen_v) = self.parse_two_field_leaf()?;
+        self.consume_str(", endGen=")?;
+        let end_v = self.parse_signed_int()?;
+        Ok((sym, gen_v, end_v))
     }
 
     fn parse_path_root(&mut self) -> Result<PathRoot, ParseError> {
@@ -215,15 +222,6 @@ impl<'a> Parser<'a> {
         slice.parse::<i32>().map_err(|e| self.err(format!("parse_int: {}", e)))
     }
 
-    fn parse_bool(&mut self) -> Result<bool, ParseError> {
-        if self.try_consume_str("true") {
-            Ok(true)
-        } else if self.try_consume_str("false") {
-            Ok(false)
-        } else {
-            Err(self.err("expected bool".to_string()))
-        }
-    }
 }
 
 #[cfg(test)]
@@ -251,13 +249,13 @@ mod tests {
 
     #[test]
     fn roundtrip_leaves() {
-        rt(&AcceptCondition::NoLongerMatch { symbol_id: 3, start_gen: 7, from_next_gen: false });
-        rt(&AcceptCondition::NoLongerMatch { symbol_id: 1, start_gen: 2, from_next_gen: true });
-        rt(&AcceptCondition::NeedLongerMatch { symbol_id: 0, start_gen: 0, from_next_gen: false });
+        rt(&AcceptCondition::NoLongerMatch { symbol_id: 3, start_gen: 7, min_end_gen: 8 });
+        rt(&AcceptCondition::NoLongerMatch { symbol_id: 1, start_gen: 2, min_end_gen: 0 });
+        rt(&AcceptCondition::NeedLongerMatch { symbol_id: 0, start_gen: 0, min_end_gen: 0 });
         rt(&AcceptCondition::NotExists { symbol_id: 3, start_gen: 5 });
         rt(&ex(3, 5));
-        rt(&AcceptCondition::Unless { symbol_id: 3, start_gen: 5 });
-        rt(&AcceptCondition::OnlyIf { symbol_id: 3, start_gen: 5 });
+        rt(&AcceptCondition::Unless { symbol_id: 3, start_gen: 5, end_gen: 7 });
+        rt(&AcceptCondition::OnlyIf { symbol_id: 3, start_gen: 5, end_gen: 7 });
     }
 
     #[test]
@@ -265,7 +263,7 @@ mod tests {
         rt(&AcceptCondition::NoLongerMatch {
             symbol_id: -1,
             start_gen: i32::MAX,
-            from_next_gen: false,
+            min_end_gen: 0,
         });
     }
 
@@ -286,11 +284,11 @@ mod tests {
     #[test]
     fn accepts_kotlin_style_strings_directly() {
         // String shaped exactly like Kotlin's data-class toString.
-        let s = "NoLongerMatch(symbolId=2, startGen=4, fromNextGen=false)";
+        let s = "NoLongerMatch(symbolId=2, startGen=4, minEndGen=5)";
         let parsed = parse_condition(s).unwrap();
         assert_eq!(
             parsed,
-            AcceptCondition::NoLongerMatch { symbol_id: 2, start_gen: 4, from_next_gen: false }
+            AcceptCondition::NoLongerMatch { symbol_id: 2, start_gen: 4, min_end_gen: 5 }
         );
     }
 

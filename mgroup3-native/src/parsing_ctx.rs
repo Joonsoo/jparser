@@ -276,6 +276,9 @@ pub struct HistoryEntry {
     pub finished_kernels: Vec<FinishedKernelRecord>,
     pub added_kernels: Vec<AddedKernelRecord>,
     pub cond_path_finishes: HashMap<PathRoot, AcceptCondition>,
+    /// 죽은 cond path 의 possible-finish — end 가 직전 gen (entry gen - 1).
+    /// bounded/longest 의 정확한 span discharge 를 위해 eager 채널과 분리.
+    pub late_cond_path_finishes: HashMap<PathRoot, AcceptCondition>,
     pub active_cond_paths: HashSet<PathRoot>,
     /// Or-merged conditions of main-root progress this step. `is_accepted`
     /// evaluates only this — finished_kernels is report-only.

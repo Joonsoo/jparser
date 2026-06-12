@@ -170,7 +170,8 @@ fn diff_against_kotlin_fixture() {
                 let active = parse_active(block);
                 let gen_step: i32 = get_field(block, "gen").parse().unwrap();
                 let expected = parse_cond_field(block, "expected");
-                let actual = evolve_accept_condition(&cond, &fins, &active, gen_step);
+                let late_fins = Default::default();
+                let actual = evolve_accept_condition(&cond, &fins, &late_fins, &active, gen_step);
                 assert_eq!(
                     actual, expected,
                     "{}: evolve mismatch\n  cond={}\n  expected={}\n  actual={}",

@@ -7,15 +7,15 @@ impl fmt::Display for AcceptCondition {
         match self {
             AcceptCondition::Always => f.write_str("Always"),
             AcceptCondition::Never => f.write_str("Never"),
-            AcceptCondition::NoLongerMatch { symbol_id, start_gen, from_next_gen } => write!(
+            AcceptCondition::NoLongerMatch { symbol_id, start_gen, min_end_gen } => write!(
                 f,
-                "NoLongerMatch(symbolId={}, startGen={}, fromNextGen={})",
-                symbol_id, start_gen, from_next_gen
+                "NoLongerMatch(symbolId={}, startGen={}, minEndGen={})",
+                symbol_id, start_gen, min_end_gen
             ),
-            AcceptCondition::NeedLongerMatch { symbol_id, start_gen, from_next_gen } => write!(
+            AcceptCondition::NeedLongerMatch { symbol_id, start_gen, min_end_gen } => write!(
                 f,
-                "NeedLongerMatch(symbolId={}, startGen={}, fromNextGen={})",
-                symbol_id, start_gen, from_next_gen
+                "NeedLongerMatch(symbolId={}, startGen={}, minEndGen={})",
+                symbol_id, start_gen, min_end_gen
             ),
             AcceptCondition::NotExists { symbol_id, start_gen } => {
                 write!(f, "NotExists(symbolId={}, startGen={})", symbol_id, start_gen)
@@ -23,11 +23,11 @@ impl fmt::Display for AcceptCondition {
             AcceptCondition::Exists { symbol_id, start_gen } => {
                 write!(f, "Exists(symbolId={}, startGen={})", symbol_id, start_gen)
             }
-            AcceptCondition::Unless { symbol_id, start_gen } => {
-                write!(f, "Unless(symbolId={}, startGen={})", symbol_id, start_gen)
+            AcceptCondition::Unless { symbol_id, start_gen, end_gen } => {
+                write!(f, "Unless(symbolId={}, startGen={}, endGen={})", symbol_id, start_gen, end_gen)
             }
-            AcceptCondition::OnlyIf { symbol_id, start_gen } => {
-                write!(f, "OnlyIf(symbolId={}, startGen={})", symbol_id, start_gen)
+            AcceptCondition::OnlyIf { symbol_id, start_gen, end_gen } => {
+                write!(f, "OnlyIf(symbolId={}, startGen={}, endGen={})", symbol_id, start_gen, end_gen)
             }
             AcceptCondition::And { items } => write_composite(f, "And", items),
             AcceptCondition::Or { items } => write_composite(f, "Or", items),
@@ -62,16 +62,16 @@ mod tests {
 
     #[test]
     fn display_no_longer_match() {
-        let c = AcceptCondition::NoLongerMatch { symbol_id: 3, start_gen: 7, from_next_gen: false };
-        assert_eq!(c.to_string(), "NoLongerMatch(symbolId=3, startGen=7, fromNextGen=false)");
-        let c = AcceptCondition::NoLongerMatch { symbol_id: 1, start_gen: 2, from_next_gen: true };
-        assert_eq!(c.to_string(), "NoLongerMatch(symbolId=1, startGen=2, fromNextGen=true)");
+        let c = AcceptCondition::NoLongerMatch { symbol_id: 3, start_gen: 7, min_end_gen: 8 };
+        assert_eq!(c.to_string(), "NoLongerMatch(symbolId=3, startGen=7, minEndGen=8)");
+        let c = AcceptCondition::NoLongerMatch { symbol_id: 1, start_gen: 2, min_end_gen: 3 };
+        assert_eq!(c.to_string(), "NoLongerMatch(symbolId=1, startGen=2, minEndGen=3)");
     }
 
     #[test]
     fn display_need_longer_match() {
-        let c = AcceptCondition::NeedLongerMatch { symbol_id: 0, start_gen: 0, from_next_gen: false };
-        assert_eq!(c.to_string(), "NeedLongerMatch(symbolId=0, startGen=0, fromNextGen=false)");
+        let c = AcceptCondition::NeedLongerMatch { symbol_id: 0, start_gen: 0, min_end_gen: 0 };
+        assert_eq!(c.to_string(), "NeedLongerMatch(symbolId=0, startGen=0, minEndGen=0)");
     }
 
     #[test]
@@ -79,8 +79,8 @@ mod tests {
         let cases = [
             (AcceptCondition::NotExists { symbol_id: 3, start_gen: 5 }, "NotExists(symbolId=3, startGen=5)"),
             (AcceptCondition::Exists { symbol_id: 3, start_gen: 5 }, "Exists(symbolId=3, startGen=5)"),
-            (AcceptCondition::Unless { symbol_id: 3, start_gen: 5 }, "Unless(symbolId=3, startGen=5)"),
-            (AcceptCondition::OnlyIf { symbol_id: 3, start_gen: 5 }, "OnlyIf(symbolId=3, startGen=5)"),
+            (AcceptCondition::Unless { symbol_id: 3, start_gen: 5, end_gen: 7 }, "Unless(symbolId=3, startGen=5, endGen=7)"),
+            (AcceptCondition::OnlyIf { symbol_id: 3, start_gen: 5, end_gen: 7 }, "OnlyIf(symbolId=3, startGen=5, endGen=7)"),
         ];
         for (c, expected) in cases {
             assert_eq!(c.to_string(), expected);
@@ -92,11 +92,11 @@ mod tests {
         let c = AcceptCondition::NoLongerMatch {
             symbol_id: -1,
             start_gen: i32::MAX,
-            from_next_gen: false,
+            min_end_gen: 0,
         };
         assert_eq!(
             c.to_string(),
-            "NoLongerMatch(symbolId=-1, startGen=2147483647, fromNextGen=false)"
+            "NoLongerMatch(symbolId=-1, startGen=2147483647, minEndGen=0)"
         );
     }
 

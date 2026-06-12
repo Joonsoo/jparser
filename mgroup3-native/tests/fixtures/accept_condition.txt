@@ -10,32 +10,32 @@ cond=Never
 expected=Never
 
 kind=display
-cond=NoLongerMatch(symbolId=1, startGen=2, fromNextGen=false)
-expected=NoLongerMatch(symbolId=1, startGen=2, fromNextGen=false)
+cond=NoLongerMatch(symbolId=1, startGen=2, minEndGen=0)
+expected=NoLongerMatch(symbolId=1, startGen=2, minEndGen=0)
 
 kind=display
-cond=NoLongerMatch(symbolId=1, startGen=2, fromNextGen=true)
-expected=NoLongerMatch(symbolId=1, startGen=2, fromNextGen=true)
+cond=NoLongerMatch(symbolId=1, startGen=2, minEndGen=3)
+expected=NoLongerMatch(symbolId=1, startGen=2, minEndGen=3)
 
 kind=display
-cond=NoLongerMatch(symbolId=0, startGen=0, fromNextGen=false)
-expected=NoLongerMatch(symbolId=0, startGen=0, fromNextGen=false)
+cond=NoLongerMatch(symbolId=0, startGen=0, minEndGen=0)
+expected=NoLongerMatch(symbolId=0, startGen=0, minEndGen=0)
 
 kind=display
-cond=NoLongerMatch(symbolId=-1, startGen=2147483647, fromNextGen=false)
-expected=NoLongerMatch(symbolId=-1, startGen=2147483647, fromNextGen=false)
+cond=NoLongerMatch(symbolId=-1, startGen=2147483647, minEndGen=0)
+expected=NoLongerMatch(symbolId=-1, startGen=2147483647, minEndGen=0)
 
 kind=display
-cond=NeedLongerMatch(symbolId=1, startGen=2, fromNextGen=false)
-expected=NeedLongerMatch(symbolId=1, startGen=2, fromNextGen=false)
+cond=NeedLongerMatch(symbolId=1, startGen=2, minEndGen=0)
+expected=NeedLongerMatch(symbolId=1, startGen=2, minEndGen=0)
 
 kind=display
-cond=NeedLongerMatch(symbolId=1, startGen=2, fromNextGen=true)
-expected=NeedLongerMatch(symbolId=1, startGen=2, fromNextGen=true)
+cond=NeedLongerMatch(symbolId=1, startGen=2, minEndGen=3)
+expected=NeedLongerMatch(symbolId=1, startGen=2, minEndGen=3)
 
 kind=display
-cond=NeedLongerMatch(symbolId=0, startGen=0, fromNextGen=false)
-expected=NeedLongerMatch(symbolId=0, startGen=0, fromNextGen=false)
+cond=NeedLongerMatch(symbolId=0, startGen=0, minEndGen=0)
+expected=NeedLongerMatch(symbolId=0, startGen=0, minEndGen=0)
 
 kind=display
 cond=NotExists(symbolId=3, startGen=5)
@@ -54,20 +54,20 @@ cond=Exists(symbolId=0, startGen=0)
 expected=Exists(symbolId=0, startGen=0)
 
 kind=display
-cond=Unless(symbolId=3, startGen=5)
-expected=Unless(symbolId=3, startGen=5)
+cond=Unless(symbolId=3, startGen=5, endGen=7)
+expected=Unless(symbolId=3, startGen=5, endGen=7)
 
 kind=display
-cond=Unless(symbolId=0, startGen=0)
-expected=Unless(symbolId=0, startGen=0)
+cond=Unless(symbolId=0, startGen=0, endGen=0)
+expected=Unless(symbolId=0, startGen=0, endGen=0)
 
 kind=display
-cond=OnlyIf(symbolId=3, startGen=5)
-expected=OnlyIf(symbolId=3, startGen=5)
+cond=OnlyIf(symbolId=3, startGen=5, endGen=7)
+expected=OnlyIf(symbolId=3, startGen=5, endGen=7)
 
 kind=display
-cond=OnlyIf(symbolId=0, startGen=0)
-expected=OnlyIf(symbolId=0, startGen=0)
+cond=OnlyIf(symbolId=0, startGen=0, endGen=0)
+expected=OnlyIf(symbolId=0, startGen=0, endGen=0)
 
 kind=display
 cond=And(Exists(symbolId=1, startGen=0), NotExists(symbolId=2, startGen=0))
@@ -102,16 +102,16 @@ cond=Never
 expected=Always
 
 kind=neg
-cond=NoLongerMatch(symbolId=1, startGen=2, fromNextGen=false)
-expected=NeedLongerMatch(symbolId=1, startGen=2, fromNextGen=false)
+cond=NoLongerMatch(symbolId=1, startGen=2, minEndGen=0)
+expected=NeedLongerMatch(symbolId=1, startGen=2, minEndGen=0)
 
 kind=neg
-cond=NoLongerMatch(symbolId=1, startGen=2, fromNextGen=true)
-expected=NeedLongerMatch(symbolId=1, startGen=2, fromNextGen=true)
+cond=NoLongerMatch(symbolId=1, startGen=2, minEndGen=3)
+expected=NeedLongerMatch(symbolId=1, startGen=2, minEndGen=3)
 
 kind=neg
-cond=NeedLongerMatch(symbolId=0, startGen=0, fromNextGen=false)
-expected=NoLongerMatch(symbolId=0, startGen=0, fromNextGen=false)
+cond=NeedLongerMatch(symbolId=0, startGen=0, minEndGen=0)
+expected=NoLongerMatch(symbolId=0, startGen=0, minEndGen=0)
 
 kind=neg
 cond=Exists(symbolId=3, startGen=5)
@@ -122,12 +122,12 @@ cond=NotExists(symbolId=3, startGen=5)
 expected=Exists(symbolId=3, startGen=5)
 
 kind=neg
-cond=Unless(symbolId=3, startGen=5)
-expected=OnlyIf(symbolId=3, startGen=5)
+cond=Unless(symbolId=3, startGen=5, endGen=7)
+expected=OnlyIf(symbolId=3, startGen=5, endGen=7)
 
 kind=neg
-cond=OnlyIf(symbolId=3, startGen=5)
-expected=Unless(symbolId=3, startGen=5)
+cond=OnlyIf(symbolId=3, startGen=5, endGen=7)
+expected=Unless(symbolId=3, startGen=5, endGen=7)
 
 kind=neg
 cond=And(Exists(symbolId=1, startGen=0), NotExists(symbolId=2, startGen=0))
@@ -212,28 +212,28 @@ active=
 expected=false
 
 kind=evaluate
-cond=NoLongerMatch(symbolId=1, startGen=2, fromNextGen=false)
+cond=NoLongerMatch(symbolId=1, startGen=2, minEndGen=0)
 finsKeys=
 finsValues=
 active=
 expected=true
 
 kind=evaluate
-cond=NoLongerMatch(symbolId=1, startGen=2, fromNextGen=false)
+cond=NoLongerMatch(symbolId=1, startGen=2, minEndGen=0)
 finsKeys=PathRoot(symbolId=1, startGen=2)
 finsValues=Always
 active=
 expected=false
 
 kind=evaluate
-cond=NeedLongerMatch(symbolId=1, startGen=2, fromNextGen=false)
+cond=NeedLongerMatch(symbolId=1, startGen=2, minEndGen=0)
 finsKeys=
 finsValues=
 active=
 expected=false
 
 kind=evaluate
-cond=NeedLongerMatch(symbolId=1, startGen=2, fromNextGen=false)
+cond=NeedLongerMatch(symbolId=1, startGen=2, minEndGen=0)
 finsKeys=PathRoot(symbolId=1, startGen=2)
 finsValues=Always
 active=
@@ -268,28 +268,28 @@ active=
 expected=true
 
 kind=evaluate
-cond=Unless(symbolId=1, startGen=2)
+cond=Unless(symbolId=1, startGen=2, endGen=2)
 finsKeys=PathRoot(symbolId=1, startGen=2)
 finsValues=Always
 active=
 expected=false
 
 kind=evaluate
-cond=Unless(symbolId=9, startGen=9)
+cond=Unless(symbolId=9, startGen=9, endGen=9)
 finsKeys=
 finsValues=
 active=
 expected=true
 
 kind=evaluate
-cond=OnlyIf(symbolId=1, startGen=2)
+cond=OnlyIf(symbolId=1, startGen=2, endGen=2)
 finsKeys=PathRoot(symbolId=1, startGen=2)
 finsValues=Always
 active=
 expected=true
 
 kind=evaluate
-cond=OnlyIf(symbolId=9, startGen=9)
+cond=OnlyIf(symbolId=9, startGen=9, endGen=9)
 finsKeys=
 finsValues=
 active=
@@ -317,7 +317,7 @@ active=
 expected=true
 
 kind=evolve
-cond=NoLongerMatch(symbolId=1, startGen=0, fromNextGen=false)
+cond=NoLongerMatch(symbolId=1, startGen=0, minEndGen=0)
 finsKeys=
 finsValues=
 active=
@@ -325,7 +325,7 @@ gen=10
 expected=Always
 
 kind=evolve
-cond=NoLongerMatch(symbolId=1, startGen=0, fromNextGen=false)
+cond=NoLongerMatch(symbolId=1, startGen=0, minEndGen=0)
 finsKeys=PathRoot(symbolId=1, startGen=0)
 finsValues=Always
 active=
@@ -333,23 +333,23 @@ gen=10
 expected=Never
 
 kind=evolve
-cond=NoLongerMatch(symbolId=1, startGen=0, fromNextGen=false)
+cond=NoLongerMatch(symbolId=1, startGen=0, minEndGen=0)
 finsKeys=PathRoot(symbolId=1, startGen=0)
-finsValues=NoLongerMatch(symbolId=1, startGen=0, fromNextGen=false)
+finsValues=NoLongerMatch(symbolId=1, startGen=0, minEndGen=0)
 active=
 gen=10
 expected=Always
 
 kind=evolve
-cond=NoLongerMatch(symbolId=1, startGen=0, fromNextGen=false)
+cond=NoLongerMatch(symbolId=1, startGen=0, minEndGen=0)
 finsKeys=
 finsValues=
 active=PathRoot(symbolId=1, startGen=0)
 gen=10
-expected=NoLongerMatch(symbolId=1, startGen=0, fromNextGen=false)
+expected=NoLongerMatch(symbolId=1, startGen=0, minEndGen=0)
 
 kind=evolve
-cond=NeedLongerMatch(symbolId=1, startGen=0, fromNextGen=false)
+cond=NeedLongerMatch(symbolId=1, startGen=0, minEndGen=0)
 finsKeys=
 finsValues=
 active=
@@ -357,7 +357,7 @@ gen=10
 expected=Never
 
 kind=evolve
-cond=NeedLongerMatch(symbolId=1, startGen=0, fromNextGen=false)
+cond=NeedLongerMatch(symbolId=1, startGen=0, minEndGen=0)
 finsKeys=PathRoot(symbolId=1, startGen=0)
 finsValues=Always
 active=
@@ -365,20 +365,20 @@ gen=10
 expected=Always
 
 kind=evolve
-cond=NeedLongerMatch(symbolId=1, startGen=0, fromNextGen=false)
+cond=NeedLongerMatch(symbolId=1, startGen=0, minEndGen=0)
 finsKeys=PathRoot(symbolId=1, startGen=0)
-finsValues=NeedLongerMatch(symbolId=1, startGen=0, fromNextGen=false)
+finsValues=NeedLongerMatch(symbolId=1, startGen=0, minEndGen=0)
 active=
 gen=10
 expected=Always
 
 kind=evolve
-cond=NeedLongerMatch(symbolId=1, startGen=0, fromNextGen=false)
+cond=NeedLongerMatch(symbolId=1, startGen=0, minEndGen=0)
 finsKeys=
 finsValues=
 active=PathRoot(symbolId=1, startGen=0)
 gen=10
-expected=NeedLongerMatch(symbolId=1, startGen=0, fromNextGen=false)
+expected=NeedLongerMatch(symbolId=1, startGen=0, minEndGen=0)
 
 kind=evolve
 cond=NotExists(symbolId=1, startGen=0)
@@ -445,7 +445,7 @@ gen=10
 expected=Exists(symbolId=1, startGen=0)
 
 kind=evolve
-cond=Unless(symbolId=1, startGen=0)
+cond=Unless(symbolId=1, startGen=0, endGen=10)
 finsKeys=
 finsValues=
 active=
@@ -453,7 +453,7 @@ gen=10
 expected=Always
 
 kind=evolve
-cond=Unless(symbolId=1, startGen=0)
+cond=Unless(symbolId=1, startGen=0, endGen=10)
 finsKeys=PathRoot(symbolId=1, startGen=0)
 finsValues=Always
 active=
@@ -461,23 +461,23 @@ gen=10
 expected=Never
 
 kind=evolve
-cond=Unless(symbolId=1, startGen=0)
+cond=Unless(symbolId=1, startGen=0, endGen=10)
 finsKeys=PathRoot(symbolId=1, startGen=0)
-finsValues=Unless(symbolId=1, startGen=0)
+finsValues=Unless(symbolId=1, startGen=0, endGen=10)
 active=
 gen=10
-expected=OnlyIf(symbolId=1, startGen=0)
+expected=OnlyIf(symbolId=1, startGen=0, endGen=10)
 
 kind=evolve
-cond=Unless(symbolId=1, startGen=0)
+cond=Unless(symbolId=1, startGen=0, endGen=10)
 finsKeys=
 finsValues=
 active=PathRoot(symbolId=1, startGen=0)
 gen=10
-expected=Unless(symbolId=1, startGen=0)
+expected=Unless(symbolId=1, startGen=0, endGen=10)
 
 kind=evolve
-cond=OnlyIf(symbolId=1, startGen=0)
+cond=OnlyIf(symbolId=1, startGen=0, endGen=10)
 finsKeys=
 finsValues=
 active=
@@ -485,7 +485,7 @@ gen=10
 expected=Never
 
 kind=evolve
-cond=OnlyIf(symbolId=1, startGen=0)
+cond=OnlyIf(symbolId=1, startGen=0, endGen=10)
 finsKeys=PathRoot(symbolId=1, startGen=0)
 finsValues=Always
 active=
@@ -493,39 +493,39 @@ gen=10
 expected=Always
 
 kind=evolve
-cond=OnlyIf(symbolId=1, startGen=0)
+cond=OnlyIf(symbolId=1, startGen=0, endGen=10)
 finsKeys=PathRoot(symbolId=1, startGen=0)
-finsValues=OnlyIf(symbolId=1, startGen=0)
+finsValues=OnlyIf(symbolId=1, startGen=0, endGen=10)
 active=
 gen=10
-expected=OnlyIf(symbolId=1, startGen=0)
+expected=OnlyIf(symbolId=1, startGen=0, endGen=10)
 
 kind=evolve
-cond=OnlyIf(symbolId=1, startGen=0)
+cond=OnlyIf(symbolId=1, startGen=0, endGen=10)
 finsKeys=
 finsValues=
 active=PathRoot(symbolId=1, startGen=0)
 gen=10
-expected=OnlyIf(symbolId=1, startGen=0)
+expected=OnlyIf(symbolId=1, startGen=0, endGen=10)
 
 kind=evolve
-cond=NoLongerMatch(symbolId=1, startGen=2, fromNextGen=true)
+cond=NoLongerMatch(symbolId=1, startGen=2, minEndGen=3)
 finsKeys=
 finsValues=
 active=
 gen=10
-expected=NoLongerMatch(symbolId=1, startGen=2, fromNextGen=false)
+expected=Always
 
 kind=evolve
-cond=NeedLongerMatch(symbolId=1, startGen=2, fromNextGen=true)
+cond=NeedLongerMatch(symbolId=1, startGen=2, minEndGen=3)
 finsKeys=
 finsValues=
 active=
 gen=10
-expected=NeedLongerMatch(symbolId=1, startGen=2, fromNextGen=false)
+expected=Never
 
 kind=evolve
-cond=And(Exists(symbolId=5, startGen=1), NoLongerMatch(symbolId=2, startGen=4, fromNextGen=false))
+cond=And(Exists(symbolId=5, startGen=1), NoLongerMatch(symbolId=2, startGen=4, minEndGen=0))
 finsKeys=PathRoot(symbolId=2, startGen=4)|PathRoot(symbolId=5, startGen=1)
 finsValues=NotExists(symbolId=2, startGen=4)|Always
 active=PathRoot(symbolId=5, startGen=1)
@@ -533,7 +533,7 @@ gen=10
 expected=Exists(symbolId=2, startGen=4)
 
 kind=evolve
-cond=Or(Exists(symbolId=5, startGen=1), NoLongerMatch(symbolId=2, startGen=4, fromNextGen=false))
+cond=Or(Exists(symbolId=5, startGen=1), NoLongerMatch(symbolId=2, startGen=4, minEndGen=0))
 finsKeys=PathRoot(symbolId=2, startGen=4)
 finsValues=NotExists(symbolId=2, startGen=4)
 active=
