@@ -20,6 +20,7 @@ make -j4
 | `theories/WellDefined.v` | `cdgmatch_level_indep`, `cdgmatch_witness_indep`, self-referential negation clauses | Thm 3.3 |
 | `theories/Decidability.v` | `cdgmatch_dec`: decidability via height-indexed match + finite-universe saturation (counting pigeonhole); `matchb`, `matchb_dec`, `stab_complete`, `eval_dec` | Thm 3.3 (decidability) |
 | `theories/CounterExample.v` | `BadG` (`B → C; C → !B`): satisfies the paper's Def 3.2 literally, admits **no** model (`badg_no_model`) | Def 3.2 fix |
+| `theories/ACP.v` | **목표 A phase 1**: Naive ACP over expression syntax — kernels (dotted `sym`), accept-condition syntax (2×2 shapes), semantic discharge `csem` (per-operator Match clauses), chart (`Node`/`Edge` saturation rules: derive/monitor/finish+progress/terminal), `AcceptedBy`, `PrefixMatch` invariant; Thms 4.1/4.2 stated (Admitted), `node_kpos_bound` proved | Thm 4.1/4.2 |
 | `theories/MatchFuel.v` | Executable fuel-bounded checker (test oracle; exactness future work) | — |
 | `theories/Examples.v` | Verified unit tests: aⁿbⁿ, keyword exclusion (`Id - "if"`), maximal munch (`<A>`), aⁿbⁿcⁿ via join; boolean fuel tests | §3 examples |
 
@@ -38,8 +39,14 @@ nonterminals) and holds for every level of the iteration; stratification
 plays no role in it. Stratification is exactly what makes the levels
 stabilize into the canonical `Match`.
 
-Next target (목표 A): Naive ACP soundness/completeness (paper Thms
-4.1/4.2) against this mechanized semantics.
+**목표 A (in progress)**: `ACP.v` mechanizes the Naive ACP reference
+algorithm against this semantics — phase 1 discharges conditions
+semantically (each shape interpreted by its Match clause), isolating
+chart correctness from the operational condition-evolution mechanism
+(phase 2). Theorems 4.1/4.2 are stated; proofs are the next milestone
+(span-soundness invariant via `PrefixMatch`, Earley-style completeness).
+No pruning in the reference algorithm (it is an optimization of the
+implementations).
 
 ## Findings that require paper changes
 
