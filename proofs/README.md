@@ -20,7 +20,7 @@ make -j4
 | `theories/WellDefined.v` | `cdgmatch_level_indep`, `cdgmatch_witness_indep`, self-referential negation clauses | Thm 3.3 |
 | `theories/Decidability.v` | `cdgmatch_dec`: decidability via height-indexed match + finite-universe saturation (counting pigeonhole); `matchb`, `matchb_dec`, `stab_complete`, `eval_dec` | Thm 3.3 (decidability) |
 | `theories/CounterExample.v` | `BadG` (`B → C; C → !B`): satisfies the paper's Def 3.2 literally, admits **no** model (`badg_no_model`) | Def 3.2 fix |
-| `theories/ACP.v` | **목표 A phase 1**: Naive ACP over expression syntax — kernels (dotted `sym`), accept-condition syntax (2×2 shapes), semantic discharge `csem` (per-operator Match clauses), chart (`Node`/`Edge` saturation rules); **Theorem 4.1 (soundness) PROVED axiom-free** via the span-soundness invariant `node_sound_mut` (PrefixMatch + per-operator condition adequacy); Thm 4.2 (completeness) stated (the only Admitted) | Thm 4.1/4.2 |
+| `theories/ACP.v` | **목표 A phase 1 COMPLETE**: Naive ACP over expression syntax — kernels (dotted `sym`), accept-condition syntax (2×2 shapes), semantic discharge `csem` (per-operator Match clauses), chart (`Node`/`Edge`, edges point at initials, Progress pairs an edge with the completed match); **Theorems 4.1 AND 4.2 PROVED axiom-free** (`node_sound_mut` span-soundness invariant; `node_complete` Earley-style completeness) | Thm 4.1/4.2 |
 | `theories/MatchFuel.v` | Executable fuel-bounded checker (test oracle; exactness future work) | — |
 | `theories/Examples.v` | Verified unit tests: aⁿbⁿ, keyword exclusion (`Id - "if"`), maximal munch (`<A>`), aⁿbⁿcⁿ via join; boolean fuel tests | §3 examples |
 
@@ -43,14 +43,20 @@ stabilize into the canonical `Match`.
 algorithm against this semantics — phase 1 discharges conditions
 semantically (each shape interpreted by its Match clause), isolating
 chart correctness from the operational condition-evolution mechanism
-(phase 2). **Theorem 4.1 (soundness) is proved, axiom-free**: the
-span-soundness invariant (`node_sound_mut`) decomposes per operator,
-each conditional case closing with the corresponding Match clause
-constructor plus the `eval_match_agree` bridge. Remaining: Theorem 4.2
-(completeness, Earley-style induction over the semantics — the only
-`Admitted` in the development) and phase 2 (operational condition
-evolution ≡ semantic discharge). No pruning in the reference algorithm
-(it is an optimization of the implementations).
+(phase 2). **Both Theorem 4.1 (soundness) and Theorem 4.2
+(completeness) are proved, axiom-free** — the development has ZERO
+`Admitted` overall. Soundness is the span-soundness invariant
+(`node_sound_mut`), decomposing per operator, each conditional case
+closing with the corresponding Match clause constructor plus the
+`eval_match_agree` bridge; completeness (`node_complete`) is an
+Earley-style induction over the match derivation. Notable: attempting
+completeness exposed a definition bug in the first chart (no edges to
+finished terminals), fixed by reformulating Progress to pair an edge
+to an initial kernel with the corresponding final kernel — also a
+simpler presentation than edge inheritance. Remaining: phase 2
+(operational condition evolution ≡ semantic discharge). No pruning in
+the reference algorithm (it is an optimization of the
+implementations).
 
 ## Findings that require paper changes
 
