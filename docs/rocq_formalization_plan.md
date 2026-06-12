@@ -8,8 +8,16 @@
 > 검증된 예제(aⁿbⁿ, keyword exclusion, longest, aⁿbⁿcⁿ join) + 실행 가능한
 > fuel checker. decidability는 문법의 유한 support만 필요하고 stratification은
 > 불필요함이 증명에서 드러남(층 고정 관계는 항상 결정 가능; stratification은
-> 정준화 담당). 잔여: 목표 A (Naive ACP, paper Thm 4.1/4.2). 상세는
-> `proofs/README.md`.
+> 정준화 담당). 상세는 `proofs/README.md`.
+>
+> **STATUS UPDATE 2 (2026-06-12)**: **목표 A 착수 + Theorem 4.1 증명 완료.**
+> `proofs/theories/ACP.v`: Naive ACP를 표현식 문법 위에 직접 정의(kernel =
+> dotted sym, 조건 대수 = 2×2 모양, 의미론적 discharge `csem` = 연산자별
+> Match 절 해석, chart = Node/Edge 포화 규칙). **Thm 4.1(soundness)을
+> axiom-free로 증명** — span-soundness 불변식이 연산자별로 분해되어 각
+> 조건부 케이스가 해당 Match 절 생성자 + eval_match_agree 다리로 닫힘.
+> 잔여: Thm 4.2(completeness; 유일한 Admitted), phase 2(운영적 조건 진화
+> ≡ 의미론적 discharge).
 >
 > **본 계획 대비 두 가지 설계 변경** (둘 다 계획의 결함 수정):
 > 1. Step 5/6의 `match_fuel_monotone`은 negation 하에서 **거짓** — fuel 증가가
