@@ -1,0 +1,105 @@
+// Hand-written target for Stage2ProtoEmit (mgroup3 Phase B, ID-based design).
+//
+// Pair with `examples/generated/kotlin/.../AsdlAst.kt` and `asdl_ast.rs`.
+// Message and oneof variant order follows the emitter's alphabetical-sort
+// stability rule (see mgroup3/docs/phase_b_proto_design.md).
+//
+// Design summary:
+//   - Every concrete AST node is a flat message. No nested message references.
+//   - Cross-node references use `int32` ids that resolve into `ParseResult.nodes`.
+//   - Sealed parents (e.g. `SuperClassDefBody`) have NO proto message. The
+//     dispatch is recovered by the consumer at decode time, from each
+//     referenced NodeEntry's `oneof node` case.
+//   - `NodeEntry.id` carries the unique id; per-node `start` / `end` carry the
+//     source span. `node_id` from the Kotlin AST data class folds into
+//     `NodeEntry.id`.
+//   - `Opt(X)` always splits into `bool <name>_present; <X> <name>`.
+//   - Enums get a leading `*_UNSPECIFIED = 0` per proto3 convention.
+
+syntax = "proto3";
+
+package com.giyeok.jparser.mgroup3.generated.asdl;
+
+// ---- enums ------------------------------------------------------------------
+
+enum TypeAttr {
+  TYPE_ATTR_UNSPECIFIED = 0;
+  OPTIONAL = 1;
+  PLAIN = 2;
+  REPEATED = 3;
+}
+
+// ---- concrete messages (alphabetical) --------------------------------------
+
+message Attributes {
+  repeated int32 attrs = 1;   // -> Param
+  int32 start = 100;
+  int32 end = 101;
+}
+
+message ModuleDef {
+  string name = 1;
+  repeated int32 defs = 2;    // -> SuperClassDef
+  int32 start = 100;
+  int32 end = 101;
+}
+
+message Param {
+  string type_name = 1;
+  TypeAttr type_attr = 2;
+  string name = 3;
+  int32 start = 100;
+  int32 end = 101;
+}
+
+message SealedClassDefs {
+  repeated int32 subs = 1;    // -> SubClassDef
+  int32 start = 100;
+  int32 end = 101;
+}
+
+message SubClassDef {
+  string name = 1;
+  bool params_present = 2;
+  repeated int32 params = 3;  // -> Param
+  int32 start = 100;
+  int32 end = 101;
+}
+
+message SuperClassDef {
+  string name = 1;
+  int32 body = 2;             // -> SealedClassDefs | TupleDef (sealed parent)
+  bool attrs_present = 3;
+  int32 attrs = 4;            // -> Attributes
+  int32 start = 100;
+  int32 end = 101;
+}
+
+message TupleDef {
+  repeated int32 body = 1;    // -> Param
+  int32 start = 100;
+  int32 end = 101;
+}
+
+// ---- envelope ---------------------------------------------------------------
+
+message NodeEntry {
+  int32 id = 1;
+  oneof node {
+    Attributes attributes = 10;
+    ModuleDef module_def = 11;
+    Param param = 12;
+    SealedClassDefs sealed_class_defs = 13;
+    SubClassDef sub_class_def = 14;
+    SuperClassDef super_class_def = 15;
+    TupleDef tuple_def = 16;
+  }
+}
+
+message ParseResult {
+  // Root of the AST. Always points to a ModuleDef NodeEntry for this grammar.
+  int32 root_id = 1;
+  // Topologically post-ordered: every reference appears earlier in the list
+  // than its referrer. Lets the decoder resolve in a single pass.
+  repeated NodeEntry nodes = 2;
+}

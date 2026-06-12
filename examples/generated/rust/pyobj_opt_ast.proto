@@ -1,0 +1,111 @@
+// Hand-written target for Stage2ProtoEmit (mgroup3 Phase B, ID-based design).
+//
+// Pair with `examples/generated/kotlin/.../PyObjOptAst.kt` and `pyobj_opt_ast.rs`.
+// Message and oneof variant order follows the emitter's alphabetical-sort
+// stability rule (see mgroup3/docs/phase_b_proto_design.md).
+//
+// Notable shapes covered here:
+//   - sealed parent with 5+ dispatch children (`Value`) — represented purely
+//     through NodeEntry.oneof; no proto `Value` message.
+//   - `PyObj.fields: List<ObjField>?` and `ListValue.elems: List<Value>?` —
+//     uniform `Opt(Arr(...))` split: `bool <name>_present; repeated int32 <name>;`.
+//   - explicit grammar enum (`BoolEnum`).
+//   - multi-superclass: `ObjField: Value, AstNode` — no special handling on
+//     the proto side. ObjField appears once in NodeEntry; consumers reference
+//     it by id from anywhere.
+
+syntax = "proto3";
+
+package com.giyeok.jparser.mgroup3.generated.pyobj_opt;
+
+// ---- enums ------------------------------------------------------------------
+
+// enum values preserve the grammar's literal casing (`%False` / `%True`),
+// matching the Kotlin `enum class BoolEnum { False, True }`. Only the
+// synthetic `*_UNSPECIFIED = 0` is screaming-snake per proto3 convention.
+enum BoolEnum {
+  BOOL_ENUM_UNSPECIFIED = 0;
+  False = 1;
+  True = 2;
+}
+
+// ---- concrete messages (alphabetical) --------------------------------------
+
+message BoolValue {
+  BoolEnum value = 1;
+  int32 start = 100;
+  int32 end = 101;
+}
+
+message IntLiteral {
+  string value = 1;
+  int32 start = 100;
+  int32 end = 101;
+}
+
+message IntValue {
+  int32 value = 1;            // -> IntLiteral
+  int32 start = 100;
+  int32 end = 101;
+}
+
+message ListValue {
+  bool elems_present = 1;
+  repeated int32 elems = 2;   // -> Value (sealed: BoolValue|IntValue|...)
+  int32 start = 100;
+  int32 end = 101;
+}
+
+message ObjField {
+  int32 name = 1;             // -> StrLiteral
+  int32 value = 2;            // -> Value (sealed)
+  int32 start = 100;
+  int32 end = 101;
+}
+
+message PyObj {
+  bool fields_present = 1;
+  repeated int32 fields = 2;  // -> ObjField
+  int32 start = 100;
+  int32 end = 101;
+}
+
+message StrLiteral {
+  string value = 1;
+  int32 start = 100;
+  int32 end = 101;
+}
+
+message StrValue {
+  int32 value = 1;            // -> StrLiteral
+  int32 start = 100;
+  int32 end = 101;
+}
+
+message TupleValue {
+  repeated int32 elems = 1;   // -> Value (sealed)
+  int32 start = 100;
+  int32 end = 101;
+}
+
+// ---- envelope ---------------------------------------------------------------
+
+message NodeEntry {
+  int32 id = 1;
+  oneof node {
+    BoolValue bool_value = 10;
+    IntLiteral int_literal = 11;
+    IntValue int_value = 12;
+    ListValue list_value = 13;
+    ObjField obj_field = 14;
+    PyObj py_obj = 15;
+    StrLiteral str_literal = 16;
+    StrValue str_value = 17;
+    TupleValue tuple_value = 18;
+  }
+}
+
+message ParseResult {
+  int32 root_id = 1;
+  repeated NodeEntry nodes = 2;
+}

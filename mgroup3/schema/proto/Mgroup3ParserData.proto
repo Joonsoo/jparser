@@ -173,6 +173,18 @@ message MultiAcceptConditions {
 message ParsingActions {
   repeated ProgressedKernelTemplate progressed = 1;
   repeated FinishedKernelTemplate finished = 2;
+  // 이 action 적용 중 등장하는 모든 kernel (init / 중간 진행 상태 포함).
+  // kernels_history 보고 전용 채널 — mgroup2 의 TasksSummary2.added_kernels 에 대응.
+  // 파싱(조건 평가 / accept 판정)에는 사용되지 않는다.
+  repeated AddedKernelTemplate added = 3;
+}
+
+message AddedKernelTemplate {
+  int32 symbol_id = 1;
+  int32 pointer = 2;
+  KernelTemplateGen start_gen = 3;
+  KernelTemplateGen end_gen = 4;
+  AcceptConditionTemplate accept_condition = 5;
 }
 
 message ProgressedKernelTemplate {

@@ -98,21 +98,39 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     allPaths[mainRoot] = mainPaths
     allPaths.putAll(initialCondPaths)
 
+    val initialApps = mutableListOf<ActionApplication>()
     val initialFinishedKernels = mutableListOf<FinishedKernelRecord>()
-    val initialProgressedKernels = mutableListOf<ProgressedKernelRecord>()
     if (rootInfo.parsingActions != null) {
-      collectInitialActions(rootInfo.parsingActions, 0, initialFinishedKernels, initialProgressedKernels)
+      initialApps.add(initialApplication(rootInfo.parsingActions, mainRoot))
     }
+    // cond root 들의 초기 derive 결과도 보고 — mgroup2 의 초기 tasksSummary 는 in-graph
+    // cond body (join/longest/except) 의 derive closure 를 포함한다.
+    for (condRoot in initialCondPaths.keys) {
+      val condRootInfo = plain.pathRoots[condRoot.symbolId] ?: continue
+      if (condRootInfo.parsingActions != null) {
+        initialApps.add(initialApplication(condRootInfo.parsingActions, condRoot))
+      }
+    }
+    var initialMainRootFinish: AcceptCondition? = null
     if (rootInfo.selfFinishAcceptCondition != null) {
+      val selfFinishCond = rootInfo.selfFinishAcceptCondition.toAcceptCondition(0, 0, 0)
       initialFinishedKernels.add(
         FinishedKernelRecord(
           Kernel(startSymbolId, 1, 0),
-          rootInfo.selfFinishAcceptCondition.toAcceptCondition(0, 0, 0),
+          selfFinishCond,
+          mainRoot,
         )
       )
+      initialMainRootFinish = selfFinishCond
     }
 
-    val initialEntry = HistoryEntry(initialFinishedKernels, initialProgressedKernels)
+    val initialEntry = HistoryEntry(
+      actionApplications = initialApps,
+      finishedKernels = initialFinishedKernels,
+      mainRootFinish = initialMainRootFinish,
+      // 초기 cond root 들은 모두 보고 대상 (m2 의 초기 in-graph closure 에 대응).
+      reportedCondRoots = initialCondPaths.keys,
+    )
 
     return ParsingCtx(
       gen = 0,
@@ -126,26 +144,10 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
 
   fun initCtx(): ParsingCtx = initCtx(plain.startSymbolId)
 
-  private fun collectInitialActions(
-    pa: ParsingActionsPlain,
-    gen: Int,
-    finishedOut: MutableList<FinishedKernelRecord>,
-    progressedOut: MutableList<ProgressedKernelRecord>,
-  ) {
-    for (finished in pa.finished) {
-      val startGen = resolveGen(finished.startGen, 0, 0, 0)
-      finishedOut.add(
-        FinishedKernelRecord(
-          Kernel(finished.symbolId, finished.pointer, startGen),
-          finished.finishCondition.toAcceptCondition(0, 0, gen),
-        )
-      )
-    }
-    for (prog in pa.progressed) {
-      val startGen = resolveGen(prog.startGen, 0, 0, 0)
-      val midGen = resolveGen(prog.midGen, 0, 0, 0)
-      progressedOut.add(ProgressedKernelRecord(prog.symbolId, prog.pointer, startGen, midGen, gen))
-    }
+  // 초기 액션의 모든 태그는 root 의 startGen 으로 resolve (cond root 는 0 이 아닐 수 있음).
+  private fun initialApplication(pa: ParsingActionsPlain, root: PathRoot): ActionApplication {
+    val base = root.startGen
+    return ActionApplication(pa, root, base, base, base, base, base, base, base)
   }
 
   fun expectedInputsOf(ctx: ParsingCtx): TermSet {
@@ -184,32 +186,29 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     termAction: TermActionPlain,
     midGen: Int,
     gen: Int,
+    // 보고 전용 root anchor (same-input starter 는 startGen-1) — 좌표 보고에만 사용.
+    rootReportGen: Int,
     nextPathsOut: MutableMap<PathShape, AcceptCondition>,
+    appsOut: MutableList<ActionApplication>,
     finishesOut: MutableList<FinishedKernelRecord>,
-    progressesOut: MutableList<ProgressedKernelRecord>,
+    addedOut: MutableList<AddedKernelRecord>,
     rootProgressesOut: MutableMap<PathRoot, AcceptCondition>,
     observingSymbolIdsOut: MutableSet<Int>,
     condRootStartersOut: MutableMap<PathRoot, Int>,
   ) {
     val parentGen = oldShape.milestonePath?.gen ?: pathRoot.startGen
     val grandGen = oldShape.milestonePath?.milestone?.gen ?: pathRoot.startGen
+    // 보고 좌표용 바인딩 — m2 의 term genMap {0→mgroup.gen(갱신된 tip 부착 gen), 1→gen-1, 2→gen}.
+    // 조건 resolve 는 런타임 바인딩(parentGen/grandGen) 유지 — cond root anchoring 과 한 몸.
+    val reportParentGen = oldShape.milestonePath?.reportGen ?: rootReportGen
+    val reportGrandGen = oldShape.milestonePath?.milestoneReportGen ?: rootReportGen
 
     val pa = termAction.parsingActions
     if (pa != null) {
-      for (finished in pa.finished) {
-        val startGen = resolveGen(finished.startGen, parentGen, midGen, gen, grandGen)
-        finishesOut.add(
-          FinishedKernelRecord(
-            Kernel(finished.symbolId, finished.pointer, startGen),
-            finished.finishCondition.toAcceptCondition(parentGen, midGen, gen, grandGen),
-          )
-        )
-      }
-      for (prog in pa.progressed) {
-        val startGen = resolveGen(prog.startGen, parentGen, midGen, gen, grandGen)
-        val mGen = resolveGen(prog.midGen, parentGen, midGen, gen, grandGen)
-        progressesOut.add(ProgressedKernelRecord(prog.symbolId, prog.pointer, startGen, mGen, gen))
-      }
+      // 보고는 lazy — 액션 참조와 바인딩만 기록 (kernelsHistory 가 해석).
+      appsOut.add(
+        ActionApplication(pa, pathRoot, parentGen, midGen, gen, grandGen, reportParentGen, midGen, reportGrandGen)
+      )
     }
 
     for (rea in termAction.replaceAndAppends) {
@@ -223,6 +222,10 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         milestone = replaceKernel,
         parent = oldShape.milestonePath,
         observingCondSymbolIds = rea.append.observingCondSymbolIds,
+        // 새 tip group 은 이번 gen 에 부착; replace milestone 의 m2 식 gen 은
+        // 직전 tip 의 (갱신된) 부착 gen (m2 replaceAndAppend 가 tip.gen 을 유지하는 것).
+        reportGen = gen,
+        milestoneReportGen = reportParentGen,
       )
       nextPathsOut.addPath(
         PathShape(milestonePath = newMilestonePath, tipGroupId = rea.append.milestoneGroupId),
@@ -247,9 +250,14 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
 
         finishesOut.add(
           FinishedKernelRecord(
-            Kernel(pathRoot.symbolId, 1, pathRoot.startGen),
+            Kernel(pathRoot.symbolId, 1, rootReportGen),
             combined,
+            pathRoot,
           )
+        )
+        // 보고용: root 의 ptr0 init kernel (mgroup2 progRootMilestone 의 ptr0 대응).
+        addedOut.add(
+          AddedKernelRecord(pathRoot.symbolId, 0, rootReportGen, rootReportGen, combined, pathRoot)
         )
       } else {
         val tipEdgeAction = tipEdgeActionsMap[
@@ -265,9 +273,14 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
             grandParentGen = grandParentGen,
             parentGen = parentPath.gen,
             gen = gen,
+            // m2 tip edge = (parent milestone @ milestoneReportGen) -> (tip group @ reportGen)
+            reportCurrGen = parentPath.milestoneReportGen,
+            reportMidGen = parentPath.reportGen,
+            rootReportGen = rootReportGen,
             nextPathsOut = nextPathsOut,
+            appsOut = appsOut,
             finishesOut = finishesOut,
-            progressesOut = progressesOut,
+            addedOut = addedOut,
             rootProgressesOut = rootProgressesOut,
             observingSymbolIdsOut = observingSymbolIdsOut,
             condRootStartersOut = condRootStartersOut,
@@ -290,37 +303,44 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     grandParentGen: Int,
     parentGen: Int,
     gen: Int,
+    // 보고 좌표용 바인딩 — m2 edge genMap {0→edge.first.gen, 1→edge.second.gen, 2→gen}.
+    // tip edge: first=parent milestone 의 m2 gen, second=tip 의 (갱신된) 부착 gen.
+    // mid edge: first/second = 양끝 milestone 의 m2 gen.
+    reportCurrGen: Int,
+    reportMidGen: Int,
+    rootReportGen: Int,
     nextPathsOut: MutableMap<PathShape, AcceptCondition>,
+    appsOut: MutableList<ActionApplication>,
     finishesOut: MutableList<FinishedKernelRecord>,
-    progressesOut: MutableList<ProgressedKernelRecord>,
+    addedOut: MutableList<AddedKernelRecord>,
     rootProgressesOut: MutableMap<PathRoot, AcceptCondition>,
     observingSymbolIdsOut: MutableSet<Int>,
     condRootStartersOut: MutableMap<PathRoot, Int>,
   ) {
     val grandGrandParentGen = parentPath.milestone.gen
+    val reportGrandGen = parentPath.milestoneReportGen
     val pa = edgeAction.parsingActions
     if (pa != null) {
-      for (finished in pa.finished) {
-        val startGen = resolveGen(finished.startGen, grandParentGen, parentGen, gen, grandGrandParentGen)
-        finishesOut.add(
-          FinishedKernelRecord(
-            Kernel(finished.symbolId, finished.pointer, startGen),
-            finished.finishCondition.toAcceptCondition(grandParentGen, parentGen, gen, grandGrandParentGen),
-          )
+      // 보고는 lazy — 액션 참조와 바인딩만 기록 (kernelsHistory 가 해석).
+      appsOut.add(
+        ActionApplication(
+          pa, pathRoot,
+          grandParentGen, parentGen, gen, grandGrandParentGen,
+          reportCurrGen, reportMidGen, reportGrandGen,
+          condition = prevCondition,
         )
-      }
-      for (prog in pa.progressed) {
-        val startGen = resolveGen(prog.startGen, grandParentGen, parentGen, gen, grandGrandParentGen)
-        val mGen = resolveGen(prog.midGen, grandParentGen, parentGen, gen, grandGrandParentGen)
-        progressesOut.add(ProgressedKernelRecord(prog.symbolId, prog.pointer, startGen, mGen, gen))
-      }
+      )
     }
 
     for (append in edgeAction.appendMilestoneGroups) {
       val condition = append.acceptCondition.toAcceptCondition(grandParentGen, parentGen, gen, grandGrandParentGen)
       val combined = And.from(prevCondition, condition)
       if (combined == Never) continue
+      // 런타임 gen(mp.gen) 은 처음 부착 gen 고정 (조건 anchoring 과 한 몸 — 갱신 금지).
+      // 보고용 reportGen 만 현재 gen 으로 갱신: mgroup2 의 edge action appendings 가
+      // MilestoneGroupKt(groupId, gen) 으로 tip group gen 을 갱신하는 것에 대응.
       val newParentPath = parentPath.copy(
+        reportGen = gen,
         observingCondSymbolIds = append.observingCondSymbolIds,
       )
       nextPathsOut.addPath(
@@ -345,9 +365,14 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
 
           finishesOut.add(
             FinishedKernelRecord(
-              Kernel(pathRoot.symbolId, 1, pathRoot.startGen),
+              Kernel(pathRoot.symbolId, 1, rootReportGen),
               combined,
+              pathRoot,
             )
+          )
+          // 보고용: root 의 ptr0 init kernel (mgroup2 progRootMilestone 의 ptr0 대응).
+          addedOut.add(
+            AddedKernelRecord(pathRoot.symbolId, 0, rootReportGen, rootReportGen, combined, pathRoot)
           )
         } else {
           val midEdge = midEdgeActionsMap[
@@ -363,9 +388,14 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
               grandParentGen = grandGrandParentGen2,
               parentGen = grandParent.gen,
               gen = gen,
+              // m2 mid edge = (grandParent milestone @ m2 gen) -> (parent milestone @ m2 gen)
+              reportCurrGen = grandParent.milestoneReportGen,
+              reportMidGen = parentPath.milestoneReportGen,
+              rootReportGen = rootReportGen,
               nextPathsOut = nextPathsOut,
+              appsOut = appsOut,
               finishesOut = finishesOut,
-              progressesOut = progressesOut,
+              addedOut = addedOut,
               rootProgressesOut = rootProgressesOut,
               observingSymbolIdsOut = observingSymbolIdsOut,
               condRootStartersOut = condRootStartersOut,
@@ -403,8 +433,9 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
 
     // 모든 path 의 next 결과. main 도 cond 도 같은 map.
     val nextPaths = mutableMapOf<PathRoot, MutableMap<PathShape, AcceptCondition>>()
+    val appsByGroup = mutableListOf<ActionApplication>()
     val finishesByGroup = mutableListOf<FinishedKernelRecord>()
-    val progressesByGroup = mutableListOf<ProgressedKernelRecord>()
+    val addedByGroup = mutableListOf<AddedKernelRecord>()
     val observingOut = HashSet<Int>()
     val rootProgresses = mutableMapOf<PathRoot, AcceptCondition>()
     val condRootStartersFromTerm = mutableMapOf<PathRoot, Int>()
@@ -431,9 +462,11 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
             termAction = ta,
             midGen = ctx.gen,
             gen = gen,
+            rootReportGen = ctx.rootReportGens[root] ?: root.startGen,
             nextPathsOut = perRootNext,
+            appsOut = appsByGroup,
             finishesOut = finishesByGroup,
-            progressesOut = progressesByGroup,
+            addedOut = addedByGroup,
             rootProgressesOut = rootProgresses,
             observingSymbolIdsOut = observingOut,
             condRootStartersOut = condRootStartersFromTerm,
@@ -476,6 +509,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       val starterShape = PathShape(null, mgroupId)
       val ta = findApplicableAction(starterShape, input)
       if (ta != null) {
+        // same-input 적용 — 이 root 의 실제 span 은 (생성 gen - 1) 부터. 보고 anchor 기록.
+        ctx.rootReportGens[starterRoot] = gen - 1
         val perStarterNext = mutableMapOf<PathShape, AcceptCondition>()
         val ignoredStarters = mutableMapOf<PathRoot, Int>()
         applyTermAction(
@@ -485,9 +520,11 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
           termAction = ta,
           midGen = ctx.gen,
           gen = gen,
+          rootReportGen = gen - 1,
           nextPathsOut = perStarterNext,
+          appsOut = appsByGroup,
           finishesOut = finishesByGroup,
-          progressesOut = progressesByGroup,
+          addedOut = addedByGroup,
           rootProgressesOut = rootProgresses,
           observingSymbolIdsOut = observingOut,
           condRootStartersOut = ignoredStarters,
@@ -546,6 +583,9 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       val ta = findApplicableAction(starterShape, input)
       val starterNextPaths = mutableMapOf<PathShape, AcceptCondition>()
       if (ta != null) {
+        // same-input 적용 — span 은 (생성 gen - 1) 부터 (이번 gen 의 시작 root 에 한함).
+        val starterReportGen = if (pathRoot.startGen == gen) gen - 1 else pathRoot.startGen
+        ctx.rootReportGens[pathRoot] = starterReportGen
         val ignoredStarters = mutableMapOf<PathRoot, Int>()
         applyTermAction(
           oldShape = starterShape,
@@ -554,9 +594,11 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
           termAction = ta,
           midGen = ctx.gen,
           gen = gen,
+          rootReportGen = starterReportGen,
           nextPathsOut = starterNextPaths,
+          appsOut = appsByGroup,
           finishesOut = finishesByGroup,
-          progressesOut = progressesByGroup,
+          addedOut = addedByGroup,
           rootProgressesOut = newCondRootProgresses,
           observingSymbolIdsOut = observingOut,
           condRootStartersOut = ignoredStarters,
@@ -638,10 +680,17 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     tPhase = phaseMark(5, tPhase)
 
     // step 6: 사용되지 않는 cond path 제거 — mainRoot 는 항상 keep.
+    // referencedRoots: 런타임 생존 규칙 (tip-gen anchor 포함 — 기존 동작 유지).
+    // reportedCondRoots: 보고 대상 — mgroup2 의 trackings 와 같은 규칙
+    //   (조건 참조 root + observing 의 parent-gen anchor 만; tip-gen anchor 제외).
+    //   m2 는 이 규칙으로 매 step 끝에 root 경로를 필터하므로, 같은 입력에서
+    //   m2 가 갖지 않는 cond root (예: 매 gen 재시작된 중복 root) 의 기록이
+    //   kernels_history 에 나타나지 않게 한다.
     val referencedRoots = HashSet<PathRoot>()
+    val reportedCondRoots = HashSet<PathRoot>()
     fun collectFromShape(shape: PathShape, cond: AcceptCondition) {
       // condition 의 referenced roots — cached metadata.
-      cond.referencedRoots.forEach { referencedRoots.add(it) }
+      cond.referencedRoots.forEach { referencedRoots.add(it); reportedCondRoots.add(it) }
       // milestone chain 의 observing 들. 이건 chain walk 필요 (cache 없음 — 이전 시도에서 회귀).
       var mp = shape.milestonePath
       while (mp != null) {
@@ -649,6 +698,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
           referencedRoots.add(PathRoot(sid, mp.gen))
           val parentGen = mp.parent?.gen ?: ctx.mainRoot.startGen
           referencedRoots.add(PathRoot(sid, parentGen))
+          reportedCondRoots.add(PathRoot(sid, parentGen))
         }
         mp = mp.parent
       }
@@ -673,11 +723,21 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
 
     val activeCondPathsForHistory = pathsFiltered.keys.filterTo(HashSet()) { it != ctx.mainRoot }
 
+    // record 는 저장 시점에 필터+dedup — 보고 대상이 아닌 cond root 의 record 와
+    // (여러 path 가 같은 action 을 같은 바인딩으로 적용해 생기는) 완전 중복 record 를
+    // 버린다. 대형 입력에서 history 의 record 누적이 OOM 을 유발하는 것 방지.
+    val prevReported = ctx.history.lastOrNull()?.reportedCondRoots ?: emptySet()
+    fun reportableRoot(r: PathRoot): Boolean =
+      r == ctx.mainRoot || r in reportedCondRoots || r in prevReported
+
     val historyEntry = HistoryEntry(
-      finishedKernels = finishesByGroup,
-      progressedKernels = progressesByGroup,
+      actionApplications = appsByGroup.filterTo(LinkedHashSet()) { reportableRoot(it.root) }.toList(),
+      finishedKernels = finishesByGroup.filterTo(LinkedHashSet()) { reportableRoot(it.root) }.toList(),
       condPathFinishes = condPathFinishes.toMap(),
       activeCondPaths = activeCondPathsForHistory,
+      mainRootFinish = rootProgresses[ctx.mainRoot],
+      addedKernels = addedByGroup.filterTo(LinkedHashSet()) { reportableRoot(it.root) }.toList(),
+      reportedCondRoots = reportedCondRoots,
     )
 
     val nextHistory: ArrayList<HistoryEntry> = ctx.history as? ArrayList<HistoryEntry>
@@ -695,6 +755,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       paths = pathsFiltered,
       history = nextHistory,
       everSeenCondRoots = ctx.everSeenCondRoots,
+      rootReportGens = ctx.rootReportGens,
     )
   }
 
@@ -707,100 +768,60 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
   }
 
   fun isAccepted(ctx: ParsingCtx): Boolean {
-    val startSymbolId = plain.startSymbolId
+    // accept 판정은 main root 의 progress 조건 전용 채널(mainRootFinish)만 사용.
+    // finishedKernels 는 보고(kernelsHistory) 전용 — 보고 좌표가 바뀌어도
+    // (예: edge 템플릿의 start symbol finish 가 begin=0 으로 보고되어도)
+    // accept 판정에 영향을 주지 않는다.
     val lastEntry = ctx.history.lastOrNull() ?: return false
-    val activeCondPaths = ctx.condPaths.keys
-
-    for (record in lastEntry.finishedKernels) {
-      if (record.kernel.symbolId == startSymbolId && record.kernel.gen == 0 && record.kernel.pointer >= 1) {
-        if (evaluateConditionWithHistory(record.condition, ctx.history, activeCondPaths)) {
-          return true
-        }
-      }
-    }
-    return false
+    val cond = lastEntry.mainRootFinish ?: return false
+    return evaluateRecordCondition(cond, ctx.history, ctx.history.size - 1)
   }
 
-  private fun evaluateConditionWithHistory(
+  // record 가 생성된 시점(recordGen)부터 매 step 의 evolve 를 재생한 뒤 최종 평가.
+  // 파스 중 live path 의 조건이 겪는 것과 동일한 단계별 진화이므로, longest(NoLongerMatch
+  // fromNextGen — 다음 step 에서 resolve)나 join/except(Unless/OnlyIf — 생성 step 의
+  // condPathFinishes 로 resolve = 정확한 span) 의 타이밍 의미가 보존된다.
+  // mgroup2 kernelsHistory 의 타이밍 인지 조건 평가에 대응.
+  private fun evaluateRecordCondition(
     cond: AcceptCondition,
     history: List<HistoryEntry>,
-    activeCondPaths: Set<PathRoot>,
-  ): Boolean = when (cond) {
+    recordGen: Int,
+  ): Boolean {
+    var c = cond
+    for (g in recordGen until history.size) {
+      if (c == Always) return true
+      if (c == Never) return false
+      val entry = history[g]
+      c = evolveAcceptCondition(c, entry.condPathFinishes, entry.activeCondPaths, g)
+    }
+    return evaluateAtEndOfInput(c)
+  }
+
+  // replay 를 마지막 entry 까지 마친 뒤 남은 residual 조건의 입력-끝 평가.
+  // residual leaf 는 "마지막 step 까지 해당 finish 가 없었고 root 가 아직 미완"을 뜻한다:
+  // 더 들어올 입력이 없으므로 NoLongerMatch/NotExists/Unless 는 true,
+  // NeedLongerMatch/Exists/OnlyIf 는 false 로 확정된다.
+  // (마지막 step 의 finish 는 evolve 가 이미 소비했으므로 여기서 다시 보면 안 된다 —
+  //  특히 NoLongerMatch 는 같은 step 의 finish 가 "더 긴 매치"가 아니다.)
+  private fun evaluateAtEndOfInput(c: AcceptCondition): Boolean = when (c) {
     Always -> true
     Never -> false
     is And -> {
       var result = true
-      cond.forEach { if (!evaluateConditionWithHistory(it, history, activeCondPaths)) result = false }
+      c.forEach { if (!evaluateAtEndOfInput(it)) result = false }
       result
     }
     is Or -> {
       var result = false
-      cond.forEach { if (evaluateConditionWithHistory(it, history, activeCondPaths)) result = true }
+      c.forEach { if (evaluateAtEndOfInput(it)) result = true }
       result
     }
-
-    is NoLongerMatch -> {
-      // evolve 가 매 step 단순화하므로 evaluate 시 살아남은 NoLongerMatch 는
-      // 마지막 step 의 condPathFinishes 로 결정. fromNextGen=true 이면 무조건 true (이번 step 의
-      // finish 와 결합 안 함). mgroup2 의 NotExists(_, _, true) => true 와 같은 의미.
-      if (cond.fromNextGen) true
-      else {
-        val root = PathRoot(cond.symbolId, cond.startGen)
-        val finCond = history.lastOrNull()?.condPathFinishes?.get(root)
-        if (finCond == null) true
-        else !evaluateConditionWithHistory(finCond, history, activeCondPaths)
-      }
-    }
-
-    is NeedLongerMatch -> {
-      if (cond.fromNextGen) false
-      else {
-        val root = PathRoot(cond.symbolId, cond.startGen)
-        val finCond = history.lastOrNull()?.condPathFinishes?.get(root)
-        if (finCond == null) false
-        else evaluateConditionWithHistory(finCond, history, activeCondPaths)
-      }
-    }
-
-    is NotExists -> {
-      val root = PathRoot(cond.symbolId, cond.startGen)
-      val finishes = collectFinishesAtOrAfter(history, root, cond.startGen)
-      if (finishes.isEmpty()) true
-      else !finishes.any { evaluateConditionWithHistory(it, history, activeCondPaths) }
-    }
-
-    is Exists -> {
-      val root = PathRoot(cond.symbolId, cond.startGen)
-      val finishes = collectFinishesAtOrAfter(history, root, cond.startGen)
-      finishes.any { evaluateConditionWithHistory(it, history, activeCondPaths) }
-    }
-
-    is Unless -> {
-      val root = PathRoot(cond.symbolId, cond.startGen)
-      val finishes = collectFinishesAtOrAfter(history, root, cond.startGen)
-      if (finishes.isEmpty()) true
-      else !finishes.any { evaluateConditionWithHistory(it, history, activeCondPaths) }
-    }
-
-    is OnlyIf -> {
-      val root = PathRoot(cond.symbolId, cond.startGen)
-      val finishes = collectFinishesAtOrAfter(history, root, cond.startGen)
-      finishes.any { evaluateConditionWithHistory(it, history, activeCondPaths) }
-    }
-  }
-
-  private fun collectFinishesAtOrAfter(
-    history: List<HistoryEntry>,
-    root: PathRoot,
-    minGen: Int,
-  ): List<AcceptCondition> {
-    val result = mutableListOf<AcceptCondition>()
-    for ((gen, entry) in history.withIndex()) {
-      if (gen < minGen) continue
-      val cond = entry.condPathFinishes[root]
-      if (cond != null) result.add(cond)
-    }
-    return result
+    is NoLongerMatch -> true
+    is NeedLongerMatch -> false
+    is NotExists -> true
+    is Exists -> false
+    is Unless -> true
+    is OnlyIf -> false
   }
 
   fun parseOrThrow(text: String): ParsingCtx {
@@ -812,12 +833,47 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
   }
 
   fun kernelsHistory(ctx: ParsingCtx): List<KernelSet> {
-    val finalActiveCondPaths = ctx.condPaths.keys
-
     return ctx.history.mapIndexed { gen, entry ->
+      // root 기반 보고 필터(main root + 이번/직전 entry 의 reportedCondRoots)는
+      // parseStep 의 record/application 저장 시점에 이미 적용됨.
       val kernels = mutableSetOf<com.giyeok.jparser.ktlib.Kernel>()
+      // 액션 적용을 lazy 해석: 조건은 런타임 바인딩(rt*)으로 resolve 해 replay 평가,
+      // kernel 좌표는 보고 바인딩(rep*)으로 resolve. (mgroup2 kernelsHistory 의
+      // tasksSummary 해석 대응.)
+      for (app in entry.actionApplications) {
+        // edge action 은 그 적용을 구동한 runtime 조건으로 전체 게이팅 (m2 kernelsHistory 의
+        // progressedKgroups/progressedKernels 조건 게이트 대응).
+        if (app.condition != Always && !evaluateRecordCondition(app.condition, ctx.history, gen)) continue
+        val pa = app.actions
+        for (finished in pa.finished) {
+          val cond = finished.finishCondition.toAcceptCondition(app.rtCurr, app.rtMid, app.next, app.rtGrand)
+          if (evaluateRecordCondition(cond, ctx.history, gen)) {
+            val begin = resolveGen(finished.startGen, app.repCurr, app.repMid, app.next, app.repGrand)
+            kernels.add(
+              com.giyeok.jparser.ktlib.Kernel(finished.symbolId, finished.pointer, begin, gen)
+            )
+          }
+        }
+        // pa.progressed 는 방출하지 않는다 — progress 의 source/next kernel 은
+        // added 채널이 동일 좌표로 (조건과 함께) 커버한다. progressed 는 조건이 없어
+        // 무조건 방출하면 m2 가 조건으로 거르는 kernel (예: longest 실패한 cond root
+        // 의 진행) 이 새어 나온다.
+        for (added in pa.added) {
+          val cond = added.acceptCondition.toAcceptCondition(app.rtCurr, app.rtMid, app.next, app.rtGrand)
+          if (evaluateRecordCondition(cond, ctx.history, gen)) {
+            kernels.add(
+              com.giyeok.jparser.ktlib.Kernel(
+                added.symbolId,
+                added.pointer,
+                resolveGen(added.startGen, app.repCurr, app.repMid, app.next, app.repGrand),
+                resolveGen(added.endGen, app.repCurr, app.repMid, app.next, app.repGrand),
+              )
+            )
+          }
+        }
+      }
       for (rec in entry.finishedKernels) {
-        if (evaluateConditionWithHistory(rec.condition, ctx.history, finalActiveCondPaths)) {
+        if (evaluateRecordCondition(rec.condition, ctx.history, gen)) {
           kernels.add(
             com.giyeok.jparser.ktlib.Kernel(
               rec.kernel.symbolId,
@@ -828,23 +884,17 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
           )
         }
       }
-      for (rec in entry.progressedKernels) {
-        kernels.add(
-          com.giyeok.jparser.ktlib.Kernel(
-            rec.symbolId,
-            rec.pointer,
-            rec.startGen,
-            rec.midGen,
+      for (rec in entry.addedKernels) {
+        if (evaluateRecordCondition(rec.condition, ctx.history, gen)) {
+          kernels.add(
+            com.giyeok.jparser.ktlib.Kernel(
+              rec.symbolId,
+              rec.pointer,
+              rec.beginGen,
+              rec.endGen,
+            )
           )
-        )
-        kernels.add(
-          com.giyeok.jparser.ktlib.Kernel(
-            rec.symbolId,
-            rec.pointer + 1,
-            rec.startGen,
-            rec.endGen,
-          )
-        )
+        }
       }
       KernelSet(kernels.toSet())
     }

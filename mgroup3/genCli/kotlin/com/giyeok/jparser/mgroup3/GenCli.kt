@@ -27,5 +27,5 @@ fun main(argv: Array<String>) {
   )
   Stage2ProtoEmit.run(schema, args.proto)
   Stage3KotlinEmit.run(processed, args.kotlinDir)
-  Stage4RustEmit.run(schema, args.rustDir, args.mgroup3NativePath)
+  Stage4RustEmit.run(processed, schema, args.rustDir, args.mgroup3NativePath)
 }

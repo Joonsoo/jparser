@@ -659,6 +659,12 @@ def runMgroup3GenTest() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.ParserGenTest"))
 }
 
+// mgroup2 vs mgroup3 kernelsHistory 동등성 하니스 + AST walk 동등성 검증.
+@action
+def runMgroup3HistoryDiffTest() {
+  runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Mgroup2VsMgroup3HistoryTest"))
+}
+
 // Regenerate the parser fixtures consumed by mgroup3-native's Rust tests
 // (parser_diff.rs and Mgroup3NativeResultBridgeTest). Writes data.pb +
 // input.txt + golden.txt under either

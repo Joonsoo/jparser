@@ -1,6 +1,7 @@
 package com.giyeok.jparser.mgroup3
 
 import com.giyeok.jparser.mgroup3.proto.AcceptConditionTemplate
+import com.giyeok.jparser.mgroup3.proto.AddedKernelTemplate as ProtoAddedKernelTemplate
 import com.giyeok.jparser.mgroup3.proto.AppendMilestoneGroup
 import com.giyeok.jparser.mgroup3.proto.CondRootStarter as ProtoCondRootStarter
 import com.giyeok.jparser.mgroup3.proto.EdgeAction
@@ -133,6 +134,8 @@ class EdgeActionPlain(proto: EdgeAction) {
 class ParsingActionsPlain(proto: ParsingActions) {
   val progressed: List<ProtoProgressedKernelTemplate> = proto.progressedList.toList()
   val finished: List<ProtoFinishedKernelTemplate> = proto.finishedList.toList()
+  // kernels_history 보고 전용 — 파싱(조건 평가/accept 판정)에는 사용 안 함.
+  val added: List<ProtoAddedKernelTemplate> = proto.addedList.toList()
 }
 
 class TipEdgeActionPair(val parent: KernelTemplate, val tipGroupId: Int, val edgeAction: EdgeActionPlain)

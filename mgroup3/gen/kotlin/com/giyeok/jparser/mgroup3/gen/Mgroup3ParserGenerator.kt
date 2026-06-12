@@ -282,6 +282,17 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
         this.midGen = before.endGen.toProto()
       }
     }
+    // 초기(gen 0) 에 등장하는 모든 kernel 을 보고용 added 로 기록.
+    // 초기 해석은 모든 태그가 0 으로 resolve 되므로 리맵 불필요.
+    // m2 의 초기 summary 는 derive run 전체를 담으므로 fullGraph.
+    emitAddedKernels(
+      parsingActionsBuilder, graph,
+      remapEdgeReportGens = false,
+      starts = emptySet(),
+      derivePhaseNodes = emptySet(),
+      excludeFromAdded = emptySet(),
+      fullGraph = true,
+    )
 
     return builder.build()
   }
@@ -295,6 +306,8 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
     val graph = tasks.derivedFrom(milestoneNodes)
     // derive 단계에서 이미 finish된 노드들 (이건 init context에서 한 번만 일어나는 것이므로 termAction에 포함되면 안 됨)
     val derivePhaseFinishedNodes = graph.finishedNodes.toSet()
+    // derive 단계의 노드 집합 — added 보고에서 closure 를 제외하는 기준 (emitAddedKernels 참고)
+    val derivePhaseNodes = graph.nodes.toSet()
 
     val actions = mutableListOf<Mgroup3ParserData.TermGroupAction>()
 
@@ -307,7 +320,10 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
         .setTermGroup(termGroup)
 
       val taBuilder = actionBuilder.termActionBuilder
-      val g2 = tasks.progressedFrom(graph, termNodes, Next)
+      // milestone 들을 barrier 로 — m2 의 term 시뮬레이션처럼 milestone 위쪽 cascade 는
+      // 템플릿에 넣지 않는다 (런타임의 tip/mid edge 액션이 전담). milestone 의 progress
+      // 조건은 g2.barrierProgressConditions 로 수집됨.
+      val g2 = tasks.progressedFrom(graph, termNodes, Next, barrierNodes = milestoneNodes)
 
       val appendingMilestones = appendingMilestonesOf(g2, Curr)
       // 각 parent milestone에 대해, 도달 가능한 appending milestone들을 condition별로 묶어서 replace_and_appends 생성
@@ -355,10 +371,11 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
       }
 
       // replace_and_progresses: graph의 milestone 중 g2에서 progress된 것들
-      // (즉, 자기 자신의 끝까지 진행된 milestone들)
-      val progressedMilestones = g2.progressedNodes.keys.intersect(milestoneNodes)
+      // (즉, 자기 자신의 끝까지 진행된 milestone들). barrier 라 progressedNodes 에는
+      // 없고 barrierProgressConditions 에 조건이 수집되어 있다.
+      val progressedMilestones = g2.barrierProgressConditions.keys.intersect(milestoneNodes)
         .groupBy { parentMilestone ->
-          g2.acceptConditions[g2.progressedNodes[parentMilestone]!!]!!
+          g2.barrierProgressConditions[parentMilestone]!!
         }
       val progressedEntries = progressedMilestones.entries.sortedBy { it.key }
       for ((acc, subMilestones) in progressedEntries) {
@@ -369,12 +386,16 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
         replaceAndProgressBuilder.setAcceptCondition(acc.toProto())
       }
 
-      // parsing actions
+      // parsing actions — barrier 시뮬레이션이라 milestone 위쪽 cascade 는 g2 에 없음.
+      // milestone 자신은 added 보고에서 제외 (m2 의 barrier 가 start kernel 의 progress 를
+      // summary 에서 빼는 것에 대응 — 그 kernel 들은 edge 액션 쪽 보고가 커버).
       fillParsingActions(
         taBuilder.parsingActionsBuilder, g2,
         starts = milestoneNodes,
         derivePhaseFinishedNodes = derivePhaseFinishedNodes,
-        includeProgressOfStarts = true,
+        includeProgressOfStarts = false,
+        derivePhaseNodes = derivePhaseNodes,
+        excludeFromAdded = milestoneNodes,
       )
 
       actions.add(actionBuilder.build())
@@ -386,20 +407,44 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
   // graph (g2)에서 일어난 finish/progress들을 parsingActions에 기록.
   // derive 단계에서 이미 일어난 finish/progress는 제외하고 progress phase에서 새로 등장한 것만 기록.
   // includeProgressOfStarts: starts의 progress(즉 startNodeProgress)도 기록할지 여부
+  //
+  // remapEdgeReportGens: edge action 전용 보고 좌표 리맵.
+  //   graph 내부 좌표는 join key/condition 과 co-designed 라 불변으로 두고,
+  //   proto 로 내보내는 "보고용" gen 태그만 mgroup2/milestone2 의 의미에 맞춘다.
+  //   edge 템플릿에서 parent 의 left-edge chain 노드들은 graph 상 Curr 좌표로
+  //   derive 되지만, 의미상으로는 parent milestone 의 dot gen(=Prev, 런타임
+  //   grandParentGen = mgroup2 의 edge.first.gen)에서 시작한다. milestone2 는
+  //   edge 템플릿을 startingCtxFrom(start, -1) 로 만들어 chain 의 begin 이
+  //   tag 0 이 되도록 하는데, 그에 대응.
+  //   - finished/progressed 의 startGen: Curr → Prev
+  //   - progressed 의 midGen(=before.endGen):
+  //       before ∈ starts(tip progs) → Curr 유지 (tip 의 dot gen),
+  //       before ∈ derivePhaseNodes → Curr → Prev (derive 단계의 nullable 진행),
+  //       그 외(Next 등) → 유지.
   private fun fillParsingActions(
     builder: ParsingActions.Builder,
     g2: GenParsingGraph,
     starts: Set<GenNode>,
     derivePhaseFinishedNodes: Set<GenNode>,
     includeProgressOfStarts: Boolean,
+    remapEdgeReportGens: Boolean = false,
+    derivePhaseNodes: Set<GenNode> = emptySet(),
+    excludeFromAdded: Set<GenNode> = emptySet(),
+    // finished/progressed/added 모든 보고 채널에서 제외할 노드들.
+    // term action 의 milestone-위쪽 cascade (m2 의 barrier 바깥 — 런타임 edge 액션이 전담).
+    excludeFromReports: Set<GenNode> = emptySet(),
   ) {
+    fun reportStartGen(tag: GenNodeGeneration): GenNodeGeneration =
+      if (remapEdgeReportGens && tag == Curr) Prev else tag
+
     for (finished in g2.finishedNodes.sortedWith(compareBy({ it.symbolId }, { it.pointer }))) {
       // derive phase에서 이미 finish된 노드는 제외
       if (finished in derivePhaseFinishedNodes) continue
+      if (finished in excludeFromReports) continue
       builder.addFinishedBuilder().apply {
         this.symbolId = finished.symbolId
         this.pointer = finished.pointer
-        this.startGen = finished.startGen.toProto()
+        this.startGen = reportStartGen(finished.startGen).toProto()
         this.finishCondition = g2.acceptConditions[finished]!!.toProto()
       }
     }
@@ -407,14 +452,81 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
       compareBy({ it.key.symbolId }, { it.key.pointer })
     )) {
       if (!includeProgressOfStarts && before in starts) continue
+      if (before in excludeFromReports || after in excludeFromReports) continue
+      // edge action 에서 derive 단계 안에서 완결된 progress (nullable 진행 —
+      // after 도 derive-phase 노드) 는 이번 step 의 사건이 아니므로 보고하지 않음.
+      // (그 결과 상태는 이후 단계의 progressed/added 가 커버.)
+      if (remapEdgeReportGens && after in derivePhaseNodes) continue
       // (sym, ptr, before.startGen, before.endGen) → (sym, ptr+1, after.startGen, after.endGen)
       // 즉 startGen=before.startGen=after.startGen (NSequence는 startGen 유지),
       // mid_gen=before.endGen, end_gen=after.endGen=NEXT
+      val reportMidGen =
+        if (remapEdgeReportGens && before.endGen == Curr && before !in starts && before in derivePhaseNodes) Prev
+        else before.endGen
       builder.addProgressedBuilder().apply {
         this.symbolId = before.symbolId
         this.pointer = before.pointer
-        this.startGen = before.startGen.toProto()
-        this.midGen = before.endGen.toProto()
+        this.startGen = reportStartGen(before.startGen).toProto()
+        this.midGen = reportMidGen.toProto()
+      }
+    }
+
+    emitAddedKernels(builder, g2, remapEdgeReportGens, starts, derivePhaseNodes, excludeFromAdded + excludeFromReports)
+  }
+
+  // added kernels: 보고 좌표로 기록하는 kernel 들 (kernels_history 전용).
+  // mgroup2 의 TasksSummary2.added_kernels 에 대응 — m2 의 summary 는 progress-phase
+  // task run 의 kernel 들만 담는다 (ProgressTask 의 source+next, 새 derive, finish).
+  // derive closure 는 포함되지 않는다 (closure 는 startingCtxFrom 의 별도 run).
+  // 따라서 fullGraph=false 면 progressedNodes 의 양변 + progress phase 에 새로 생긴
+  // 노드만 선택. fullGraph=true 는 초기 액션 전용 (m2 의 초기 summary 는 derive run 포함).
+  // 같은 보고 좌표로 합쳐지는 노드는 Or 로 병합.
+  private fun emitAddedKernels(
+    builder: ParsingActions.Builder,
+    g: GenParsingGraph,
+    remapEdgeReportGens: Boolean,
+    starts: Set<GenNode>,
+    derivePhaseNodes: Set<GenNode>,
+    excludeFromAdded: Set<GenNode>,
+    fullGraph: Boolean = false,
+  ) {
+    data class AddedKey(
+      val symbolId: Int,
+      val pointer: Int,
+      val startGen: KernelTemplateGen,
+      val endGen: KernelTemplateGen,
+    )
+
+    val selectedNodes: Collection<GenNode> = if (fullGraph) g.nodes else buildSet {
+      // progress phase 에 새로 생긴 노드들 (progressed 결과 + 새 derive)
+      addAll(g.nodes)
+      removeAll(derivePhaseNodes)
+      // progress 의 source 노드들 (closure 안의 노드라도 m2 의 ProgressTask kernel 에 해당)
+      addAll(g.progressedNodes.keys)
+      addAll(g.progressedNodes.values)
+    }
+    val addedConds = LinkedHashMap<AddedKey, GenAcceptCondition>()
+    for (n in selectedNodes) {
+      if (n in excludeFromAdded) continue
+      val startTag = if (remapEdgeReportGens && n.startGen == Curr) Prev else n.startGen
+      val endTag =
+        if (remapEdgeReportGens && n !in starts && n in derivePhaseNodes && n.endGen == Curr) Prev
+        else n.endGen
+      val key = AddedKey(n.symbolId, n.pointer, startTag.toProto(), endTag.toProto())
+      val cond = g.acceptConditions[n] ?: GenAcceptCondition.Always
+      val existing = addedConds[key]
+      addedConds[key] = if (existing != null) GenAcceptCondition.Or.from(existing, cond) else cond
+    }
+    val sorted = addedConds.entries.sortedWith(
+      compareBy({ it.key.symbolId }, { it.key.pointer }, { it.key.startGen.number }, { it.key.endGen.number })
+    )
+    for ((key, cond) in sorted) {
+      builder.addAddedBuilder().apply {
+        this.symbolId = key.symbolId
+        this.pointer = key.pointer
+        this.startGen = key.startGen
+        this.endGen = key.endGen
+        this.acceptCondition = cond.toProto()
       }
     }
   }
@@ -424,6 +536,7 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
     parentNode: GenNode,
     starts: Set<GenNode>,
     derivePhaseFinishedNodes: Set<GenNode>,
+    derivePhaseNodes: Set<GenNode>,
   ): EdgeAction {
     val builder = EdgeAction.newBuilder()
 
@@ -451,19 +564,26 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
       }
     }
 
-    // parentNode가 progress되는 경우 (즉, parent의 시작 노드까지 reduce 가능한 경우)
-    val parentProgressed = graph.progressedNodes[parentNode]
-    if (parentProgressed != null) {
-      builder.startNodeProgress = graph.acceptConditions[parentProgressed]!!.toProto()
+    // parentNode가 progress되는 경우 (즉, parent의 시작 노드까지 reduce 가능한 경우).
+    // parentNode 는 barrier 라 progress 가 적용되지 않고 조건만 수집된다.
+    val parentProgressCond = graph.barrierProgressConditions[parentNode]
+    if (parentProgressCond != null) {
+      builder.startNodeProgress = parentProgressCond.toProto()
     } else {
       builder.clearStartNodeProgress()
     }
 
+    // parentNode 는 added 보고에서 제외 — parent kernel 의
+    // 실제 begin 은 이 템플릿의 gen 태그로 표현 불가 (상위 edge 의 보고가 커버).
+    val excludeFromAdded = setOf(parentNode)
     fillParsingActions(
       builder.parsingActionsBuilder, graph,
       starts = starts,
       derivePhaseFinishedNodes = derivePhaseFinishedNodes,
       includeProgressOfStarts = true,
+      remapEdgeReportGens = true,
+      derivePhaseNodes = derivePhaseNodes,
+      excludeFromAdded = excludeFromAdded,
     )
 
     return builder.build()
@@ -475,28 +595,34 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
     // tip edge: parent --[derive]--> ... --> child(tip)들
     val graph = tasks.derivedFrom(setOf(parentNode))
     val derivePhaseFinishedNodes = graph.finishedNodes.toSet()
+    // derive 단계의 노드 집합 (보고용 gen 리맵 판별에 사용 — fillParsingActions 참고)
+    val derivePhaseNodes = graph.nodes.toSet()
     // tip mgroup의 milestone들을 startGen=Curr 기준으로 graph에 추가
     // (이미 등장한 init node로 들어오는 incoming edge를 progressed milestone으로 동일하게 추가)
     val progs = tipMgroup.map {
       GenNode(it.symbolId, it.pointer, Curr, Curr)
     }.toSet()
     addProgsWithIncomingEdges(graph, progs)
-    val g2 = tasks.progressedFrom(graph, progs, Next)
+    // parentNode 는 barrier — parent 위쪽 cascade 는 템플릿에 넣지 않는다 (m2 의
+    // edge 시뮬레이션 barrier 대응; 그 사건은 런타임의 상위 edge 액션이 전담).
+    val g2 = tasks.progressedFrom(graph, progs, Next, barrierNodes = setOf(parentNode))
 
-    return edgeActionFrom(g2, parentNode, progs, derivePhaseFinishedNodes)
+    return edgeActionFrom(g2, parentNode, progs, derivePhaseFinishedNodes, derivePhaseNodes)
   }
 
   fun genMidEdgeAction(parent: KernelTemplate, child: KernelTemplate): EdgeAction {
     val parentNode = GenNode(parent.symbolId, parent.pointer, Prev, Curr)
     val graph = tasks.derivedFrom(setOf(parentNode))
     val derivePhaseFinishedNodes = graph.finishedNodes.toSet()
+    val derivePhaseNodes = graph.nodes.toSet()
     // mid edge: parent --[derive]--> ... --> child(이미 진행 중)
     // child의 startGen은 Curr (parent와 같은 layer)이고 endGen은 Mid (이전 mgroup의 진행 결과)
     val prog = GenNode(child.symbolId, child.pointer, Curr, Mid)
     addProgsWithIncomingEdges(graph, setOf(prog))
-    val g2 = tasks.progressedFrom(graph, setOf(prog), Next)
+    // parentNode 는 barrier (genTipEdgeAction 의 주석 참고).
+    val g2 = tasks.progressedFrom(graph, setOf(prog), Next, barrierNodes = setOf(parentNode))
 
-    return edgeActionFrom(g2, parentNode, setOf(prog), derivePhaseFinishedNodes)
+    return edgeActionFrom(g2, parentNode, setOf(prog), derivePhaseFinishedNodes, derivePhaseNodes)
   }
 
   // prog 노드들을 graph에 추가하면서, prog의 init form (symbolId, 0, prog.startGen, prog.startGen)으로

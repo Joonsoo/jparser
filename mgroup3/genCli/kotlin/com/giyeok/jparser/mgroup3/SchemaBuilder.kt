@@ -61,14 +61,16 @@ object SchemaBuilder {
   private fun mapType(t: Type, processed: ProcessedGrammar): SchemaType {
     // Scala case object 들 (BoolType, CharType, ...) 은 Kotlin import 가 어려워 (`Type$BoolType$`
     // 식별자에 `$` 가 들어가서 unresolved) class simple name 으로 분기한다.
+    // 주의: nested class 의 getSimpleName() 은 enclosing `Type$` prefix 를 빼고
+    // `StringType$` 만 반환한다 (binary name 인 `Type$StringType$` 가 아니다).
     when (t::class.java.simpleName) {
-      "Type\$BoolType\$" -> return SchemaType.Bool
-      "Type\$CharType\$" -> return SchemaType.Int32
-      "Type\$StringType\$" -> return SchemaType.Str
-      "Type\$NodeType\$" -> return SchemaType.NodeBytes
-      "Type\$NullType\$" -> return SchemaType.NodeBytes
-      "Type\$AnyType\$" -> return SchemaType.NodeBytes
-      "Type\$NothingType\$" -> return SchemaType.NodeBytes
+      "BoolType\$" -> return SchemaType.Bool
+      "CharType\$" -> return SchemaType.Int32
+      "StringType\$" -> return SchemaType.Str
+      "NodeType\$" -> return SchemaType.NodeBytes
+      "NullType\$" -> return SchemaType.NodeBytes
+      "AnyType\$" -> return SchemaType.NodeBytes
+      "NothingType\$" -> return SchemaType.NodeBytes
     }
     return mapTypeRest(t, processed)
   }

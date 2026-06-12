@@ -9,12 +9,11 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use std::rc::Rc;
 
 use crate::accept_condition::AcceptCondition;
-use crate::parser::eval_with_history::{evaluate_with_history, HistoryIndex};
 use crate::parser::template::{build_condition, resolve_gen_i32};
-use crate::parser_data::{EdgeActionPlain, ParserDataPlain, TermActionPlain};
+use crate::parser_data::{EdgeActionPlain, ParserDataPlain, ParsingActionsPlain, TermActionPlain};
 use crate::parsing_ctx::{
-    add_path, FinishedKernelRecord, HistoryEntry, Kernel, KernelTemplatePair, KtlibKernel,
-    MilestonePath, ParsingCtx, PathMap, PathShape, ProgressedKernelRecord,
+    add_path, ActionApplication, AddedKernelRecord, FinishedKernelRecord, HistoryEntry, Kernel,
+    KernelTemplatePair, KtlibKernel, MilestonePath, ParsingCtx, PathMap, PathShape,
 };
 use crate::path_root::PathRoot;
 use crate::proto::com::giyeok::jparser::mgroup3::proto::Mgroup3ParserData;
@@ -128,49 +127,42 @@ impl Mgroup3Parser {
             all_paths.insert(k, v);
         }
 
+        let mut initial_apps: Vec<ActionApplication> = Vec::new();
         let mut initial_finished: Vec<FinishedKernelRecord> = Vec::new();
-        let mut initial_progressed: Vec<ProgressedKernelRecord> = Vec::new();
         if let Some(pa) = &root_info.parsing_actions {
-            for finished in &pa.finished {
-                let start_gen = resolve_gen_i32(finished.start_gen, 0, 0, 0, 0);
-                initial_finished.push(FinishedKernelRecord {
-                    kernel: Kernel::new(finished.symbol_id, finished.pointer, start_gen),
-                    condition: build_condition(
-                        finished
-                            .finish_condition
-                            .as_ref()
-                            .expect("FinishedKernelTemplate.finish_condition missing"),
-                        0,
-                        0,
-                        0,
-                        0,
-                    ),
-                });
-            }
-            for prog in &pa.progressed {
-                let start_gen = resolve_gen_i32(prog.start_gen, 0, 0, 0, 0);
-                let mid_gen = resolve_gen_i32(prog.mid_gen, 0, 0, 0, 0);
-                initial_progressed.push(ProgressedKernelRecord {
-                    symbol_id: prog.symbol_id,
-                    pointer: prog.pointer,
-                    start_gen,
-                    mid_gen,
-                    end_gen: 0,
-                });
+            initial_apps.push(initial_application(Rc::clone(pa), main_root));
+        }
+        // cond root 들의 초기 derive closure 도 보고 — m2 의 초기 tasksSummary 가
+        // in-graph cond body 를 포함하는 것에 대응. (정렬: 결정적 출력)
+        let mut initial_cond_roots: Vec<PathRoot> =
+            all_paths.keys().copied().filter(|r| *r != main_root).collect();
+        initial_cond_roots.sort_by_key(|r| (r.symbol_id, r.start_gen));
+        for cond_root in &initial_cond_roots {
+            if let Some(info) = self.plain.path_roots.get(&cond_root.symbol_id) {
+                if let Some(pa) = &info.parsing_actions {
+                    initial_apps.push(initial_application(Rc::clone(pa), *cond_root));
+                }
             }
         }
+        let mut initial_main_root_finish: Option<AcceptCondition> = None;
         if let Some(self_finish_tpl) = &root_info.self_finish_accept_condition {
+            let cond = build_condition(self_finish_tpl, 0, 0, 0, 0);
             initial_finished.push(FinishedKernelRecord {
                 kernel: Kernel::new(start_symbol_id, 1, 0),
-                condition: build_condition(self_finish_tpl, 0, 0, 0, 0),
+                condition: cond.clone(),
+                root: main_root,
             });
+            initial_main_root_finish = Some(cond);
         }
 
         let initial_entry = HistoryEntry {
+            action_applications: initial_apps,
             finished_kernels: initial_finished,
-            progressed_kernels: initial_progressed,
+            added_kernels: Vec::new(),
             cond_path_finishes: HashMap::default(),
             active_cond_paths: Default::default(),
+            main_root_finish: initial_main_root_finish,
+            reported_cond_roots: initial_cond_roots.into_iter().collect(),
         };
 
         ParsingCtx {
@@ -181,8 +173,11 @@ impl Mgroup3Parser {
             paths: all_paths,
             history: vec![initial_entry],
             ever_seen_cond_roots: Default::default(),
+            root_report_gens: Default::default(),
         }
     }
+
+    
 
     /// Build initial path maps for every symbol in the transitive closure of
     /// `cond_symbol_ids`. Mirrors `Mgroup3Parser.kt:72-86`. Each created path
@@ -263,7 +258,7 @@ impl Mgroup3Parser {
     /// Drive one input character. Mirrors `Mgroup3Parser.kt:388-698`.
     pub fn parse_step(
         &self,
-        ctx: ParsingCtx,
+        mut ctx: ParsingCtx,
         input: char,
         is_last_input: bool,
     ) -> Result<ParsingCtx, ParsingError> {
@@ -286,8 +281,9 @@ impl Mgroup3Parser {
         };
 
         let mut next_paths: HashMap<PathRoot, PathMap> = HashMap::default();
+        let mut apps: Vec<ActionApplication> = Vec::new();
         let mut finishes: Vec<FinishedKernelRecord> = Vec::new();
-        let mut progresses: Vec<ProgressedKernelRecord> = Vec::new();
+        let mut added: Vec<AddedKernelRecord> = Vec::new();
         let mut observing: HashSet<i32> = HashSet::default();
         let mut root_progresses: HashMap<PathRoot, AcceptCondition> = HashMap::default();
         let mut cond_root_starters_from_term: HashMap<PathRoot, i32> = HashMap::default();
@@ -299,6 +295,8 @@ impl Mgroup3Parser {
             for (shape, cond) in path_map {
                 let ta = self.find_applicable_action(shape, input);
                 if let Some(ta) = ta {
+                    let root_report_gen =
+                        ctx.root_report_gens.get(root).copied().unwrap_or(root.start_gen);
                     self.apply_term_action(
                         shape,
                         cond,
@@ -306,9 +304,11 @@ impl Mgroup3Parser {
                         &ta,
                         ctx.gen_idx,
                         next_gen,
+                        root_report_gen,
                         &mut per_root_next,
+                        &mut apps,
                         &mut finishes,
-                        &mut progresses,
+                        &mut added,
                         &mut root_progresses,
                         &mut observing,
                         &mut cond_root_starters_from_term,
@@ -364,6 +364,8 @@ impl Mgroup3Parser {
             let starter_shape = PathShape::new(None, mgroup_id);
             let ta = self.find_applicable_action(&starter_shape, input);
             if let Some(ta) = ta {
+                // same-input 적용 — 이 root 의 실제 span 은 (생성 gen - 1) 부터.
+                ctx.root_report_gens.insert(starter_root, next_gen - 1);
                 let mut per_starter_next: PathMap = PathMap::default();
                 let mut ignored_starters: HashMap<PathRoot, i32> = HashMap::default();
                 self.apply_term_action(
@@ -373,9 +375,11 @@ impl Mgroup3Parser {
                     &ta,
                     ctx.gen_idx,
                     next_gen,
+                    next_gen - 1,
                     &mut per_starter_next,
+                    &mut apps,
                     &mut finishes,
-                    &mut progresses,
+                    &mut added,
                     &mut root_progresses,
                     &mut observing,
                     &mut ignored_starters,
@@ -457,6 +461,13 @@ impl Mgroup3Parser {
             let ta = self.find_applicable_action(&starter_shape, input);
             let mut starter_next_paths: PathMap = PathMap::default();
             if let Some(ta) = ta {
+                // same-input 적용 — span 은 (생성 gen - 1) 부터 (이번 gen 시작 root 에 한함).
+                let starter_report_gen = if path_root.start_gen == next_gen {
+                    next_gen - 1
+                } else {
+                    path_root.start_gen
+                };
+                ctx.root_report_gens.insert(path_root, starter_report_gen);
                 let mut ignored_starters: HashMap<PathRoot, i32> = HashMap::default();
                 self.apply_term_action(
                     &starter_shape,
@@ -465,9 +476,11 @@ impl Mgroup3Parser {
                     &ta,
                     ctx.gen_idx,
                     next_gen,
+                    starter_report_gen,
                     &mut starter_next_paths,
+                    &mut apps,
                     &mut finishes,
-                    &mut progresses,
+                    &mut added,
                     &mut new_cond_root_progresses,
                     &mut observing,
                     &mut ignored_starters,
@@ -520,11 +533,16 @@ impl Mgroup3Parser {
             paths_evolved.get(&ctx.main_root).cloned().unwrap_or_default();
 
         // ----- step 6: prune unreferenced cond paths -----
+        // referenced_roots: 런타임 생존 규칙 (tip-gen anchor 포함).
+        // reported_cond_roots: 보고 대상 — m2 trackings 의 narrow 규칙
+        //   (조건 참조 root + observing 의 parent-gen anchor 만).
         let mut referenced_roots: HashSet<PathRoot> = HashSet::default();
+        let mut reported_cond_roots: HashSet<PathRoot> = HashSet::default();
         for pm in paths_evolved.values() {
             for (shape, cond) in pm {
                 cond.referenced_roots().for_each(|r| {
                     referenced_roots.insert(*r);
+                    reported_cond_roots.insert(*r);
                 });
                 let mut mp = shape.milestone_path.clone();
                 while let Some(node) = mp {
@@ -533,6 +551,7 @@ impl Mgroup3Parser {
                         let parent_gen =
                             node.parent.as_ref().map(|p| p.gen_idx).unwrap_or(ctx.main_root.start_gen);
                         referenced_roots.insert(PathRoot::new(sid, parent_gen));
+                        reported_cond_roots.insert(PathRoot::new(sid, parent_gen));
                     }
                     mp = node.parent.clone();
                 }
@@ -563,14 +582,47 @@ impl Mgroup3Parser {
             .filter(|r| *r != ctx.main_root)
             .collect();
 
+        // record 는 저장 시점에 필터+dedup — 보고 대상이 아닌 cond root 의 record 와
+        // 완전 중복 record 를 버린다 (대형 입력의 메모리 누적 방지).
+        let main_root = ctx.main_root;
+        let prev_reported: HashSet<PathRoot> = ctx
+            .history
+            .last()
+            .map(|e| e.reported_cond_roots.clone())
+            .unwrap_or_default();
+        let reportable = |r: PathRoot| {
+            r == main_root || reported_cond_roots.contains(&r) || prev_reported.contains(&r)
+        };
+        let mut apps_dedup: Vec<ActionApplication> = Vec::new();
+        for app in apps {
+            if reportable(app.root) && !apps_dedup.contains(&app) {
+                apps_dedup.push(app);
+            }
+        }
+        let mut finishes_dedup: Vec<FinishedKernelRecord> = Vec::new();
+        for rec in finishes {
+            if reportable(rec.root) && !finishes_dedup.contains(&rec) {
+                finishes_dedup.push(rec);
+            }
+        }
+        let mut added_dedup: Vec<AddedKernelRecord> = Vec::new();
+        for rec in added {
+            if reportable(rec.root) && !added_dedup.contains(&rec) {
+                added_dedup.push(rec);
+            }
+        }
+
         let history_entry = HistoryEntry {
-            finished_kernels: finishes,
-            progressed_kernels: progresses,
+            action_applications: apps_dedup,
+            finished_kernels: finishes_dedup,
+            added_kernels: added_dedup,
+            main_root_finish: root_progresses.get(&ctx.main_root).cloned(),
             cond_path_finishes,
             active_cond_paths: active_cond_paths_for_history.clone(),
+            reported_cond_roots,
         };
 
-        let ParsingCtx { mut history, mut ever_seen_cond_roots, .. } = ctx;
+        let ParsingCtx { mut history, mut ever_seen_cond_roots, root_report_gens, .. } = ctx;
         history.push(history_entry);
         ever_seen_cond_roots.extend(active_cond_paths_for_history);
 
@@ -578,10 +630,11 @@ impl Mgroup3Parser {
             gen_idx: next_gen,
             line: next_line,
             col: next_col,
-            main_root: ctx.main_root,
+            main_root,
             paths: paths_filtered,
             history,
             ever_seen_cond_roots,
+            root_report_gens,
         })
     }
 
@@ -598,49 +651,85 @@ impl Mgroup3Parser {
     }
 
     /// True iff parsing reached an accept state for the start symbol.
-    /// Mirrors `Mgroup3Parser.kt:709-722`.
+    /// accept 판정은 main root 의 progress 조건 전용 채널(main_root_finish)만 사용 —
+    /// finished_kernels 는 보고 전용. Mirrors Kotlin `isAccepted`.
     pub fn is_accepted(&self, ctx: &ParsingCtx) -> bool {
-        let start = self.plain.start_symbol_id;
         let Some(last_entry) = ctx.history.last() else { return false };
-        let active_cond_paths: HashSet<PathRoot> = ctx
-            .paths
-            .keys()
-            .copied()
-            .filter(|r| *r != ctx.main_root)
-            .collect();
-        let index = HistoryIndex::build(&ctx.history);
-        for rec in &last_entry.finished_kernels {
-            if rec.kernel.symbol_id == start
-                && rec.kernel.gen_idx == 0
-                && rec.kernel.pointer >= 1
-                && evaluate_with_history(&rec.condition, &index, &active_cond_paths)
-            {
-                return true;
-            }
-        }
-        false
+        let Some(cond) = &last_entry.main_root_finish else { return false };
+        evaluate_record_condition(cond, &ctx.history, ctx.history.len() as i32 - 1)
     }
 
-    /// One `KtlibKernel` set per generation, including conditional finishes
-    /// that survive history evaluation. Mirrors `Mgroup3Parser.kt:814-851`.
+    /// One `KtlibKernel` set per generation. Lazily resolves the recorded
+    /// action applications: conditions via runtime bindings (replay-evaluated),
+    /// kernel coordinates via report bindings. Mirrors Kotlin `kernelsHistory`.
     pub fn kernels_history(&self, ctx: &ParsingCtx) -> Vec<HashSet<KtlibKernel>> {
-        let final_active_cond_paths: HashSet<PathRoot> = ctx
-            .paths
-            .keys()
-            .copied()
-            .filter(|r| *r != ctx.main_root)
-            .collect();
-        let index = HistoryIndex::build(&ctx.history);
         let mut out = Vec::with_capacity(ctx.history.len());
         for (gen_idx, entry) in ctx.history.iter().enumerate() {
             let gen_idx = gen_idx as i32;
             let mut kernels: HashSet<KtlibKernel> = HashSet::default();
+            for app in &entry.action_applications {
+                // edge action 은 구동 조건으로 전체 게이팅.
+                if !matches!(app.condition, AcceptCondition::Always)
+                    && !evaluate_record_condition(&app.condition, &ctx.history, gen_idx)
+                {
+                    continue;
+                }
+                let pa = &app.actions;
+                for finished in &pa.finished {
+                    let cond_tpl = finished
+                        .finish_condition
+                        .as_ref()
+                        .expect("FinishedKernelTemplate.finish_condition missing");
+                    let cond =
+                        build_condition(cond_tpl, app.rt_curr, app.rt_mid, app.next, app.rt_grand);
+                    if evaluate_record_condition(&cond, &ctx.history, gen_idx) {
+                        let begin = resolve_gen_i32(
+                            finished.start_gen,
+                            app.rep_curr,
+                            app.rep_mid,
+                            app.next,
+                            app.rep_grand,
+                        );
+                        kernels.insert(KtlibKernel {
+                            symbol_id: finished.symbol_id,
+                            pointer: finished.pointer,
+                            begin_gen: begin,
+                            end_gen: gen_idx,
+                        });
+                    }
+                }
+                // pa.progressed 는 방출하지 않는다 — added 가 동일 kernel 을 조건과 함께 커버.
+                for added in &pa.added {
+                    let cond_tpl = added
+                        .accept_condition
+                        .as_ref()
+                        .expect("AddedKernelTemplate.accept_condition missing");
+                    let cond =
+                        build_condition(cond_tpl, app.rt_curr, app.rt_mid, app.next, app.rt_grand);
+                    if evaluate_record_condition(&cond, &ctx.history, gen_idx) {
+                        kernels.insert(KtlibKernel {
+                            symbol_id: added.symbol_id,
+                            pointer: added.pointer,
+                            begin_gen: resolve_gen_i32(
+                                added.start_gen,
+                                app.rep_curr,
+                                app.rep_mid,
+                                app.next,
+                                app.rep_grand,
+                            ),
+                            end_gen: resolve_gen_i32(
+                                added.end_gen,
+                                app.rep_curr,
+                                app.rep_mid,
+                                app.next,
+                                app.rep_grand,
+                            ),
+                        });
+                    }
+                }
+            }
             for rec in &entry.finished_kernels {
-                if evaluate_with_history(
-                    &rec.condition,
-                    &index,
-                    &final_active_cond_paths,
-                ) {
+                if evaluate_record_condition(&rec.condition, &ctx.history, gen_idx) {
                     kernels.insert(KtlibKernel {
                         symbol_id: rec.kernel.symbol_id,
                         pointer: rec.kernel.pointer,
@@ -649,19 +738,15 @@ impl Mgroup3Parser {
                     });
                 }
             }
-            for rec in &entry.progressed_kernels {
-                kernels.insert(KtlibKernel {
-                    symbol_id: rec.symbol_id,
-                    pointer: rec.pointer,
-                    begin_gen: rec.start_gen,
-                    end_gen: rec.mid_gen,
-                });
-                kernels.insert(KtlibKernel {
-                    symbol_id: rec.symbol_id,
-                    pointer: rec.pointer + 1,
-                    begin_gen: rec.start_gen,
-                    end_gen: rec.end_gen,
-                });
+            for rec in &entry.added_kernels {
+                if evaluate_record_condition(&rec.condition, &ctx.history, gen_idx) {
+                    kernels.insert(KtlibKernel {
+                        symbol_id: rec.symbol_id,
+                        pointer: rec.pointer,
+                        begin_gen: rec.begin_gen,
+                        end_gen: rec.end_gen,
+                    });
+                }
             }
             out.push(kernels);
         }
@@ -678,9 +763,12 @@ impl Mgroup3Parser {
         term_action: &TermActionPlain,
         mid_gen: i32,
         gen_idx: i32,
+        // 보고 전용 root anchor (same-input starter 는 startGen-1).
+        root_report_gen: i32,
         next_paths_out: &mut PathMap,
+        apps_out: &mut Vec<ActionApplication>,
         finishes_out: &mut Vec<FinishedKernelRecord>,
-        progresses_out: &mut Vec<ProgressedKernelRecord>,
+        added_out: &mut Vec<AddedKernelRecord>,
         root_progresses_out: &mut HashMap<PathRoot, AcceptCondition>,
         observing_out: &mut HashSet<i32>,
         cond_root_starters_out: &mut HashMap<PathRoot, i32>,
@@ -695,35 +783,32 @@ impl Mgroup3Parser {
             .as_ref()
             .map(|mp| mp.milestone.gen_idx)
             .unwrap_or(path_root.start_gen);
+        // 보고 좌표 바인딩 — m2 term genMap {0→mgroup.gen(갱신된 tip 부착 gen), 1→gen-1, 2→gen}.
+        let report_parent_gen = old_shape
+            .milestone_path
+            .as_ref()
+            .map(|mp| mp.report_gen)
+            .unwrap_or(root_report_gen);
+        let report_grand_gen = old_shape
+            .milestone_path
+            .as_ref()
+            .map(|mp| mp.milestone_report_gen)
+            .unwrap_or(root_report_gen);
 
         if let Some(pa) = &term_action.parsing_actions {
-            for finished in &pa.finished {
-                let start_gen =
-                    resolve_gen_i32(finished.start_gen, parent_gen, mid_gen, gen_idx, grand_gen);
-                let cond_tpl = finished
-                    .finish_condition
-                    .as_ref()
-                    .expect("FinishedKernelTemplate.finish_condition missing");
-                finishes_out.push(FinishedKernelRecord {
-                    kernel: Kernel::new(finished.symbol_id, finished.pointer, start_gen),
-                    condition: build_condition(
-                        cond_tpl, parent_gen, mid_gen, gen_idx, grand_gen,
-                    ),
-                });
-            }
-            for prog in &pa.progressed {
-                let start_gen =
-                    resolve_gen_i32(prog.start_gen, parent_gen, mid_gen, gen_idx, grand_gen);
-                let m_gen =
-                    resolve_gen_i32(prog.mid_gen, parent_gen, mid_gen, gen_idx, grand_gen);
-                progresses_out.push(ProgressedKernelRecord {
-                    symbol_id: prog.symbol_id,
-                    pointer: prog.pointer,
-                    start_gen,
-                    mid_gen: m_gen,
-                    end_gen: gen_idx,
-                });
-            }
+            // 보고는 lazy — 액션 참조와 바인딩만 기록 (kernels_history 가 해석).
+            apps_out.push(ActionApplication {
+                actions: Rc::clone(pa),
+                root: path_root,
+                rt_curr: parent_gen,
+                rt_mid: mid_gen,
+                next: gen_idx,
+                rt_grand: grand_gen,
+                rep_curr: report_parent_gen,
+                rep_mid: mid_gen,
+                rep_grand: report_grand_gen,
+                condition: AcceptCondition::Always,
+            });
         }
 
         for rea in &term_action.replace_and_appends {
@@ -740,11 +825,15 @@ impl Mgroup3Parser {
             }
             let replace_kernel =
                 Kernel::new(rea.replace.symbol_id, rea.replace.pointer, parent_gen);
+            // 새 tip group 은 이번 gen 에 부착; replace milestone 의 m2 식 gen 은
+            // 직전 tip 의 (갱신된) 부착 gen.
             let new_mp = Rc::new(MilestonePath::new(
                 gen_idx,
                 replace_kernel,
                 old_shape.milestone_path.clone(),
                 Rc::clone(&rea.append.observing_cond_symbol_ids),
+                gen_idx,
+                report_parent_gen,
             ));
             add_path(
                 next_paths_out,
@@ -778,8 +867,18 @@ impl Mgroup3Parser {
                     // Direct self-progress from root (start symbol finish).
                     or_merge(root_progresses_out, path_root, combined.clone());
                     finishes_out.push(FinishedKernelRecord {
-                        kernel: Kernel::new(path_root.symbol_id, 1, path_root.start_gen),
+                        kernel: Kernel::new(path_root.symbol_id, 1, root_report_gen),
+                        condition: combined.clone(),
+                        root: path_root,
+                    });
+                    // 보고용: root 의 ptr0 init kernel (m2 progRootMilestone 의 ptr0 대응).
+                    added_out.push(AddedKernelRecord {
+                        symbol_id: path_root.symbol_id,
+                        pointer: 0,
+                        begin_gen: root_report_gen,
+                        end_gen: root_report_gen,
                         condition: combined,
+                        root: path_root,
                     });
                 }
                 Some(parent_path) => {
@@ -801,9 +900,14 @@ impl Mgroup3Parser {
                             grand_parent_gen,
                             parent_path.gen_idx,
                             gen_idx,
+                            // m2 tip edge = (parent milestone @ m2 gen) -> (tip group @ 갱신된 부착 gen)
+                            parent_path.milestone_report_gen,
+                            parent_path.report_gen,
+                            root_report_gen,
                             next_paths_out,
+                            apps_out,
                             finishes_out,
-                            progresses_out,
+                            added_out,
                             root_progresses_out,
                             observing_out,
                             cond_root_starters_out,
@@ -825,9 +929,14 @@ impl Mgroup3Parser {
         grand_parent_gen: i32,
         parent_gen: i32,
         gen_idx: i32,
+        // 보고 좌표 바인딩 — m2 edge genMap {0→edge.first.gen, 1→edge.second.gen, 2→gen}.
+        report_curr_gen: i32,
+        report_mid_gen: i32,
+        root_report_gen: i32,
         next_paths_out: &mut PathMap,
+        apps_out: &mut Vec<ActionApplication>,
         finishes_out: &mut Vec<FinishedKernelRecord>,
-        progresses_out: &mut Vec<ProgressedKernelRecord>,
+        added_out: &mut Vec<AddedKernelRecord>,
         root_progresses_out: &mut HashMap<PathRoot, AcceptCondition>,
         observing_out: &mut HashSet<i32>,
         cond_root_starters_out: &mut HashMap<PathRoot, i32>,
@@ -838,54 +947,23 @@ impl Mgroup3Parser {
         //   NEXT  = gen_idx
         //   GRAND = grand_grand_parent_gen
         let grand_grand_parent_gen = parent_path.milestone.gen_idx;
+        let report_grand_gen = parent_path.milestone_report_gen;
 
         if let Some(pa) = &edge_action.parsing_actions {
-            for finished in &pa.finished {
-                let start_gen = resolve_gen_i32(
-                    finished.start_gen,
-                    grand_parent_gen,
-                    parent_gen,
-                    gen_idx,
-                    grand_grand_parent_gen,
-                );
-                let cond_tpl = finished
-                    .finish_condition
-                    .as_ref()
-                    .expect("FinishedKernelTemplate.finish_condition missing");
-                finishes_out.push(FinishedKernelRecord {
-                    kernel: Kernel::new(finished.symbol_id, finished.pointer, start_gen),
-                    condition: build_condition(
-                        cond_tpl,
-                        grand_parent_gen,
-                        parent_gen,
-                        gen_idx,
-                        grand_grand_parent_gen,
-                    ),
-                });
-            }
-            for prog in &pa.progressed {
-                let start_gen = resolve_gen_i32(
-                    prog.start_gen,
-                    grand_parent_gen,
-                    parent_gen,
-                    gen_idx,
-                    grand_grand_parent_gen,
-                );
-                let m_gen = resolve_gen_i32(
-                    prog.mid_gen,
-                    grand_parent_gen,
-                    parent_gen,
-                    gen_idx,
-                    grand_grand_parent_gen,
-                );
-                progresses_out.push(ProgressedKernelRecord {
-                    symbol_id: prog.symbol_id,
-                    pointer: prog.pointer,
-                    start_gen,
-                    mid_gen: m_gen,
-                    end_gen: gen_idx,
-                });
-            }
+            // 보고는 lazy. edge 적용은 그것을 구동한 runtime 조건으로 전체 게이팅됨
+            // (m2 kernelsHistory 의 progressedKgroups/progressedKernels 조건 게이트 대응).
+            apps_out.push(ActionApplication {
+                actions: Rc::clone(pa),
+                root: path_root,
+                rt_curr: grand_parent_gen,
+                rt_mid: parent_gen,
+                next: gen_idx,
+                rt_grand: grand_grand_parent_gen,
+                rep_curr: report_curr_gen,
+                rep_mid: report_mid_gen,
+                rep_grand: report_grand_gen,
+                condition: prev_condition.clone(),
+            });
         }
 
         for append in &edge_action.append_milestone_groups {
@@ -900,7 +978,9 @@ impl Mgroup3Parser {
             if matches!(combined, AcceptCondition::Never) {
                 continue;
             }
-            let new_parent_path = parent_path.with_observing(Rc::clone(&append.observing_cond_symbol_ids));
+            // 새 tip group 은 이번 gen 에 재부착 — 보고용 report_gen 갱신 (런타임 gen 불변).
+            let new_parent_path = parent_path
+                .with_observing_and_report_gen(Rc::clone(&append.observing_cond_symbol_ids), gen_idx);
             add_path(
                 next_paths_out,
                 PathShape::new(Some(new_parent_path), append.milestone_group_id),
@@ -929,8 +1009,17 @@ impl Mgroup3Parser {
                     None => {
                         or_merge(root_progresses_out, path_root, combined.clone());
                         finishes_out.push(FinishedKernelRecord {
-                            kernel: Kernel::new(path_root.symbol_id, 1, path_root.start_gen),
+                            kernel: Kernel::new(path_root.symbol_id, 1, root_report_gen),
+                            condition: combined.clone(),
+                            root: path_root,
+                        });
+                        added_out.push(AddedKernelRecord {
+                            symbol_id: path_root.symbol_id,
+                            pointer: 0,
+                            begin_gen: root_report_gen,
+                            end_gen: root_report_gen,
                             condition: combined,
+                            root: path_root,
                         });
                     }
                     Some(grand_parent) => {
@@ -952,9 +1041,14 @@ impl Mgroup3Parser {
                                 grand_grand_parent_gen_2,
                                 grand_parent.gen_idx,
                                 gen_idx,
+                                // m2 mid edge = (grandParent milestone @ m2 gen) -> (parent milestone @ m2 gen)
+                                grand_parent.milestone_report_gen,
+                                parent_path.milestone_report_gen,
+                                root_report_gen,
                                 next_paths_out,
+                                apps_out,
                                 finishes_out,
-                                progresses_out,
+                                added_out,
                                 root_progresses_out,
                                 observing_out,
                                 cond_root_starters_out,
@@ -964,6 +1058,69 @@ impl Mgroup3Parser {
                 }
             }
         }
+    }
+}
+
+/// 초기 액션 적용: 모든 태그가 root 의 startGen 으로 resolve.
+fn initial_application(pa: Rc<ParsingActionsPlain>, root: PathRoot) -> ActionApplication {
+    let base = root.start_gen;
+    ActionApplication {
+        actions: pa,
+        root,
+        rt_curr: base,
+        rt_mid: base,
+        next: base,
+        rt_grand: base,
+        rep_curr: base,
+        rep_mid: base,
+        rep_grand: base,
+        condition: AcceptCondition::Always,
+    }
+}
+
+/// record 생성 시점(record_gen)부터 매 step 의 evolve 를 재생한 뒤 입력-끝 평가.
+/// 파스 중 live path 의 조건이 겪는 단계별 진화와 동일 — longest/join/except 의
+/// 타이밍 의미가 보존된다. Mirrors Kotlin `evaluateRecordCondition` /
+/// mgroup2 kernelsHistory 의 `isEventuallyAccepted`.
+pub fn evaluate_record_condition(
+    cond: &AcceptCondition,
+    history: &[HistoryEntry],
+    record_gen: i32,
+) -> bool {
+    let mut c = cond.clone();
+    let len = history.len() as i32;
+    let mut g = record_gen;
+    while g < len {
+        if matches!(c, AcceptCondition::Always) {
+            return true;
+        }
+        if matches!(c, AcceptCondition::Never) {
+            return false;
+        }
+        let entry = &history[g as usize];
+        c = evolve_accept_condition(&c, &entry.cond_path_finishes, &entry.active_cond_paths, g);
+        g += 1;
+    }
+    evaluate_at_end_of_input(&c)
+}
+
+/// replay 후 residual 조건의 입력-끝 평가. residual leaf 는 "마지막 step 까지
+/// 해당 finish 가 없었고 root 가 아직 미완"을 뜻하므로, 더 들어올 입력이 없어
+/// NoLongerMatch/NotExists/Unless 는 true, 쌍대는 false 로 확정된다.
+/// (마지막 step 의 finish 를 다시 보면 안 된다 — 같은 step 의 finish 는
+///  "더 긴 매치"가 아니다.)
+fn evaluate_at_end_of_input(c: &AcceptCondition) -> bool {
+    match c {
+        AcceptCondition::Always => true,
+        AcceptCondition::Never => false,
+        AcceptCondition::And { items } => items.iter().all(evaluate_at_end_of_input),
+        AcceptCondition::Or { items } => items.iter().any(evaluate_at_end_of_input),
+        AcceptCondition::NoLongerMatch { .. } => true,
+        AcceptCondition::NeedLongerMatch { .. } => false,
+        AcceptCondition::NotExists { .. } => true,
+        AcceptCondition::Exists { .. } => false,
+        AcceptCondition::Unless { .. } => true,
+        AcceptCondition::OnlyIf { .. } => false,
     }
 }
 

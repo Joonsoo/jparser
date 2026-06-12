@@ -16,6 +16,7 @@ pub type AcceptConditionTemplate = pb::AcceptConditionTemplate;
 pub type KernelTemplate = pb::KernelTemplate;
 pub type ProgressedKernelTemplate = pb::ProgressedKernelTemplate;
 pub type FinishedKernelTemplate = pb::FinishedKernelTemplate;
+pub type AddedKernelTemplate = pb::AddedKernelTemplate;
 
 #[derive(Debug)]
 pub struct ParserDataPlain {
@@ -142,7 +143,7 @@ pub struct PathRootInfoPlain {
     pub milestone_group_id: i32,
     pub initial_cond_symbol_ids: Rc<[i32]>,
     pub self_finish_accept_condition: Option<AcceptConditionTemplate>,
-    pub parsing_actions: Option<ParsingActionsPlain>,
+    pub parsing_actions: Option<Rc<ParsingActionsPlain>>,
 }
 
 impl PathRootInfoPlain {
@@ -152,7 +153,7 @@ impl PathRootInfoPlain {
             milestone_group_id: proto.milestone_group_id,
             initial_cond_symbol_ids: Rc::from(proto.initial_cond_symbol_ids),
             self_finish_accept_condition: proto.self_finish_accept_condition,
-            parsing_actions: proto.parsing_actions.map(ParsingActionsPlain::from_proto),
+            parsing_actions: proto.parsing_actions.map(|pa| Rc::new(ParsingActionsPlain::from_proto(pa))),
         }
     }
 }
@@ -210,7 +211,7 @@ impl TermGroupActionPlain {
 pub struct TermActionPlain {
     pub replace_and_appends: Vec<ReplaceAndAppendPlain>,
     pub replace_and_progresses: Vec<ReplaceAndProgressPlain>,
-    pub parsing_actions: Option<ParsingActionsPlain>,
+    pub parsing_actions: Option<Rc<ParsingActionsPlain>>,
 }
 
 impl TermActionPlain {
@@ -236,7 +237,7 @@ impl TermActionPlain {
                         .expect("ReplaceAndProgress.accept_condition missing"),
                 })
                 .collect(),
-            parsing_actions: proto.parsing_actions.map(ParsingActionsPlain::from_proto),
+            parsing_actions: proto.parsing_actions.map(|pa| Rc::new(ParsingActionsPlain::from_proto(pa))),
         }
     }
 }
@@ -292,7 +293,7 @@ impl CondRootStarterPlain {
 pub struct EdgeActionPlain {
     pub append_milestone_groups: Vec<AppendMilestoneGroupPlain>,
     pub start_node_progress: Option<AcceptConditionTemplate>,
-    pub parsing_actions: Option<ParsingActionsPlain>,
+    pub parsing_actions: Option<Rc<ParsingActionsPlain>>,
 }
 
 impl EdgeActionPlain {
@@ -304,7 +305,7 @@ impl EdgeActionPlain {
                 .map(AppendMilestoneGroupPlain::from_proto)
                 .collect(),
             start_node_progress: proto.start_node_progress,
-            parsing_actions: proto.parsing_actions.map(ParsingActionsPlain::from_proto),
+            parsing_actions: proto.parsing_actions.map(|pa| Rc::new(ParsingActionsPlain::from_proto(pa))),
         }
     }
 }
@@ -313,11 +314,13 @@ impl EdgeActionPlain {
 pub struct ParsingActionsPlain {
     pub progressed: Vec<ProgressedKernelTemplate>,
     pub finished: Vec<FinishedKernelTemplate>,
+    /// kernels_history 보고 전용 — 파싱(조건 평가/accept 판정)에는 사용 안 함.
+    pub added: Vec<AddedKernelTemplate>,
 }
 
 impl ParsingActionsPlain {
     fn from_proto(proto: pb::ParsingActions) -> Self {
-        Self { progressed: proto.progressed, finished: proto.finished }
+        Self { progressed: proto.progressed, finished: proto.finished, added: proto.added }
     }
 }
 

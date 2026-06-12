@@ -18,6 +18,12 @@ class GenParsingGraph(
   // reachables 계산이나 chain 추적에 사용.
   val derivePhaseProgressedNodes: MutableMap<GenNode, GenNode> = mutableMapOf(),
 ) {
+  // progress 를 적용하지 않고 조건만 수집할 노드들 (mgroup2 의 progress barrier 대응).
+  // progressedFrom 에서 설정. barrier 노드로의 progress 조건은 barrierProgressConditions
+  // 에 Or 로 누적된다 (startNodeProgress / replace_and_progresses 의 조건 원천).
+  var barrierNodes: Set<GenNode> = emptySet()
+  val barrierProgressConditions: MutableMap<GenNode, GenAcceptCondition> = mutableMapOf()
+
   fun toDot(): String {
     fun id(node: GenNode): String =
       "n${node.symbolId}_${node.pointer}_${node.startGen}_${node.endGen}"

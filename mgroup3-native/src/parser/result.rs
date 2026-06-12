@@ -202,18 +202,22 @@ mod tests {
         // intentionally bad order. These won't affect is_accepted (which
         // checks the start-sym finish), but they will go through
         // kernels_history → sorted KernelGen.
+        let main_root = ctx.main_root;
         let entry = ctx.history.last_mut().unwrap();
         entry.finished_kernels.push(FinishedKernelRecord {
             kernel: Kernel::new(9, 0, 0),
             condition: AcceptCondition::Always,
+            root: main_root,
         });
         entry.finished_kernels.push(FinishedKernelRecord {
             kernel: Kernel::new(3, 0, 0),
             condition: AcceptCondition::Always,
+            root: main_root,
         });
         entry.finished_kernels.push(FinishedKernelRecord {
             kernel: Kernel::new(5, 2, 0),
             condition: AcceptCondition::Always,
+            root: main_root,
         });
 
         let bytes = encode_parse_result(&parser, Ok(&ctx));

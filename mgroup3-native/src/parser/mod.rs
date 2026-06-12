@@ -1,12 +1,10 @@
 //! Mgroup3 parser. Port of `mgroup3/parser/kotlin/.../Mgroup3Parser.kt`.
 
 pub mod core;
-pub mod eval_with_history;
 pub mod result;
 pub mod template;
 
 pub use core::Mgroup3Parser;
-pub use eval_with_history::{evaluate_with_history, HistoryIndex};
 pub use result::{build_result, encode_parse_result};
 pub use template::{build_condition, resolve_gen};
 

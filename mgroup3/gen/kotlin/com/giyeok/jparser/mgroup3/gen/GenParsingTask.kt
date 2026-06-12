@@ -124,11 +124,13 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
   fun progressedFrom(
     graph: GenParsingGraph,
     tasksToProgress: Set<GenNode>,
-    nextGen: GenNodeGeneration
+    nextGen: GenNodeGeneration,
+    barrierNodes: Set<GenNode> = emptySet(),
   ): GenParsingGraph {
     check(graph.nodes.containsAll(tasksToProgress))
     check(graph.acceptConditions.keys.containsAll(tasksToProgress))
     val newGraph = graph.clone()
+    newGraph.barrierNodes = barrierNodes
 
     // term progress 단계에서는 progressedNodes를 새로 시작 (term progress 결과만 추적)
     // 단, derive 단계에서 만들어진 progressedNodes 정보는 별도로 보존 (reachables 계산용)
@@ -297,6 +299,16 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
     nextGen: GenNodeGeneration,
     acceptCondition: GenAcceptCondition,
   ): MutableSet<GenParsingTask> {
+    // barrier 노드의 progress 는 적용하지 않고 조건만 수집 — mgroup2 의
+    // runTasksWithProgressBarrier 대응. term action 의 milestone 위쪽 cascade /
+    // edge action 의 parent 위쪽 cascade 가 템플릿에 들어가지 않게 한다
+    // (그 사건들은 런타임의 상위 edge action 이 전담).
+    if (node in graph.barrierNodes) {
+      val existing = graph.barrierProgressConditions[node]
+      graph.barrierProgressConditions[node] =
+        if (existing != null) GenAcceptCondition.Or.from(existing, acceptCondition) else acceptCondition
+      return mutableSetOf()
+    }
     val newTasks = mutableSetOf<GenParsingTask>()
 
     fun processAtomicSymbol(newAcceptConditions: GenAcceptCondition = GenAcceptCondition.Always) {

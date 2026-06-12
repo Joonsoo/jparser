@@ -37,21 +37,61 @@ pub struct KernelTemplatePair {
 }
 
 /// Finished kernel + the accept condition under which it was produced.
-#[derive(Clone, Debug)]
+/// `root` is the path root whose action produced this record (report filter).
+#[derive(Clone, Debug, PartialEq)]
 pub struct FinishedKernelRecord {
     pub kernel: Kernel,
     pub condition: AcceptCondition,
+    pub root: PathRoot,
 }
 
-/// Progressed kernel record. `start_gen`/`mid_gen`/`end_gen` track the three
-/// boundaries of the progression interval.
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
-pub struct ProgressedKernelRecord {
+/// Report-only kernel record with explicit begin/end (mirrors Kotlin's
+/// `AddedKernelRecord`). Used for the root ptr0 init kernels.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AddedKernelRecord {
     pub symbol_id: i32,
     pub pointer: i32,
-    pub start_gen: i32,
-    pub mid_gen: i32,
+    pub begin_gen: i32,
     pub end_gen: i32,
+    pub condition: AcceptCondition,
+    pub root: PathRoot,
+}
+
+/// One parsing-action application: a template reference plus its gen bindings.
+/// Report-only — `kernels_history` resolves these lazily (mirror of mgroup2's
+/// genActions; avoids materializing records on the parse hot path).
+/// `rt_*`: runtime bindings (condition resolution — must match cond root
+/// anchoring). `rep_*`: report coordinate bindings (m2 genMap equivalents).
+/// `condition`: the runtime condition that drove this application — edge
+/// actions store the driving `combined` (m2 kernelsHistory gates the whole
+/// edge summary with it); term actions use `Always` (no gate in m2 either).
+#[derive(Clone, Debug)]
+pub struct ActionApplication {
+    pub actions: Rc<crate::parser_data::ParsingActionsPlain>,
+    pub root: PathRoot,
+    pub rt_curr: i32,
+    pub rt_mid: i32,
+    pub next: i32,
+    pub rt_grand: i32,
+    pub rep_curr: i32,
+    pub rep_mid: i32,
+    pub rep_grand: i32,
+    pub condition: AcceptCondition,
+}
+
+impl PartialEq for ActionApplication {
+    fn eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.actions, &other.actions)
+            && self.root == other.root
+            && self.rt_curr == other.rt_curr
+            && self.rt_mid == other.rt_mid
+            && self.next == other.next
+            && self.rt_grand == other.rt_grand
+            && self.rep_curr == other.rep_curr
+            && self.rep_mid == other.rep_mid
+            && self.rep_grand == other.rep_grand
+            && self.condition == other.condition
+    }
 }
 
 /// Linked list of milestones forming a parser graph path. Each node is shared
@@ -67,6 +107,14 @@ pub struct MilestonePath {
     /// Cond symbol IDs observed at this edge. Shared `Rc<[i32]>` so adding/copying
     /// paths doesn't reallocate.
     pub observing_cond_symbol_ids: Rc<[i32]>,
+    /// Report-only shadow gens (NOT part of Eq/Hash — including them explodes
+    /// path counts on ambiguous grammars). `report_gen`: the gen the tip group
+    /// above this node was last (re)attached — mirrors mgroup2's updated tip
+    /// group gen; refreshed to the current gen on every edge-action append.
+    /// `milestone_report_gen`: mgroup2-style gen of this node's milestone
+    /// kernel — inherits the previous tip's `report_gen` at descend.
+    pub report_gen: i32,
+    pub milestone_report_gen: i32,
     cached_hash: OnceCell<u64>,
 }
 
@@ -76,15 +124,37 @@ impl MilestonePath {
         milestone: Kernel,
         parent: Option<Rc<MilestonePath>>,
         observing_cond_symbol_ids: Rc<[i32]>,
+        report_gen: i32,
+        milestone_report_gen: i32,
     ) -> Self {
-        Self { gen_idx, milestone, parent, observing_cond_symbol_ids, cached_hash: OnceCell::new() }
+        Self {
+            gen_idx,
+            milestone,
+            parent,
+            observing_cond_symbol_ids,
+            report_gen,
+            milestone_report_gen,
+            cached_hash: OnceCell::new(),
+        }
     }
 
-    /// Copy this node with one field replaced. Mirrors Kotlin's `copy(...)`.
-    /// Used by `applyEdgeAction` to swap `observing_cond_symbol_ids` while
-    /// keeping the parent chain.
-    pub fn with_observing(self: &Rc<MilestonePath>, observing: Rc<[i32]>) -> Rc<MilestonePath> {
-        Rc::new(MilestonePath::new(self.gen_idx, self.milestone, self.parent.clone(), observing))
+    /// Copy this node with the observing list and `report_gen` replaced.
+    /// Used by `applyEdgeAction` appends: the tip group is re-attached at the
+    /// current gen, so the report gen refreshes (runtime gen stays frozen —
+    /// it is co-designed with cond root anchoring).
+    pub fn with_observing_and_report_gen(
+        self: &Rc<MilestonePath>,
+        observing: Rc<[i32]>,
+        report_gen: i32,
+    ) -> Rc<MilestonePath> {
+        Rc::new(MilestonePath::new(
+            self.gen_idx,
+            self.milestone,
+            self.parent.clone(),
+            observing,
+            report_gen,
+            self.milestone_report_gen,
+        ))
     }
 
     fn compute_hash(&self) -> u64 {
@@ -199,10 +269,21 @@ pub type PathMap = HashMap<PathShape, AcceptCondition>;
 /// One step's worth of recorded actions.
 #[derive(Clone, Debug, Default)]
 pub struct HistoryEntry {
+    /// Parsing-action applications this step (lazy report channel).
+    pub action_applications: Vec<ActionApplication>,
+    /// Extra records outside the action templates (root progress finishes /
+    /// report-only root ptr0 kernels).
     pub finished_kernels: Vec<FinishedKernelRecord>,
-    pub progressed_kernels: Vec<ProgressedKernelRecord>,
+    pub added_kernels: Vec<AddedKernelRecord>,
     pub cond_path_finishes: HashMap<PathRoot, AcceptCondition>,
     pub active_cond_paths: HashSet<PathRoot>,
+    /// Or-merged conditions of main-root progress this step. `is_accepted`
+    /// evaluates only this — finished_kernels is report-only.
+    pub main_root_finish: Option<AcceptCondition>,
+    /// Cond roots eligible for reporting (mgroup2 trackings-style narrow rule:
+    /// condition-referenced roots + observing anchored at parent gens).
+    /// Records are filtered against this (current ∪ previous entry) at store time.
+    pub reported_cond_roots: HashSet<PathRoot>,
 }
 
 /// Top-level parser state.
@@ -218,6 +299,10 @@ pub struct ParsingCtx {
     /// Union of every `active_cond_paths` seen so far. Carried forward so
     /// `parseStep` can skip re-registering dead cond roots.
     pub ever_seen_cond_roots: HashSet<PathRoot>,
+    /// Report-only anchor per cond root: same-input starters actually span
+    /// from (creation gen - 1); report coordinates use this instead of
+    /// `root.start_gen`. Runtime keys/anchoring unchanged.
+    pub root_report_gens: HashMap<PathRoot, i32>,
 }
 
 impl ParsingCtx {
@@ -277,6 +362,8 @@ mod tests {
             Kernel::new(sid, 0, gen_idx),
             None,
             Rc::from(Vec::<i32>::new()),
+            gen_idx,
+            gen_idx,
         ))
     }
 
@@ -294,12 +381,16 @@ mod tests {
             Kernel::new(7, 0, 1),
             Some(parent.clone()),
             Rc::from(vec![1, 2]),
+            1,
+            0,
         ));
         let b = Rc::new(MilestonePath::new(
             1,
             Kernel::new(7, 0, 1),
             Some(parent.clone()),
             Rc::from(vec![1, 2]),
+            1,
+            0,
         ));
         assert_eq!(a, b);
         // Different observing list — not equal.
@@ -308,6 +399,8 @@ mod tests {
             Kernel::new(7, 0, 1),
             Some(parent),
             Rc::from(vec![1, 3]),
+            1,
+            0,
         ));
         assert_ne!(a, c);
     }
@@ -382,6 +475,7 @@ mod tests {
             paths,
             history: vec![],
             ever_seen_cond_roots: HashSet::default(),
+            root_report_gens: HashMap::default(),
         };
         assert_eq!(ctx.main_paths().unwrap().len(), 1);
         assert_eq!(ctx.cond_paths().count(), 0);
