@@ -340,6 +340,7 @@ mgroup3(basePath="mgroup3") {
       mgroup2.parser,
       ktparser.main,
       kttestutils.main,
+      examples.generated,
     ] + testDeps,
   )
 
@@ -463,6 +464,19 @@ examples(basePath="examples") {
     deps = [base.test, examples.naiveExamples],
   )
 
+  // GenCli(Stage2ProtoEmit)가 생성한 asdl AST proto 의 스냅샷.
+  // examples.generated 의 AstProtoBinding 이 이 java 클래스들을 사용.
+  astProto(basePath="generated/proto") {
+    schema = protobuf.schema(
+      srcs = ["ast.proto"],
+    )
+    javacode = protobuf.java(schema=examples.astProto.schema)
+    javalib = java.library(
+      srcs = examples.astProto.javacode.javaFiles,
+      deps = [protobufJavaLib],
+    )
+  }
+
   generated = ktjvm.library(
     srcs = withBasePath("generated/kotlin") {
       file.glob("**.kt")
@@ -473,6 +487,7 @@ examples(basePath="examples") {
       mgroup2.parser,
       ktlib.main,
       examples.metalang3,
+      examples.astProto.javalib,
     ],
   )
 }

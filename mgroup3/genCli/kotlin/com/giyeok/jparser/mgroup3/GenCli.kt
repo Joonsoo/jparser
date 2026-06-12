@@ -26,6 +26,6 @@ fun main(argv: Array<String>) {
     packageName = "com.giyeok.jparser.mgroup3.generated.ast",
   )
   Stage2ProtoEmit.run(schema, args.proto)
-  Stage3KotlinEmit.run(processed, args.kotlinDir)
+  Stage3KotlinEmit.run(processed, schema, args.kotlinDir)
   Stage4RustEmit.run(processed, schema, args.rustDir, args.mgroup3NativePath)
 }

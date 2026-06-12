@@ -40,6 +40,9 @@ object Stage2ProtoEmit {
     sb.append("// See mgroup3/docs/phase_b_proto_design.md.\n\n")
     sb.append("syntax = \"proto3\";\n\n")
     sb.append("package ").append(schema.packageName).append(";\n\n")
+    // Kotlin/Java 측 binding 이 top-level 클래스로 참조할 수 있도록.
+    // prost(Rust) 는 java option 을 무시하므로 Rust 출력엔 영향 없음.
+    sb.append("option java_multiple_files = true;\n\n")
 
     for (e in schema.enums) {
       emitEnum(sb, e)
