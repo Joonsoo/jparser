@@ -6,6 +6,20 @@ import com.giyeok.jparser.metalang3.`Type$`
 import scala.jdk.javaapi.CollectionConverters
 
 object SchemaBuilder {
+  /**
+   * Rust 의 타입 위치에서 쓸 수 없는 이름들 (raw identifier 불가 키워드 + 생성
+   * 코드가 unqualified 로 참조하는 프렐류드/지원 타입). 충돌 시 `<이름>Node` 로
+   * 변경 — proto message/Rust 타입 이름에만 적용, Kotlin AST 는 원본 유지.
+   * RustOptCodeGen.RustReservedTypeNames 와 같은 목록 유지할 것.
+   */
+  private val RUST_RESERVED_TYPE_NAMES = setOf(
+    "Self", "Box", "Option", "Vec", "String", "Result", "Some", "None", "Ok", "Err",
+    "Ctx", "Encoder", "Kernel", "KernelSet", "IdIssuer",
+  )
+
+  fun rustSafeName(name: String): String =
+    if (name in RUST_RESERVED_TYPE_NAMES) name + "Node" else name
+
   fun build(processed: ProcessedGrammar, packageName: String): AstSchema {
     val classParams = CollectionConverters.asJava(processed.classParamTypes())
     val enumValues = CollectionConverters.asJava(processed.enumValuesMap())
@@ -30,11 +44,17 @@ object SchemaBuilder {
         val schemaType = mapType(rawType, processed)
         FieldDef(name = name, number = idx + 1, type = schemaType)
       }
-      MessageDef(name = className, fields = fields, sealedChildren = emptyList())
+      MessageDef(
+        name = rustSafeName(className), kotlinName = className,
+        fields = fields, sealedChildren = emptyList(),
+      )
     }
 
     val sealedWrappers = abstractClasses.entries.sortedBy { it.key }.map { (parent, children) ->
-      MessageDef(name = parent, fields = emptyList(), sealedChildren = children)
+      MessageDef(
+        name = rustSafeName(parent), kotlinName = parent,
+        fields = emptyList(), sealedChildren = children.map { rustSafeName(it) },
+      )
     }
 
     // classRelations 에 등장하지만 classParamTypes 에 없고 abstract 도 아닌 클래스 —
@@ -43,8 +63,10 @@ object SchemaBuilder {
     val abstractNames = abstractClasses.keys
     val referencedConcretes = abstractClasses.values.flatten().toSet()
     val emptyConcretes = referencedConcretes
-      .filter { it !in concreteNames && it !in abstractNames }
-      .map { MessageDef(name = it, fields = emptyList(), sealedChildren = emptyList()) }
+      .filter { rustSafeName(it) !in concreteNames && it !in abstractNames }
+      .map {
+        MessageDef(name = rustSafeName(it), kotlinName = it, fields = emptyList(), sealedChildren = emptyList())
+      }
 
     val allMessages = (concreteMessages + sealedWrappers + emptyConcretes)
       .distinctBy { it.name }
@@ -52,7 +74,7 @@ object SchemaBuilder {
 
     val enums = enumValues.entries.sortedBy { it.key }.map { (enumName, scalaValues) ->
       val values = CollectionConverters.asJava(scalaValues).toList().sorted()
-      EnumDef(name = enumName, values = values)
+      EnumDef(name = rustSafeName(enumName), kotlinName = enumName, values = values)
     }
 
     return AstSchema(packageName = packageName, messages = allMessages, enums = enums)
@@ -76,11 +98,11 @@ object SchemaBuilder {
   }
 
   private fun mapTypeRest(t: Type, processed: ProcessedGrammar): SchemaType = when {
-    t is Type.ClassType -> SchemaType.Msg(t.name())
-    t is Type.EnumType -> SchemaType.Enm(t.enumName())
+    t is Type.ClassType -> SchemaType.Msg(rustSafeName(t.name()))
+    t is Type.EnumType -> SchemaType.Enm(rustSafeName(t.enumName()))
     t is Type.UnspecifiedEnumType -> {
       val name = processed.shortenedEnumTypesMap().get(t.uniqueId())
-      if (name.isDefined) SchemaType.Enm(name.get() as String) else SchemaType.NodeBytes
+      if (name.isDefined) SchemaType.Enm(rustSafeName(name.get() as String)) else SchemaType.NodeBytes
     }
     t is Type.OptionalOf -> SchemaType.Opt(mapType(t.typ(), processed))
     t is Type.ArrayOf -> SchemaType.Arr(mapType(t.elemType(), processed))

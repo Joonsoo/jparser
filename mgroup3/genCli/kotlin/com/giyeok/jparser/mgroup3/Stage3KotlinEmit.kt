@@ -51,7 +51,12 @@ object Stage3KotlinEmit {
   ): String {
     val concretes = schema.messages.filter { it.sealedChildren.isEmpty() }
     val sealeds = schema.messages.filter { it.sealedChildren.isNotEmpty() }
+    // schema(proto/Rust) 이름 → Kotlin AST 원본 이름 (Self → SelfNode 류 역매핑).
+    val kotlinNames: Map<String, String> =
+      schema.messages.associate { it.name to it.kotlinName } +
+        schema.enums.associate { it.name to it.kotlinName }
     val root = rootClassName(processed)
+    val rootSchemaName = SchemaBuilder.rustSafeName(root)
 
     val sb = StringBuilder()
     sb.append("package $pkg\n\n")
@@ -95,7 +100,7 @@ object Stage3KotlinEmit {
     sb.append("      }\n    }\n\n")
 
     for (m in concretes) {
-      sb.append(decodeFn(className, m))
+      sb.append(decodeFn(className, m, kotlinNames))
       sb.append("\n")
     }
     sb.append("  }\n\n")
@@ -107,7 +112,7 @@ object Stage3KotlinEmit {
       |
       |  fun toProto(root: $className.$root): PParseResult {
       |    val enc = Encoder()
-      |    val rootId = enc.encode$root(root)
+      |    val rootId = enc.encode$rootSchemaName(root)
       |    return PParseResult.newBuilder().setRootId(rootId).addAllNodes(enc.nodes).build()
       |  }
       |
@@ -120,13 +125,13 @@ object Stage3KotlinEmit {
       """.trimMargin()
     )
     for (m in concretes) {
-      sb.append(encodeFn(className, m))
+      sb.append(encodeFn(className, m, kotlinNames))
       sb.append("\n")
     }
     for (m in sealeds) {
-      sb.append("    fun encode${m.name}(node: $className.${m.name}): Int = when (node) {\n")
+      sb.append("    fun encode${m.name}(node: $className.${m.kotlinName}): Int = when (node) {\n")
       for (child in m.sealedChildren.sorted()) {
-        sb.append("      is $className.$child -> encode$child(node)\n")
+        sb.append("      is $className.${kotlinNames[child] ?: child} -> encode$child(node)\n")
       }
       sb.append("    }\n\n")
     }
@@ -137,12 +142,12 @@ object Stage3KotlinEmit {
 
   // --- decode fn for one concrete message --------------------------------
 
-  private fun decodeFn(className: String, m: MessageDef): String {
+  private fun decodeFn(className: String, m: MessageDef, kotlinNames: Map<String, String>): String {
     val sb = StringBuilder()
-    sb.append("    private fun decode${m.name}(id: Int, m: P${m.name}): $className.${m.name} =\n")
-    sb.append("      $className.${m.name}(\n")
+    sb.append("    private fun decode${m.name}(id: Int, m: P${m.name}): $className.${m.kotlinName} =\n")
+    sb.append("      $className.${m.kotlinName}(\n")
     for (f in m.fields) {
-      sb.append("        ${f.name} = ${decodeExpr(className, f.name, f.type)},\n")
+      sb.append("        ${f.name} = ${decodeExpr(className, f.name, f.type, kotlinNames)},\n")
     }
     sb.append("        nodeId = id,\n")
     sb.append("        start = m.start,\n")
@@ -152,30 +157,30 @@ object Stage3KotlinEmit {
   }
 
   /** proto getter → Kotlin 값 식. `name` 은 camelCase (proto java getter 와 일치). */
-  private fun decodeExpr(className: String, name: String, t: SchemaType): String = when (t) {
+  private fun decodeExpr(className: String, name: String, t: SchemaType, kn: Map<String, String>): String = when (t) {
     SchemaType.Bool, SchemaType.Int32, SchemaType.Str -> "m.$name"
     SchemaType.NodeBytes ->
       error("NodeBytes 는 Kotlin binding 에서 아직 미지원 (field $name)")
-    is SchemaType.Enm -> "$className.${t.name}.valueOf(m.$name.name)"
-    is SchemaType.Msg -> "node(m.$name) as $className.${t.name}"
-    is SchemaType.Arr -> decodeArrExpr(className, name, t.of)
+    is SchemaType.Enm -> "$className.${kn[t.name] ?: t.name}.valueOf(${stripEnumPrefix(t.name, "m.$name.name")})"
+    is SchemaType.Msg -> "node(m.$name) as $className.${kn[t.name] ?: t.name}"
+    is SchemaType.Arr -> decodeArrExpr(className, name, t.of, kn)
     is SchemaType.Opt -> when (val inner = t.of) {
       is SchemaType.Arr ->
-        "if (m.${name}Present) ${decodeArrExpr(className, name, inner.of)} else null"
+        "if (m.${name}Present) ${decodeArrExpr(className, name, inner.of, kn)} else null"
       is SchemaType.Msg ->
-        "if (m.${name}Present) node(m.$name) as $className.${inner.name} else null"
+        "if (m.${name}Present) node(m.$name) as $className.${kn[inner.name] ?: inner.name} else null"
       is SchemaType.Enm ->
-        "if (m.${name}Present) $className.${inner.name}.valueOf(m.$name.name) else null"
+        "if (m.${name}Present) $className.${kn[inner.name] ?: inner.name}.valueOf(${stripEnumPrefix(inner.name, "m.$name.name")}) else null"
       SchemaType.Bool, SchemaType.Int32, SchemaType.Str ->
         "if (m.${name}Present) m.$name else null"
       else -> error("unsupported Opt inner type for field $name: $inner")
     }
   }
 
-  private fun decodeArrExpr(className: String, name: String, elem: SchemaType): String =
+  private fun decodeArrExpr(className: String, name: String, elem: SchemaType, kn: Map<String, String>): String =
     when (elem) {
-      is SchemaType.Msg -> "m.${name}List.map { node(it) as $className.${elem.name} }"
-      is SchemaType.Enm -> "m.${name}List.map { $className.${elem.name}.valueOf(it.name) }"
+      is SchemaType.Msg -> "m.${name}List.map { node(it) as $className.${kn[elem.name] ?: elem.name} }"
+      is SchemaType.Enm -> "m.${name}List.map { $className.${kn[elem.name] ?: elem.name}.valueOf(${stripEnumPrefix(elem.name, "it.name")}) }"
       SchemaType.Bool -> "m.${name}List.toList()"
       SchemaType.Int32 -> "m.${name}List.map { it.toInt() }"
       SchemaType.Str -> "m.${name}List.toList()"
@@ -184,13 +189,13 @@ object Stage3KotlinEmit {
 
   // --- encode fn for one concrete message --------------------------------
 
-  private fun encodeFn(className: String, m: MessageDef): String {
+  private fun encodeFn(className: String, m: MessageDef, kn: Map<String, String>): String {
     val sb = StringBuilder()
-    sb.append("    fun encode${m.name}(node: $className.${m.name}): Int {\n")
+    sb.append("    fun encode${m.name}(node: $className.${m.kotlinName}): Int {\n")
     // 자식 먼저 encode (Rust encoder 와 동일한 ID 할당 순서: 자식 id < 부모 id).
     val setters = mutableListOf<String>()
     for (f in m.fields) {
-      encodeField(sb, setters, f)
+      encodeField(sb, setters, f, kn)
     }
     sb.append("      val id = alloc()\n")
     sb.append("      nodes.add(\n")
@@ -213,6 +218,7 @@ object Stage3KotlinEmit {
     sb: StringBuilder,
     setters: MutableList<String>,
     f: FieldDef,
+    kn: Map<String, String>,
   ) {
     val name = f.name
     val cap = name.replaceFirstChar { it.uppercaseChar() }
@@ -222,13 +228,13 @@ object Stage3KotlinEmit {
       SchemaType.NodeBytes ->
         error("NodeBytes 는 Kotlin binding 에서 아직 미지원 (field $name)")
       is SchemaType.Enm ->
-        setters.add(".set$cap(P${t.name}.valueOf(node.$name.name))")
+        setters.add(".set$cap(P${t.name}.valueOf(${addEnumPrefix(t.name, "node.$name.name")}))")
       is SchemaType.Msg -> {
         sb.append("      val ${name}Id = encode${t.name}(node.$name)\n")
         setters.add(".set$cap(${name}Id)")
       }
       is SchemaType.Arr -> {
-        sb.append("      val ${name}Vals = ${encodeArrExprOn("node.$name", t.of)}\n")
+        sb.append("      val ${name}Vals = ${encodeArrExprOn("node.$name", t.of, kn)}\n")
         setters.add(".addAll$cap(${name}Vals)")
       }
       is SchemaType.Opt -> when (val inner = t.of) {
@@ -238,13 +244,13 @@ object Stage3KotlinEmit {
           setters.add(".set$cap(${name}Id)")
         }
         is SchemaType.Arr -> {
-          sb.append("      val ${name}Vals = node.$name?.let { xs -> ${encodeArrExprOn("xs", inner.of)} } ?: emptyList()\n")
+          sb.append("      val ${name}Vals = node.$name?.let { xs -> ${encodeArrExprOn("xs", inner.of, kn)} } ?: emptyList()\n")
           setters.add(".set${cap}Present(node.$name != null)")
           setters.add(".addAll$cap(${name}Vals)")
         }
         is SchemaType.Enm -> {
           setters.add(".set${cap}Present(node.$name != null)")
-          setters.add(".set$cap(node.$name?.let { P${inner.name}.valueOf(it.name) } ?: P${inner.name}.forNumber(0))")
+          setters.add(".set$cap(node.$name?.let { P${inner.name}.valueOf(${addEnumPrefix(inner.name, "it.name")}) } ?: P${inner.name}.forNumber(0))")
         }
         SchemaType.Str -> {
           setters.add(".set${cap}Present(node.$name != null)")
@@ -263,14 +269,22 @@ object Stage3KotlinEmit {
     }
   }
 
-  private fun encodeArrExprOn(receiver: String, elem: SchemaType): String = when (elem) {
+  private fun encodeArrExprOn(receiver: String, elem: SchemaType, kn: Map<String, String>): String = when (elem) {
     is SchemaType.Msg -> "$receiver.map { encode${elem.name}(it) }"
-    is SchemaType.Enm -> "$receiver.map { P${elem.name}.valueOf(it.name) }"
+    is SchemaType.Enm -> "$receiver.map { P${elem.name}.valueOf(${addEnumPrefix(elem.name, "it.name")}) }"
     SchemaType.Bool, SchemaType.Int32, SchemaType.Str -> receiver
     else -> error("unsupported Arr element type: $elem")
   }
 
   // --- name munging -------------------------------------------------------
+
+  // proto enum 값은 `<ENUM_NAME>_<VALUE>` 로 prefix 됨 (Stage2ProtoEmit) —
+  // Kotlin enum 이름과 오갈 때 prefix 를 더하고/벗긴다.
+  private fun stripEnumPrefix(enumName: String, expr: String): String =
+    "$expr.removePrefix(\"" + screamingSnake(enumName) + "_\")"
+
+  private fun addEnumPrefix(enumName: String, expr: String): String =
+    "\"" + screamingSnake(enumName) + "_\" + " + expr
 
   /** `ModuleDef` → `MODULE_DEF` (NodeEntry oneof case 상수). */
   private fun screamingSnake(s: String): String {

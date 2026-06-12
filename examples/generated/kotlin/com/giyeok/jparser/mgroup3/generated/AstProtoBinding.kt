@@ -59,7 +59,7 @@ object AstProtoBinding {
     private fun decodeParam(id: Int, m: PParam): Ast.Param =
       Ast.Param(
         typeName = m.typeName,
-        typeAttr = Ast.TypeAttr.valueOf(m.typeAttr.name),
+        typeAttr = Ast.TypeAttr.valueOf(m.typeAttr.name.removePrefix("TYPE_ATTR_")),
         name = m.name,
         nodeId = id,
         start = m.start,
@@ -153,7 +153,7 @@ object AstProtoBinding {
         PNodeEntry.newBuilder().setId(id).setParam(
           PParam.newBuilder()
             .setTypeName(node.typeName)
-            .setTypeAttr(PTypeAttr.valueOf(node.typeAttr.name))
+            .setTypeAttr(PTypeAttr.valueOf("TYPE_ATTR_" + node.typeAttr.name))
             .setName(node.name)
             .setStart(node.start)
             .setEnd(node.end)

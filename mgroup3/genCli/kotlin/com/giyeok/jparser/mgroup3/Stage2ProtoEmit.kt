@@ -66,10 +66,13 @@ object Stage2ProtoEmit {
   // --- enum --------------------------------------------------------------
 
   private fun emitEnum(sb: StringBuilder, e: EnumDef) {
+    // proto enum 값은 패키지 네임스페이스를 공유하므로(C++ 스코핑) enum 명을
+    // prefix 로 붙인다 — 서로 다른 enum 의 같은 값 이름(ADD 등) 충돌 방지.
+    val prefix = screamingSnake(e.name)
     sb.append("enum ").append(e.name).append(" {\n")
-    sb.append("  ").append(screamingSnake(e.name)).append("_UNSPECIFIED = 0;\n")
+    sb.append("  ").append(prefix).append("_UNSPECIFIED = 0;\n")
     e.values.forEachIndexed { i, v ->
-      sb.append("  ").append(v).append(" = ").append(i + 1).append(";\n")
+      sb.append("  ").append(prefix).append("_").append(v).append(" = ").append(i + 1).append(";\n")
     }
     sb.append("}\n\n")
   }

@@ -9,9 +9,9 @@ option java_multiple_files = true;
 
 enum TypeAttr {
   TYPE_ATTR_UNSPECIFIED = 0;
-  OPTIONAL = 1;
-  PLAIN = 2;
-  REPEATED = 3;
+  TYPE_ATTR_OPTIONAL = 1;
+  TYPE_ATTR_PLAIN = 2;
+  TYPE_ATTR_REPEATED = 3;
 }
 
 message Attributes {

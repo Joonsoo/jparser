@@ -121,6 +121,17 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
     if (RustOptCodeGen.RustKeywords.contains(snake)) s"${snake}_" else snake
   }
 
+  /**
+   * Type-position-safe class name. `Self` cannot even be a raw identifier, and
+   * prelude/support names (Box, Option, Ctx, ...) would shadow what the
+   * generated code references unqualified. Renamed to `<name>Node` — applied to
+   * Rust type names AND (via SchemaBuilder.rustSafeName, keep the lists in
+   * sync) the proto message names, so prost output matches. Kotlin AST keeps
+   * the original name; to_short_string also prints the original.
+   */
+  def rustClassName(name: String): String =
+    if (RustOptCodeGen.RustReservedTypeNames.contains(name)) name + "Node" else name
+
   // ---- type rendering --------------------------------------------------------
   //
   // Mirrors Stage4RustEmit.rustType so the walker and the AST type definitions
@@ -128,7 +139,7 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
 
   def rustType(t: Type): String = t match {
     case Type.NodeType => "Vec<u8>"
-    case Type.ClassType(name) => s"Box<$name>"
+    case Type.ClassType(name) => s"Box<${rustClassName(name)}>"
     case Type.OptionalOf(typ) => s"Option<${rustType(typ)}>"
     case Type.ArrayOf(typ) => s"Vec<${rustTypeUnboxed(typ)}>"
     case unionType: Type.UnionOf =>
@@ -149,7 +160,7 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
 
   // Vec<T> inner: Vec already heap-allocates, so the inner Msg need not be Boxed.
   private def rustTypeUnboxed(t: Type): String = t match {
-    case Type.ClassType(name) => name
+    case Type.ClassType(name) => rustClassName(name)
     case _ => rustType(t)
   }
 
@@ -162,7 +173,7 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
    * metalang type system has no notion of `Box` to detect "already boxed".
    */
   private def rustReturnType(t: Type): String = t match {
-    case Type.ClassType(name) => name
+    case Type.ClassType(name) => rustClassName(name)
     case Type.OptionalOf(inner) => s"Option<${rustReturnType(inner)}>"
     case Type.ArrayOf(inner) => s"Vec<${rustReturnType(inner)}>"
     case _ => rustType(t)
@@ -184,21 +195,74 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
     case _ => None
   }
 
-  /** concrete class -> its single sealed parent name, if it has one. */
-  private lazy val parentOfConcrete: Map[String, String] = {
+  /** class -> ALL direct sealed parents (a class can belong to multiple unions). */
+  private lazy val parentsOf: Map[String, Set[String]] = {
     val hierarchy = analysis.classRelations.toHierarchy
     (for {
-      item <- hierarchy.allTypes.values
+      item <- hierarchy.allTypes.values.toList
       sub <- item.subclasses
-    } yield sub -> item.className).toMap
+    } yield sub -> item.className).groupBy(_._1).view.mapValues(_.map(_._2).toSet).toMap
+  }
+
+  /**
+   * Direct-edge inheritance path from `child` up to `parent` (BFS, shortest).
+   * Returned head-first from parent: List(parent, ..., child). None if not an
+   * ancestor.
+   */
+  private def upcastPath(child: String, parent: String): Option[List[String]] = {
+    if (child == parent) return Some(List(child))
+    val visited = scala.collection.mutable.Set[String](child)
+    val queue = scala.collection.mutable.Queue[List[String]](List(child))
+    while (queue.nonEmpty) {
+      val path = queue.dequeue()
+      for (p <- parentsOf.getOrElse(path.head, Set())) {
+        if (p == parent) return Some(p :: path)
+        if (visited.add(p)) queue.enqueue(p :: path)
+      }
+    }
+    None
   }
 
   private def reduceType(t: Type): Type = t match {
     case u: Type.UnionOf => analysis.reduceUnionType(u) match {
-      case u2: Type.UnionOf => u2
+      case u2: Type.UnionOf =>
+        // metalang 의 reduceUnionType 이 못 줄이는 union 이라도 class hierarchy 상
+        // 공통 sealed 조상이 있으면 그 타입으로 — 중첩 choice 의 arm 들이 그 부모로
+        // up-cast 되어야 Rust 의 if/else 타입이 통일된다.
+        commonParentOf(u2).map(Type.ClassType).getOrElse(u2)
       case r => reduceType(r)
     }
     case _ => t
+  }
+
+  /**
+   * Least common sealed ancestor of all members of an (irreducible) union,
+   * via parentsOf BFS. Members must all be class types. Minimal total distance,
+   * name-ordered for determinism.
+   */
+  private def commonParentOf(u: Type.UnionOf): Option[String] = {
+    val members = u.types.toList.map(classNameOf)
+    if (members.exists(_.isEmpty)) None
+    else {
+      def ancestorsOf(c: String): Map[String, Int] = {
+        val dist = scala.collection.mutable.Map[String, Int]()
+        val queue = scala.collection.mutable.Queue[(String, Int)]((c, 0))
+        while (queue.nonEmpty) {
+          val (cur, d) = queue.dequeue()
+          for (p <- parentsOf.getOrElse(cur, Set.empty[String])) {
+            if (!dist.contains(p)) {
+              dist(p) = d + 1
+              queue.enqueue((p, d + 1))
+            }
+          }
+        }
+        dist.toMap
+      }
+      val ancMaps = members.map(m => ancestorsOf(m.get))
+      val common = ancMaps.map(_.keySet).reduce(_ intersect _)
+      if (common.isEmpty) None
+      else Some(common.toList.map(p => (ancMaps.map(_.apply(p)).sum, p)).sorted.head._2)
+    }
   }
 
   /**
@@ -235,9 +299,10 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
     case FieldOf(decl) =>
       reduceType(decl) match {
         case Type.ClassType(name) =>
-          // Box<name>. Up-cast first (yields P::C(Box)), else box the value.
-          val upcast = sealedUpcast(expr, exprType, Type.ClassType(name))
-          if (upcast != expr) upcast else s"Box::new($expr)"
+          // Box<name>. Up-cast first (yields the parent enum value), then box —
+          // the field itself is Box<Parent> regardless of whether an up-cast
+          // happened.
+          s"Box::new(${sealedUpcast(expr, exprType, Type.ClassType(name))})"
         case Type.OptionalOf(inner) =>
           // Field is `Option<Box<inner>>` (Msg) or `Option<inner>` (scalar).
           // The match value is `Option<inner-unboxed>` or a bare value. We add
@@ -263,19 +328,31 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
   /** Box / up-cast a bare value being stored as the inner of an `Option<Box<_>>` field. */
   private def boxInnerForField(expr: String, inner: Type): String = reduceType(inner) match {
     case Type.ClassType(name) =>
-      val upcast = sealedUpcast(expr, inner, Type.ClassType(name))
-      if (upcast != expr) upcast else s"Box::new($expr)"
+      s"Box::new(${sealedUpcast(expr, inner, Type.ClassType(name))})"
     case _ => expr
   }
 
-  /** If `expr` (type `exprType`) is a concrete child of sealed `expected`, wrap it. */
-  private def sealedUpcast(expr: String, exprType: Type, expected: Type): String =
+  /**
+   * If `expr` (type `exprType`) is a (transitive) child of sealed `expected`,
+   * wrap it level by level: P::M(Box::new(M::C(Box::new(expr)))).
+   */
+  private def sealedUpcast(expr: String, exprType: Type, expected: Type): String = {
     (classNameOf(exprType), reduceType(expected)) match {
-      case (Some(child), Type.ClassType(parent))
-        if child != parent && parentOfConcrete.get(child).contains(parent) =>
-        s"$parent::$child(Box::new($expr))"
+      case (Some(child), Type.ClassType(parent)) if child != parent =>
+        upcastPath(child, parent) match {
+          case Some(path) =>
+            // path = [parent, ..., child]; wrap from the child end outward.
+            var acc = expr
+            path.sliding(2).toList.reverse.foreach {
+              case List(p, c) => acc = s"${rustClassName(p)}::${rustClassName(c)}(Box::new($acc))"
+              case _ =>
+            }
+            acc
+          case None => expr
+        }
       case _ => expr
     }
+  }
 
   /**
    * Coerce one branch of an if/ternary to the branch-result type. Match values
@@ -291,7 +368,7 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
           case Type.OptionalOf(_) | Type.NullType => expr
           case _ => s"Some(${sealedUpcast(expr, from, inner)})"
         }
-      case _ => expr
+      case other => sealedUpcast(expr, from, other)
     }
 
   // ---- top-level entry: matchStart -------------------------------------------
@@ -345,10 +422,14 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
   ): ExprBlob = {
     if (choicesMap.size == 1) {
       val (choiceSymbol, choiceExpr) = choicesMap.head
-      val inner = valuefyExprToCode(choiceExpr, beginGen, endGen, choiceSymbol, SequenceVarName(None))
+      val singleHint = reduceType(expectedType) match {
+        case Type.ClassType(_) => Some(expectedType)
+        case _ => None
+      }
+      val inner = valuefyExprToCode(choiceExpr, beginGen, endGen, choiceSymbol, SequenceVarName(None), singleHint)
       // Even with a single choice, the produced concrete type may be a child of
       // the declared (parent) type — up-cast the result. (e.g. JSON `Element = Value`.)
-      val coerced = coerce(inner.result, typeOf(choiceExpr), ReturnOf(expectedType))
+      val coerced = coerce(inner.result, producedType(choiceExpr), ReturnOf(expectedType))
       if (coerced == inner.result) inner
       else inner.copy(result = coerced)
     } else {
@@ -374,9 +455,20 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
       // sealed child.
       val armExprs = choices.zipWithIndex.map { case ((varName, choiceSymbol), index) =>
         val choiceExpr = choicesMap(choiceSymbol)
-        val exprCode = valuefyExprToCode(choiceExpr, beginGen, endGen, choiceSymbol, SequenceVarName(None))
+        val armHint = reduceType(expectedType) match {
+          case Type.ClassType(_) => Some(expectedType)
+          case _ => None
+        }
+        val exprCode = valuefyExprToCode(choiceExpr, beginGen, endGen, choiceSymbol, SequenceVarName(None), armHint)
         requires ++= exprCode.required
-        val armType = typeOf(choiceExpr)
+        val armType = producedType(choiceExpr)
+        (classNameOf(armType), reduceType(expectedType)) match {
+          case (Some(c), Type.ClassType(par)) if c != par && upcastPath(c, par).isEmpty =>
+            System.err.println(s"DBGNOUP arm=$c expected=$par")
+          case (None, Type.ClassType(par)) =>
+            System.err.println(s"DBGNOUP nonclass-arm=${Type.readableNameOf(reduceType(armType))} expected=$par")
+          case _ =>
+        }
         val coerced = coerce(exprCode.asBlockExpr, armType, ReturnOf(expectedType))
         val isLast = index == choices.size - 1
         val cond = if (isLast) None else Some(s"$varName.is_some()")
@@ -396,6 +488,23 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
 
   private def typeOf(expr: ValuefyExpr): Type = analysis.typeInferer.typeOfValuefyExpr(expr).get
 
+  /**
+   * The type the generated Rust expression ACTUALLY produces. The type
+   * inferer may type a choice arm by its enclosing union (the parent class),
+   * which hides the need for a sealed up-cast — derive the concrete type
+   * structurally where the expression shape determines it.
+   */
+  private def producedType(expr: ValuefyExpr): Type = expr match {
+    case ValuefyExpr.ConstructCall(className, _) => Type.ClassType(className)
+    case ValuefyExpr.MatchNonterminal(nonterminalName) =>
+      analysis.nonterminalTypes(nonterminalName)
+    case ValuefyExpr.Unbind(_, e) => producedType(e)
+    case ValuefyExpr.SeqElemAt(_, e) => producedType(e)
+    case ValuefyExpr.JoinBody(e) => producedType(e)
+    case ValuefyExpr.JoinCond(e) => producedType(e)
+    case _ => typeOf(expr)
+  }
+
   case class SequenceVarName(var name: Option[String])
 
   // ---- the central recursion -------------------------------------------------
@@ -406,6 +515,10 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
     endGen: String,
     symbol: Symbols.Symbol,
     sequenceVarName: SequenceVarName,
+    // 바깥 문맥이 기대하는 타입 — 중첩 UnrollChoices 의 arm 통일 타입을 문맥에
+    // 맞추기 위해 전파한다 (typeInferer 의 union 은 irreducible 일 수 있고, LCA
+    // 휴리스틱은 문맥과 다른 조상을 고를 수 있다).
+    expectedHint: Option[Type] = None,
   ): ExprBlob = valuefyExpr match {
     case ValuefyExpr.InputNode =>
       // Reconstruct a partial parse tree. Not used by the PoC grammars; defer.
@@ -415,10 +528,10 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
       _requiredNonterms += nonterminalName
       ExprBlob(List(s"let $v = ${nonterminalMatchFuncName(nonterminalName)}_(ctx, $beginGen, $endGen);"), v, Set())
     case ValuefyExpr.Unbind(sym, expr) =>
-      valuefyExprToCode(expr, beginGen, endGen, sym, sequenceVarName)
+      valuefyExprToCode(expr, beginGen, endGen, sym, sequenceVarName, expectedHint)
     case ValuefyExpr.JoinBody(bodyProcessor) =>
       val joinSymbol = symbol.asInstanceOf[Symbols.Join]
-      valuefyExprToCode(bodyProcessor, beginGen, endGen, joinSymbol.sym, SequenceVarName(None))
+      valuefyExprToCode(bodyProcessor, beginGen, endGen, joinSymbol.sym, SequenceVarName(None), expectedHint)
     case ValuefyExpr.JoinCond(condProcessor) =>
       val joinSymbol = symbol.asInstanceOf[Symbols.Join]
       valuefyExprToCode(condProcessor, beginGen, endGen, joinSymbol.join, SequenceVarName(None))
@@ -450,7 +563,7 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
       assert(symbol == repeatSymbol)
       unrollRepeatCode("unroll_repeat1", elemProcessor, beginGen, endGen, symbol, arrayElemType(valuefyExpr))
     case ValuefyExpr.UnrollChoices(choices) =>
-      unrollChoicesExpr(choices, beginGen, endGen, symbol.toShortString, typeOf(valuefyExpr))
+      unrollChoicesExpr(choices, beginGen, endGen, symbol.toShortString, expectedHint.getOrElse(typeOf(valuefyExpr)))
     case ValuefyExpr.ConstructCall(className, params) =>
       val paramCodes = params.map(valuefyExprToCode(_, beginGen, endGen, symbol, sequenceVarName))
       val declParams = analysis.classParamTypes.getOrElse(className, List())
@@ -458,7 +571,7 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
         s"param count mismatch for $className: ${declParams.size} fields vs ${paramCodes.size} args")
       val v = newVar()
       val fieldAssigns = declParams.zip(paramCodes).zip(params).map { case (((pname, fieldType), pc), paramExpr) =>
-        val coerced = coerce(pc.result, typeOf(paramExpr), FieldOf(fieldType))
+        val coerced = coerce(pc.result, producedType(paramExpr), FieldOf(fieldType))
         s"${rustFieldName(pname)}: $coerced"
       }
       // Include node_id/start/end in the same list so an empty param list does
@@ -466,7 +579,7 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
       val allAssigns = fieldAssigns ++ List(
         s"node_id: ctx.next_id()", s"start: $beginGen", s"end: $endGen")
       val construct =
-        s"let $v = $className { ${allAssigns.mkString(", ")} };"
+        s"let $v = ${rustClassName(className)} { ${allAssigns.mkString(", ")} };"
       ExprBlob(paramCodes.flatMap(_.prepares) :+ construct, v, paramCodes.flatMap(_.required).toSet)
     case ValuefyExpr.FuncCall(funcType, params) =>
       funcCallToCode(funcType, params, beginGen, endGen, symbol, sequenceVarName)
@@ -714,14 +827,14 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
              |        format!("$fmtStr", ${fmtArgs.mkString(", ")})
              |    }""".stripMargin
       s"""#[derive(Debug, Clone)]
-         |pub struct ${cls.className} {
+         |pub struct ${rustClassName(cls.className)} {
          |${fields.mkString("\n")}
          |    pub node_id: i32,
          |    pub start: i32,
          |    pub end: i32,
          |}
          |
-         |impl ${cls.className} {
+         |impl ${rustClassName(cls.className)} {
          |$toShort
          |}
          |""".stripMargin
@@ -729,14 +842,14 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
       // Abstract type → enum over its (sorted) subclasses, each Boxed.
       // to_short_string dispatches to the active variant.
       val subs = cls.subclasses.toList.sorted
-      val variants = subs.map(sub => s"    $sub(Box<$sub>),")
-      val arms = subs.map(sub => s"            ${cls.className}::$sub(x) => x.to_short_string(),")
+      val variants = subs.map(sub => s"    ${rustClassName(sub)}(Box<${rustClassName(sub)}>),")
+      val arms = subs.map(sub => s"            ${rustClassName(cls.className)}::${rustClassName(sub)}(x) => x.to_short_string(),")
       s"""#[derive(Debug, Clone)]
-         |pub enum ${cls.className} {
+         |pub enum ${rustClassName(cls.className)} {
          |${variants.mkString("\n")}
          |}
          |
-         |impl ${cls.className} {
+         |impl ${rustClassName(cls.className)} {
          |    pub fn to_short_string(&self) -> String {
          |        match self {
          |${arms.mkString("\n")}
@@ -828,7 +941,8 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
          |    fn end(&self) -> i32;
          |}
          |""".stripMargin
-    val impls = concretes.map { c =>
+    val impls = concretes.map { c0 =>
+      val c = rustClassName(c0)
       s"""impl AstNode for $c {
          |    fn node_id(&self) -> i32 { self.node_id }
          |    fn start(&self) -> i32 { self.start }
@@ -1007,6 +1121,20 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
           prepares += s"    };"
           protoFields += s"${field}_present: ${field}_present"
           protoFields += s"$field: $field"
+        case Type.OptionalOf(Type.ArrayOf(elemT2)) =>
+          // Opt(Arr(scalar)): char/enum 은 i32 변환 (enum 은 +1 시프트).
+          val conv = reduceType(elemT2) match {
+            case Type.CharType => "xs.iter().map(|c| *c as i32).collect()"
+            case Type.EnumType(_) | Type.UnspecifiedEnumType(_) =>
+              "xs.iter().map(|e| (*e as i32) + 1).collect()"
+            case _ => "xs.clone()"
+          }
+          prepares += s"    let (${field}_present, $field): (bool, Vec<_>) = match &node.$field {"
+          prepares += s"        Some(xs) => (true, $conv),"
+          prepares += s"        None => (false, Vec::new()),"
+          prepares += s"    };"
+          protoFields += s"${field}_present: ${field}_present"
+          protoFields += s"$field: $field"
         case Type.OptionalOf(inner) =>
           // Opt(scalar/enum): present flag + copied value (default when absent).
           prepares += s"    let (${field}_present, $field) = match &node.$field {"
@@ -1018,9 +1146,16 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
         case Type.ArrayOf(elemT) if isMsg(elemT) =>
           prepares += s"    let $field: Vec<i32> = node.$field.iter().map(|x| ${encodeCallFor(elemT, "x")}).collect();"
           protoFields += s"$field: $field"
-        case Type.ArrayOf(_) =>
-          // Vec of scalars: clone through.
-          protoFields += s"$field: node.$field.clone()"
+        case Type.ArrayOf(elemT) =>
+          // Vec of scalars. char/enum become i32 (with the enum +1 shift).
+          reduceType(elemT) match {
+            case Type.CharType =>
+              protoFields += s"$field: node.$field.iter().map(|c| *c as i32).collect()"
+            case Type.EnumType(_) | Type.UnspecifiedEnumType(_) =>
+              protoFields += s"$field: node.$field.iter().map(|e| (*e as i32) + 1).collect()"
+            case _ =>
+              protoFields += s"$field: node.$field.clone()"
+          }
         case _ =>
           // scalar / enum
           protoFields += s"$field: ${copyScalarField(ptype, s"node.$field")}"
@@ -1030,15 +1165,15 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
     val protoFieldsStr =
       (protoFields.toList :+ "start: node.start" :+ "end: node.end").map("        " + _).mkString(",\n")
 
-    s"""fn $fnName(enc: &mut Encoder, node: &$className) -> i32 {
+    s"""fn $fnName(enc: &mut Encoder, node: &${rustClassName(className)}) -> i32 {
        |${prepares.mkString("\n")}
        |    let id = enc.alloc();
-       |    let msg = proto::$className {
+       |    let msg = proto::${rustClassName(className)} {
        |$protoFieldsStr,
        |    };
        |    enc.nodes.push(proto::NodeEntry {
        |        id,
-       |        node: Some(proto::node_entry::Node::${className}(msg)),
+       |        node: Some(proto::node_entry::Node::${rustClassName(className)}(msg)),
        |    });
        |    id
        |}
@@ -1049,9 +1184,9 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
   private def sealedEncodeFn(cls: ClassHierarchyItem): String = {
     val fnName = s"enc_${camelToSnake(cls.className)}"
     val arms = cls.subclasses.toList.sorted.map { sub =>
-      s"        ${cls.className}::$sub(x) => enc_${camelToSnake(sub)}(enc, x),"
+      s"        ${rustClassName(cls.className)}::${rustClassName(sub)}(x) => enc_${camelToSnake(sub)}(enc, x),"
     }
-    s"""fn $fnName(enc: &mut Encoder, node: &${cls.className}) -> i32 {
+    s"""fn $fnName(enc: &mut Encoder, node: &${rustClassName(cls.className)}) -> i32 {
        |    match node {
        |${arms.mkString("\n")}
        |    }
@@ -1102,6 +1237,12 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
 }
 
 object RustOptCodeGen {
+  /** SchemaBuilder.RUST_RESERVED_TYPE_NAMES 와 동일 목록 유지할 것. */
+  val RustReservedTypeNames: Set[String] = Set(
+    "Self", "Box", "Option", "Vec", "String", "Result", "Some", "None", "Ok", "Err",
+    "Ctx", "Encoder", "Kernel", "KernelSet", "IdIssuer",
+  )
+
   val RustKeywords: Set[String] = Set(
     "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn",
     "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref",
