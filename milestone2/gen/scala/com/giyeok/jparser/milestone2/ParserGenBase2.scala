@@ -118,9 +118,100 @@ case class CtxWithTasks(
       // progressedStartKernel = progressedStartKernel.headOption,
     )
   }
+
+  // 시작 커널이 같은 세대에서 zero-width로 progress된 경우(nullable start symbol),
+  // 그 progressed kernel도 summary에 포함시킨다. 입력이 시작되기 전(gen 0)에
+  // start symbol이 매치되는 경우 — 빈 입력 수용 등 — 의 acceptance에 필요하다.
+  def tasksSummaryWithStartProgress(currGen: Int, startKernel: Kernel): TasksSummary2 = {
+    val base = tasksSummary(currGen)
+    startKernelProgressConditions.get(startKernel) match {
+      case Some(condition) =>
+        val template = conditionToTemplateForTaskSummary(condition)
+        val progressed = Kernel(startKernel.symbolId, startKernel.pointer + 1, startKernel.beginGen, startKernel.endGen)
+        base.copy(addedKernels =
+          base.addedKernels + (template -> (base.addedKernels.getOrElse(template, Set()) + progressed)))
+      case None => base
+    }
+  }
 }
 
 class ParserGenBase2(private val parser: OptNaiveParser2) {
+  // 시뮬레이션의 각 단계가 끝난 뒤, 현재 세대(gen)에서 zero-width로 결정되는
+  // 조건들(beginGen == endGen == gen)만 선택적으로 진화시킨다.
+  //
+  // nullable한 conditional 심볼의 body가 같은 세대에서 zero-width로 progress되면
+  // endGen이 현재 세대인 조건(OnlyIf/Unless/Exists/NotExists)이 만들어지는데,
+  // 이들의 피연산자 매치는 zero-width라 입력과 무관하게 정적이므로 시뮬레이션
+  // 컨텍스트에서 안전하게 해소할 수 있고, 해소하지 않으면 template 변환이 처리할
+  // 수 없는 모양(OnlyIf/Unless with beginGen==endGen)이 살아남는다.
+  // (NaiveParser2.initialParsingHistoryContext의 gen 0 평가와 같은 원리)
+  //
+  // 주의: 그 외의 조건들(이전 세대에서 시작했거나 여러 세대에 걸친 조건)은
+  // 진화시키지 않는다. 특히 edge action 시뮬레이션의 컨텍스트는 fake end 같은
+  // 합성 구조를 포함하므로, 거기서 전체 진화를 적용하면 지역 정보가 불완전한
+  // 조건이 잘못 해소된다 (예: 여러 세대에 걸친 lookahead 대상).
+  def evolveZeroWidthCondition(gen: Int, ctx: ParsingContext, condition: AcceptCondition): AcceptCondition =
+    condition match {
+      case AcceptCondition.Always | AcceptCondition.Never => condition
+      case AcceptCondition.And(conds) =>
+        AcceptCondition.conjunct(conds.toSeq.map(evolveZeroWidthCondition(gen, ctx, _)): _*)
+      case AcceptCondition.Or(conds) =>
+        AcceptCondition.disjunct(conds.toSeq.map(evolveZeroWidthCondition(gen, ctx, _)): _*)
+      case AcceptCondition.Unless(b, e, symbolId) if b == gen && e == gen =>
+        ctx.acceptConditions.get(Kernel(symbolId, 1, gen, gen)) match {
+          case Some(matched) => evolveZeroWidthCondition(gen, ctx, matched.neg)
+          case None => AcceptCondition.Always
+        }
+      case AcceptCondition.OnlyIf(b, e, symbolId) if b == gen && e == gen =>
+        ctx.acceptConditions.get(Kernel(symbolId, 1, gen, gen)) match {
+          case Some(matched) => evolveZeroWidthCondition(gen, ctx, matched)
+          case None => AcceptCondition.Never
+        }
+      case AcceptCondition.Exists(b, e, symbolId) if b == gen && e == gen =>
+        ctx.acceptConditions.get(Kernel(symbolId, 1, gen, gen)) match {
+          case Some(matched) =>
+            val zeroWidth = evolveZeroWidthCondition(gen, ctx, matched)
+            if (ctx.graph.nodes.contains(Kernel(symbolId, 0, gen, gen)))
+              AcceptCondition.disjunct(zeroWidth, condition)
+            else zeroWidth
+          case None =>
+            if (ctx.graph.nodes.contains(Kernel(symbolId, 0, gen, gen))) condition
+            else AcceptCondition.Never
+        }
+      case AcceptCondition.NotExists(b, e, symbolId) if b == gen && e == gen =>
+        ctx.acceptConditions.get(Kernel(symbolId, 1, gen, gen)) match {
+          case Some(matched) =>
+            val zeroWidth = evolveZeroWidthCondition(gen, ctx, matched.neg)
+            if (ctx.graph.nodes.contains(Kernel(symbolId, 0, gen, gen)))
+              AcceptCondition.conjunct(zeroWidth, condition)
+            else zeroWidth
+          case None =>
+            if (ctx.graph.nodes.contains(Kernel(symbolId, 0, gen, gen))) condition
+            else AcceptCondition.Always
+        }
+      case _ => condition
+    }
+
+  def evolveParsingContext(gen: Int, ctx: ParsingContext): ParsingContext = {
+    val evolvedConds = ctx.acceptConditions.view.mapValues(evolveZeroWidthCondition(gen, ctx, _)).toMap
+    val dropped = evolvedConds.filter(_._2 == AcceptCondition.Never).keySet
+    ParsingContext(ctx.graph.removeNodes(dropped), evolvedConds -- dropped)
+  }
+
+  def evolveCtxWithTasks(gen: Int, ctxWithTasks: CtxWithTasks): CtxWithTasks = {
+    val ctx = ctxWithTasks.ctx
+    val evolvedConds = ctx.acceptConditions.view.mapValues(evolveZeroWidthCondition(gen, ctx, _)).toMap
+    val dropped = evolvedConds.filter(_._2 == AcceptCondition.Never).keySet
+    val newCtx = ParsingContext(ctx.graph.removeNodes(dropped), evolvedConds -- dropped)
+    CtxWithTasks(
+      newCtx,
+      ctxWithTasks.tasks,
+      ctxWithTasks.startKernelProgressConditions.view.mapValues(evolveZeroWidthCondition(gen, ctx, _)).toMap,
+      ctxWithTasks.newNodes.map { case (kernel, condition) =>
+        kernel -> evolvedConds.getOrElse(kernel, evolveZeroWidthCondition(gen, ctx, condition))
+      })
+  }
+
   //  def runTasksWithProgressBarrierByNaive(nextGen: Int, tasks: List[ParsingTask], barrierNode: Kernel, cc: CtxWithTasks): CtxWithTasks = tasks match {
   //    case (barrierTask@ProgressTask(`barrierNode`, _)) +: rest =>
   //      val ncc = cc.copy(startKernelProgressTasks = barrierTask +: cc.startKernelProgressTasks)
@@ -228,7 +319,7 @@ class ParserGenBase2(private val parser: OptNaiveParser2) {
       List(deriveTask),
       startKernel,
       startCtx)
-    (startKernel, ctx)
+    (startKernel, evolveCtxWithTasks(baseGen + 1, ctx))
   }
 
   def startingCtxFrom(starts: Set[KernelTemplate], baseGen: Int): (Map[KernelTemplate, Kernel], CtxWithTasks) = {
@@ -246,6 +337,6 @@ class ParserGenBase2(private val parser: OptNaiveParser2) {
       startKernels,
       startCtx
     )
-    (startKernelsMap, ctx)
+    (startKernelsMap, evolveCtxWithTasks(baseGen + 1, ctx))
   }
 }

@@ -700,6 +700,16 @@ def runMgroup3NativeBenchmark() {
 }
 
 @action
+def runMgroup3CornerCaseTest() {
+  runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Mgroup3CornerCaseTest"))
+}
+
+@action
+def runKtParserCornerCaseTest() {
+  runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.KtParserCornerCaseTest"))
+}
+
+@action
 def runMgroup3ParserTest() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Mgroup3ParserTest"))
 }

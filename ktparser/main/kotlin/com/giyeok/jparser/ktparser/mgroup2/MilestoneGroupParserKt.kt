@@ -42,10 +42,31 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
     MilestoneAcceptConditionKt.Always
   )
 
+  // 초기 컨텍스트의 조건 템플릿들이 감시하는 심볼들의 루트 경로.
+  // gen 0에서 zero-width로 progress된 lookahead/longest 조건의 추적 루트가 초기
+  // 컨텍스트부터 존재해야 gen 0 시점의 조건 평가가 잘못 해소되지 않는다.
+  // (Scala MilestoneGroupParser.initialConditionPaths와 동일)
+  private val initialConditionPaths: List<MilestoneGroupPathKt> =
+    parserData.initialTasksSummary.addedKernelsList
+      .map { MilestoneAcceptConditionKt.reify(it.acceptCondition, 0, 0) }
+      .flatMap { it.milestones() }
+      .distinct()
+      .filter { it != initialMilestone }
+      .mapNotNull { milestone ->
+        val groupEntry = parserData.milestoneGroups.entries.find { (_, templates) ->
+          templates.size == 1 &&
+            templates[0].symbolId == milestone.symbolId &&
+            templates[0].pointer == milestone.pointer
+        }
+        groupEntry?.let {
+          MilestoneGroupPathKt(milestone, PathList.Nil, MilestoneGroupKt(it.key, 0), MilestoneAcceptConditionKt.Always)
+        }
+      }
+
   val initialCtx = ParsingContextKt(
     0,
-    listOf(initialPath),
-    HistoryEntryList.Nil(HistoryEntryKt(listOf(initialPath), GenActionsKt.empty)),
+    listOf(initialPath) + initialConditionPaths,
+    HistoryEntryList.Nil(HistoryEntryKt(listOf(initialPath) + initialConditionPaths, GenActionsKt.empty)),
   )
 
   fun progressTip(

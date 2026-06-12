@@ -382,6 +382,22 @@ class NaiveParser2(val grammar: NGrammar) {
     trimParsingContext(Set(start), nextGen, ctx)
   }
 
+  // accept condition이 감시하는 초기 커널들.
+  // 이 커널들은 구조적인(엣지) 도달성과 무관하게, 해당 조건이 살아있는 동안
+  // 살아있는 것으로 취급되어야 한다. 예를 들어 lookahead 심볼 노드는 zero-width로
+  // progress된 다음 세대에 (미래 터미널에 도달하지 못하므로) trim되는데, 그러면
+  // 그 노드의 특례를 통해서만 from-start 도달 가능하던 감시 대상 루트가 함께
+  // trim되어 buffered Exists/NotExists 조건이 잘못 해소된다. (join/except의
+  // 다문자 monitor에서도 동일한 문제가 발생할 수 있음)
+  private def conditionWatchedKernels(condition: AcceptCondition): Set[Kernel] = condition match {
+    case AcceptCondition.Always | AcceptCondition.Never => Set()
+    case And(conditions) => conditions.flatMap(conditionWatchedKernels)
+    case Or(conditions) => conditions.flatMap(conditionWatchedKernels)
+    case condition: SymbolCondition =>
+      Set(Kernel(condition.symbolId, 0, condition.beginGen, condition.beginGen))
+    case _ => Set()
+  }
+
   def trimParsingContext(starts: Set[Kernel], nextGen: Int, ctx: ParsingContext): ParsingContext = {
     val destKernels = ctx.graph.nodes.filter { kernel =>
       grammar.symbolOf(kernel.symbolId).isInstanceOf[NTerminal] &&
@@ -444,7 +460,20 @@ class NaiveParser2(val grammar: NGrammar) {
       }
     }
 
-    val reachableFromStart = starts.flatMap { start => reachableFrom(start, Set()) }
+    // from-start 도달 가능 집합을, 도달한 커널들의 조건이 감시하는 루트들을
+    // 추가 시작점으로 더해가며 고정점까지 확장한다. (conditionWatchedKernels 주석 참고)
+    var reachableFromStart = starts.flatMap { start => reachableFrom(start, Set()) }
+    var visitedRoots = starts
+    var newRoots = reachableFromStart
+      .flatMap(kernel => conditionWatchedKernels(ctx.acceptConditions(kernel)))
+      .filter(ctx.graph.nodes.contains) -- visitedRoots
+    while (newRoots.nonEmpty) {
+      visitedRoots = visitedRoots ++ newRoots
+      reachableFromStart = reachableFromStart ++ newRoots.flatMap(reachableFrom(_, Set()))
+      newRoots = reachableFromStart
+        .flatMap(kernel => conditionWatchedKernels(ctx.acceptConditions(kernel)))
+        .filter(ctx.graph.nodes.contains) -- visitedRoots
+    }
     val reachableToTerms = destKernels.flatMap(reachableTo(_, Set()))
     val reachableNodes = reachableFromStart.intersect(reachableToTerms)
     val droppedNodes = ctx.graph.nodes -- reachableNodes

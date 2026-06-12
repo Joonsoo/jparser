@@ -19,7 +19,9 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
   val start: KernelTemplate = KernelTemplate(grammar.startSymbol, 0)
   val startingCtx: (Kernel, CtxWithTasks) = base.startingCtxFrom(start, 0)
 
-  val builder = new MilestoneGroupParserDataBuilder(grammar, startingCtx._2.tasksSummary(0))
+  // start symbol이 nullable인 경우 start kernel의 zero-width progress도 summary에 포함 (빈 입력 수용)
+  val builder = new MilestoneGroupParserDataBuilder(grammar,
+    startingCtx._2.tasksSummaryWithStartProgress(0, startingCtx._1))
 
   class TermActionBuilder(
     val appendingMilestones: mutable.ListBuffer[(KernelTemplate, AppendingMilestone)],
@@ -502,7 +504,13 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
 
   def parserData(): MilestoneGroupParserData = {
     val startGroupId = builder.milestoneGroupId(Set(start))
-    createParserData(Jobs(Set(startGroupId), Set(), Set(), Set()))
+    // 초기 summary의 조건들이 감시하는 심볼들의 singleton group도 job으로 추가
+    // (MilestoneGroupParser/ktparser의 initial condition root path가 이 그룹들의
+    //  termAction을 필요로 한다; milestone2의 MilestoneParserGen.parserData와 동일)
+    val initialConditionGroupIds = startingCtx._2.tasksSummaryWithStartProgress(0, startingCtx._1)
+      .addedKernels.keySet.flatMap(milestoneGen.conditionSymbolsOf)
+      .map(symbolId => builder.milestoneGroupId(Set(KernelTemplate(symbolId, 0))))
+    createParserData(Jobs(Set(startGroupId) ++ initialConditionGroupIds, Set(), Set(), Set()))
     builder.build(startGroupId)
   }
 }

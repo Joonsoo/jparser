@@ -119,27 +119,46 @@ class Mgroup2Test extends AnyFlatSpec {
       case _ => false
     })
 
+    // zero-width에서 즉시 결정되는 조건들은 이제 생성 시점에 해소되므로
+    // (ParserGenBase2.evolveZeroWidthCondition), 전부 nullable인 피연산자의
+    // Unless/OnlyIf 템플릿은 데이터에 남지 않는다. 템플릿은 입력을 가로지르는
+    // 매치가 가능한 경우에 남는다.
     val nullableExcept = parserDataFrom(
       """
         |S = 'a' (A-B) 'b'
-        |A = #
+        |A = # | 'z'
         |B = 'z'
         |""".stripMargin)
     assert(hasTemplate(nullableExcept) {
-      case UnlessTemplate(_, fromNextGen) => fromNextGen
+      case UnlessTemplate(_, _) => true
       case _ => false
     })
 
     val nullableJoin = parserDataFrom(
       """
         |S = 'a' (A&B) 'b'
-        |A = #
+        |A = # | 'z'
         |B = # | 'z'
         |""".stripMargin)
     assert(hasTemplate(nullableJoin) {
-      case OnlyIfTemplate(_, fromNextGen) => fromNextGen
+      case OnlyIfTemplate(_, _) => true
       case _ => false
     })
+
+    // 전부 nullable이어서 조건이 생성 시점에 해소되는 원래 케이스들은
+    // 생성 성공 + naive와 동작 일치를 확인한다.
+    assertSameParseResult(
+      """
+        |S = 'a' (A-B) 'b'
+        |A = #
+        |B = 'z'
+        |""".stripMargin, "ab")
+    assertSameParseResult(
+      """
+        |S = 'a' (A&B) 'b'
+        |A = #
+        |B = # | 'z'
+        |""".stripMargin, "ab")
   }
 
   private def parseForestWithNaiveParser(grammar: NGrammar, inputs: List[Inputs.Input]): ParseForest = {

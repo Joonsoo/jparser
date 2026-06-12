@@ -24,11 +24,16 @@ class MilestoneParserGen(val grammar: NGrammar) {
     progressTasks: List[ProgressTask],
   ): CtxWithTasks = {
     val result = base.runTasksWithProgressBarrier(2, progressTasks, startKernel, ctx)
-    val trimmedCtx = parser.trimParsingContext(startKernel, 2, result.ctx)
+    // progress 단계(gen 2)에서 만들어진 zero-width 조건들(예: 새 세대에서 nullable한
+    // join/except/lookahead가 즉시 성립하는 경우)도 이 시점에 (부분) 해소한다.
+    // (ParserGenBase2.evolveParsingContext 주석 참고; naive2가 매 세대 말에
+    // 조건을 진화시키는 것과 동일한 원리)
+    val evolved = base.evolveCtxWithTasks(2, result)
+    val trimmedCtx = parser.trimParsingContext(startKernel, 2, evolved.ctx)
 
-    assert(result.startKernelProgressConditions.isEmpty || result.startKernelProgressConditions.keySet == Set(startKernel))
+    assert(evolved.startKernelProgressConditions.isEmpty || evolved.startKernelProgressConditions.keySet == Set(startKernel))
 
-    result.copy(ctx = trimmedCtx)
+    evolved.copy(ctx = trimmedCtx)
   }
 
   // beginGen은 assertion용
@@ -438,7 +443,9 @@ class MilestoneParserGen(val grammar: NGrammar) {
     val afterDerive = optParser.runTasks(1,
       fakeEnds.values.map(DeriveTask).toList,
       NaiveParsingContext(derivedWithEnds, acceptConditionsWithEnds))
-    val afterTrimming = parser.trimParsingContext(startKernel, 1, afterDerive)
+    // fake end의 derive로 gen 1에서 만들어진 zero-width 조건들을 해소한다 (ParserGenBase2.evolveParsingContext 주석 참고)
+    val afterEvolve = base.evolveParsingContext(1, afterDerive)
+    val afterTrimming = parser.trimParsingContext(startKernel, 1, afterEvolve)
 
     val progressTasks = fakeEnds.values.map(ProgressTask(_, AcceptCondition.Always)).toList
     parsingActionForEdgeAction(afterTrimming, startKernel, progressTasks)
@@ -505,12 +512,30 @@ class MilestoneParserGen(val grammar: NGrammar) {
     }
   }
 
+  // 조건 템플릿이 감시하는 심볼들 (런타임에서 해당 심볼의 루트 경로가 추적되므로
+  // 그 경로의 tip인 (symbolId, 0)에 대한 termAction이 parser data에 있어야 한다)
+  def conditionSymbolsOf(template: AcceptConditionTemplate): Set[Int] = template match {
+    case AlwaysTemplate | NeverTemplate => Set()
+    case AndTemplate(conditions) => conditions.toSet.flatMap(conditionSymbolsOf)
+    case OrTemplate(conditions) => conditions.toSet.flatMap(conditionSymbolsOf)
+    case LookaheadIsTemplate(symbolId, _) => Set(symbolId)
+    case LookaheadNotTemplate(symbolId, _) => Set(symbolId)
+    case LongestTemplate(symbolId, _) => Set(symbolId)
+    case UnlessTemplate(symbolId, _) => Set(symbolId)
+    case OnlyIfTemplate(symbolId, _) => Set(symbolId)
+  }
+
   def parserData(): MilestoneParserData = {
     val start = KernelTemplate(grammar.startSymbol, 0)
     val startingCtx = base.startingCtxFrom(start, 0)
 
-    val builder = new MilestoneParserDataBuilder(grammar, startingCtx._2.tasksSummary(0))
-    createParserData(Jobs(Set(start), Set()), builder)
+    // start symbol이 nullable인 경우 start kernel의 zero-width progress도 summary에 포함 (빈 입력 수용)
+    val initialSummary = startingCtx._2.tasksSummaryWithStartProgress(0, startingCtx._1)
+    // 초기 summary의 조건들이 감시하는 심볼들도 milestone job으로 추가
+    // (MilestoneParser.initialConditionMilestones가 이들의 루트 경로를 만들기 때문)
+    val initialConditionSymbols = initialSummary.addedKernels.keySet.flatMap(conditionSymbolsOf)
+    val builder = new MilestoneParserDataBuilder(grammar, initialSummary)
+    createParserData(Jobs(Set(start) ++ initialConditionSymbols.map(KernelTemplate(_, 0)), Set()), builder)
     builder.build()
   }
 }

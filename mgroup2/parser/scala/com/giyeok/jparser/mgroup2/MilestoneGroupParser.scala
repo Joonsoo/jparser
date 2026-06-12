@@ -18,8 +18,24 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
 
   val initialMilestone: Milestone = Milestone(parserData.grammar.startSymbol, 0, 0)
 
+  // 초기 컨텍스트의 조건 템플릿들이 감시하는 심볼들의 루트 경로.
+  // gen 0에서 zero-width로 progress된 lookahead/longest 조건의 추적 루트가 초기
+  // 컨텍스트부터 존재해야 gen 0 시점의 조건 평가가 Never/Always로 오판되지 않는다.
+  // (milestone2 MilestoneParser.initialConditionMilestones와 동일한 이유)
+  private val initialConditionPaths: List[MilestoneGroupPath] =
+    parserData.initialTasksSummary.addedKernels.keySet.toList
+      .map(MilestoneAcceptCondition.reify(_, 0, 0))
+      .flatMap(_.milestones)
+      .distinct
+      .filter(_ != initialMilestone)
+      .flatMap { milestone =>
+        parserData.milestoneGroups
+          .find(_._2 == Set(KernelTemplate(milestone.symbolId, milestone.pointer)))
+          .map { case (groupId, _) => MilestoneGroupPath(milestone, MilestoneGroup(groupId, 0)) }
+      }
+
   val initialCtx: ParsingContext = ParsingContext(0,
-    List(MilestoneGroupPath(initialMilestone, List(), MilestoneGroup(parserData.startGroupId, 0), Always)),
+    MilestoneGroupPath(initialMilestone, List(), MilestoneGroup(parserData.startGroupId, 0), Always) +: initialConditionPaths,
     List())
 
   def progressTip(path: MilestonePath, gen: Int, action: EdgeAction, actionsCollector: GenActionsBuilder): List[MilestoneGroupPath] = {

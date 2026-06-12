@@ -17,8 +17,20 @@ class MilestoneParser(val parserData: MilestoneParserData) {
 
   val initialMilestone: Milestone = Milestone(parserData.grammar.startSymbol, 0, 0)
 
+  // 초기 컨텍스트의 조건 템플릿들이 감시하는 심볼들의 루트 경로.
+  // gen 0에서 zero-width로 progress된 lookahead/longest가 만든 조건은 이후
+  // 세대에서 해당 심볼의 progress를 추적해야 하는데, 그 루트 경로가 초기
+  // 컨텍스트부터 존재해야 gen 0 시점의 조건 평가(evolve)가 moreTrackingNeeded를
+  // 올바르게 판단한다. (없으면 다세대 lookahead 조건이 Never로 오판됨)
+  private val initialConditionMilestones: List[Milestone] =
+    parserData.initialTasksSummary.addedKernels.keySet
+      .map(MilestoneAcceptCondition.reify(_, 0, 0))
+      .flatMap(_.milestones)
+      .filter(_ != initialMilestone)
+      .toList
+
   def initialCtx: ParsingContext =
-    ParsingContext(0, List(MilestonePath(initialMilestone)), List())
+    ParsingContext(0, MilestonePath(initialMilestone) +: initialConditionMilestones.map(MilestonePath(_)), List())
 
   def applyParsingAction(path: MilestonePath, gen: Int, action: ParsingAction, actionsCollector: GenActionsBuilder): List[MilestonePath] = {
     val tip = path.tip
@@ -360,7 +372,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       }
     }
 
-    val initialHistoryEntry = HistoryEntry(List(MilestonePath(initialMilestone)), GenActions(List(), List(), Map(), Map()))
+    val initialHistoryEntry = HistoryEntry(initialCtx.paths, GenActions(List(), List(), Map(), Map()))
     val history = (initialHistoryEntry +: parsingContext.history.reverse).toVector
 
     val conditionMemos = (0 until history.length).map { _ =>

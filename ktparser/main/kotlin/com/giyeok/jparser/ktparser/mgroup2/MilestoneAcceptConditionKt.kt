@@ -20,11 +20,18 @@ sealed class MilestoneAcceptConditionKt {
         MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.OR ->
           Or(template.or.conditionsList.map { reify(it, beginGen, gen) })
 
-        MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LOOKAHEAD_IS ->
-          Exists(template.lookaheadIs.symbolId, gen, template.lookaheadIs.fromNextGen)
+        // fromNextGen=false인 lookahead는 derive 단계(=beginGen)에서 progress된 것이므로
+        // 감시 대상 milestone도 beginGen에 있다. (Longest/OnlyIf/Unless와 동일한 규칙;
+        // Scala MilestoneAcceptCondition.reify의 동일 버그 수정과 함께 반영)
+        MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LOOKAHEAD_IS -> {
+          val milestoneGen = if (template.lookaheadIs.fromNextGen) gen else beginGen
+          Exists(template.lookaheadIs.symbolId, milestoneGen, template.lookaheadIs.fromNextGen)
+        }
 
-        MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LOOKAHEAD_NOT ->
-          NotExists(template.lookaheadNot.symbolId, gen, template.lookaheadNot.fromNextGen)
+        MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LOOKAHEAD_NOT -> {
+          val milestoneGen = if (template.lookaheadNot.fromNextGen) gen else beginGen
+          NotExists(template.lookaheadNot.symbolId, milestoneGen, template.lookaheadNot.fromNextGen)
+        }
 
         MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LONGEST -> {
           val milestoneGen = if (template.longest.fromNextGen) gen else beginGen
