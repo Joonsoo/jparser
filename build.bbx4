@@ -611,6 +611,8 @@ def runScalaTestSuite(lib: jvm.JvmLib, suiteName: optional<string>) {
   let runpathArg: string = classDirs.joinToString(" ") { p -> p.absolutePath }
   let baseCmd = [
     java.javaCmd(),
+    // mulang 규모의 parser data 생성은 기본 힙에서 OOM으로 죽는다 (runMgroup2Test)
+    "-Xmx10g",
     "-cp", cpArg,
     "org.scalatest.tools.Runner",
     "-R", runpathArg,
