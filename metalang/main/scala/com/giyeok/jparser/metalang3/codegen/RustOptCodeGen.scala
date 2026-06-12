@@ -1073,11 +1073,14 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
 
   // Scalar/enum copy at a proto field. Strings clone; char becomes i32
   // codepoint (proto stores char as int32 per Stage2ProtoEmit's CharType=>Int32).
+  // Enums: the Rust AST enum discriminants are 0-based (sorted variant order)
+  // while the proto enum reserves 0 for UNSPECIFIED and assigns the same
+  // sorted order from 1 (Stage2ProtoEmit) — hence the +1 shift.
   private def copyScalarField(t: Type, expr: String): String = t match {
     case Type.StringType => s"$expr.clone()"
     case Type.CharType => s"$expr as i32"
     case Type.BoolType => expr
-    case Type.EnumType(_) | Type.UnspecifiedEnumType(_) => s"$expr as i32"
+    case Type.EnumType(_) | Type.UnspecifiedEnumType(_) => s"($expr as i32) + 1"
     case _ => s"$expr.clone()"
   }
 
@@ -1085,7 +1088,7 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
     case Type.StringType => s"$expr.clone()"
     case Type.CharType => s"*$expr as i32"
     case Type.BoolType => s"*$expr"
-    case Type.EnumType(_) | Type.UnspecifiedEnumType(_) => s"*$expr as i32"
+    case Type.EnumType(_) | Type.UnspecifiedEnumType(_) => s"(*$expr as i32) + 1"
     case _ => s"$expr.clone()"
   }
 

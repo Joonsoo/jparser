@@ -341,6 +341,7 @@ mgroup3(basePath="mgroup3") {
       ktparser.main,
       kttestutils.main,
       examples.generated,
+      mgroup3.genCli,
     ] + testDeps,
   )
 
@@ -706,6 +707,18 @@ def runMgroup3NativeTest() {
     mgroup3.test,
     .some("com.giyeok.jparser.mgroup3.Mgroup3NativeInProcessBridgeTest"),
     {"MGROUP3_NATIVE_INPROC": "1"},
+  )
+}
+
+// Phase B FFI 교차 검증: GenCli 로 asdl crate 생성 → cargo build --features ffi
+// → FFM 로드 → Rust walk+encode 결과를 Kotlin AstProtoBinding 으로 decode 해
+// Kotlin walk 와 비교. cargo 필요 (PATH). 첫 실행은 crate 의존성 빌드로 느림.
+@action
+def runMgroup3GenAstFfiTest() {
+  runJUnitTestSuiteWithEnv(
+    mgroup3.test,
+    .some("com.giyeok.jparser.mgroup3.Mgroup3GenAstFfiTest"),
+    {"MGROUP3_GEN_FFI": "1"},
   )
 }
 
