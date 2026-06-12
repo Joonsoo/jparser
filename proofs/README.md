@@ -21,6 +21,7 @@ make -j4
 | `theories/Decidability.v` | `cdgmatch_dec`: decidability via height-indexed match + finite-universe saturation (counting pigeonhole); `matchb`, `matchb_dec`, `stab_complete`, `eval_dec` | Thm 3.3 (decidability) |
 | `theories/CounterExample.v` | `BadG` (`B → C; C → !B`): satisfies the paper's Def 3.2 literally, admits **no** model (`badg_no_model`) | Def 3.2 fix |
 | `theories/ACP.v` | **목표 A phase 1 COMPLETE**: Naive ACP over expression syntax — kernels (dotted `sym`), accept-condition syntax (2×2 shapes), semantic discharge `csem` (per-operator Match clauses), chart (`Node`/`Edge`, edges point at initials, Progress pairs an edge with the completed match); **Theorems 4.1 AND 4.2 PROVED axiom-free** (`node_sound_mut` span-soundness invariant; `node_complete` Earley-style completeness) | Thm 4.1/4.2 |
+| `theories/Evolution.v` | **목표 A phase 2**: operational condition evolution — `evolve_step` (watcher absorb-and-carry), csem preservation, expiry beyond input end (`watchers_ge`), boolean `final_eval`, end-to-end `op_eval_csem`/`op_accept_correct` (executable via `cdgmatch_dec`); phase 2b abstract: `evolve_step_pruned` with the `dead_sound` oracle (the exact invariant a sound pruning must maintain) | fig:acp-evolution |
 | `theories/MatchFuel.v` | Executable fuel-bounded checker (test oracle; exactness future work) | — |
 | `theories/Examples.v` | Verified unit tests: aⁿbⁿ, keyword exclusion (`Id - "if"`), maximal munch (`<A>`), aⁿbⁿcⁿ via join; boolean fuel tests | §3 examples |
 
@@ -53,10 +54,18 @@ Earley-style induction over the match derivation. Notable: attempting
 completeness exposed a definition bug in the first chart (no edges to
 finished terminals), fixed by reformulating Progress to pair an edge
 to an initial kernel with the corresponding final kernel — also a
-simpler presentation than edge inheritance. Remaining: phase 2
-(operational condition evolution ≡ semantic discharge). No pruning in
-the reference algorithm (it is an optimization of the
-implementations).
+simpler presentation than edge inheritance. **Phase 2 (Evolution.v)**: the operational
+condition evolution of the paper's evolution figure is mechanized —
+each generation step preserves the semantics, watchers expire beyond
+the input end where the vacuous/failing reading is sound (span
+validity), and the boolean final evaluation composed with the
+decidability procedure decides acceptance exactly (`op_accept_correct`).
+Early resolution under pruning is proved against an abstract dead-root
+oracle (`dead_sound` — precisely the invariant violated by the trimming
+bugs fixed in the implementations). Remaining toward the
+implementations: per-kernel condition joins with recursion into
+looked-up condition trees, and a concrete reachability-based trimming
+satisfying `dead_sound`.
 
 ## Findings that require paper changes
 
