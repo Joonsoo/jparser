@@ -136,4 +136,53 @@ class Mgroup3ParserKnownIssuesTest {
     assertAccepts(parser, "ab")
     assertAccepts(parser, "abab")
   }
+
+  // ExceptGrammar4_1 계열 (catalog 차분 잔여 6건 중 하나; mulang 실코퍼스의 json.bbx
+  // `jobject(...)` 오거부와 같은 근본 원인 — 2026-07-02 조사로 확정):
+  //
+  // 증상: except watcher 가 첫 글자에서 즉사하고 (첫 글자가 except body 시작 불가),
+  // 입력의 suffix 가 except body 에 매치하면 오거부. 예: Word-Ks (Ks='a'+) 에서
+  // "baaaa" — 'b' 로 watcher 즉사 후 fresh fallback 이 같은 key (Ks, 1) 로
+  // position 1 부터 소비하는 zombie watcher 를 만들고, 그 "aaaa" finish (end=5) 를
+  // same-input 규약 (span 0) 으로 anchoring 된 Unless(Ks, 1, 5) 가 흡수한다.
+  // mulang: NameTok = Word-AllKeyword 에서 "jobject" — 'j' 는 키워드 시작 불가 문자,
+  // "object" 는 키워드 → 같은 메커니즘으로 오거부. (첫 글자가 키워드 시작 가능하면
+  // watcher 가 살아남아 정상 동작 — "aobject" 는 통과.)
+  //
+  // 근본 원인: cond root key (sym, gen) 의 span 규약이 이원화되어 있음.
+  //  - NExcept-over-atomic (NLongest 포함): 스타터 same-input (key gen, span gen-1),
+  //    Unless anchor 도 gen (= milestone gen, span+1) — 쌍이 맞음.
+  //  - repeat frontier 의 per-char except: Unless anchor 는 span 시작 (MID=ctx.gen),
+  //    스타터는 여전히 (sym, gen) = span gen-1 → 애초에 한 칸 어긋나 있고, 실제로는
+  //    same-input 시동 실패 시의 fresh fallback (Mgroup3Parser step 3) 이 우연히
+  //    올바른 watcher 를 만들어 동작한다 (('a-z'-'a')* 의 'bca' 거부가 이 경로).
+  // fallback 을 막으면 후자가 깨지고, 두면 전자가 오염됨 — 국소 수정 불가.
+  //
+  // 수정 방향 (m2 정합): cond root key 를 span 시작으로 정규화 —
+  //  (a) same-input 스타터 key 를 (sym, gen-1) 로 등록 (CondRootStarter 에 flavor
+  //      구분 필요: lookahead 용 fresh 스타터는 (sym, gen) 유지),
+  //  (b) 생성기의 Unless/OnlyIf/NoLongerMatch anchor 태그를 span 시작으로 — 현재
+  //      Prev(CURR)=milestone gen 으로 resolve 되는 자리를 Grand(=milestone startGen)
+  //      로 (GenNodeGeneration.Grand 가 정확히 이 용도로 준비되어 있으나 미사용),
+  //  (c) Rust 미러 + fixture/golden 재생성.
+  // (a) 만 하면 (12,1)-anchored 조건이 빈 key 를 봐서 "aaaaa" 류가 오수락되고,
+  // (b) 없이 fallback 만 막으면 repeat except 가 깨짐 — 반드시 세트로.
+  @Disabled("except watcher 즉사 + suffix 매치 오거부 — cond root key span 정규화 필요")
+  @Test
+  fun testExceptWatcherDiesAtFirstChar() {
+    val parser = makeParser(
+      """
+        Grammar = Word-Ks
+        Word = <Word_>
+        Word_ = 'a-z' 'a-z'*
+        Ks = 'a' 'a'*
+      """.trimIndent()
+    )
+    assertAccepts(parser, "abcd")
+    assertAccepts(parser, "aaaab")
+    assertAccepts(parser, "bbbbb")
+    assertRejects(parser, "a")
+    assertRejects(parser, "aaaaa")
+    assertAccepts(parser, "baaaa") // 오거부되는 케이스
+  }
 }
