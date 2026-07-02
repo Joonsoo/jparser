@@ -5,6 +5,48 @@
 replace 귀속 수정 = Phase B, 잔여 격차 분석). 이 문서는 그 잔여 중 "m3 고유"
 부분인 워처 anchor 중복을 다룬다.
 
+## 0. 결과 (2026-07-03 구현 완료 — 커밋 9debbd2f, 897e8541, 00dd82d5)
+
+**원인은 §3 의 예상과 달리 "등록"이 아니라 step6 생존 규칙**이었다. 계측
+(microAddChain 재현 + scanCondAnchorTags, `Mgroup2VsMgroup3PathsTest`):
+
+- 등록은 m2 도 동일하게 한다 (인접 gen 워처 시동 자체는 양쪽 같음). m2 는
+  실체화된 조건이 참조하지 않으면 다음 step 에 버리는데, m3 step6 는 미래
+  조건의 잠재 anchor 3종 (tip=mp.gen / dot=mp.gen-1 / parent=parentGen) 을
+  전부 유지해서, 어떤 조건도 참조하지 않는 bounded 워처가 체인이 사는 동안
+  (블록 끝까지) 함께 살았다. 마이크로: sym13(AddExpr)@1 이 21 gen 생존
+  (m2 는 1 gen) — jar.bbx 의 sym1227@2243/2244 가 정확히 이 패턴.
+- **bounded (except/join/longest) 조건의 미래 anchor 는 dot 뿐임을 실측 확정**:
+  scanCondAnchorTags 로 mulang 전 템플릿 (수십만 조건) 스캔 — bounded 의
+  startGen 태그는 term frame 에서 MID (같은 step 에 starter 로 시동됨),
+  edge frame 에서 GRAND(=dot, remapEdgeCondGens 의 결과) 뿐. CURR anchor 0건.
+  lookahead 는 edge 조건이 CURR/MID 태그를 유지하므로 (remap 대상 아님) 구
+  규약 유지 필요.
+- **수정 (§4 의 A 변형)**: step6 collectFromShape 에서 bounded 심볼의 체인
+  anchor 를 dot 만 유지 (lookahead 는 기존 3 anchor). Kotlin
+  `Mgroup3Parser.kt` + Rust `core.rs` 미러, 각 10줄. 생성기/proto 변경 없음
+  (fixture byte-identical). reportedCondRoots (보고 필터) 는 불변.
+- 안전성 논거: fresh 로 만들어진 root 가 생성 step 에 pruned 되어도, 다음
+  step 의 MID 조건/starter 는 같은 key 의 same-input 시동으로 동일 span 을
+  복원한다 (span-정규화 규약과 정합). 생성-step에 pruned 된 root 는
+  activeCondPaths 에 오르지 않아 everSeen 에 들어가지 않으므로 no-respawn
+  규칙과 충돌 없음. 수명 중간에 pruned 되는 root 는 dot anchor 가 사라진
+  시점 = 그 span 을 GRAND 로 참조할 수 있는 마지막 체인 milestone 이 죽은
+  시점이므로 미래 참조가 불가능.
+
+**검증**: microAddChain 65→32 roots, pre-close gen 에서 m3 cond roots+main =
+m2 firsts 정확히 일치 (13=13, shapes 85=85). `MG3_RECORD_COND_DIFF=1`
+runMgroup3Test 132/0 (신규 계측 2 포함) + HistoryDiff 2/2 + PathsDiff 5/5,
+cargo test 전부 그린 + 커밋된 fixture byte-identical, mulang HEAD worktree
+`parser.generate` + `parser.test:test` 55/55.
+
+**성능 (release, jar.bbx)**: peak 2,640 → **1,519 shapes** (목표 ~1,900 초과),
+outer 워처 6→3 roots (sym1225@2242 / sym1227@2242 / sym792@2248 — 심볼당
+1 anchor, m2 와 동일; 중첩 블록도 3 roots), parse 5.9s → **1.89s** (예상
+~4.5s 를 크게 초과 — 중복 워처가 peak 뿐 아니라 블록 전 구간에서 시뮬레이션을
+복제하고 있었음). cc.bbx 3.2→1.23s, maven 1.27s, ktjvm 1.21s, junit 0.89s.
+잔여 후속은 walk/encode (§0.1 (c)) 와 문법 트랙 (§8).
+
 ## 1. 목표와 현황
 
 Phase B (jparser 커밋 47a7b5e7) 이후 상태:

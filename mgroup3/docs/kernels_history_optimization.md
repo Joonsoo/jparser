@@ -145,6 +145,15 @@ jar.bbx 가 여전히 파일 중 최고비용 (5.9s) 인 것은 이 공통 문�
 전체에 걸쳐 살아있기 때문 (m2 는 같은 이유로 parse 만 11.2s). 추가 여지:
 Phase C (anchor 정규화, ~27%), 워처-main 중복 시뮬레이션 공유, walk/encode.
 
+### 0.4 Phase C 완료 — 워처 anchor 중복 제거 (2026-07-03)
+
+상세는 `mgroup3/docs/watcher_anchor_dedup.md` §0. 요지: 원인은 등록이 아니라
+step6 생존 규칙 (bounded 워처에 불필요한 tip/parent anchor 유지). bounded 는
+dot anchor 만 유지하도록 Kotlin+Rust 수정 (생성기/proto 불변). jar.bbx peak
+2,640→**1,519**, outer 워처 6→3 roots (m2 와 동일), parse 5.9s→**1.89s**
+(cc 3.2→1.23s). 전체 스위트 + m2 parity + mulang 55/55 그린. 잔여 후속:
+walk/encode, 문법 트랙 (mulang_grammar_ambiguity.md).
+
 ## 1. 목표와 배경
 
 **최종 목표**: mulang 프로젝트의 bibix4 가 빌드스크립트(.bbx4/.bbx, mulang 문법) 파싱을
