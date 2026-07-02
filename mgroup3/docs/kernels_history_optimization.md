@@ -106,6 +106,29 @@ parent 가 barrier 라 자기 progress 링크가 없어 무영향. 검증 주의
 micro 6→2 shapes, 이후 jar.bbx profile_steps (peak 19,450 → mg2 893 급),
 127/0 + m2 parity + parser_diff golden.
 
+### 0.3 Phase B 구현 완료 — ★ 1차 목표 달성 (2026-07-03, 커밋 47a7b5e7)
+
+위 최소 수정 그대로 (GenParsingGraph.reachablesFrom 에서 start 의 progress
+링크 제외, 12줄). 검증 전부 그린: micro 6→2 shapes (m2 와 동일), Kotlin 전
+스위트 130/0 + corner 8/0 + advanced 28/0 + m2 parity 2/2 (전부
+MG3_RECORD_COND_DIFF=1), 커밋된 parser fixture 는 재생성해도 byte-identical,
+cargo parser_diff 는 재생성된 mulang fixture 에서 그린, mulang
+NativeParserDiffTest (실코퍼스 native==mg2 AST) 그린.
+
+**성능 (release)**:
+- jar.bbx: peak live shapes 19,450 → **2,640** (main root 3,024→236, 워처
+  1,512→236), parse 15s → **5.9s**. cc.bbx 5.5→3.2s. 코퍼스 serial parse 총합
+  ~40s → ~26.5s.
+- **bibix4 --profile-startup Phase 1+2: 35.5s → 16.0s — mg2 19.1s 를 처음
+  역전.** 같은 uberjar 공정 비교 (jar.bbx, warm): native 전체 파이프라인
+  5.9s vs mg2 20.1s (parse 11.2 + hist 9.0) = 3.4×.
+
+**잔여 (다음 후보)**: main root 236 vs m2 68 (3.5×) — 남은 fork 는 트레일링
+람다 지속 (×2×3) + 워처 anchor 중복 (심볼당 2-3개 — lookahead 구 규약 드리프트,
+§0.1 Phase C) + 표현 차이 (m2 는 연장 pending 을 NotExists 조건으로 접음).
+파일별 native 는 이미 전부 mg2 우세이므로 우선순위 낮음. walk/encode
+(jar.bbx 전체 5.9s 중 parse 외 ~0.5-1s) 도 후속 후보.
+
 ## 1. 목표와 배경
 
 **최종 목표**: mulang 프로젝트의 bibix4 가 빌드스크립트(.bbx4/.bbx, mulang 문법) 파싱을
