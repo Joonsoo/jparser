@@ -736,6 +736,13 @@ def runMgroup3HistoryDiffTest() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Mgroup2VsMgroup3HistoryTest"))
 }
 
+// Phase A 계측: m2 vs m3 의 live path 체인 / interior milestone 인벤토리 대조 —
+// 파스 페이즈 상태 폭발 (nullable 경계 ptr 쌍) 진단. kernels_history_optimization.md §0.1.
+@action
+def runMgroup3PathsDiffTest() {
+  runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Mgroup2VsMgroup3PathsTest"))
+}
+
 // Regenerate the parser fixtures consumed by mgroup3-native's Rust tests
 // (parser_diff.rs and Mgroup3NativeResultBridgeTest). Writes data.pb +
 // input.txt + golden.txt under either

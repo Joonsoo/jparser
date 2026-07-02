@@ -69,6 +69,43 @@ ptr 쌍과 파일-레벨 fork 는 보고 좌표 외에 차이가 없어 병합 �
 main 과 같은 내용을 재파싱하는 중복 제거 (mg2 식 시동 dedup), (c) walk/encode
 후속. mg2 도 같은 병리를 공유하므로 (a)/(b) 가 풀리면 mg2 를 크게 이긴다.
 
+### 0.2 Phase A 결과 — ptr 쌍의 근본 원인 확정 (2026-07-03)
+
+계측 도구: `Mgroup2VsMgroup3PathsTest` (`bibix4 runMgroup3PathsDiffTest`) —
+같은 NGrammar 로 m2/m3 파서를 만들어 step 구동, live 체인과 생성기 템플릿
+인벤토리를 나란히 덤프. 4줄 문법 (`S = A WS B; A = 'a'+; B = '(' WS A WS ')';
+WS = ' '*`, 입력 "aa(aaa)") 에서 재현: m3 6 shapes (S:1/S:2 × B:1/B:2 쌍)
+vs m2 2 paths (:2 만). 실공백 대조 입력에서는 그 경계의 쌍이 사라짐 —
+**zero-width nullable 경계 한정** 확정.
+
+**핵심 실측**: milestone group 인벤토리는 m2/m3 완전 동일 (group2 =
+{S:1,S:2,A-rep:1}, group5 = {B:1,B:2} 양쪽 같음 — 쌍이 "그룹 멤버"로 함께
+있는 것 자체는 m2 도 동일하고 비용도 없음). 갈라지는 곳은 **term action 의
+replace 귀속** 하나:
+- m2: `S:1→group3(WS 계속)`, `S:2→group5(B)` — 각 서브트리가 정확히 한 dot 에.
+- m3: 위에 더해 **`S:1→group5` 잉여** — 런타임에 같은 tip group 에서 두 템플릿이
+  모두 발화해 체인이 dot 변형별로 복제된다 (레벨마다 ×2).
+
+**원인 코드**: `Mgroup3ParserGenerator.genMgroupTermActions` (:368-376) 가
+tip group 의 각 milestone P 에 대해 `GenParsingGraph.reachablesFrom(P, ...)`
+(:116-135) 로 appending 을 귀속시키는데, reachablesFrom 이
+`progressedNodes[next]` / `derivePhaseProgressedNodes[next]` (:126-128) 를
+따라간다 — P:1 에서 자신의 zero-width progress 쌍둥이 P:2 로 건너가 P:2 의
+서브트리까지 P:1 에 귀속. m2 는 그룹 멤버별 개별 시뮬레이션
+(MilestoneGroupParserGen.scala:231-241) + naive 그래프 reachability 를 쓰는데,
+naive 그래프에서 progress 는 쌍둥이를 **부모의 형제로** 붙일 뿐 pre→post edge
+가 없어 귀속이 유일하다.
+
+**Phase B 수정 후보 (최소)**: reachablesFrom 에서 **시작 노드의 progress
+링크만 따라가지 않기** (start 의 progressedNodes/derivePhaseProgressedNodes
+제외; 더 깊은 노드의 progress-follow 는 유지해야 함 — appended group 의 쌍둥이
+멤버십 {B:1,B:2} 는 m2 도 동일하며 그 경로로 수집됨). edge 쪽 호출 (:595) 은
+parent 가 barrier 라 자기 progress 링크가 없어 무영향. 검증 주의점: (i) 쌍둥이
+조건이 달라 다른 그룹에 갈라진 경우의 커버리지 (m2 도 조건별 그룹 분리 —
+동형), (ii) 다단 zero-width 쌍둥이 (P:1→P:2→P:3), (iii) 초기 그룹. 성공 지표:
+micro 6→2 shapes, 이후 jar.bbx profile_steps (peak 19,450 → mg2 893 급),
+127/0 + m2 parity + parser_diff golden.
+
 ## 1. 목표와 배경
 
 **최종 목표**: mulang 프로젝트의 bibix4 가 빌드스크립트(.bbx4/.bbx, mulang 문법) 파싱을
