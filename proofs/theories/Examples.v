@@ -11,6 +11,10 @@
       operand, exercising the stratified construction at rank 1.
     - [AnBnCn]: the non-CFL {a^n b^n c^n} via [s_join] (paper Section 3,
       Expressiveness).
+    - [laG]: statement termination by an unconsumed '}' via [s_la]
+      (paper Section 2's End rule).
+    - [nlaG]: keyword boundary [If = "if" !Letter] via [s_nla], with a
+      closed negated operand.
 
     Positive examples are proved for an arbitrary oracle [N] when the
     derivation is oracle-independent.  Boolean unit tests via
@@ -232,6 +236,96 @@ Proof.
         -- apply MO_term. reflexivity.
 Qed.
 
+(** ** Lookahead: End = ';' | ^'}' (paper Section 2's statement terminator) *)
+
+Definition laG : grammar :=
+  mkGrammar
+    (fun n =>
+       match n with
+       | 0 (* End *) => Some (s_alt (s_term ";") (s_la (s_term "}")))
+       | _ => None
+       end)
+    0.
+
+Section LookaheadExamples.
+  Variable N : nt_rel.
+
+  (** A following '}' terminates the statement without being consumed:
+      [End] matches the empty span in front of it. *)
+  Example la_end_brace : MatchO laG N (s_nt 0) ["}"%char] 0 0.
+  Proof.
+    eapply MO_nt; [reflexivity|].
+    apply MO_alt_r.
+    eapply MO_la.
+    apply MO_term. reflexivity.
+  Qed.
+
+  (** With no '}' ahead, the zero-width alternative is refuted: the
+      lookahead demands a witness that is not there. *)
+  Example la_end_none : ~ MatchO laG N (s_nt 0) ["x"%char] 0 0.
+  Proof.
+    intro H.
+    apply match_nt_iff in H. destruct H as [alpha [Hr Hm]].
+    cbn in Hr. injection Hr as Heq. subst alpha.
+    apply match_alt_iff in Hm. destruct Hm as [Hm | Hm].
+    - inversion Hm.   (* ';' cannot match a zero-width span *)
+    - apply match_la_iff in Hm. destruct Hm as [_ [k Hk]].
+      inversion Hk; subst. cbn in *. discriminate.
+  Qed.
+End LookaheadExamples.
+
+(** ** Negative lookahead: If = "if" !Letter (paper Section 2's keyword
+    boundary) *)
+
+Definition letterE : sym :=
+  s_alt (s_term "i") (s_alt (s_term "f") (s_term "a")).
+
+Definition nlaG : grammar :=
+  mkGrammar
+    (fun n =>
+       match n with
+       | 0 (* If *) => Some (s_seq (s_term "i")
+                                   (s_seq (s_term "f") (s_nla letterE)))
+       | _ => None
+       end)
+    0.
+
+Section NegLookaheadExamples.
+  Variable N : nt_rel.
+
+  (** "if" at the end of the input is the keyword: no letter follows.
+      The negated operand is closed, so the proof is oracle-independent. *)
+  Example nla_if_keyword : MatchO nlaG N (s_nt 0) ["i"%char; "f"%char] 0 2.
+  Proof.
+    eapply MO_nt; [reflexivity|].
+    eapply MO_seq with (k := 1).
+    - apply MO_term. reflexivity.
+    - eapply MO_seq with (k := 2).
+      + apply MO_term. reflexivity.
+      + apply MO_nla.
+        * cbn. lia.
+        * intros k H. cbn in H.
+          destruct H as [[Hn _] | [[Hn _] | [Hn _]]]; discriminate Hn.
+  Qed.
+
+  (** "if" followed by a letter is not the keyword: the boundary
+      lookahead is violated by the very next character. *)
+  Example nla_if_no :
+    ~ MatchO nlaG N (s_nt 0) ["i"%char; "f"%char; "a"%char] 0 2.
+  Proof.
+    intro H.
+    apply match_nt_iff in H. destruct H as [alpha [Hr Hm]].
+    cbn in Hr. injection Hr as Heq. subst alpha.
+    apply match_seq_iff in Hm. destruct Hm as [k1 [Hi Hm]].
+    inversion Hi; subst.
+    apply match_seq_iff in Hm. destruct Hm as [k2 [Hf Hm]].
+    inversion Hf; subst.
+    apply match_nla_iff in Hm. destruct Hm as [_ [_ Hno]].
+    apply (Hno 3). cbn.
+    right. right. split; reflexivity.
+  Qed.
+End NegLookaheadExamples.
+
 (** ** Boolean unit tests via the fuel checker *)
 
 Definition waabbcc : input :=
@@ -269,6 +363,22 @@ Proof. vm_compute. reflexivity. Qed.
 
 Example fuel_nla_neg :
   match_fuel 50 AnBn (s_nla (s_term "a")) ["a"%char] 0 0 = false.
+Proof. vm_compute. reflexivity. Qed.
+
+Example fuel_la_end :
+  match_fuel 50 laG (s_nt 0) ["}"%char] 0 0 = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example fuel_la_end_no :
+  match_fuel 50 laG (s_nt 0) ["x"%char] 0 0 = false.
+Proof. vm_compute. reflexivity. Qed.
+
+Example fuel_if_keyword :
+  match_fuel 50 nlaG (s_nt 0) ["i"%char; "f"%char] 0 2 = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example fuel_if_keyword_no :
+  match_fuel 50 nlaG (s_nt 0) ["i"%char; "f"%char; "a"%char] 0 2 = false.
 Proof. vm_compute. reflexivity. Qed.
 
 Example fuel_abc :
