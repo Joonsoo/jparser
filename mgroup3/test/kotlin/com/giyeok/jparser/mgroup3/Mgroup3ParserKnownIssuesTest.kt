@@ -167,7 +167,7 @@ class Mgroup3ParserKnownIssuesTest {
   //  (c) Rust 미러 + fixture/golden 재생성.
   // (a) 만 하면 (12,1)-anchored 조건이 빈 key 를 봐서 "aaaaa" 류가 오수락되고,
   // (b) 없이 fallback 만 막으면 repeat except 가 깨짐 — 반드시 세트로.
-  @Disabled("except watcher 즉사 + suffix 매치 오거부 — cond root key span 정규화 필요")
+  // 2026-07-02 cond root key span-정규화로 수정됨 — 회귀 가드로 유지.
   @Test
   fun testExceptWatcherDiesAtFirstChar() {
     val parser = makeParser(

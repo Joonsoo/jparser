@@ -30,6 +30,8 @@ pub struct ParserDataPlain {
     /// For each symbol, the transitive set of initial cond symbol IDs
     /// (including itself). Cycles produce a set with just the cycle entry-point.
     pub transitive_initial_cond_symbols: HashMap<i32, HashSet<i32>>,
+    /// lookahead 가 감시하는 심볼들 — step 3 시동 flavor 판별 (구 규약: same-input).
+    pub lookahead_cond_symbols: HashSet<i32>,
 }
 
 impl ParserDataPlain {
@@ -74,6 +76,8 @@ impl ParserDataPlain {
             .collect();
 
         let transitive_initial_cond_symbols = compute_transitive_initial_cond_symbols(&path_roots);
+        let lookahead_cond_symbols: HashSet<i32> =
+            proto.lookahead_cond_symbol_ids.iter().copied().collect();
 
         Self {
             start_symbol_id,
@@ -83,6 +87,7 @@ impl ParserDataPlain {
             tip_edge_actions,
             mid_edge_actions,
             transitive_initial_cond_symbols,
+            lookahead_cond_symbols,
         }
     }
 }
@@ -281,11 +286,23 @@ impl AppendMilestoneGroupPlain {
 pub struct CondRootStarterPlain {
     pub symbol_id: i32,
     pub milestone_group_id: i32,
+    /// cond root key 를 resolve 할 태그 (KernelTemplateGen). bounded 계열: MID =
+    /// span-정규화 same-input (key=ctx.gen). lookahead 계열: NEXT + same_input
+    /// (구 규약 — key=gen, 이번 입력부터 소비). NEXT + !same_input = fresh.
+    /// CURR = 과거 경계 (등록 skip).
+    pub key_gen: i32,
+    /// 이번 step 의 입력을 watcher 의 첫 글자로 소비할지 (same-input 시동).
+    pub same_input: bool,
 }
 
 impl CondRootStarterPlain {
     fn from_proto(proto: pb::CondRootStarter) -> Self {
-        Self { symbol_id: proto.symbol_id, milestone_group_id: proto.milestone_group_id }
+        Self {
+            symbol_id: proto.symbol_id,
+            milestone_group_id: proto.milestone_group_id,
+            key_gen: proto.key_gen,
+            same_input: proto.same_input,
+        }
     }
 }
 

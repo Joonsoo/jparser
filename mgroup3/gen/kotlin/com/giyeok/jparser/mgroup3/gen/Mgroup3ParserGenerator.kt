@@ -168,6 +168,8 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
         .setTip(edge.second)
         .setEdgeAction(edgeAction)
     }
+    // lookahead 가 감시하는 심볼들 — 런타임 step 3 의 시동 flavor (구 규약: same-input) 판별용.
+    builder.addAllLookaheadCondSymbolIds(tasks.lookaheadCondSymbolIds.sorted())
 
     return builder.build()
   }
@@ -226,16 +228,49 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
   // mgroup3에서는 longest도 별도 cond path가 아닌 main path에서 처리하지만
   // 일관성을 위해 일단 모두 cond symbol로 추적한다.
   // 추후 최적화 가능 (longest 심볼이 main path에 있으면 cond path 생성 생략)
-  fun observedCondSymbolsFromAcc(condition: GenAcceptCondition, out: MutableSet<Int>) {
+  fun observedCondSymbolsFromAcc(condition: GenAcceptCondition, out: MutableSet<ObservedCondSym>) {
     when (condition) {
       GenAcceptCondition.Always -> {}
       is GenAcceptCondition.And -> condition.conds.forEach { observedCondSymbolsFromAcc(it, out) }
       is GenAcceptCondition.Or -> condition.conds.forEach { observedCondSymbolsFromAcc(it, out) }
-      is GenAcceptCondition.Exists -> out.add(condition.symbolId)
-      is GenAcceptCondition.NotExists -> out.add(condition.symbolId)
-      is GenAcceptCondition.NoLongerMatch -> out.add(condition.symbolId)
-      is GenAcceptCondition.Unless -> out.add(condition.symbolId)
-      is GenAcceptCondition.OnlyIf -> out.add(condition.symbolId)
+      is GenAcceptCondition.Exists -> out.add(ObservedCondSym(condition.symbolId, condition.startGen, isLookahead = true))
+      is GenAcceptCondition.NotExists -> out.add(ObservedCondSym(condition.symbolId, condition.startGen, isLookahead = true))
+      is GenAcceptCondition.NoLongerMatch -> out.add(ObservedCondSym(condition.symbolId, condition.startGen, isLookahead = false))
+      is GenAcceptCondition.Unless -> out.add(ObservedCondSym(condition.symbolId, condition.startGen, isLookahead = false))
+      is GenAcceptCondition.OnlyIf -> out.add(ObservedCondSym(condition.symbolId, condition.startGen, isLookahead = false))
+    }
+  }
+
+  // cond root starter 들을 (symbolId, keyGen, sameInput) 로 dedup/정렬해 emit.
+  //
+  // bounded (except/join/longest) watcher — span-정규화 key:
+  //   pos Curr/Mid (term) → (MID, same-input): key=ctx.gen, 이번 입력이 첫 글자.
+  //   pos Curr/Mid (edge) → 과거 경계 — 그 시점에 이미 등록된 watcher, emit 생략.
+  //   pos Next → (NEXT, fresh): key=gen, 소비는 다음 step 부터.
+  // lookahead watcher — 구 규약 (드리프트하는 anchor 와 쌍):
+  //   pos Next (progress-phase 경계) → (NEXT, fresh) — f20d1d56 의 token-boundary fresh.
+  //   그 외 → (NEXT, same-input): key=등록 gen, 이번 입력부터 소비 (span 은 gen-1).
+  private fun emitCondRootStarters(
+    observed: Set<ObservedCondSym>,
+    edgeFrame: Boolean,
+    add: (symbolId: Int, milestoneGroupId: Int, keyGen: KernelTemplateGen, sameInput: Boolean) -> Unit,
+  ) {
+    val keyed = observed.mapNotNull { obs ->
+      if (obs.isLookahead) {
+        Triple(obs.symbolId, KernelTemplateGen.NEXT, obs.pos != Next)
+      } else {
+        when (obs.pos) {
+          Curr, GenNodeGeneration.Mid ->
+            if (edgeFrame) null else Triple(obs.symbolId, KernelTemplateGen.MID, true)
+          Next -> Triple(obs.symbolId, KernelTemplateGen.NEXT, false)
+          else -> null
+        }
+      }
+    }.distinct().sortedWith(compareBy({ it.first }, { it.second.number }, { it.third }))
+    for ((sym, keyGen, sameInput) in keyed) {
+      val rootInfo = rootPaths[sym] ?: genRootPathFromSymbol(sym)
+      rootPaths[sym] = rootInfo
+      add(sym, rootInfo.milestoneGroupId, keyGen, sameInput)
     }
   }
 
@@ -250,7 +285,7 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
     val graph = tasks.derivedFrom(setOf(startNode))
 
     // start node로부터 도달 가능한 cond symbol들 모두 수집
-    builder.addAllInitialCondSymbolIds(graph.observingCondSymbolIds.sorted())
+    builder.addAllInitialCondSymbolIds(graph.observingCondSymbolIds.map { it.symbolId }.distinct().sorted())
 
     // start node가 derive 도중 progress될 수 있는 경우 (empty match) self finish condition을 기록
     val progressed = graph.progressedNodes[startNode]
@@ -345,25 +380,27 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
             append.acceptCondition = acc.toProto()
             // 추가되는 group의 cond symbols + 그 acc에서 사용되는 cond symbols +
             // 새 milestone group 의 derive 결과 observing cond syms (mgroup2 의 lookaheadRequiringSymbols 와 동일).
-            val condSymbols = mutableSetOf<Int>()
-            condSymbols.addAll(g2.observingCondSymbolIds)
-            observedCondSymbolsFromAcc(acc, condSymbols)
+            val condObserved = mutableSetOf<ObservedCondSym>()
+            condObserved.addAll(g2.observingCondSymbolIds)
+            observedCondSymbolsFromAcc(acc, condObserved)
             // 새 milestone group 의 derive graph 의 observingCondSymbolIds.
             // 새 group 의 milestone 들에서 시작하는 derive 가 NJoin/NLongest 등 만나면 그 cond_sym 도 추적해야 함.
+            // 새 group 은 이번 step 의 gen 에 dot 이 놓이므로, 그 프레임의 관찰은 전부
+            // 현재 프레임의 Next (= fresh watcher, span gen).
             val newMgroupNodes = subReachables.map {
               GenNode(it.symbolId, it.pointer, Prev, Curr)
             }.toSet()
             val newMgroupGraph = tasks.derivedFrom(newMgroupNodes)
-            condSymbols.addAll(newMgroupGraph.observingCondSymbolIds)
-            append.addAllObservingCondSymbolIds(condSymbols.sorted())
+            condObserved.addAll(newMgroupGraph.observingCondSymbolIds.map { ObservedCondSym(it.symbolId, Next, it.isLookahead) })
+            append.addAllObservingCondSymbolIds(condObserved.map { it.symbolId }.distinct().sorted())
             // mgroup2 의 lookahead_requiring_symbols 와 동일한 정보: 각 cond root sym 의 starter milestone group id.
             // runtime 에서 main path 가 이 milestone group 을 attach 하는 시점에 starter 도 같이 시작.
-            for (sym in condSymbols.sorted()) {
-              val rootInfo = rootPaths[sym] ?: genRootPathFromSymbol(sym)
-              rootPaths[sym] = rootInfo
+            emitCondRootStarters(condObserved, edgeFrame = false) { sym, mgid, kg, si ->
               replaceAndAppendBuilder.appendBuilder.addCondRootStartersBuilder().apply {
                 symbolId = sym
-                milestoneGroupId = rootInfo.milestoneGroupId
+                milestoneGroupId = mgid
+                keyGen = kg
+                sameInput = si
               }
             }
           }
@@ -428,6 +465,10 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
     derivePhaseFinishedNodes: Set<GenNode>,
     includeProgressOfStarts: Boolean,
     remapEdgeReportGens: Boolean = false,
+    // pointer==0 parent 의 edge frame: 보고용 조건의 dot anchor 를 Grand 로
+    // (edgeActionFrom 의 condGens 와 동일한 이유 — replay 가 런타임과 같은
+    //  watcher key 규약으로 fin 을 찾아야 함).
+    remapCondGensToGrand: Boolean = false,
     derivePhaseNodes: Set<GenNode> = emptySet(),
     excludeFromAdded: Set<GenNode> = emptySet(),
     // finished/progressed/added 모든 보고 채널에서 제외할 노드들.
@@ -437,6 +478,9 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
     fun reportStartGen(tag: GenNodeGeneration): GenNodeGeneration =
       if (remapEdgeReportGens && tag == Curr) Prev else tag
 
+    fun reportCond(cond: GenAcceptCondition): GenAcceptCondition =
+      if (remapCondGensToGrand) remapEdgeCondGens(cond) else cond
+
     for (finished in g2.finishedNodes.sortedWith(compareBy({ it.symbolId }, { it.pointer }))) {
       // derive phase에서 이미 finish된 노드는 제외
       if (finished in derivePhaseFinishedNodes) continue
@@ -445,7 +489,7 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
         this.symbolId = finished.symbolId
         this.pointer = finished.pointer
         this.startGen = reportStartGen(finished.startGen).toProto()
-        this.finishCondition = g2.acceptConditions[finished]!!.toProto()
+        this.finishCondition = reportCond(g2.acceptConditions[finished]!!).toProto()
       }
     }
     for ((before, after) in g2.progressedNodes.entries.sortedWith(
@@ -471,7 +515,10 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
       }
     }
 
-    emitAddedKernels(builder, g2, remapEdgeReportGens, starts, derivePhaseNodes, excludeFromAdded + excludeFromReports)
+    emitAddedKernels(
+      builder, g2, remapEdgeReportGens, starts, derivePhaseNodes,
+      excludeFromAdded + excludeFromReports, remapCondGensToGrand = remapCondGensToGrand,
+    )
   }
 
   // added kernels: 보고 좌표로 기록하는 kernel 들 (kernels_history 전용).
@@ -489,6 +536,7 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
     derivePhaseNodes: Set<GenNode>,
     excludeFromAdded: Set<GenNode>,
     fullGraph: Boolean = false,
+    remapCondGensToGrand: Boolean = false,
   ) {
     data class AddedKey(
       val symbolId: Int,
@@ -513,7 +561,9 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
         if (remapEdgeReportGens && n !in starts && n in derivePhaseNodes && n.endGen == Curr) Prev
         else n.endGen
       val key = AddedKey(n.symbolId, n.pointer, startTag.toProto(), endTag.toProto())
-      val cond = g.acceptConditions[n] ?: GenAcceptCondition.Always
+      val rawCond = g.acceptConditions[n] ?: GenAcceptCondition.Always
+      // 보고용 조건의 dot anchor 리맵 (fillParsingActions.reportCond 와 동일한 이유).
+      val cond = if (remapCondGensToGrand) remapEdgeCondGens(rawCond) else rawCond
       val existing = addedConds[key]
       addedConds[key] = if (existing != null) GenAcceptCondition.Or.from(existing, cond) else cond
     }
@@ -545,21 +595,28 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
     val reachables = graph.reachablesFrom(parentNode, appendingMilestones)
     val groupedAppendings = reachables.groupBy { graph.acceptConditions[it]!! }
     val sortedAppendings = groupedAppendings.entries.sortedBy { it.key }
+    // edge frame 의 bounded/longest 조건 anchor 를 Grand(=parent 의 dot) 로 리맵.
+    // m3 의 rea 부착은 항상 dot+1 에 일어나므로 (same-input 부착 규약) parent 의 dot 은
+    // 균일하게 parentGen-1 — 런타임 edge GRAND 바인딩이 이 값으로 정의된다.
+    val remapDotToGrand = true
+    fun condGens(c: GenAcceptCondition): GenAcceptCondition =
+      if (remapDotToGrand) remapEdgeCondGens(c) else c
+
     for ((acc, appending) in sortedAppendings) {
       val appendBuilder = builder.addAppendMilestoneGroupsBuilder()
       appendBuilder.milestoneGroupId = milestoneGroupIdOf(appending.toSet())
-      appendBuilder.acceptCondition = acc.toProto()
-      val condSymbols = mutableSetOf<Int>()
-      condSymbols.addAll(graph.observingCondSymbolIds)
-      observedCondSymbolsFromAcc(acc, condSymbols)
-      appendBuilder.addAllObservingCondSymbolIds(condSymbols.sorted())
+      appendBuilder.acceptCondition = condGens(acc).toProto()
+      val condObserved = mutableSetOf<ObservedCondSym>()
+      condObserved.addAll(graph.observingCondSymbolIds)
+      observedCondSymbolsFromAcc(acc, condObserved)
+      appendBuilder.addAllObservingCondSymbolIds(condObserved.map { it.symbolId }.distinct().sorted())
       // mgroup2 의 lookahead_requiring_symbols 와 동일.
-      for (sym in condSymbols.sorted()) {
-        val rootInfo = rootPaths[sym] ?: genRootPathFromSymbol(sym)
-        rootPaths[sym] = rootInfo
+      emitCondRootStarters(condObserved, edgeFrame = true) { sym, mgid, kg, si ->
         appendBuilder.addCondRootStartersBuilder().apply {
           symbolId = sym
-          milestoneGroupId = rootInfo.milestoneGroupId
+          milestoneGroupId = mgid
+          keyGen = kg
+          sameInput = si
         }
       }
     }
@@ -568,7 +625,7 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
     // parentNode 는 barrier 라 progress 가 적용되지 않고 조건만 수집된다.
     val parentProgressCond = graph.barrierProgressConditions[parentNode]
     if (parentProgressCond != null) {
-      builder.startNodeProgress = parentProgressCond.toProto()
+      builder.startNodeProgress = condGens(parentProgressCond).toProto()
     } else {
       builder.clearStartNodeProgress()
     }
@@ -582,6 +639,7 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
       derivePhaseFinishedNodes = derivePhaseFinishedNodes,
       includeProgressOfStarts = true,
       remapEdgeReportGens = true,
+      remapCondGensToGrand = remapDotToGrand,
       derivePhaseNodes = derivePhaseNodes,
       excludeFromAdded = excludeFromAdded,
     )

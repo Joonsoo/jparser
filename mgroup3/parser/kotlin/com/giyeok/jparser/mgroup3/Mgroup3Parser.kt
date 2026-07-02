@@ -209,7 +209,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     addedOut: MutableList<AddedKernelRecord>,
     rootProgressesOut: MutableMap<PathRoot, AcceptCondition>,
     observingSymbolIdsOut: MutableSet<Int>,
-    condRootStartersOut: MutableMap<PathRoot, Int>,
+    condRootStartersOut: MutableMap<PathRoot, PendingStarter>,
   ) {
     val parentGen = oldShape.milestonePath?.gen ?: pathRoot.startGen
     val grandGen = oldShape.milestonePath?.milestone?.gen ?: pathRoot.startGen
@@ -248,7 +248,9 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       )
       observingSymbolIdsOut.addAll(rea.append.observingCondSymbolIds)
       for (starter in rea.append.condRootStarters) {
-        condRootStartersOut[PathRoot(starter.symbolId, gen)] = starter.milestoneGroupId
+        val key = starterKeyOf(starter, midGen = midGen, nextGen = gen) ?: continue
+        condRootStartersOut[PathRoot(starter.symbolId, key)] =
+          PendingStarter(starter.milestoneGroupId, starter.sameInput)
       }
     }
 
@@ -330,9 +332,12 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     addedOut: MutableList<AddedKernelRecord>,
     rootProgressesOut: MutableMap<PathRoot, AcceptCondition>,
     observingSymbolIdsOut: MutableSet<Int>,
-    condRootStartersOut: MutableMap<PathRoot, Int>,
+    condRootStartersOut: MutableMap<PathRoot, PendingStarter>,
   ) {
-    val grandGrandParentGen = parentPath.milestone.gen
+    // GRAND = parent 의 dot gen. m3 의 rea 부착은 항상 dot+1 (same-input 부착 규약 —
+    // 노드 gen = 부착 gen) 이므로 균일하게 parentGen - 1. bounded/longest 조건의
+    // span-시작 anchor (생성기의 remapEdgeCondGens Curr/Mid→Grand) 가 이 값을 참조한다.
+    val grandGrandParentGen = parentGen - 1
     val reportGrandGen = parentPath.milestoneReportGen
     val pa = edgeAction.parsingActions
     if (pa != null) {
@@ -364,7 +369,10 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       )
       observingSymbolIdsOut.addAll(append.observingCondSymbolIds)
       for (starter in append.condRootStarters) {
-        condRootStartersOut[PathRoot(starter.symbolId, gen)] = starter.milestoneGroupId
+        // edge frame: 과거 경계(CURR) watcher 는 그 시점에 이미 등록됨 — skip.
+        val key = starterKeyOf(starter, midGen = parentGen, nextGen = gen) ?: continue
+        condRootStartersOut[PathRoot(starter.symbolId, key)] =
+          PendingStarter(starter.milestoneGroupId, starter.sameInput)
       }
     }
 
@@ -430,6 +438,19 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       else -> currGen
     }
 
+  // cond root starter 의 key resolve. MID = ctx.gen (bounded span-정규화), NEXT = gen.
+  // CURR (과거 경계) 는 그 시점에 이미 등록된 watcher — 등록하지 않는다 (null).
+  private fun starterKeyOf(starter: CondRootStarterPlain, midGen: Int, nextGen: Int): Int? =
+    when (starter.keyGen) {
+      KernelTemplateGen.MID -> midGen
+      KernelTemplateGen.NEXT -> nextGen
+      else -> null
+    }
+
+  // 시동 대기 중인 cond root starter — sameInput 이면 이번 입력이 watcher 의 첫 글자
+  // (key==gen 인 lookahead 구 규약이면 실제 span 은 gen-1 — 보고 anchor 별도 기록).
+  class PendingStarter(val milestoneGroupId: Int, val sameInput: Boolean)
+
   fun parseStep(ctx: ParsingCtx, input: Char, isLastInput: Boolean): ParsingCtx {
     val mainPathsBefore = ctx.paths[ctx.mainRoot] ?: emptyMap()
     if (mainPathsBefore.isEmpty()) {
@@ -455,7 +476,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     val rootProgresses = mutableMapOf<PathRoot, AcceptCondition>()
     // 죽는 cond path 의 possible-finish — end 가 직전 gen 인 late 채널.
     val latePfProgresses = mutableMapOf<PathRoot, AcceptCondition>()
-    val condRootStartersFromTerm = mutableMapOf<PathRoot, Int>()
+    val condRootStartersFromTerm = mutableMapOf<PathRoot, PendingStarter>()
 
     val trace = traceOn(gen)
     if (trace) {
@@ -519,68 +540,66 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
 
     tPhase = phaseMark(0, tPhase)
 
-    // fresh / same-input 시동 판별 — 조건 leaf 의 종류와 anchoring 으로 결정:
-    //  - NEXT 경계(gen)에 anchoring 된 Exists/NotExists 의 root: span 이 새 boundary
-    //    에서 시작 → 첫 글자는 다음 step 입력. 이번 입력(position gen-1)을 먹이면
-    //    가짜 finish 가 생긴다 (maximal-munch: 'abc' 의 watcher 가 'c' 를 보고 즉시
-    //    매치 → NotExists 오판). fresh 로 시동만 한다.
-    //  - Unless/OnlyIf/NoLongerMatch 류가 참조하는 root (-1 anchoring): span 이
-    //    gen-1 에서 시작 → same-input 이 맞다. 같은 root 를 두 종류가 동시에
-    //    참조하면 same-input 우선.
-    val freshLookaheadRoots = HashSet<PathRoot>()
-    val sameInputWantedRoots = HashSet<PathRoot>()
-    fun classifyStarterKinds(c: AcceptCondition) {
-      when (c) {
-        is And -> c.forEach { classifyStarterKinds(it) }
-        is Or -> c.forEach { classifyStarterKinds(it) }
-        is Exists -> if (c.startGen == gen) freshLookaheadRoots.add(PathRoot(c.symbolId, c.startGen))
-        is NotExists -> if (c.startGen == gen) freshLookaheadRoots.add(PathRoot(c.symbolId, c.startGen))
-        is Unless -> sameInputWantedRoots.add(PathRoot(c.symbolId, c.startGen))
-        is OnlyIf -> sameInputWantedRoots.add(PathRoot(c.symbolId, c.startGen))
-        is NoLongerMatch -> sameInputWantedRoots.add(PathRoot(c.symbolId, c.startGen))
-        is NeedLongerMatch -> sameInputWantedRoots.add(PathRoot(c.symbolId, c.startGen))
-        else -> {}
+    // same-input 시동이 죽었을 때 (매치 실패 / 살아남은 path 없음):
+    //  - lookahead 계열 key (== gen): 구 규약의 fresh fallback — 같은 key 를 다음 경계
+    //    watcher (span gen) 로 재시동한다. 드리프트하는 lookahead anchor 는 같은 key 로
+    //    span gen-1 (same-input) 과 span gen (fresh) 양쪽 해석을 요구할 수 있다.
+    //  - bounded 계열 key (== ctx.gen): span-정규화 — 그 span 의 매치는 불가로 확정,
+    //    key 를 소진시켜 이후 재시동 (span 이 어긋난 zombie watcher) 을 막는다.
+    fun starterDied(root: PathRoot, shape: PathShape, out: MutableMap<PathRoot, MutableMap<PathShape, AcceptCondition>>) {
+      if (root.startGen == gen) {
+        out[root] = mutableMapOf(shape to Always)
+      } else {
+        ctx.everSeenCondRoots.add(root)
       }
     }
-    nextPaths.values.forEach { pm -> pm.values.forEach { classifyStarterKinds(it) } }
-    rootProgresses.values.forEach { classifyStarterKinds(it) }
-    freshLookaheadRoots.removeAll(sameInputWantedRoots)
 
-    // step 1b: main path 가 새 milestone 추가 시 같이 등록된 cond root starter 들에 같은 input 적용.
-    // (fresh lookahead root 는 시동만 — step 3 의 fresh seeding 이 처리.)
-    for ((starterRoot, mgroupId) in condRootStartersFromTerm) {
+    // step 1b: main path 의 액션에 등록된 cond root starter 들 시동.
+    //  - sameInput: 이번 입력이 watcher 의 첫 글자. bounded 계열은 key==ctx.gen (span-정규화),
+    //    lookahead 계열은 key==gen (구 규약 — 실제 span 은 gen-1, 보고 anchor 별도 기록).
+    //  - !sameInput: fresh — 시동만 하고 소비는 다음 step 부터 (새 경계 watcher).
+    for ((starterRoot, pending) in condRootStartersFromTerm) {
       if (starterRoot in ctx.paths.keys) continue
       if (starterRoot in nextPaths.keys) continue
       if (starterRoot in ctx.everSeenCondRoots) continue
-      if (starterRoot in freshLookaheadRoots) continue
       val rootInfo = plain.pathRoots[starterRoot.symbolId] ?: continue
-      val starterShape = PathShape(null, mgroupId)
-      val ta = findApplicableAction(starterShape, input)
-      if (ta != null) {
-        // same-input 적용 — 이 root 의 실제 span 은 (생성 gen - 1) 부터. 보고 anchor 기록.
-        ctx.rootReportGens[starterRoot] = gen - 1
-        val perStarterNext = mutableMapOf<PathShape, AcceptCondition>()
-        val ignoredStarters = mutableMapOf<PathRoot, Int>()
-        applyTermAction(
-          oldShape = starterShape,
-          oldCondition = Always,
-          pathRoot = starterRoot,
-          termAction = ta,
-          midGen = ctx.gen,
-          gen = gen,
-          rootReportGen = gen - 1,
-          nextPathsOut = perStarterNext,
-          appsOut = appsByGroup,
-          finishesOut = finishesByGroup,
-          addedOut = addedByGroup,
-          rootProgressesOut = rootProgresses,
-          observingSymbolIdsOut = observingOut,
-          condRootStartersOut = ignoredStarters,
-        )
-        if (perStarterNext.isNotEmpty()) {
-          nextPaths.getOrPut(starterRoot) { mutableMapOf() }.also { acc ->
-            perStarterNext.forEach { (s, c) -> acc.addPath(s, c) }
+      val starterShape = PathShape(null, pending.milestoneGroupId)
+      if (!pending.sameInput) {
+        // fresh 시동만.
+        nextPaths[starterRoot] = mutableMapOf(starterShape to Always)
+      } else {
+        val ta = findApplicableAction(starterShape, input)
+        if (ta != null) {
+          // 실제 span 시작: key==gen (lookahead 구 규약) 이면 gen-1 — 보고 anchor 기록.
+          val reportGen = if (starterRoot.startGen == gen) gen - 1 else starterRoot.startGen
+          if (reportGen != starterRoot.startGen) ctx.rootReportGens[starterRoot] = reportGen
+          val perStarterNext = mutableMapOf<PathShape, AcceptCondition>()
+          val ignoredStarters = mutableMapOf<PathRoot, PendingStarter>()
+          applyTermAction(
+            oldShape = starterShape,
+            oldCondition = Always,
+            pathRoot = starterRoot,
+            termAction = ta,
+            midGen = ctx.gen,
+            gen = gen,
+            rootReportGen = reportGen,
+            nextPathsOut = perStarterNext,
+            appsOut = appsByGroup,
+            finishesOut = finishesByGroup,
+            addedOut = addedByGroup,
+            rootProgressesOut = rootProgresses,
+            observingSymbolIdsOut = observingOut,
+            condRootStartersOut = ignoredStarters,
+          )
+          if (perStarterNext.isNotEmpty()) {
+            nextPaths.getOrPut(starterRoot) { mutableMapOf() }.also { acc ->
+              perStarterNext.forEach { (s, c) -> acc.addPath(s, c) }
+            }
+          } else {
+            starterDied(starterRoot, starterShape, nextPaths)
           }
+        } else {
+          starterDied(starterRoot, starterShape, nextPaths)
         }
       }
       if (rootInfo.selfFinishAcceptCondition != null) {
@@ -628,35 +647,55 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         newCondRootProgresses[pathRoot] = selfCond
       }
       val starterShape = PathShape(null, rootInfo.milestoneGroupId)
-      // fresh lookahead root: 이번 입력을 먹이지 않고 시동만 — 소비는 다음 step 부터.
-      val ta = if (pathRoot in freshLookaheadRoots) null else findApplicableAction(starterShape, input)
-      val starterNextPaths = mutableMapOf<PathShape, AcceptCondition>()
-      if (ta != null) {
-        // same-input 적용 — span 은 (생성 gen - 1) 부터 (이번 gen 의 시작 root 에 한함).
-        val starterReportGen = if (pathRoot.startGen == gen) gen - 1 else pathRoot.startGen
-        ctx.rootReportGens[pathRoot] = starterReportGen
-        val ignoredStarters = mutableMapOf<PathRoot, Int>()
-        applyTermAction(
-          oldShape = starterShape,
-          oldCondition = Always,
-          pathRoot = pathRoot,
-          termAction = ta,
-          midGen = ctx.gen,
-          gen = gen,
-          rootReportGen = starterReportGen,
-          nextPathsOut = starterNextPaths,
-          appsOut = appsByGroup,
-          finishesOut = finishesByGroup,
-          addedOut = addedByGroup,
-          rootProgressesOut = newCondRootProgresses,
-          observingSymbolIdsOut = observingOut,
-          condRootStartersOut = ignoredStarters,
-        )
+      // key(=span 시작) 기준 시동 — step 1b 와 동일한 규칙:
+      //  - startGen == gen: fresh 시동만 (소비는 다음 step 부터).
+      //  - startGen == ctx.gen: same-input — 이번 입력이 첫 글자. 실패 시 key 소진.
+      //  - startGen < ctx.gen: 그 시점에 시동됐어야 하는 watcher — 지금 만들면 span 이
+      //    어긋난 zombie 가 되므로 시동하지 않는다.
+      // 시동 flavor:
+      //  - startGen == gen: lookahead 심볼이면 구 규약 same-input (실제 span gen-1),
+      //    그 외 (새 경계 watcher) 는 fresh 시동만.
+      //  - startGen == ctx.gen: bounded span-정규화 same-input.
+      //  - startGen < ctx.gen: 그 시점에 시동됐어야 하는 watcher — 지금 만들면 span 이
+      //    어긋난 zombie 가 되므로 시동하지 않는다.
+      val sameInput = when (pathRoot.startGen) {
+        gen -> pathRoot.symbolId in plain.lookaheadCondSymbols
+        ctx.gen -> true
+        else -> continue
       }
-      if (starterNextPaths.isNotEmpty()) {
-        nextPaths[pathRoot] = starterNextPaths
-      } else if (pathRoot.startGen == gen) {
+      if (!sameInput) {
         nextPaths[pathRoot] = mutableMapOf(starterShape to Always)
+      } else {
+        val ta = findApplicableAction(starterShape, input)
+        if (ta != null) {
+          val reportGen = if (pathRoot.startGen == gen) gen - 1 else pathRoot.startGen
+          if (reportGen != pathRoot.startGen) ctx.rootReportGens[pathRoot] = reportGen
+          val starterNextPaths = mutableMapOf<PathShape, AcceptCondition>()
+          val ignoredStarters = mutableMapOf<PathRoot, PendingStarter>()
+          applyTermAction(
+            oldShape = starterShape,
+            oldCondition = Always,
+            pathRoot = pathRoot,
+            termAction = ta,
+            midGen = ctx.gen,
+            gen = gen,
+            rootReportGen = reportGen,
+            nextPathsOut = starterNextPaths,
+            appsOut = appsByGroup,
+            finishesOut = finishesByGroup,
+            addedOut = addedByGroup,
+            rootProgressesOut = newCondRootProgresses,
+            observingSymbolIdsOut = observingOut,
+            condRootStartersOut = ignoredStarters,
+          )
+          if (starterNextPaths.isNotEmpty()) {
+            nextPaths[pathRoot] = starterNextPaths
+          } else {
+            starterDied(pathRoot, starterShape, nextPaths)
+          }
+        } else {
+          starterDied(pathRoot, starterShape, nextPaths)
+        }
       }
     }
 
@@ -751,6 +790,11 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       while (mp != null) {
         for (sid in mp.observingCondSymbolIds) {
           referencedRoots.add(PathRoot(sid, mp.gen))
+          // span-정규화 key anchor — 이 milestone 의 dot(= mp.gen - 1, 부착은 항상 dot+1)
+          // 에서 시작한 watcher. 예: "def"&Word 의 Word watcher key = seq dot gen —
+          // 조건이 emit 되기 전의 중간 step 들에서도 살아있어야 한다.
+          referencedRoots.add(PathRoot(sid, mp.gen - 1))
+          reportedCondRoots.add(PathRoot(sid, mp.gen - 1))
           val parentGen = mp.parent?.gen ?: ctx.mainRoot.startGen
           referencedRoots.add(PathRoot(sid, parentGen))
           reportedCondRoots.add(PathRoot(sid, parentGen))

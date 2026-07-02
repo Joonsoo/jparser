@@ -14,6 +14,11 @@ sealed class GenParsingTask {
 }
 
 class GenParsingTaskRunner(val grammar: NGrammar) {
+  // lookahead (NLookaheadIs/NLookaheadExcept) 가 감시하는 cond symbol 들의 전역 누적.
+  // 이 심볼들의 watcher 는 구 규약 (key=등록 gen, same-input) 을 따른다 — proto 의
+  // lookahead_cond_symbol_ids 로 emit 되어 런타임 step 3 의 시동 flavor 판별에 쓰임.
+  val lookaheadCondSymbolIds = mutableSetOf<Int>()
+
   // 어떤 symbol이 NRepeat 안에 (직접 또는 간접) 있는지.
   // NRepeat 안에 있는 cond symbol (NExcept, NLookahead, NLongest 등)은 매 iteration마다 새로
   // 시작되어야 하므로 fromNextGen=true로 표시.
@@ -229,27 +234,29 @@ class GenParsingTaskRunner(val grammar: NGrammar) {
 
       is NGrammar.NExcept -> {
         addDerive(symbol.body())
-        graph.observingCondSymbolIds.add(symbol.except())
+        graph.observingCondSymbolIds.add(ObservedCondSym(symbol.except(), node.endGen, isLookahead = false))
       }
 
       is NGrammar.NJoin -> {
         addDerive(symbol.body())
-        graph.observingCondSymbolIds.add(symbol.join())
+        graph.observingCondSymbolIds.add(ObservedCondSym(symbol.join(), node.endGen, isLookahead = false))
       }
 
       is NGrammar.NLongest -> {
         addDerive(symbol.body())
-        graph.observingCondSymbolIds.add(symbol.body())
+        graph.observingCondSymbolIds.add(ObservedCondSym(symbol.body(), node.endGen, isLookahead = false))
       }
 
       is NGrammar.NLookaheadExcept -> {
         addDerive(symbol.emptySeqId())
-        graph.observingCondSymbolIds.add(symbol.lookahead())
+        graph.observingCondSymbolIds.add(ObservedCondSym(symbol.lookahead(), node.endGen, isLookahead = true))
+        lookaheadCondSymbolIds.add(symbol.lookahead())
       }
 
       is NGrammar.NLookaheadIs -> {
         addDerive(symbol.emptySeqId())
-        graph.observingCondSymbolIds.add(symbol.lookahead())
+        graph.observingCondSymbolIds.add(ObservedCondSym(symbol.lookahead(), node.endGen, isLookahead = true))
+        lookaheadCondSymbolIds.add(symbol.lookahead())
       }
 
       is NGrammar.NTerminal -> {}

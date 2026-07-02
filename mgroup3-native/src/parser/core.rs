@@ -16,11 +16,29 @@ use crate::parsing_ctx::{
     KernelTemplatePair, KtlibKernel, MilestonePath, ParsingCtx, PathMap, PathShape,
 };
 use crate::path_root::PathRoot;
-use crate::proto::com::giyeok::jparser::mgroup3::proto::Mgroup3ParserData;
+use crate::proto::com::giyeok::jparser::mgroup3::proto::{KernelTemplateGen, Mgroup3ParserData};
 use crate::accept_condition::eval::evolve_accept_condition;
 use crate::term_group::{is_match, TermGroupBuilder, TermSet};
 
 use super::ParsingError;
+
+/// 시동 대기 중인 cond root starter — same_input 이면 이번 입력이 watcher 의 첫 글자
+/// (key==gen 인 lookahead 구 규약이면 실제 span 은 gen-1 — 보고 anchor 별도 기록).
+#[derive(Clone, Copy)]
+pub(crate) struct PendingStarter {
+    pub milestone_group_id: i32,
+    pub same_input: bool,
+}
+
+/// cond root starter 의 key resolve. MID = ctx.gen (bounded span-정규화), NEXT = gen.
+/// CURR 등 과거 경계는 그 시점에 이미 등록된 watcher — 등록하지 않는다 (None).
+fn starter_key_of(key_gen: i32, mid_gen: i32, next_gen: i32) -> Option<i32> {
+    match KernelTemplateGen::try_from(key_gen) {
+        Ok(KernelTemplateGen::Mid) => Some(mid_gen),
+        Ok(KernelTemplateGen::Next) => Some(next_gen),
+        _ => None,
+    }
+}
 
 pub struct Mgroup3Parser {
     plain: ParserDataPlain,
@@ -303,7 +321,7 @@ impl Mgroup3Parser {
         let mut root_progresses: HashMap<PathRoot, AcceptCondition> = HashMap::default();
         // 죽는 cond path 의 possible-finish — end 가 직전 gen 인 late 채널.
         let mut late_pf_progresses: HashMap<PathRoot, AcceptCondition> = HashMap::default();
-        let mut cond_root_starters_from_term: HashMap<PathRoot, i32> = HashMap::default();
+        let mut cond_root_starters_from_term: HashMap<PathRoot, PendingStarter> = HashMap::default();
 
         // ----- step 1+2: main and cond paths both run through applyTermAction -----
         for (root, path_map) in &ctx.paths {
@@ -363,56 +381,30 @@ impl Mgroup3Parser {
             }
         }
 
-        // fresh / same-input 시동 판별 — NEXT 경계(next_gen)에 anchoring 된
-        // Exists/NotExists 의 root 는 span 이 새 boundary 에서 시작하므로 이번
-        // 입력을 먹이면 가짜 finish 가 생긴다. fresh 로 시동만 한다. bounded/
-        // longest 류가 참조하는 root 는 -1 anchoring (same-input). 충돌 시
-        // same-input 우선. (Kotlin classifyStarterKinds 대응.)
-        let mut fresh_lookahead_roots: HashSet<PathRoot> = HashSet::default();
-        let mut same_input_wanted: HashSet<PathRoot> = HashSet::default();
-        {
-            fn classify(
-                c: &AcceptCondition,
-                gen_idx: i32,
-                fresh: &mut HashSet<PathRoot>,
-                same: &mut HashSet<PathRoot>,
-            ) {
-                match c {
-                    AcceptCondition::And { items } | AcceptCondition::Or { items } => {
-                        for it in items {
-                            classify(it, gen_idx, fresh, same);
-                        }
-                    }
-                    AcceptCondition::Exists { symbol_id, start_gen }
-                    | AcceptCondition::NotExists { symbol_id, start_gen } => {
-                        if *start_gen == gen_idx {
-                            fresh.insert(PathRoot::new(*symbol_id, *start_gen));
-                        }
-                    }
-                    AcceptCondition::Unless { symbol_id, start_gen, .. }
-                    | AcceptCondition::OnlyIf { symbol_id, start_gen, .. }
-                    | AcceptCondition::NoLongerMatch { symbol_id, start_gen, .. }
-                    | AcceptCondition::NeedLongerMatch { symbol_id, start_gen, .. } => {
-                        same.insert(PathRoot::new(*symbol_id, *start_gen));
-                    }
-                    _ => {}
+        // same-input 시동이 죽었을 때 (매치 실패 / 살아남은 path 없음):
+        //  - lookahead 계열 key (== next_gen): 구 규약의 fresh fallback — 같은 key 를
+        //    다음 경계 watcher (span gen) 로 재시동. 드리프트하는 lookahead anchor 는
+        //    같은 key 로 span gen-1 과 span gen 양쪽 해석을 요구할 수 있다.
+        //  - bounded 계열 key (== ctx.gen): span-정규화 — 그 span 의 매치는 불가로
+        //    확정, key 를 소진시켜 이후 재시동 (span 이 어긋난 zombie) 을 막는다.
+        macro_rules! starter_died {
+            ($root:expr, $shape:expr, $next_paths:expr, $ctx:expr) => {
+                if $root.start_gen == next_gen {
+                    let mut seeded = PathMap::default();
+                    seeded.insert($shape, AcceptCondition::Always);
+                    $next_paths.insert($root, seeded);
+                } else {
+                    $ctx.ever_seen_cond_roots.insert($root);
                 }
-            }
-            for pm in next_paths.values() {
-                for cond in pm.values() {
-                    classify(cond, next_gen, &mut fresh_lookahead_roots, &mut same_input_wanted);
-                }
-            }
-            for cond in root_progresses.values() {
-                classify(cond, next_gen, &mut fresh_lookahead_roots, &mut same_input_wanted);
-            }
-            for r in &same_input_wanted {
-                fresh_lookahead_roots.remove(r);
-            }
+            };
         }
 
-        // ----- step 1b: cond root starters from main path's append actions -----
-        for (&starter_root, &mgroup_id) in &cond_root_starters_from_term {
+        // ----- step 1b: cond root starters 시동 -----
+        //  - same_input: 이번 입력이 watcher 의 첫 글자. bounded 계열은 key==ctx.gen
+        //    (span-정규화), lookahead 계열은 key==gen (구 규약 — 실제 span 은 gen-1,
+        //    보고 anchor 별도 기록).
+        //  - !same_input: fresh — 시동만 하고 소비는 다음 step 부터 (새 경계 watcher).
+        for (&starter_root, &pending) in &cond_root_starters_from_term {
             if ctx.paths.contains_key(&starter_root) {
                 continue;
             }
@@ -422,41 +414,56 @@ impl Mgroup3Parser {
             if ctx.ever_seen_cond_roots.contains(&starter_root) {
                 continue;
             }
-            if fresh_lookahead_roots.contains(&starter_root) {
-                continue;
-            }
             let Some(root_info) = self.plain.path_roots.get(&starter_root.symbol_id).cloned()
             else {
                 continue;
             };
-            let starter_shape = PathShape::new(None, mgroup_id);
-            let ta = self.find_applicable_action(&starter_shape, input);
-            if let Some(ta) = ta {
-                // same-input 적용 — 이 root 의 실제 span 은 (생성 gen - 1) 부터.
-                ctx.root_report_gens.insert(starter_root, next_gen - 1);
-                let mut per_starter_next: PathMap = PathMap::default();
-                let mut ignored_starters: HashMap<PathRoot, i32> = HashMap::default();
-                self.apply_term_action(
-                    &starter_shape,
-                    &AcceptCondition::Always,
-                    starter_root,
-                    &ta,
-                    ctx.gen_idx,
-                    next_gen,
-                    next_gen - 1,
-                    &mut per_starter_next,
-                    &mut apps,
-                    &mut finishes,
-                    &mut added,
-                    &mut root_progresses,
-                    &mut observing,
-                    &mut ignored_starters,
-                );
-                if !per_starter_next.is_empty() {
-                    let acc = next_paths.entry(starter_root).or_insert_with(PathMap::default);
-                    for (s, c) in per_starter_next {
-                        add_path(acc, s, c);
+            let starter_shape = PathShape::new(None, pending.milestone_group_id);
+            if !pending.same_input {
+                // fresh 시동만.
+                let mut seeded = PathMap::default();
+                seeded.insert(starter_shape, AcceptCondition::Always);
+                next_paths.insert(starter_root, seeded);
+            } else {
+                let ta = self.find_applicable_action(&starter_shape, input);
+                if let Some(ta) = ta {
+                    // 실제 span 시작: key==gen (lookahead 구 규약) 이면 gen-1.
+                    let report_gen = if starter_root.start_gen == next_gen {
+                        next_gen - 1
+                    } else {
+                        starter_root.start_gen
+                    };
+                    if report_gen != starter_root.start_gen {
+                        ctx.root_report_gens.insert(starter_root, report_gen);
                     }
+                    let mut per_starter_next: PathMap = PathMap::default();
+                    let mut ignored_starters: HashMap<PathRoot, PendingStarter> = HashMap::default();
+                    self.apply_term_action(
+                        &starter_shape,
+                        &AcceptCondition::Always,
+                        starter_root,
+                        &ta,
+                        ctx.gen_idx,
+                        next_gen,
+                        report_gen,
+                        &mut per_starter_next,
+                        &mut apps,
+                        &mut finishes,
+                        &mut added,
+                        &mut root_progresses,
+                        &mut observing,
+                        &mut ignored_starters,
+                    );
+                    if !per_starter_next.is_empty() {
+                        let acc = next_paths.entry(starter_root).or_insert_with(PathMap::default);
+                        for (s, c) in per_starter_next {
+                            add_path(acc, s, c);
+                        }
+                    } else {
+                        starter_died!(starter_root, starter_shape, next_paths, ctx);
+                    }
+                } else {
+                    starter_died!(starter_root, starter_shape, next_paths, ctx);
                 }
             }
             if let Some(self_finish_tpl) = root_info.self_finish_accept_condition.as_ref() {
@@ -526,45 +533,60 @@ impl Mgroup3Parser {
                 new_cond_root_progresses.insert(path_root, self_cond);
             }
             let starter_shape = PathShape::new(None, root_info.milestone_group_id);
-            // fresh lookahead root: 이번 입력을 먹이지 않고 시동만.
-            let ta = if fresh_lookahead_roots.contains(&path_root) {
-                None
+            // 시동 flavor (step 1b 와 동일한 규칙):
+            //  - start_gen == next_gen: lookahead 심볼이면 구 규약 same-input (실제 span
+            //    gen-1), 그 외 (새 경계 watcher) 는 fresh 시동만.
+            //  - start_gen == ctx.gen: bounded span-정규화 same-input.
+            //  - start_gen < ctx.gen: 그 시점에 시동됐어야 하는 watcher — 지금 만들면
+            //    span 이 어긋난 zombie 가 되므로 시동하지 않는다.
+            let same_input = if path_root.start_gen == next_gen {
+                self.plain.lookahead_cond_symbols.contains(&path_root.symbol_id)
+            } else if path_root.start_gen == ctx.gen_idx {
+                true
             } else {
-                self.find_applicable_action(&starter_shape, input)
+                continue;
             };
-            let mut starter_next_paths: PathMap = PathMap::default();
-            if let Some(ta) = ta {
-                // same-input 적용 — span 은 (생성 gen - 1) 부터 (이번 gen 시작 root 에 한함).
-                let starter_report_gen = if path_root.start_gen == next_gen {
-                    next_gen - 1
+            if !same_input {
+                let mut seeded = PathMap::default();
+                seeded.insert(starter_shape, AcceptCondition::Always);
+                next_paths.insert(path_root, seeded);
+            } else {
+                let ta = self.find_applicable_action(&starter_shape, input);
+                if let Some(ta) = ta {
+                    let report_gen = if path_root.start_gen == next_gen {
+                        next_gen - 1
+                    } else {
+                        path_root.start_gen
+                    };
+                    if report_gen != path_root.start_gen {
+                        ctx.root_report_gens.insert(path_root, report_gen);
+                    }
+                    let mut starter_next_paths: PathMap = PathMap::default();
+                    let mut ignored_starters: HashMap<PathRoot, PendingStarter> = HashMap::default();
+                    self.apply_term_action(
+                        &starter_shape,
+                        &AcceptCondition::Always,
+                        path_root,
+                        &ta,
+                        ctx.gen_idx,
+                        next_gen,
+                        report_gen,
+                        &mut starter_next_paths,
+                        &mut apps,
+                        &mut finishes,
+                        &mut added,
+                        &mut new_cond_root_progresses,
+                        &mut observing,
+                        &mut ignored_starters,
+                    );
+                    if !starter_next_paths.is_empty() {
+                        next_paths.insert(path_root, starter_next_paths);
+                    } else {
+                        starter_died!(path_root, starter_shape, next_paths, ctx);
+                    }
                 } else {
-                    path_root.start_gen
-                };
-                ctx.root_report_gens.insert(path_root, starter_report_gen);
-                let mut ignored_starters: HashMap<PathRoot, i32> = HashMap::default();
-                self.apply_term_action(
-                    &starter_shape,
-                    &AcceptCondition::Always,
-                    path_root,
-                    &ta,
-                    ctx.gen_idx,
-                    next_gen,
-                    starter_report_gen,
-                    &mut starter_next_paths,
-                    &mut apps,
-                    &mut finishes,
-                    &mut added,
-                    &mut new_cond_root_progresses,
-                    &mut observing,
-                    &mut ignored_starters,
-                );
-            }
-            if !starter_next_paths.is_empty() {
-                next_paths.insert(path_root, starter_next_paths);
-            } else if path_root.start_gen == next_gen {
-                let mut fallback = PathMap::default();
-                fallback.insert(starter_shape, AcceptCondition::Always);
-                next_paths.insert(path_root, fallback);
+                    starter_died!(path_root, starter_shape, next_paths, ctx);
+                }
             }
         }
 
@@ -628,6 +650,11 @@ impl Mgroup3Parser {
                 while let Some(node) = mp {
                     for sid in node.observing_cond_symbol_ids.iter().copied() {
                         referenced_roots.insert(PathRoot::new(sid, node.gen_idx));
+                        // span-정규화 key anchor — 이 milestone 의 dot(= gen - 1, 부착은
+                        // 항상 dot+1)에서 시작한 watcher (조건이 emit 되기 전 중간 step
+                        // 들의 생존 보장).
+                        referenced_roots.insert(PathRoot::new(sid, node.gen_idx - 1));
+                        reported_cond_roots.insert(PathRoot::new(sid, node.gen_idx - 1));
                         let parent_gen =
                             node.parent.as_ref().map(|p| p.gen_idx).unwrap_or(ctx.main_root.start_gen);
                         referenced_roots.insert(PathRoot::new(sid, parent_gen));
@@ -893,7 +920,7 @@ impl Mgroup3Parser {
         added_out: &mut Vec<AddedKernelRecord>,
         root_progresses_out: &mut HashMap<PathRoot, AcceptCondition>,
         observing_out: &mut HashSet<i32>,
-        cond_root_starters_out: &mut HashMap<PathRoot, i32>,
+        cond_root_starters_out: &mut HashMap<PathRoot, PendingStarter>,
     ) {
         let parent_gen = old_shape
             .milestone_path
@@ -966,8 +993,16 @@ impl Mgroup3Parser {
                 observing_out.insert(sid);
             }
             for starter in &rea.append.cond_root_starters {
-                cond_root_starters_out
-                    .insert(PathRoot::new(starter.symbol_id, gen_idx), starter.milestone_group_id);
+                let Some(key) = starter_key_of(starter.key_gen, mid_gen, gen_idx) else {
+                    continue;
+                };
+                cond_root_starters_out.insert(
+                    PathRoot::new(starter.symbol_id, key),
+                    PendingStarter {
+                        milestone_group_id: starter.milestone_group_id,
+                        same_input: starter.same_input,
+                    },
+                );
             }
         }
 
@@ -1061,14 +1096,17 @@ impl Mgroup3Parser {
         added_out: &mut Vec<AddedKernelRecord>,
         root_progresses_out: &mut HashMap<PathRoot, AcceptCondition>,
         observing_out: &mut HashSet<i32>,
-        cond_root_starters_out: &mut HashMap<PathRoot, i32>,
+        cond_root_starters_out: &mut HashMap<PathRoot, PendingStarter>,
     ) {
         // edge action next_gen table:
         //   CURR  = grand_parent_gen   (Kotlin's "currGen" param)
         //   MID   = parent_gen
         //   NEXT  = gen_idx
         //   GRAND = grand_grand_parent_gen
-        let grand_grand_parent_gen = parent_path.milestone.gen_idx;
+        // GRAND = parent 의 dot gen. m3 의 rea 부착은 항상 dot+1 (same-input 부착 규약)
+        // 이므로 균일하게 parent_gen - 1. bounded/longest 조건의 span-시작 anchor
+        // (생성기의 remapEdgeCondGens Curr/Mid→Grand) 가 이 값을 참조한다.
+        let grand_grand_parent_gen = parent_gen - 1;
         let report_grand_gen = parent_path.milestone_report_gen;
 
         if let Some(pa) = &edge_action.parsing_actions {
@@ -1112,8 +1150,17 @@ impl Mgroup3Parser {
                 observing_out.insert(sid);
             }
             for starter in &append.cond_root_starters {
-                cond_root_starters_out
-                    .insert(PathRoot::new(starter.symbol_id, gen_idx), starter.milestone_group_id);
+                // edge frame: 과거 경계(CURR) watcher 는 그 시점에 이미 등록됨 — skip.
+                let Some(key) = starter_key_of(starter.key_gen, parent_gen, gen_idx) else {
+                    continue;
+                };
+                cond_root_starters_out.insert(
+                    PathRoot::new(starter.symbol_id, key),
+                    PendingStarter {
+                        milestone_group_id: starter.milestone_group_id,
+                        same_input: starter.same_input,
+                    },
+                );
             }
         }
 

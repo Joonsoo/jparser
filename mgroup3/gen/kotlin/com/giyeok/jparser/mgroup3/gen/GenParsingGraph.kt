@@ -3,13 +3,20 @@ package com.giyeok.jparser.mgroup3.gen
 import com.giyeok.jparser.mgroup3.proto.KernelTemplateGen
 import java.util.*
 
+// 시뮬레이션 그래프에서 관찰된 cond symbol — pos 는 그 심볼의 watcher span 이 시작하는
+// 시뮬레이션 좌표 (= 해당 atomic (NExcept/NJoin/NLongest/lookahead) 의 derive 위치).
+// isLookahead: 관찰 주체가 lookahead (NLookaheadIs/Except) 인지 —
+//   bounded (except/join/longest) watcher 는 span-정규화 key (MID=ctx.gen, same-input),
+//   lookahead watcher 는 구 규약 (key=등록 gen, same-input, 드리프트 anchor 와 쌍).
+data class ObservedCondSym(val symbolId: Int, val pos: GenNodeGeneration, val isLookahead: Boolean)
+
 class GenParsingGraph(
   val startNodes: Set<GenNode>,
   val nodes: MutableSet<GenNode>,
   val edges: MutableSet<Pair<GenNode, GenNode>>,
   val edgesByStart: MutableMap<GenNode, MutableSet<GenNode>>,
   val edgesByEnd: MutableMap<GenNode, MutableSet<GenNode>>,
-  val observingCondSymbolIds: MutableSet<Int>,
+  val observingCondSymbolIds: MutableSet<ObservedCondSym>,
   val acceptConditions: MutableMap<GenNode, GenAcceptCondition>,
   // key -> value 로 progress되었음. 현재 phase에서의 progress만 (derive 또는 progress 단계)
   val progressedNodes: MutableMap<GenNode, GenNode>,
@@ -205,4 +212,34 @@ sealed class GenAcceptCondition: Comparable<GenAcceptCondition> {
   data class Exists(val symbolId: Int, val startGen: GenNodeGeneration = GenNodeGeneration.Prev): GenAcceptCondition()
   data class Unless(val symbolId: Int, val startGen: GenNodeGeneration = GenNodeGeneration.Prev, val endGen: GenNodeGeneration = GenNodeGeneration.Next): GenAcceptCondition()
   data class OnlyIf(val symbolId: Int, val startGen: GenNodeGeneration = GenNodeGeneration.Prev, val endGen: GenNodeGeneration = GenNodeGeneration.Next): GenAcceptCondition()
+}
+
+// edge action 템플릿의 bounded/longest 조건 gen 태그를 span 시작 좌표로 리맵 (Curr/Mid → Grand).
+//
+// edge 시뮬레이션의 derive phase 는 parent 의 dot(Curr)에서 일어난다. m3 의 rea 부착은
+// 항상 dot+1 에 일어나므로 (same-input 부착 규약: 노드 gen = 부착 gen = dot+1),
+// parent 의 dot 의 런타임 값은 균일하게 parentGen - 1 — edge 액션의 GRAND 바인딩이
+// 이 값으로 정의된다. Curr→MID=parentGen 은 dot 보다 +1 이라 Grand 로 리맵해야
+// watcher root 의 key (= span 시작 gen 으로 정규화된 cond root starter) 와 일치한다.
+//
+// Exists/NotExists (lookahead) 는 리맵하지 않는다: lookahead 의 span 은 자신의 derive
+// 위치에서 시작하고, watcher key 규약(derive 시점 gen)과 이미 쌍이 맞는다.
+fun remapEdgeCondGens(cond: GenAcceptCondition): GenAcceptCondition {
+  fun remap(tag: GenNodeGeneration): GenNodeGeneration = when (tag) {
+    GenNodeGeneration.Curr, GenNodeGeneration.Mid -> GenNodeGeneration.Grand
+    else -> tag
+  }
+  return when (cond) {
+    GenAcceptCondition.Always -> cond
+    is GenAcceptCondition.And -> GenAcceptCondition.And(cond.conds.map { remapEdgeCondGens(it) }.toSet())
+    is GenAcceptCondition.Or -> GenAcceptCondition.Or(cond.conds.map { remapEdgeCondGens(it) }.toSet())
+    is GenAcceptCondition.NoLongerMatch ->
+      cond.copy(startGen = remap(cond.startGen), bodyEndGen = remap(cond.bodyEndGen))
+    is GenAcceptCondition.Unless ->
+      cond.copy(startGen = remap(cond.startGen), endGen = remap(cond.endGen))
+    is GenAcceptCondition.OnlyIf ->
+      cond.copy(startGen = remap(cond.startGen), endGen = remap(cond.endGen))
+    is GenAcceptCondition.NotExists -> cond
+    is GenAcceptCondition.Exists -> cond
+  }
 }

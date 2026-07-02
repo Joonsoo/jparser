@@ -51,6 +51,11 @@ message Mgroup3ParserData {
     EdgeAction edge_action = 3;
   }
   repeated MidEdgeActionPair mid_edge_actions = 7;
+
+  // lookahead (NLookaheadIs/NLookaheadExcept) 가 감시하는 cond symbol 들.
+  // 이 심볼들의 watcher 는 구 규약 (key=등록 gen, same-input 소비, 드리프트 anchor 쌍)
+  // 을 따른다 — 런타임 step 3 의 시동 flavor 판별용.
+  repeated int32 lookahead_cond_symbol_ids = 8;
 }
 
 message PathRootInfo {
@@ -102,6 +107,14 @@ message AppendMilestoneGroup {
 message CondRootStarter {
   int32 symbol_id = 1;
   int32 milestone_group_id = 2;
+  // cond root 의 key 를 resolve 할 태그. bounded (Unless/OnlyIf/NoLongerMatch) 계열은
+  // span-정규화 key: MID = same-input (key=ctx.gen — 이번 입력이 watcher 의 첫 글자).
+  // lookahead (Exists/NotExists) 계열은 구 규약: NEXT + same_input (key=gen 이지만
+  // 이번 입력부터 소비 — 드리프트하는 anchor 와 쌍). NEXT + !same_input = fresh
+  // (소비는 다음 step 부터). CURR = 과거 경계 (등록 skip).
+  KernelTemplateGen key_gen = 3;
+  // 이번 step 의 입력을 watcher 의 첫 글자로 소비할지 (same-input 시동).
+  bool same_input = 4;
 }
 
 message EdgeAction {

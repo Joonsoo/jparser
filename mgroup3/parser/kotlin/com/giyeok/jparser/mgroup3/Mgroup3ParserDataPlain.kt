@@ -7,6 +7,7 @@ import com.giyeok.jparser.mgroup3.proto.CondRootStarter as ProtoCondRootStarter
 import com.giyeok.jparser.mgroup3.proto.EdgeAction
 import com.giyeok.jparser.mgroup3.proto.FinishedKernelTemplate as ProtoFinishedKernelTemplate
 import com.giyeok.jparser.mgroup3.proto.KernelTemplate
+import com.giyeok.jparser.mgroup3.proto.KernelTemplateGen
 import com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData
 import com.giyeok.jparser.mgroup3.proto.ParsingActions
 import com.giyeok.jparser.mgroup3.proto.PathRootInfo
@@ -43,6 +44,9 @@ class ParserDataPlain(val proto: Mgroup3ParserData) {
 
   val midEdgeActions: List<MidEdgeActionPair> =
     proto.midEdgeActionsList.map { MidEdgeActionPair(it.parent, it.tip, EdgeActionPlain(it.edgeAction)) }
+
+  // lookahead 가 감시하는 심볼들 — step 3 시동 flavor 판별 (구 규약: same-input).
+  val lookaheadCondSymbols: Set<Int> = proto.lookaheadCondSymbolIdsList.toHashSet()
 
   // 각 symbol 의 transitive initialCondSymbolIds closure (자기 자신 포함).
   // step3 의 매 step BFS 를 회피. parser data 의 정적 속성.
@@ -120,6 +124,11 @@ class AppendMilestoneGroupPlain(proto: AppendMilestoneGroup) {
 class CondRootStarterPlain(proto: ProtoCondRootStarter) {
   val symbolId: Int = proto.symbolId
   val milestoneGroupId: Int = proto.milestoneGroupId
+  // cond root key 를 resolve 할 태그. bounded 계열: MID = span-정규화 same-input
+  // (key=ctx.gen). lookahead 계열: NEXT + sameInput (구 규약 — key=gen, 이번 입력부터
+  // 소비). NEXT + !sameInput = fresh. CURR = 과거 경계 (등록 skip).
+  val keyGen: KernelTemplateGen = proto.keyGen
+  val sameInput: Boolean = proto.sameInput
 }
 
 class EdgeActionPlain(proto: EdgeAction) {
