@@ -338,6 +338,9 @@ mgroup3(basePath="mgroup3") {
       metalang.main,
       mgroup2.gen,
       mgroup2.parser,
+      naive.main,
+      milestone2.gen,
+      milestone2.parser,
       ktparser.main,
       kttestutils.main,
       examples.generated,
@@ -835,6 +838,38 @@ def runMgroup3Profile() {
 @action
 def runParserBenchmarkTaxonomy() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.ParserBenchmarkTaxonomyTest"))
+}
+
+// Ablation 하네스 (논문 §7): naive2 vs milestone2 vs mgroup3, 같은 문법/입력.
+// 기본은 json+proto3 합성 입력 스케일링. Mulang 스위트는 별도 타겟
+// (milestone2 파서 데이터는 milestone2-test-cache 에 캐시, mgroup3 는
+// runMgroup3FixtureGen 산출 fixture 재사용).
+@action
+def runAblationBenchmark() {
+  runJUnitTestSuiteWithEnv(
+    mgroup3.test,
+    .some("com.giyeok.jparser.mgroup3.AblationBenchmarkTest"),
+    {"ABLATION_BENCH": "1"},
+  )
+}
+
+@action
+def runAblationBenchmarkMulang() {
+  runJUnitTestSuiteWithEnv(
+    mgroup3.test,
+    .some("com.giyeok.jparser.mgroup3.AblationBenchmarkTest"),
+    {"ABLATION_BENCH": "1", "ABLATION_SUITES": "mulang", "ABLATION_CAP_MS": "150000"},
+  )
+}
+
+// mulang 에 naive2 까지 포함 (2KB 입력에 수 분 소요 — crossover 실증용)
+@action
+def runAblationBenchmarkMulangNaive() {
+  runJUnitTestSuiteWithEnv(
+    mgroup3.test,
+    .some("com.giyeok.jparser.mgroup3.AblationBenchmarkTest"),
+    {"ABLATION_BENCH": "1", "ABLATION_SUITES": "mulang", "ABLATION_NAIVE_MULANG": "1", "ABLATION_CAP_MS": "120000"},
+  )
 }
 
 // IntelliJ `.iml` + `.idea/modules.xml` + `.idea/libraries/*.xml` 을 생성. workspace.json
