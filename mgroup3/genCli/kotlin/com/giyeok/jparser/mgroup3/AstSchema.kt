@@ -3,6 +3,8 @@ package com.giyeok.jparser.mgroup3
 sealed class SchemaType {
   object Bool : SchemaType()
   object Int32 : SchemaType()
+  // Kotlin/Rust AST 의 Char — proto 표현은 int32.
+  object Chr : SchemaType()
   object Str : SchemaType()
   object NodeBytes : SchemaType()
   data class Msg(val name: String) : SchemaType()

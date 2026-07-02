@@ -3,10 +3,10 @@
 //! `find_applicable_action`, `expected_inputs_of`. `parseStep` and the recursive
 //! helpers land in Step 3.6.
 
-use std::cell::RefCell;
 use std::collections::VecDeque;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::accept_condition::AcceptCondition;
 use crate::parser::template::{build_condition, resolve_gen_i32};
@@ -43,13 +43,19 @@ fn starter_key_of(key_gen: i32, mid_gen: i32, next_gen: i32) -> Option<i32> {
 pub struct Mgroup3Parser {
     plain: ParserDataPlain,
     /// (parent kernel template, tip group id) → tip edge action.
-    tip_edge_actions: HashMap<(KernelTemplatePair, i32), Rc<EdgeActionPlain>>,
+    tip_edge_actions: HashMap<(KernelTemplatePair, i32), Arc<EdgeActionPlain>>,
     /// (parent kernel template, tip kernel template) → mid edge action.
-    mid_edge_actions: HashMap<(KernelTemplatePair, KernelTemplatePair), Rc<EdgeActionPlain>>,
-    /// (tipGroupId << 32) | charCode → term action lookup result.
-    /// `RefCell` because parse-time we mutate from `&self`. Single-threaded.
-    term_action_cache: RefCell<HashMap<i64, Option<Rc<TermActionPlain>>>>,
+    mid_edge_actions: HashMap<(KernelTemplatePair, KernelTemplatePair), Arc<EdgeActionPlain>>,
 }
+
+// 파서 인스턴스는 스레드 간 공유되어 동시에 사용된다 — bibix4 의 병렬 파일 파싱이
+// FFI 로 하나의 핸들을 공유한다. 공유 데이터는 전부 Arc/불변, term action 캐시는
+// 파스-로컬 (ParsingCtx). (parse 중 만들어지는 ctx 내부의 Rc 들은 파스-로컬이라 무관.)
+// 컴파일 타임 보증:
+const _: () = {
+    const fn assert_send_sync<T: Send + Sync>() {}
+    let _ = assert_send_sync::<Mgroup3Parser>;
+};
 
 impl Mgroup3Parser {
     pub fn new(data: Mgroup3ParserData) -> Self {
@@ -65,7 +71,7 @@ impl Mgroup3Parser {
                     },
                     p.tip_group_id,
                 );
-                (key, Rc::clone(&p.edge_action))
+                (key, Arc::clone(&p.edge_action))
             })
             .collect();
         let mid_edge_actions = plain
@@ -82,14 +88,13 @@ impl Mgroup3Parser {
                         pointer: p.tip.pointer,
                     },
                 );
-                (key, Rc::clone(&p.edge_action))
+                (key, Arc::clone(&p.edge_action))
             })
             .collect();
         Self {
             plain,
             tip_edge_actions,
             mid_edge_actions,
-            term_action_cache: RefCell::new(HashMap::default()),
         }
     }
 
@@ -106,7 +111,7 @@ impl Mgroup3Parser {
         &self,
         parent: KernelTemplatePair,
         tip_group_id: i32,
-    ) -> Option<Rc<EdgeActionPlain>> {
+    ) -> Option<Arc<EdgeActionPlain>> {
         self.tip_edge_actions.get(&(parent, tip_group_id)).cloned()
     }
 
@@ -115,7 +120,7 @@ impl Mgroup3Parser {
         &self,
         parent: KernelTemplatePair,
         tip: KernelTemplatePair,
-    ) -> Option<Rc<EdgeActionPlain>> {
+    ) -> Option<Arc<EdgeActionPlain>> {
         self.mid_edge_actions.get(&(parent, tip)).cloned()
     }
 
@@ -148,7 +153,7 @@ impl Mgroup3Parser {
         let mut initial_apps: Vec<ActionApplication> = Vec::new();
         let mut initial_finished: Vec<FinishedKernelRecord> = Vec::new();
         if let Some(pa) = &root_info.parsing_actions {
-            initial_apps.push(initial_application(Rc::clone(pa), main_root));
+            initial_apps.push(initial_application(Arc::clone(pa), main_root));
         }
         // cond root 들의 초기 derive closure 도 보고 — m2 의 초기 tasksSummary 가
         // in-graph cond body 를 포함하는 것에 대응. (정렬: 결정적 출력)
@@ -158,7 +163,7 @@ impl Mgroup3Parser {
         for cond_root in &initial_cond_roots {
             if let Some(info) = self.plain.path_roots.get(&cond_root.symbol_id) {
                 if let Some(pa) = &info.parsing_actions {
-                    initial_apps.push(initial_application(Rc::clone(pa), *cond_root));
+                    initial_apps.push(initial_application(Arc::clone(pa), *cond_root));
                 }
             }
         }
@@ -207,6 +212,7 @@ impl Mgroup3Parser {
             history: vec![initial_entry],
             ever_seen_cond_roots: Default::default(),
             root_report_gens: Default::default(),
+            term_action_cache: Default::default(),
         }
     }
 
@@ -243,25 +249,27 @@ impl Mgroup3Parser {
 
     /// Look up a term action for `(shape.tip_group_id, input)`. Cached.
     /// Mirrors `Mgroup3Parser.kt:164-173`.
+    /// cache 는 파스-로컬 (ParsingCtx.term_action_cache) — 파서 인스턴스는 여러
+    /// 스레드가 동시에 사용하므로 (bibix4 병렬 파일 파싱) 공유 캐시는 핫패스에서
+    /// cacheline 경합을 일으킨다. 파일 안에서는 같은 문자가 반복되므로 파스-로컬
+    /// 캐시로도 hit rate 충분.
     pub fn find_applicable_action(
         &self,
+        cache: &mut HashMap<i64, Option<Arc<TermActionPlain>>>,
         shape: &PathShape,
         input: char,
-    ) -> Option<Rc<TermActionPlain>> {
+    ) -> Option<Arc<TermActionPlain>> {
         let key = ((shape.tip_group_id as i64) << 32) | (input as u32 as i64);
-        {
-            let cache = self.term_action_cache.borrow();
-            if let Some(v) = cache.get(&key) {
-                return v.clone();
-            }
+        if let Some(v) = cache.get(&key) {
+            return v.clone();
         }
         let result = self.plain.term_actions.get(&shape.tip_group_id).and_then(|actions| {
             actions
                 .iter()
                 .find(|action| is_match(&action.term_group, input))
-                .map(|action| Rc::clone(&action.term_action))
+                .map(|action| Arc::clone(&action.term_action))
         });
-        self.term_action_cache.borrow_mut().insert(key, result.clone());
+        cache.insert(key, result.clone());
         result
     }
 
@@ -284,9 +292,6 @@ impl Mgroup3Parser {
     /// Drop the term-action cache. Useful in benchmarks or when the same
     /// `Mgroup3Parser` is reused across very different inputs. Not on the hot
     /// path.
-    pub fn clear_term_action_cache(&self) {
-        self.term_action_cache.borrow_mut().clear();
-    }
 
     /// Drive one input character. Mirrors `Mgroup3Parser.kt:388-698`.
     pub fn parse_step(
@@ -295,6 +300,9 @@ impl Mgroup3Parser {
         input: char,
         is_last_input: bool,
     ) -> Result<ParsingCtx, ParsingError> {
+
+        // 파스-로컬 term action 캐시 — ctx 에서 꺼내 이번 step 동안 사용 후 되돌린다.
+        let mut term_cache = std::mem::take(&mut ctx.term_action_cache);
         let main_paths_before = ctx.paths.get(&ctx.main_root).cloned().unwrap_or_default();
         if main_paths_before.is_empty() {
             let expected = self.expected_inputs_of(&ctx);
@@ -328,7 +336,7 @@ impl Mgroup3Parser {
             let is_main = *root == ctx.main_root;
             let mut per_root_next: PathMap = PathMap::default();
             for (shape, cond) in path_map {
-                let ta = self.find_applicable_action(shape, input);
+                let ta = self.find_applicable_action(&mut term_cache, shape, input);
                 if let Some(ta) = ta {
                     let root_report_gen =
                         ctx.root_report_gens.get(root).copied().unwrap_or(root.start_gen);
@@ -425,7 +433,7 @@ impl Mgroup3Parser {
                 seeded.insert(starter_shape, AcceptCondition::Always);
                 next_paths.insert(starter_root, seeded);
             } else {
-                let ta = self.find_applicable_action(&starter_shape, input);
+                let ta = self.find_applicable_action(&mut term_cache, &starter_shape, input);
                 if let Some(ta) = ta {
                     // 실제 span 시작: key==gen (lookahead 구 규약) 이면 gen-1.
                     let report_gen = if starter_root.start_gen == next_gen {
@@ -551,7 +559,7 @@ impl Mgroup3Parser {
                 seeded.insert(starter_shape, AcceptCondition::Always);
                 next_paths.insert(path_root, seeded);
             } else {
-                let ta = self.find_applicable_action(&starter_shape, input);
+                let ta = self.find_applicable_action(&mut term_cache, &starter_shape, input);
                 if let Some(ta) = ta {
                     let report_gen = if path_root.start_gen == next_gen {
                         next_gen - 1
@@ -743,6 +751,7 @@ impl Mgroup3Parser {
             history,
             ever_seen_cond_roots,
             root_report_gens,
+            term_action_cache: term_cache,
         })
     }
 
@@ -947,7 +956,7 @@ impl Mgroup3Parser {
         if let Some(pa) = &term_action.parsing_actions {
             // 보고는 lazy — 액션 참조와 바인딩만 기록 (kernels_history 가 해석).
             apps_out.push(ActionApplication {
-                actions: Rc::clone(pa),
+                actions: Arc::clone(pa),
                 root: path_root,
                 rt_curr: parent_gen,
                 rt_mid: mid_gen,
@@ -980,7 +989,7 @@ impl Mgroup3Parser {
                 gen_idx,
                 replace_kernel,
                 old_shape.milestone_path.clone(),
-                Rc::clone(&rea.append.observing_cond_symbol_ids),
+                Arc::clone(&rea.append.observing_cond_symbol_ids),
                 gen_idx,
                 report_parent_gen,
             ));
@@ -1113,7 +1122,7 @@ impl Mgroup3Parser {
             // 보고는 lazy. edge 적용은 그것을 구동한 runtime 조건으로 전체 게이팅됨
             // (m2 kernelsHistory 의 progressedKgroups/progressedKernels 조건 게이트 대응).
             apps_out.push(ActionApplication {
-                actions: Rc::clone(pa),
+                actions: Arc::clone(pa),
                 root: path_root,
                 rt_curr: grand_parent_gen,
                 rt_mid: parent_gen,
@@ -1140,7 +1149,7 @@ impl Mgroup3Parser {
             }
             // 새 tip group 은 이번 gen 에 재부착 — 보고용 report_gen 갱신 (런타임 gen 불변).
             let new_parent_path = parent_path
-                .with_observing_and_report_gen(Rc::clone(&append.observing_cond_symbol_ids), gen_idx);
+                .with_observing_and_report_gen(Arc::clone(&append.observing_cond_symbol_ids), gen_idx);
             add_path(
                 next_paths_out,
                 PathShape::new(Some(new_parent_path), append.milestone_group_id),
@@ -1231,7 +1240,7 @@ impl Mgroup3Parser {
 }
 
 /// 초기 액션 적용: 모든 태그가 root 의 startGen 으로 resolve.
-fn initial_application(pa: Rc<ParsingActionsPlain>, root: PathRoot) -> ActionApplication {
+fn initial_application(pa: Arc<ParsingActionsPlain>, root: PathRoot) -> ActionApplication {
     let base = root.start_gen;
     ActionApplication {
         actions: pa,

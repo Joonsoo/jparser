@@ -189,6 +189,7 @@ object Stage2ProtoEmit {
   private fun typeNameForRef(t: SchemaType): String = when (t) {
     SchemaType.Bool -> "bool"
     SchemaType.Int32 -> "int32"
+    SchemaType.Chr -> "int32"
     SchemaType.Str -> "string"
     SchemaType.NodeBytes -> "bytes"
     is SchemaType.Msg -> "int32"

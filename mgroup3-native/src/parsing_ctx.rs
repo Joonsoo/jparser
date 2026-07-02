@@ -67,7 +67,7 @@ pub struct AddedKernelRecord {
 /// edge summary with it); term actions use `Always` (no gate in m2 either).
 #[derive(Clone, Debug)]
 pub struct ActionApplication {
-    pub actions: Rc<crate::parser_data::ParsingActionsPlain>,
+    pub actions: std::sync::Arc<crate::parser_data::ParsingActionsPlain>,
     pub root: PathRoot,
     pub rt_curr: i32,
     pub rt_mid: i32,
@@ -81,7 +81,7 @@ pub struct ActionApplication {
 
 impl PartialEq for ActionApplication {
     fn eq(&self, other: &Self) -> bool {
-        Rc::ptr_eq(&self.actions, &other.actions)
+        std::sync::Arc::ptr_eq(&self.actions, &other.actions)
             && self.root == other.root
             && self.rt_curr == other.rt_curr
             && self.rt_mid == other.rt_mid
@@ -104,9 +104,9 @@ pub struct MilestonePath {
     pub gen_idx: i32,
     pub milestone: Kernel,
     pub parent: Option<Rc<MilestonePath>>,
-    /// Cond symbol IDs observed at this edge. Shared `Rc<[i32]>` so adding/copying
+    /// Cond symbol IDs observed at this edge. Shared `Arc<[i32]>` so adding/copying
     /// paths doesn't reallocate.
-    pub observing_cond_symbol_ids: Rc<[i32]>,
+    pub observing_cond_symbol_ids: std::sync::Arc<[i32]>,
     /// Report-only shadow gens (NOT part of Eq/Hash — including them explodes
     /// path counts on ambiguous grammars). `report_gen`: the gen the tip group
     /// above this node was last (re)attached — mirrors mgroup2's updated tip
@@ -123,7 +123,7 @@ impl MilestonePath {
         gen_idx: i32,
         milestone: Kernel,
         parent: Option<Rc<MilestonePath>>,
-        observing_cond_symbol_ids: Rc<[i32]>,
+        observing_cond_symbol_ids: std::sync::Arc<[i32]>,
         report_gen: i32,
         milestone_report_gen: i32,
     ) -> Self {
@@ -144,7 +144,7 @@ impl MilestonePath {
     /// it is co-designed with cond root anchoring).
     pub fn with_observing_and_report_gen(
         self: &Rc<MilestonePath>,
-        observing: Rc<[i32]>,
+        observing: std::sync::Arc<[i32]>,
         report_gen: i32,
     ) -> Rc<MilestonePath> {
         Rc::new(MilestonePath::new(
@@ -306,6 +306,10 @@ pub struct ParsingCtx {
     /// from (creation gen - 1); report coordinates use this instead of
     /// `root.start_gen`. Runtime keys/anchoring unchanged.
     pub root_report_gens: HashMap<PathRoot, i32>,
+    /// (tipGroupId << 32) | charCode → term action 조회 캐시 — 파스-로컬.
+    /// 파서 인스턴스는 스레드 간 공유되므로 (bibix4 병렬 파싱) 파서에 두면
+    /// 핫패스 락 경합이 생긴다. ctx 는 파스마다 하나라 락 불필요.
+    pub term_action_cache: HashMap<i64, Option<std::sync::Arc<crate::parser_data::TermActionPlain>>>,
 }
 
 impl ParsingCtx {
@@ -364,7 +368,7 @@ mod tests {
             gen_idx,
             Kernel::new(sid, 0, gen_idx),
             None,
-            Rc::from(Vec::<i32>::new()),
+            std::sync::Arc::from(Vec::<i32>::new()),
             gen_idx,
             gen_idx,
         ))
@@ -383,7 +387,7 @@ mod tests {
             1,
             Kernel::new(7, 0, 1),
             Some(parent.clone()),
-            Rc::from(vec![1, 2]),
+            std::sync::Arc::from(vec![1, 2]),
             1,
             0,
         ));
@@ -391,7 +395,7 @@ mod tests {
             1,
             Kernel::new(7, 0, 1),
             Some(parent.clone()),
-            Rc::from(vec![1, 2]),
+            std::sync::Arc::from(vec![1, 2]),
             1,
             0,
         ));
@@ -401,7 +405,7 @@ mod tests {
             1,
             Kernel::new(7, 0, 1),
             Some(parent),
-            Rc::from(vec![1, 3]),
+            std::sync::Arc::from(vec![1, 3]),
             1,
             0,
         ));
@@ -479,6 +483,7 @@ mod tests {
             history: vec![],
             ever_seen_cond_roots: HashSet::default(),
             root_report_gens: HashMap::default(),
+            term_action_cache: Default::default(),
         };
         assert_eq!(ctx.main_paths().unwrap().len(), 1);
         assert_eq!(ctx.cond_paths().count(), 0);

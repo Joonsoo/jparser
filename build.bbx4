@@ -376,15 +376,27 @@ mgroup3(basePath="mgroup3") {
 
   def genRustParser(
     cdgFile: path,
-    parserDataFileName: string = "mgroup3-parserdata.pb",
-    astProtoFileName: string = "ast-datatypes.proto",
-    genKotlinBinding: bool = true,
+    // 생성 crate 의 mgroup3-native path dependency 위치 (jparser 리포의 mgroup3-native).
+    // 외부 프로젝트에서 호출 시 명시적으로 넘길 것 — external def 내부의 string→path
+    // coercion 은 현재 caller 의 basePath 로 붙는 문제가 있어 default 를 둘 수 없다.
+    mgroup3NativeDir: path,
+    // 생성될 Kotlin AST 클래스의 FQCN — 마지막 컴포넌트가 클래스명, 앞이 패키지.
+    // proto 패키지는 "<패키지>.ast", 바인딩 클래스는 "<클래스명>ProtoBinding".
+    astifierClassName: string = "com.giyeok.jparser.mgroup3.generated.Ast",
+    // Rust crate 이름 — 여러 문법의 crate/dylib 공존을 위해 문법별로 지정.
+    crateName: string = "mgroup3-generated-parser",
+    // ".gz" 로 끝나면 gzip 으로 기록.
+    parserDataFileName: string = "mgroup3-parserdata.pb.gz",
+    astProtoFileName: string = "ast.proto",
+    // grammar(NGrammar) 필드 제거 — 런타임(Kotlin/Rust)이 읽지 않는 디버그 정보.
+    trimParserData: bool = true,
   ): RustParser {
     let outDir = context.destDirectory()
     let dataFile = outDir / "data" / parserDataFileName
     let protoFile = outDir / "proto" / astProtoFileName
     let rust = outDir / "rust"
     let kotlin = outDir / "kotlin"
+    let nativeRoot = mgroup3NativeDir
 
     let rustArtifact = artifact.build(rust) {
       file.createDirectory(outDir / "data")
@@ -392,16 +404,20 @@ mgroup3(basePath="mgroup3") {
       file.createDirectory(rust)
       file.createDirectory(kotlin)
       let genJar = genCliJar.jarFile.await()
-      let result = context.runCommand([
+      let baseCmd: list<string> = [
         "java",
         "-jar", genJar.absolutePath,
         cdgFile.absolutePath,
         "-parserdata", dataFile.absolutePath,
         "-proto", protoFile.absolutePath,
         "-rust", rust.absolutePath,
-        // TODO disable kotlin gen if genKotlinBinding is false
         "-kotlin", kotlin.absolutePath,
-      ])
+        "-mgroup3-native", nativeRoot.absolutePath,
+        "-astifierClass", astifierClassName,
+        "-crateName", crateName,
+      ]
+      let cmd: list<string> = if trimParserData then baseCmd + ["-trimGrammar"] else baseCmd
+      let result = context.runCommand(cmd)
       if result.exitCode != 0 {
         throw "mgroup3.genRustParser ${context.thisTargetName} (exit=${result.exitCode}): ${result.stderr}"
       }
@@ -427,16 +443,55 @@ mgroup3(basePath="mgroup3") {
     )
   }
 
-  def genFastParser(
-    cdgFile: path,
-    parserDataFileName: string = "mgroup3-parserdata.pb",
-    astProtoFileName: string = "ast-datatypes.proto",
-    // TODO target arch
-  ): jvm.JvmLib {
-    let rust = genRustParser(cdgFile, parserDataFileName, astProtoFileName)
+  // 현재 플랫폼의 dylib 파일명 (lib<crate>_underscored.{dylib|so} / <crate>.dll).
+  def dylibFileNameOf(crateName: string): string {
+    let libName = crateName.replace("-", "_")
+    let os = context.os
+    if os.contains("mac") || os.contains("darwin") {
+      return "lib${libName}.dylib"
+    }
+    if os.contains("windows") {
+      return "${libName}.dll"
+    }
+    return "lib${libName}.so"
+  }
 
-    // TODO 생성된 rust -> so, dll, dylib 으로 컴파일하고, kotlin 코드 컴파일해서 반환
-    return ktjvm.library(srcs = [])
+  // 리소스 디렉토리 규약: native/<os>-<arch>/ (예: native/darwin-aarch64/).
+  // 런타임 로더 (생성 crate 의 Kotlin 바인딩 사용측) 와 일치해야 한다.
+  def nativeResourceDirName(): string {
+    let os = context.os
+    let osPart = if os.contains("mac") || os.contains("darwin") then "darwin"
+      else if os.contains("windows") then "windows"
+      else "linux"
+    return "${osPart}-${context.arch}"
+  }
+
+  // genRustParser 가 만든 crate 를 cargo 로 빌드해 cdylib 파일을 반환.
+  // cargo 가 PATH 에 있어야 한다 (rustup 표준 설치 기준).
+  def cargoDylib(
+    crateRoot: artifact,
+    crateName: string = "mgroup3-generated-parser",
+    release: bool = true,
+  ): artifact {
+    let outDir = context.destDirectory()
+    let targetDir = outDir / "target"
+    let profile = if release then "release" else "debug"
+    let dylib = targetDir / profile / dylibFileNameOf(crateName)
+    return artifact.build(dylib) {
+      let crate = crateRoot.await()
+      let baseCmd: list<string> = [
+        "cargo", "build",
+        "--features", "ffi",
+        "--manifest-path", (crate / "Cargo.toml").absolutePath,
+        "--target-dir", targetDir.absolutePath,
+      ]
+      let cmd: list<string> = if release then baseCmd + ["--release"] else baseCmd
+      let result = context.runCommand(cmd)
+      if result.exitCode != 0 {
+        throw "mgroup3.cargoDylib ${context.thisTargetName} (exit=${result.exitCode}): ${result.stderr}"
+      }
+      dylib
+    }
   }
 }
 

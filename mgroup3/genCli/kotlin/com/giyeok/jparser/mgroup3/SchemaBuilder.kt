@@ -87,7 +87,7 @@ object SchemaBuilder {
     // `StringType$` 만 반환한다 (binary name 인 `Type$StringType$` 가 아니다).
     when (t::class.java.simpleName) {
       "BoolType\$" -> return SchemaType.Bool
-      "CharType\$" -> return SchemaType.Int32
+      "CharType\$" -> return SchemaType.Chr
       "StringType\$" -> return SchemaType.Str
       "NodeType\$" -> return SchemaType.NodeBytes
       "NullType\$" -> return SchemaType.NodeBytes

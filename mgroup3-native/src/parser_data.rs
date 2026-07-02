@@ -5,7 +5,7 @@
 //! per parser; everything is then immutable.
 
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::proto::com::giyeok::jparser::mgroup3::proto as pb;
 use crate::proto::com::giyeok::jparser::proto::TermGroup;
@@ -21,10 +21,10 @@ pub type AddedKernelTemplate = pb::AddedKernelTemplate;
 #[derive(Debug)]
 pub struct ParserDataPlain {
     pub start_symbol_id: i32,
-    pub path_roots: HashMap<i32, Rc<PathRootInfoPlain>>,
-    pub milestone_groups: HashMap<i32, Rc<MilestoneGroupPlain>>,
+    pub path_roots: HashMap<i32, Arc<PathRootInfoPlain>>,
+    pub milestone_groups: HashMap<i32, Arc<MilestoneGroupPlain>>,
     /// tipGroupId → ordered list of (termGroup, termAction).
-    pub term_actions: HashMap<i32, Vec<Rc<TermGroupActionPlain>>>,
+    pub term_actions: HashMap<i32, Vec<Arc<TermGroupActionPlain>>>,
     pub tip_edge_actions: Vec<TipEdgeActionPair>,
     pub mid_edge_actions: Vec<MidEdgeActionPair>,
     /// For each symbol, the transitive set of initial cond symbol IDs
@@ -38,26 +38,26 @@ impl ParserDataPlain {
     pub fn from_proto(proto: pb::Mgroup3ParserData) -> Self {
         let start_symbol_id = proto.start_symbol_id;
 
-        let path_roots: HashMap<i32, Rc<PathRootInfoPlain>> = proto
+        let path_roots: HashMap<i32, Arc<PathRootInfoPlain>> = proto
             .path_roots
             .into_iter()
-            .map(|(k, v)| (k, Rc::new(PathRootInfoPlain::from_proto(v))))
+            .map(|(k, v)| (k, Arc::new(PathRootInfoPlain::from_proto(v))))
             .collect();
 
-        let milestone_groups: HashMap<i32, Rc<MilestoneGroupPlain>> = proto
+        let milestone_groups: HashMap<i32, Arc<MilestoneGroupPlain>> = proto
             .milestone_groups
             .into_iter()
-            .map(|(k, v)| (k, Rc::new(MilestoneGroupPlain::from_proto(v))))
+            .map(|(k, v)| (k, Arc::new(MilestoneGroupPlain::from_proto(v))))
             .collect();
 
-        let term_actions: HashMap<i32, Vec<Rc<TermGroupActionPlain>>> = proto
+        let term_actions: HashMap<i32, Vec<Arc<TermGroupActionPlain>>> = proto
             .term_actions
             .into_iter()
             .map(|(k, v)| {
                 let actions = v
                     .actions
                     .into_iter()
-                    .map(|tga| Rc::new(TermGroupActionPlain::from_proto(tga)))
+                    .map(|tga| Arc::new(TermGroupActionPlain::from_proto(tga)))
                     .collect();
                 (k, actions)
             })
@@ -99,7 +99,7 @@ impl ParserDataPlain {
 /// `path_roots[s].initial_cond_symbol_ids`. A cycle hit returns just the
 /// cycle-entry symbol; the caller's union catches the rest.
 fn compute_transitive_initial_cond_symbols(
-    path_roots: &HashMap<i32, Rc<PathRootInfoPlain>>,
+    path_roots: &HashMap<i32, Arc<PathRootInfoPlain>>,
 ) -> HashMap<i32, HashSet<i32>> {
     let mut out: HashMap<i32, HashSet<i32>> =
         HashMap::with_capacity_and_hasher(path_roots.len(), Default::default());
@@ -107,7 +107,7 @@ fn compute_transitive_initial_cond_symbols(
 
     fn closure_of(
         sym_id: i32,
-        path_roots: &HashMap<i32, Rc<PathRootInfoPlain>>,
+        path_roots: &HashMap<i32, Arc<PathRootInfoPlain>>,
         out: &mut HashMap<i32, HashSet<i32>>,
         stack: &mut HashSet<i32>,
     ) -> HashSet<i32> {
@@ -146,9 +146,9 @@ fn compute_transitive_initial_cond_symbols(
 pub struct PathRootInfoPlain {
     pub symbol_id: i32,
     pub milestone_group_id: i32,
-    pub initial_cond_symbol_ids: Rc<[i32]>,
+    pub initial_cond_symbol_ids: Arc<[i32]>,
     pub self_finish_accept_condition: Option<AcceptConditionTemplate>,
-    pub parsing_actions: Option<Rc<ParsingActionsPlain>>,
+    pub parsing_actions: Option<Arc<ParsingActionsPlain>>,
 }
 
 impl PathRootInfoPlain {
@@ -156,9 +156,9 @@ impl PathRootInfoPlain {
         Self {
             symbol_id: proto.symbol_id,
             milestone_group_id: proto.milestone_group_id,
-            initial_cond_symbol_ids: Rc::from(proto.initial_cond_symbol_ids),
+            initial_cond_symbol_ids: Arc::from(proto.initial_cond_symbol_ids),
             self_finish_accept_condition: proto.self_finish_accept_condition,
-            parsing_actions: proto.parsing_actions.map(|pa| Rc::new(ParsingActionsPlain::from_proto(pa))),
+            parsing_actions: proto.parsing_actions.map(|pa| Arc::new(ParsingActionsPlain::from_proto(pa))),
         }
     }
 }
@@ -198,14 +198,14 @@ impl PossibleFinishPlain {
 #[derive(Debug)]
 pub struct TermGroupActionPlain {
     pub term_group: TermGroup,
-    pub term_action: Rc<TermActionPlain>,
+    pub term_action: Arc<TermActionPlain>,
 }
 
 impl TermGroupActionPlain {
     fn from_proto(proto: pb::mgroup3_parser_data::TermGroupAction) -> Self {
         Self {
             term_group: proto.term_group.expect("TermGroupAction.term_group missing"),
-            term_action: Rc::new(TermActionPlain::from_proto(
+            term_action: Arc::new(TermActionPlain::from_proto(
                 proto.term_action.expect("TermGroupAction.term_action missing"),
             )),
         }
@@ -216,7 +216,7 @@ impl TermGroupActionPlain {
 pub struct TermActionPlain {
     pub replace_and_appends: Vec<ReplaceAndAppendPlain>,
     pub replace_and_progresses: Vec<ReplaceAndProgressPlain>,
-    pub parsing_actions: Option<Rc<ParsingActionsPlain>>,
+    pub parsing_actions: Option<Arc<ParsingActionsPlain>>,
 }
 
 impl TermActionPlain {
@@ -242,7 +242,7 @@ impl TermActionPlain {
                         .expect("ReplaceAndProgress.accept_condition missing"),
                 })
                 .collect(),
-            parsing_actions: proto.parsing_actions.map(|pa| Rc::new(ParsingActionsPlain::from_proto(pa))),
+            parsing_actions: proto.parsing_actions.map(|pa| Arc::new(ParsingActionsPlain::from_proto(pa))),
         }
     }
 }
@@ -263,7 +263,7 @@ pub struct ReplaceAndProgressPlain {
 pub struct AppendMilestoneGroupPlain {
     pub milestone_group_id: i32,
     pub accept_condition: AcceptConditionTemplate,
-    pub observing_cond_symbol_ids: Rc<[i32]>,
+    pub observing_cond_symbol_ids: Arc<[i32]>,
     pub cond_root_starters: Vec<CondRootStarterPlain>,
 }
 
@@ -272,7 +272,7 @@ impl AppendMilestoneGroupPlain {
         Self {
             milestone_group_id: proto.milestone_group_id,
             accept_condition: proto.accept_condition.expect("AppendMilestoneGroup.accept_condition missing"),
-            observing_cond_symbol_ids: Rc::from(proto.observing_cond_symbol_ids),
+            observing_cond_symbol_ids: Arc::from(proto.observing_cond_symbol_ids),
             cond_root_starters: proto
                 .cond_root_starters
                 .into_iter()
@@ -310,7 +310,7 @@ impl CondRootStarterPlain {
 pub struct EdgeActionPlain {
     pub append_milestone_groups: Vec<AppendMilestoneGroupPlain>,
     pub start_node_progress: Option<AcceptConditionTemplate>,
-    pub parsing_actions: Option<Rc<ParsingActionsPlain>>,
+    pub parsing_actions: Option<Arc<ParsingActionsPlain>>,
 }
 
 impl EdgeActionPlain {
@@ -322,7 +322,7 @@ impl EdgeActionPlain {
                 .map(AppendMilestoneGroupPlain::from_proto)
                 .collect(),
             start_node_progress: proto.start_node_progress,
-            parsing_actions: proto.parsing_actions.map(|pa| Rc::new(ParsingActionsPlain::from_proto(pa))),
+            parsing_actions: proto.parsing_actions.map(|pa| Arc::new(ParsingActionsPlain::from_proto(pa))),
         }
     }
 }
@@ -345,7 +345,7 @@ impl ParsingActionsPlain {
 pub struct TipEdgeActionPair {
     pub parent: KernelTemplate,
     pub tip_group_id: i32,
-    pub edge_action: Rc<EdgeActionPlain>,
+    pub edge_action: Arc<EdgeActionPlain>,
 }
 
 impl TipEdgeActionPair {
@@ -353,7 +353,7 @@ impl TipEdgeActionPair {
         Self {
             parent: proto.parent.expect("TipEdgeActionPair.parent missing"),
             tip_group_id: proto.tip_group_id,
-            edge_action: Rc::new(EdgeActionPlain::from_proto(
+            edge_action: Arc::new(EdgeActionPlain::from_proto(
                 proto.edge_action.expect("TipEdgeActionPair.edge_action missing"),
             )),
         }
@@ -364,7 +364,7 @@ impl TipEdgeActionPair {
 pub struct MidEdgeActionPair {
     pub parent: KernelTemplate,
     pub tip: KernelTemplate,
-    pub edge_action: Rc<EdgeActionPlain>,
+    pub edge_action: Arc<EdgeActionPlain>,
 }
 
 impl MidEdgeActionPair {
@@ -372,7 +372,7 @@ impl MidEdgeActionPair {
         Self {
             parent: proto.parent.expect("MidEdgeActionPair.parent missing"),
             tip: proto.tip.expect("MidEdgeActionPair.tip missing"),
-            edge_action: Rc::new(EdgeActionPlain::from_proto(
+            edge_action: Arc::new(EdgeActionPlain::from_proto(
                 proto.edge_action.expect("MidEdgeActionPair.edge_action missing"),
             )),
         }

@@ -94,7 +94,7 @@ object Stage3KotlinEmit {
       """.trimMargin()
     )
     for (m in concretes.sortedBy { it.name }) {
-      sb.append("        PNodeEntry.NodeCase.${screamingSnake(m.name)} -> decode${m.name}(id, entry.${lowerCamel(m.name)})\n")
+      sb.append("        PNodeEntry.NodeCase.${screamingSnake(m.name)} -> decode${m.name}(id, entry.${ktId(lowerCamel(m.name))})\n")
     }
     sb.append("        else -> error(\"ParseResult: node id=\$id has empty oneof\")\n")
     sb.append("      }\n    }\n\n")
@@ -147,7 +147,7 @@ object Stage3KotlinEmit {
     sb.append("    private fun decode${m.name}(id: Int, m: P${m.name}): $className.${m.kotlinName} =\n")
     sb.append("      $className.${m.kotlinName}(\n")
     for (f in m.fields) {
-      sb.append("        ${f.name} = ${decodeExpr(className, f.name, f.type, kotlinNames)},\n")
+      sb.append("        ${ktId(f.name)} = ${decodeExpr(className, f.name, f.type, kotlinNames)},\n")
     }
     sb.append("        nodeId = id,\n")
     sb.append("        start = m.start,\n")
@@ -157,35 +157,45 @@ object Stage3KotlinEmit {
   }
 
   /** proto getter → Kotlin 값 식. `name` 은 camelCase (proto java getter 와 일치). */
-  private fun decodeExpr(className: String, name: String, t: SchemaType, kn: Map<String, String>): String = when (t) {
-    SchemaType.Bool, SchemaType.Int32, SchemaType.Str -> "m.$name"
-    SchemaType.NodeBytes ->
-      error("NodeBytes 는 Kotlin binding 에서 아직 미지원 (field $name)")
-    is SchemaType.Enm -> "$className.${kn[t.name] ?: t.name}.valueOf(${stripEnumPrefix(t.name, "m.$name.name")})"
-    is SchemaType.Msg -> "node(m.$name) as $className.${kn[t.name] ?: t.name}"
-    is SchemaType.Arr -> decodeArrExpr(className, name, t.of, kn)
-    is SchemaType.Opt -> when (val inner = t.of) {
-      is SchemaType.Arr ->
-        "if (m.${name}Present) ${decodeArrExpr(className, name, inner.of, kn)} else null"
-      is SchemaType.Msg ->
-        "if (m.${name}Present) node(m.$name) as $className.${kn[inner.name] ?: inner.name} else null"
-      is SchemaType.Enm ->
-        "if (m.${name}Present) $className.${kn[inner.name] ?: inner.name}.valueOf(${stripEnumPrefix(inner.name, "m.$name.name")}) else null"
-      SchemaType.Bool, SchemaType.Int32, SchemaType.Str ->
-        "if (m.${name}Present) m.$name else null"
-      else -> error("unsupported Opt inner type for field $name: $inner")
+  private fun decodeExpr(className: String, name0: String, t: SchemaType, kn: Map<String, String>): String {
+    val name = ktId(name0)
+    return when (t) {
+      SchemaType.Bool, SchemaType.Int32, SchemaType.Str -> "m.$name"
+      // proto 는 int32 — Kotlin AST 는 Char.
+      SchemaType.Chr -> "m.$name.toChar()"
+      SchemaType.NodeBytes ->
+        error("NodeBytes 는 Kotlin binding 에서 아직 미지원 (field $name)")
+      is SchemaType.Enm -> "$className.${kn[t.name] ?: t.name}.valueOf(${stripEnumPrefix(t.name, "m.$name.name")})"
+      is SchemaType.Msg -> "node(m.$name) as $className.${kn[t.name] ?: t.name}"
+      is SchemaType.Arr -> decodeArrExpr(className, name0, t.of, kn)
+      is SchemaType.Opt -> when (val inner = t.of) {
+        is SchemaType.Arr ->
+          "if (m.${name0}Present) ${decodeArrExpr(className, name0, inner.of, kn)} else null"
+        is SchemaType.Msg ->
+          "if (m.${name0}Present) node(m.$name) as $className.${kn[inner.name] ?: inner.name} else null"
+        is SchemaType.Enm ->
+          "if (m.${name0}Present) $className.${kn[inner.name] ?: inner.name}.valueOf(${stripEnumPrefix(inner.name, "m.$name.name")}) else null"
+        SchemaType.Bool, SchemaType.Int32, SchemaType.Str ->
+          "if (m.${name0}Present) m.$name else null"
+        SchemaType.Chr ->
+          "if (m.${name0}Present) m.$name.toChar() else null"
+        else -> error("unsupported Opt inner type for field $name: $inner")
+      }
     }
   }
 
-  private fun decodeArrExpr(className: String, name: String, elem: SchemaType, kn: Map<String, String>): String =
-    when (elem) {
-      is SchemaType.Msg -> "m.${name}List.map { node(it) as $className.${kn[elem.name] ?: elem.name} }"
-      is SchemaType.Enm -> "m.${name}List.map { $className.${kn[elem.name] ?: elem.name}.valueOf(${stripEnumPrefix(elem.name, "it.name")}) }"
-      SchemaType.Bool -> "m.${name}List.toList()"
-      SchemaType.Int32 -> "m.${name}List.map { it.toInt() }"
-      SchemaType.Str -> "m.${name}List.toList()"
-      else -> error("unsupported Arr element type for field $name: $elem")
+  private fun decodeArrExpr(className: String, name0: String, elem: SchemaType, kn: Map<String, String>): String {
+    val listGetter = "m.${ktId(name0 + "List")}"
+    return when (elem) {
+      is SchemaType.Msg -> "$listGetter.map { node(it) as $className.${kn[elem.name] ?: elem.name} }"
+      is SchemaType.Enm -> "$listGetter.map { $className.${kn[elem.name] ?: elem.name}.valueOf(${stripEnumPrefix(elem.name, "it.name")}) }"
+      SchemaType.Bool -> "$listGetter.toList()"
+      SchemaType.Int32 -> "$listGetter.map { it.toInt() }"
+      SchemaType.Chr -> "$listGetter.map { it.toChar() }"
+      SchemaType.Str -> "$listGetter.toList()"
+      else -> error("unsupported Arr element type for field $name0: $elem")
     }
+  }
 
   // --- encode fn for one concrete message --------------------------------
 
@@ -221,48 +231,57 @@ object Stage3KotlinEmit {
     kn: Map<String, String>,
   ) {
     val name = f.name
+    // AST data class 프로퍼티 접근 — Kotlin 키워드 필드명 backtick.
+    val acc = "node.${ktId(name)}"
     val cap = name.replaceFirstChar { it.uppercaseChar() }
     when (val t = f.type) {
       SchemaType.Bool, SchemaType.Int32, SchemaType.Str ->
-        setters.add(".set$cap(node.$name)")
+        setters.add(".set$cap($acc)")
+      // Kotlin Char → proto int32.
+      SchemaType.Chr ->
+        setters.add(".set$cap($acc.code)")
       SchemaType.NodeBytes ->
         error("NodeBytes 는 Kotlin binding 에서 아직 미지원 (field $name)")
       is SchemaType.Enm ->
-        setters.add(".set$cap(P${t.name}.valueOf(${addEnumPrefix(t.name, "node.$name.name")}))")
+        setters.add(".set$cap(P${t.name}.valueOf(${addEnumPrefix(t.name, "$acc.name")}))")
       is SchemaType.Msg -> {
-        sb.append("      val ${name}Id = encode${t.name}(node.$name)\n")
+        sb.append("      val ${name}Id = encode${t.name}($acc)\n")
         setters.add(".set$cap(${name}Id)")
       }
       is SchemaType.Arr -> {
-        sb.append("      val ${name}Vals = ${encodeArrExprOn("node.$name", t.of, kn)}\n")
+        sb.append("      val ${name}Vals = ${encodeArrExprOn(acc, t.of, kn)}\n")
         setters.add(".addAll$cap(${name}Vals)")
       }
       is SchemaType.Opt -> when (val inner = t.of) {
         is SchemaType.Msg -> {
-          sb.append("      val ${name}Id = node.$name?.let { encode${inner.name}(it) } ?: 0\n")
-          setters.add(".set${cap}Present(node.$name != null)")
+          sb.append("      val ${name}Id = $acc?.let { encode${inner.name}(it) } ?: 0\n")
+          setters.add(".set${cap}Present($acc != null)")
           setters.add(".set$cap(${name}Id)")
         }
         is SchemaType.Arr -> {
-          sb.append("      val ${name}Vals = node.$name?.let { xs -> ${encodeArrExprOn("xs", inner.of, kn)} } ?: emptyList()\n")
-          setters.add(".set${cap}Present(node.$name != null)")
+          sb.append("      val ${name}Vals = $acc?.let { xs -> ${encodeArrExprOn("xs", inner.of, kn)} } ?: emptyList()\n")
+          setters.add(".set${cap}Present($acc != null)")
           setters.add(".addAll$cap(${name}Vals)")
         }
         is SchemaType.Enm -> {
-          setters.add(".set${cap}Present(node.$name != null)")
-          setters.add(".set$cap(node.$name?.let { P${inner.name}.valueOf(${addEnumPrefix(inner.name, "it.name")}) } ?: P${inner.name}.forNumber(0))")
+          setters.add(".set${cap}Present($acc != null)")
+          setters.add(".set$cap($acc?.let { P${inner.name}.valueOf(${addEnumPrefix(inner.name, "it.name")}) } ?: P${inner.name}.forNumber(0))")
         }
         SchemaType.Str -> {
-          setters.add(".set${cap}Present(node.$name != null)")
-          setters.add(".set$cap(node.$name ?: \"\")")
+          setters.add(".set${cap}Present($acc != null)")
+          setters.add(".set$cap($acc ?: \"\")")
         }
         SchemaType.Int32 -> {
-          setters.add(".set${cap}Present(node.$name != null)")
-          setters.add(".set$cap(node.$name ?: 0)")
+          setters.add(".set${cap}Present($acc != null)")
+          setters.add(".set$cap($acc ?: 0)")
+        }
+        SchemaType.Chr -> {
+          setters.add(".set${cap}Present($acc != null)")
+          setters.add(".set$cap($acc?.code ?: 0)")
         }
         SchemaType.Bool -> {
-          setters.add(".set${cap}Present(node.$name != null)")
-          setters.add(".set$cap(node.$name ?: false)")
+          setters.add(".set${cap}Present($acc != null)")
+          setters.add(".set$cap($acc ?: false)")
         }
         else -> error("unsupported Opt inner type for field $name: $inner")
       }
@@ -272,6 +291,7 @@ object Stage3KotlinEmit {
   private fun encodeArrExprOn(receiver: String, elem: SchemaType, kn: Map<String, String>): String = when (elem) {
     is SchemaType.Msg -> "$receiver.map { encode${elem.name}(it) }"
     is SchemaType.Enm -> "$receiver.map { P${elem.name}.valueOf(${addEnumPrefix(elem.name, "it.name")}) }"
+    SchemaType.Chr -> "$receiver.map { it.code }"
     SchemaType.Bool, SchemaType.Int32, SchemaType.Str -> receiver
     else -> error("unsupported Arr element type: $elem")
   }
@@ -302,4 +322,14 @@ object Stage3KotlinEmit {
 
   /** `ModuleDef` → `moduleDef` (NodeEntry oneof getter). */
   private fun lowerCamel(s: String): String = s.replaceFirstChar { it.lowercaseChar() }
+
+  // Kotlin hard keyword 는 backtick 으로 escape (예: proto 메시지 Return → entry.`return`).
+  private val KOTLIN_HARD_KEYWORDS = setOf(
+    "as", "break", "class", "continue", "do", "else", "false", "for", "fun", "if", "in",
+    "interface", "is", "null", "object", "package", "return", "super", "this", "throw",
+    "true", "try", "typealias", "typeof", "val", "var", "when", "while",
+  )
+
+  private fun ktId(name: String): String =
+    if (name in KOTLIN_HARD_KEYWORDS) "`$name`" else name
 }
