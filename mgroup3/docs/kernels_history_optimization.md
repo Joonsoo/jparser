@@ -28,6 +28,47 @@ Phase 1+2 = 35.5s (구 native 40–44s, mg2 19.1s). hist 제거 후 남은 병�
 다음 arc 는 파스 페이즈의 병리 입력 프로파일링 (time_parse 로 재현 가능:
 `tests/fixtures/parser_generated/mulang/data.pb` + jar.bbx).
 
+### 0.1 파스 페이즈 병목의 근본 원인 (2026-07-03 분석 — 도구: profile_steps/symdump)
+
+**jar.bbx 병리는 mg2 도 공유한다** (mg2 warm: parse 8.1s + kernelsHistory 8.3s
+= 16.4s — mg2 의 19.1s wall 자체가 jar.bbx 스트래글러 지배). 즉 mg3 알고리즘
+고유 결함이 아니라 문법×입력의 상태 폭발이고, mg3 는 그걸 증폭한다.
+
+**폭발 메커니즘 (profile_steps 실측, jar.bbx peak gen 3731)**:
+- step 시간은 live path shape 수에 비례. peak 19,450 shapes (mg2 는 같은
+  지점 893 — 22×; main root 만 3,024 vs 68 — 44×). 1000+ shapes 인 스텝들이
+  전체 parse 시간의 ~85%.
+- shape 구성: main root 3,024 + **트레일링 람다 워처들** — `cached("..") {`
+  (gen 2242) 의 `Longest(CallChain_+)`(sym792) / AddExpr·MulExpr 가드
+  (sym1225/1227) 가 인접 anchor gen 별로 각각 1,512 shapes, 중첩된
+  `artifact.build(outJar) {` (gen 2920) 몫이 각각 756. 워처는 블록이 닫힐
+  때까지 (1,500+ gens) 살아서 블록 내용을 main path 와 중복 시뮬레이션한다.
+- main root 3,024 의 fork 구조 (체인 diff 로 확정): 파일 최상위 `WS Import…`
+  ptr2/3 (×2, gen 1 부터 생존!) × 트레일링-람다 CallChain 지속 여부 (×2 @2243)
+  × 중첩 CallChain 반복 구조 (×3 @2927) × 현재 위치 로컬 스택 (×~40 —
+  인자괄호/문자열/`${...}` 인터폴레이션/CallExpr-except-Digits/수식 레벨들,
+  대부분 nullable WS 경계의 `ptr N / N+1` 쌍). 즉 **오래 사는 소수의 fork 가
+  전부 체인 identity 에 곱셈으로 박힌다** (gen/observing 축 아님 —
+  full=noGen=noObs=3024 확인).
+- 느린 구간이 인터폴레이션 문자열 내부에 몰리는 이유: `"..${a}..${b}"` 가
+  체인 깊이를 43-48 로 밀고 로컬 fork ×40 을 만들며, 그 비용이
+  (main + 워처 6개) 전부에 복제되기 때문.
+
+**mg2 가 22× 적게 유지하는 이유 (구조 차이)**: mg2 는 pended 워처 시동을
+step 전체에서 KernelTemplate 단위로 dedup 해 depth-1 fresh path 로 시작하고
+(MilestoneGroupParserKt.kt:409-448), tracking 필터가 조건이 참조하지 않게 된
+first-milestone 의 path 를 통째로 버린다 (:504-507). 반면 mg3 는 root→tip
+전체 체인을 shape identity 로 열거한다. 대신 mg2 는 kernelsHistory 가 8.3s
+(mg3 는 이제 0.5s) — **jar.bbx 총합은 이미 동급** (mg3 15.5s vs mg2 16.4s),
+그 외 파일은 mg3 가 우세. 남은 wall 격차 (35.5s vs 19.1s) 는 parse CPU 총량
+(serial 78s vs ~26s) 이 병렬 경합에서 스트래글러를 부풀리는 것 + walk/encode
+(~3s @jar.bbx) 몫.
+
+**다음 arc 후보**: (a) 오래 사는 fork 의 공유/병합 — 특히 nullable WS 경계
+ptr 쌍과 파일-레벨 fork 는 보고 좌표 외에 차이가 없어 병합 여지, (b) 워처가
+main 과 같은 내용을 재파싱하는 중복 제거 (mg2 식 시동 dedup), (c) walk/encode
+후속. mg2 도 같은 병리를 공유하므로 (a)/(b) 가 풀리면 mg2 를 크게 이긴다.
+
 ## 1. 목표와 배경
 
 **최종 목표**: mulang 프로젝트의 bibix4 가 빌드스크립트(.bbx4/.bbx, mulang 문법) 파싱을
