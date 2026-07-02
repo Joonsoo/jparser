@@ -774,7 +774,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     tPhase = phaseMark(5, tPhase)
 
     // step 6: 사용되지 않는 cond path 제거 — mainRoot 는 항상 keep.
-    // referencedRoots: 런타임 생존 규칙 (tip-gen anchor 포함 — 기존 동작 유지).
+    // referencedRoots: 런타임 생존 규칙 — 조건 참조 root + observing 의 dot anchor
+    //   (+ lookahead 는 tip/parent anchor 도 — 구 규약의 드리프트 쌍).
     // reportedCondRoots: 보고 대상 — mgroup2 의 trackings 와 같은 규칙
     //   (조건 참조 root + observing 의 parent-gen anchor 만; tip-gen anchor 제외).
     //   m2 는 이 규칙으로 매 step 끝에 root 경로를 필터하므로, 같은 입력에서
@@ -789,15 +790,24 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       var mp = shape.milestonePath
       while (mp != null) {
         for (sid in mp.observingCondSymbolIds) {
-          referencedRoots.add(PathRoot(sid, mp.gen))
           // span-정규화 key anchor — 이 milestone 의 dot(= mp.gen - 1, 부착은 항상 dot+1)
           // 에서 시작한 watcher. 예: "def"&Word 의 Word watcher key = seq dot gen —
           // 조건이 emit 되기 전의 중간 step 들에서도 살아있어야 한다.
           referencedRoots.add(PathRoot(sid, mp.gen - 1))
           reportedCondRoots.add(PathRoot(sid, mp.gen - 1))
           val parentGen = mp.parent?.gen ?: ctx.mainRoot.startGen
-          referencedRoots.add(PathRoot(sid, parentGen))
           reportedCondRoots.add(PathRoot(sid, parentGen))
+          // bounded (except/join/longest) 의 미래 조건 anchor 는 dot 뿐 — term 조건은
+          // MID(같은 step 에 starter 로 시동), edge 조건은 GRAND(=dot) 로만 anchoring
+          // (remapEdgeCondGens; 실측 scanCondAnchorTags: mulang 전 템플릿에서 bounded
+          // 의 CURR anchor 0건). tip(mp.gen)/parent(parentGen) anchor 로만 살아남는
+          // bounded 워처가 인접-gen 중복 root 의 원인 (watcher_anchor_dedup.md §1).
+          // lookahead 는 edge 조건이 CURR/MID 태그를 유지하므로 (remap 대상 아님)
+          // 구 규약의 3 anchor 그대로 — 드리프트 anchor 와 쌍인 자기일관 시스템 (§5).
+          if (sid in plain.lookaheadCondSymbols) {
+            referencedRoots.add(PathRoot(sid, mp.gen))
+            referencedRoots.add(PathRoot(sid, parentGen))
+          }
         }
         mp = mp.parent
       }
