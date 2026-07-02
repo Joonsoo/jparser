@@ -142,7 +142,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Peak-state dump: at the step with the most shapes, attribute shapes to
     // roots and inspect their structure (milestone-path depth, tip groups).
-    if let Some(peak) = rows.iter().max_by_key(|r| r.shapes) {
+    // MG3_DUMP_AT=<gen> 으로 peak 대신 특정 gen 을 덤프.
+    let dump_at: Option<usize> =
+        std::env::var("MG3_DUMP_AT").ok().and_then(|v| v.parse().ok());
+    if let Some(peak) = rows
+        .iter()
+        .filter(|r| dump_at.map_or(true, |g| r.gen_idx == g))
+        .max_by_key(|r| r.shapes)
+    {
         println!(
             "\nre-running to dump state at peak gen {} ({} shapes)...",
             peak.gen_idx, peak.shapes

@@ -123,11 +123,27 @@ NativeParserDiffTest (실코퍼스 native==mg2 AST) 그린.
   역전.** 같은 uberjar 공정 비교 (jar.bbx, warm): native 전체 파이프라인
   5.9s vs mg2 20.1s (parse 11.2 + hist 9.0) = 3.4×.
 
-**잔여 (다음 후보)**: main root 236 vs m2 68 (3.5×) — 남은 fork 는 트레일링
-람다 지속 (×2×3) + 워처 anchor 중복 (심볼당 2-3개 — lookahead 구 규약 드리프트,
-§0.1 Phase C) + 표현 차이 (m2 는 연장 pending 을 NotExists 조건으로 접음).
-파일별 native 는 이미 전부 mg2 우세이므로 우선순위 낮음. walk/encode
-(jar.bbx 전체 5.9s 중 parse 외 ~0.5-1s) 도 후속 후보.
+**잔여 분석 (2026-07-03 재측정 — 같은 gen 대조로 정정)**: 처음 기록했던
+"main 236 vs m2 68" 은 서로 다른 gen 의 peak 를 비교한 착시였다. 같은 gen 에서
+재면 **main root 와 공유 워처는 m2 와 정확히 일치** (gen 3731: 68=68,
+gen 4369: 236=236; 워처 118=118, 34=34) — 구조적 모호성 표현이 m2 와 완전
+등가가 됐다. 남은 fork 는 양쪽 공통인 문법 고유 모호성: 트레일링 콜체인
+repeat 지속 ×2 (798 vs 822 @2249), 중첩 블록 동일 ×2-3, 문자열 인자 뒤 수식
+우선순위 타워 ×5 (sym1233~1259 8종이 같은 span 4208→4320 에 — "이 인자가
+이항연산으로 이어질 가능성"이 우선순위 레벨마다 하나씩), attach-gen 변형 ×1.5.
+
+총 shape 로는 gen 4369 에서 **m3 2,640 < m2 3,440** — 이제 m3 가 오히려 작다.
+- m3 만의 잔여: **워처 anchor 드리프트** — 같은 워처 심볼이 인접 gen 2-3개에
+  별도 root (sym1227@2242/2243/2244; outer 6 roots vs m2 3) ≈ +700 shapes
+  (~27%). lookahead 구 규약 (span-정규화 arc 에서 의도적으로 남긴 것) 산물 —
+  Phase C 후보.
+- m2 만의 부담 (m3 엔 없음): lookahead-requiring 워처를 **매 gen fresh 스폰**
+  (sym20@4369 depth-0 730개; m3 는 everSeen 으로 1회) + 별도 대형 워처 쌍
+  (sym808: 1,357 — 단 구 문법 산물일 수 있음).
+
+jar.bbx 가 여전히 파일 중 최고비용 (5.9s) 인 것은 이 공통 문법 모호성이 블록
+전체에 걸쳐 살아있기 때문 (m2 는 같은 이유로 parse 만 11.2s). 추가 여지:
+Phase C (anchor 정규화, ~27%), 워처-main 중복 시뮬레이션 공유, walk/encode.
 
 ## 1. 목표와 배경
 
