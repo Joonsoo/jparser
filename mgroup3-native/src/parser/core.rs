@@ -774,7 +774,8 @@ impl Mgroup3Parser {
         let Some(last_entry) = ctx.history.last() else { return false };
         let Some(cond) = &last_entry.main_root_finish else { return false };
         let end_late = self.end_of_input_late_fins(ctx);
-        evaluate_record_condition(cond, &ctx.history, ctx.history.len() as i32 - 1, &end_late)
+        let evaluator = super::record_cond::RecordConditionEvaluator::new(&ctx.history, &end_late);
+        evaluator.evaluate(cond, ctx.history.len() as i32 - 1)
     }
 
     /// 입력 끝에서 아직 살아있는 cond path 들의 zero-width possible-finish —
@@ -821,6 +822,9 @@ impl Mgroup3Parser {
     /// kernel coordinates via report bindings. Mirrors Kotlin `kernelsHistory`.
     pub fn kernels_history(&self, ctx: &ParsingCtx) -> Vec<HashSet<KtlibKernel>> {
         let end_late = self.end_of_input_late_fins(ctx);
+        // record 조건 평가는 replay 재생 대신 leaf-직접 조회 + 메모 (record_cond).
+        // evaluator 의 인덱스/메모는 이 호출 로컬 — 파서 인스턴스는 Send+Sync 유지.
+        let evaluator = super::record_cond::RecordConditionEvaluator::new(&ctx.history, &end_late);
         let mut out = Vec::with_capacity(ctx.history.len());
         for (gen_idx, entry) in ctx.history.iter().enumerate() {
             let gen_idx = gen_idx as i32;
@@ -828,7 +832,7 @@ impl Mgroup3Parser {
             for app in &entry.action_applications {
                 // edge action 은 구동 조건으로 전체 게이팅.
                 if !matches!(app.condition, AcceptCondition::Always)
-                    && !evaluate_record_condition(&app.condition, &ctx.history, gen_idx, &end_late)
+                    && !evaluator.evaluate(&app.condition, gen_idx)
                 {
                     continue;
                 }
@@ -840,7 +844,7 @@ impl Mgroup3Parser {
                         .expect("FinishedKernelTemplate.finish_condition missing");
                     let cond =
                         build_condition(cond_tpl, app.rt_curr, app.rt_mid, app.next, app.rt_grand);
-                    if evaluate_record_condition(&cond, &ctx.history, gen_idx, &end_late) {
+                    if evaluator.evaluate(&cond, gen_idx) {
                         let begin = resolve_gen_i32(
                             finished.start_gen,
                             app.rep_curr,
@@ -864,7 +868,7 @@ impl Mgroup3Parser {
                         .expect("AddedKernelTemplate.accept_condition missing");
                     let cond =
                         build_condition(cond_tpl, app.rt_curr, app.rt_mid, app.next, app.rt_grand);
-                    if evaluate_record_condition(&cond, &ctx.history, gen_idx, &end_late) {
+                    if evaluator.evaluate(&cond, gen_idx) {
                         kernels.insert(KtlibKernel {
                             symbol_id: added.symbol_id,
                             pointer: added.pointer,
@@ -887,7 +891,7 @@ impl Mgroup3Parser {
                 }
             }
             for rec in &entry.finished_kernels {
-                if evaluate_record_condition(&rec.condition, &ctx.history, gen_idx, &end_late) {
+                if evaluator.evaluate(&rec.condition, gen_idx) {
                     kernels.insert(KtlibKernel {
                         symbol_id: rec.kernel.symbol_id,
                         pointer: rec.kernel.pointer,
@@ -897,7 +901,7 @@ impl Mgroup3Parser {
                 }
             }
             for rec in &entry.added_kernels {
-                if evaluate_record_condition(&rec.condition, &ctx.history, gen_idx, &end_late) {
+                if evaluator.evaluate(&rec.condition, gen_idx) {
                     kernels.insert(KtlibKernel {
                         symbol_id: rec.symbol_id,
                         pointer: rec.pointer,
