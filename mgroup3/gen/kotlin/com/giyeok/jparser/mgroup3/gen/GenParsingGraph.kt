@@ -112,7 +112,16 @@ class GenParsingGraph(
   }
 
   // start에서 도달 가능한 end들을 반환.
-  // edges와 progressedNodes(현재 phase) 및 derivePhaseProgressedNodes(이전 derive phase)를 모두 따라간다.
+  // edges와 progressedNodes(현재 phase) 및 derivePhaseProgressedNodes(이전 derive phase)를 따라가되,
+  // *start 자신의* progress 링크는 따라가지 않는다: start 의 zero-width progress 쌍둥이
+  // (예: nullable WS 를 빈 매치로 통과한 dot+1 milestone) 는 같은 milestone group 의
+  // 별도 멤버로 존재하고 그 서브트리는 쌍둥이 자신에게 귀속된다 — 여기서 따라가면
+  // 같은 서브트리가 pre/post dot 양쪽의 replace_and_appends 로 중복 emit 되어
+  // 런타임 path 체인이 dot 변형별로 복제된다 (jar.bbx 급 입력에서 레벨마다 ×2 —
+  // kernels_history_optimization.md §0.2). m2 의 per-milestone naive 시뮬레이션은
+  // pre→post edge 가 없어 귀속이 유일한 것에 대응.
+  // start 보다 깊은 노드의 progress 링크는 유지해야 한다: appended group 의
+  // 쌍둥이 멤버십 (예: {B:1, B:2}) 이 그 경로로 수집된다 (m2 도 동일 구성).
   fun reachablesFrom(start: GenNode, end: Set<GenNode>): Set<GenNode> {
     val queue: Queue<GenNode> = LinkedList()
     val visited = mutableSetOf<GenNode>()
@@ -123,9 +132,12 @@ class GenParsingGraph(
     reachables.addAll(end.intersect(setOf(start)))
     while (queue.isNotEmpty()) {
       val next = queue.poll()
-      val nexts = (edgesByStart[next] ?: setOf()) +
-        setOfNotNull(progressedNodes[next]) +
-        setOfNotNull(derivePhaseProgressedNodes[next])
+      var nexts = edgesByStart[next] ?: setOf()
+      if (next != start) {
+        nexts = nexts +
+          setOfNotNull(progressedNodes[next]) +
+          setOfNotNull(derivePhaseProgressedNodes[next])
+      }
       val newNodes = nexts.toSet() - visited
       reachables.addAll(newNodes.intersect(end))
       visited.addAll(newNodes)
