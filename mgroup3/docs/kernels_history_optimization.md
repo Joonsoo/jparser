@@ -2,6 +2,32 @@
 
 작성: 2026-07-02. 이 문서는 다음 세션이 이 작업을 이어받기 위한 설계/실행 문서다.
 
+## 0. 결과 (2026-07-02 구현 완료)
+
+구현: Kotlin `RecordConditionEvaluator.kt` + Rust `parser/record_cond.rs` (커밋
+3ebed5ef, d4ba5ae5). 설계 §3 그대로 + 두 가지 추가 미묘함:
+- **pending-drop**: replay 는 root 가 비활성인 step 에서 leaf 를 즉시 확정하므로,
+  fin 스캔 창을 root 활성 구간 기준 [fromGen, lastActive+1] 로 제한해야 동치
+  (everSeenCondRoots 의 no-respawn 규칙이 활성 구간 연속성을 보장).
+- **visiting**: NLM/NeedLM 은 둘 다 Always (쌍대 아님), 나머지 leaf 는
+  `evalCond(cond, fromGen+1, ∅)` 로 환원.
+
+검증: `MG3_RECORD_COND_DIFF=1` (양쪽 병행 실행 + 불일치 throw) 로 Kotlin 전
+스위트 (127/0 + corner + advanced + m2 parity) 와 cargo test 전부 그린 —
+golden 재생성 없음. mulang `parser.generate` + `parser.test:test` 그린
+(testMlc 실패는 기존 이슈).
+
+성능 (release, mulang 문법, bibix4 stdlib 코퍼스): kernels_history
+junit.bbx 4.4s→0.30s, ktjvm 6.9s→0.28s, cc 4.6s→0.67s, maven 3.4s→0.78s.
+parser_diff (release) wall 4.5s.
+
+**단, 1차 목표 (native 가 mg2 를 이긴다) 는 미달**: --profile-startup
+Phase 1+2 = 35.5s (구 native 40–44s, mg2 19.1s). hist 제거 후 남은 병목은
+**파스 자체** — 특히 jar.bbx (4.7KB) 가 parse 15s (json.bbx 3.8KB 는 67ms —
+입력 내용에 따른 파스 핫패스 병리). cc.bbx 5.5s, jparser build.bbx4 5.1s.
+다음 arc 는 파스 페이즈의 병리 입력 프로파일링 (time_parse 로 재현 가능:
+`tests/fixtures/parser_generated/mulang/data.pb` + jar.bbx).
+
 ## 1. 목표와 배경
 
 **최종 목표**: mulang 프로젝트의 bibix4 가 빌드스크립트(.bbx4/.bbx, mulang 문법) 파싱을
