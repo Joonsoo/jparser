@@ -874,7 +874,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     // accept 판정에 영향을 주지 않는다.
     val lastEntry = ctx.history.lastOrNull() ?: return false
     val cond = lastEntry.mainRootFinish ?: return false
-    return evaluateRecordCondition(cond, ctx.history, ctx.history.size - 1, endOfInputLateFins(ctx))
+    val evaluator = RecordConditionEvaluator(ctx.history, endOfInputLateFins(ctx))
+    return evaluator.evaluate(cond, ctx.history.size - 1)
   }
 
   // 입력 끝에서 아직 살아있는 cond path 들의 zero-width possible-finish 들 —
@@ -903,60 +904,6 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     return result
   }
 
-  // record 가 생성된 시점(recordGen)부터 매 step 의 evolve 를 재생한 뒤 최종 평가.
-  // 파스 중 live path 의 조건이 겪는 것과 동일한 단계별 진화이므로, longest(NoLongerMatch
-  // fromNextGen — 다음 step 에서 resolve)나 join/except(Unless/OnlyIf — 생성 step 의
-  // condPathFinishes 로 resolve = 정확한 span) 의 타이밍 의미가 보존된다.
-  // mgroup2 kernelsHistory 의 타이밍 인지 조건 평가에 대응.
-  private fun evaluateRecordCondition(
-    cond: AcceptCondition,
-    history: List<HistoryEntry>,
-    recordGen: Int,
-    endLateFins: Map<PathRoot, AcceptCondition> = emptyMap(),
-  ): Boolean {
-    var c = cond
-    for (g in recordGen until history.size) {
-      if (c == Always) return true
-      if (c == Never) return false
-      val entry = history[g]
-      c = evolveAcceptCondition(c, entry.condPathFinishes, entry.lateCondPathFinishes, entry.activeCondPaths, g)
-    }
-    if (c == Always) return true
-    if (c == Never) return false
-    // 가상 late step: 입력 끝에서 살아있던 root 들의 마지막-gen zero-width finish 들.
-    if (endLateFins.isNotEmpty()) {
-      c = evolveAcceptCondition(c, emptyMap(), endLateFins, emptySet(), history.size)
-    }
-    return evaluateAtEndOfInput(c)
-  }
-
-  // replay 를 마지막 entry 까지 마친 뒤 남은 residual 조건의 입력-끝 평가.
-  // residual leaf 는 "마지막 step 까지 해당 finish 가 없었고 root 가 아직 미완"을 뜻한다:
-  // 더 들어올 입력이 없으므로 NoLongerMatch/NotExists/Unless 는 true,
-  // NeedLongerMatch/Exists/OnlyIf 는 false 로 확정된다.
-  // (마지막 step 의 finish 는 evolve 가 이미 소비했으므로 여기서 다시 보면 안 된다 —
-  //  특히 NoLongerMatch 는 같은 step 의 finish 가 "더 긴 매치"가 아니다.)
-  private fun evaluateAtEndOfInput(c: AcceptCondition): Boolean = when (c) {
-    Always -> true
-    Never -> false
-    is And -> {
-      var result = true
-      c.forEach { if (!evaluateAtEndOfInput(it)) result = false }
-      result
-    }
-    is Or -> {
-      var result = false
-      c.forEach { if (evaluateAtEndOfInput(it)) result = true }
-      result
-    }
-    is NoLongerMatch -> true
-    is NeedLongerMatch -> false
-    is NotExists -> true
-    is Exists -> false
-    is Unless -> true
-    is OnlyIf -> false
-  }
-
   fun parseOrThrow(text: String): ParsingCtx {
     val ctx = parse(text)
     if (!isAccepted(ctx)) {
@@ -966,7 +913,9 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
   }
 
   fun kernelsHistory(ctx: ParsingCtx): List<KernelSet> {
-    val endLateFins = endOfInputLateFins(ctx)
+    // record 조건 평가는 replay 재생 대신 leaf-직접 조회 + 메모 (RecordConditionEvaluator).
+    // evaluator 의 인덱스/메모는 이 호출 로컬 — 파서 인스턴스는 상태를 갖지 않는다.
+    val evaluator = RecordConditionEvaluator(ctx.history, endOfInputLateFins(ctx))
     return ctx.history.mapIndexed { gen, entry ->
       // root 기반 보고 필터(main root + 이번/직전 entry 의 reportedCondRoots)는
       // parseStep 의 record/application 저장 시점에 이미 적용됨.
@@ -977,11 +926,11 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       for (app in entry.actionApplications) {
         // edge action 은 그 적용을 구동한 runtime 조건으로 전체 게이팅 (m2 kernelsHistory 의
         // progressedKgroups/progressedKernels 조건 게이트 대응).
-        if (app.condition != Always && !evaluateRecordCondition(app.condition, ctx.history, gen, endLateFins)) continue
+        if (app.condition != Always && !evaluator.evaluate(app.condition, gen)) continue
         val pa = app.actions
         for (finished in pa.finished) {
           val cond = finished.finishCondition.toAcceptCondition(app.rtCurr, app.rtMid, app.next, app.rtGrand)
-          if (evaluateRecordCondition(cond, ctx.history, gen, endLateFins)) {
+          if (evaluator.evaluate(cond, gen)) {
             val begin = resolveGen(finished.startGen, app.repCurr, app.repMid, app.next, app.repGrand)
             kernels.add(
               com.giyeok.jparser.ktlib.Kernel(finished.symbolId, finished.pointer, begin, gen)
@@ -994,7 +943,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         // 의 진행) 이 새어 나온다.
         for (added in pa.added) {
           val cond = added.acceptCondition.toAcceptCondition(app.rtCurr, app.rtMid, app.next, app.rtGrand)
-          if (evaluateRecordCondition(cond, ctx.history, gen, endLateFins)) {
+          if (evaluator.evaluate(cond, gen)) {
             kernels.add(
               com.giyeok.jparser.ktlib.Kernel(
                 added.symbolId,
@@ -1007,7 +956,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         }
       }
       for (rec in entry.finishedKernels) {
-        if (evaluateRecordCondition(rec.condition, ctx.history, gen, endLateFins)) {
+        if (evaluator.evaluate(rec.condition, gen)) {
           kernels.add(
             com.giyeok.jparser.ktlib.Kernel(
               rec.kernel.symbolId,
@@ -1019,7 +968,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         }
       }
       for (rec in entry.addedKernels) {
-        if (evaluateRecordCondition(rec.condition, ctx.history, gen, endLateFins)) {
+        if (evaluator.evaluate(rec.condition, gen)) {
           kernels.add(
             com.giyeok.jparser.ktlib.Kernel(
               rec.symbolId,
