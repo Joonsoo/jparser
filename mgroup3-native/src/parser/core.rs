@@ -643,7 +643,8 @@ impl Mgroup3Parser {
             paths_evolved.get(&ctx.main_root).cloned().unwrap_or_default();
 
         // ----- step 6: prune unreferenced cond paths -----
-        // referenced_roots: 런타임 생존 규칙 (tip-gen anchor 포함).
+        // referenced_roots: 런타임 생존 규칙 — 조건 참조 root + observing 의 dot anchor
+        //   (+ lookahead 는 tip/parent anchor 도 — 구 규약의 드리프트 쌍).
         // reported_cond_roots: 보고 대상 — m2 trackings 의 narrow 규칙
         //   (조건 참조 root + observing 의 parent-gen anchor 만).
         let mut referenced_roots: HashSet<PathRoot> = HashSet::default();
@@ -657,7 +658,6 @@ impl Mgroup3Parser {
                 let mut mp = shape.milestone_path.clone();
                 while let Some(node) = mp {
                     for sid in node.observing_cond_symbol_ids.iter().copied() {
-                        referenced_roots.insert(PathRoot::new(sid, node.gen_idx));
                         // span-정규화 key anchor — 이 milestone 의 dot(= gen - 1, 부착은
                         // 항상 dot+1)에서 시작한 watcher (조건이 emit 되기 전 중간 step
                         // 들의 생존 보장).
@@ -665,8 +665,19 @@ impl Mgroup3Parser {
                         reported_cond_roots.insert(PathRoot::new(sid, node.gen_idx - 1));
                         let parent_gen =
                             node.parent.as_ref().map(|p| p.gen_idx).unwrap_or(ctx.main_root.start_gen);
-                        referenced_roots.insert(PathRoot::new(sid, parent_gen));
                         reported_cond_roots.insert(PathRoot::new(sid, parent_gen));
+                        // bounded (except/join/longest) 의 미래 조건 anchor 는 dot 뿐 —
+                        // term 조건은 MID(같은 step 에 starter 로 시동), edge 조건은
+                        // GRAND(=dot) 로만 anchoring (remapEdgeCondGens; 실측
+                        // scanCondAnchorTags: mulang 전 템플릿에서 bounded CURR anchor
+                        // 0건). tip(gen)/parent anchor 로만 살아남는 bounded 워처가
+                        // 인접-gen 중복 root 의 원인 (watcher_anchor_dedup.md §1).
+                        // lookahead 는 edge 조건이 CURR/MID 태그를 유지하므로 구 규약의
+                        // 3 anchor 그대로 — 드리프트 anchor 와 쌍인 자기일관 시스템.
+                        if self.plain.lookahead_cond_symbols.contains(&sid) {
+                            referenced_roots.insert(PathRoot::new(sid, node.gen_idx));
+                            referenced_roots.insert(PathRoot::new(sid, parent_gen));
+                        }
                     }
                     mp = node.parent.clone();
                 }
