@@ -862,6 +862,32 @@ def runAblationBenchmarkMulang() {
   )
 }
 
+// ES5.1 직역 문법 (examples/metalang3/resources/es5) 수용 배터리
+@action
+def runEs5CdgTest() {
+  runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Es5CdgTest"))
+}
+
+@action
+def runEs5DebugTest() {
+  runJUnitTestSuiteWithEnv(
+    mgroup3.test,
+    .some("com.giyeok.jparser.mgroup3.Es5CdgTest"),
+    {"ES5_DEBUG": "1"},
+  )
+}
+
+// ES5 직역 문법으로 es5-corpus/*.js (repo 루트, untracked) 전부 파싱
+@action
+def runEs5CorpusTest() {
+  runJUnitTestSuiteWithEnv(
+    mgroup3.test,
+    .some("com.giyeok.jparser.mgroup3.Es5CdgTest"),
+    // jquery 급 입력(293KB)은 history 누적으로 기본 힙(4g)을 넘음
+    {"ES5_CORPUS": "1", "JAVA_TOOL_OPTIONS": "-Xmx10g"},
+  )
+}
+
 // 논문 §9 문법 통계 (라인/nonterminal/연산자별 조건부 심볼 수)
 @action
 def runGrammarStats() {

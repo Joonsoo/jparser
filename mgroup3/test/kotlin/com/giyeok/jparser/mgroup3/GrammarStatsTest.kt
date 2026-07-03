@@ -59,6 +59,7 @@ class GrammarStatsTest {
     val rows = listOfNotNull(
       statsOf("JSON", Path.of("examples/metalang3/resources/json/grammar.cdg"), "json"),
       statsOf("Proto3", Path.of("examples/metalang3/resources/proto3/grammar.cdg"), "proto3"),
+      statsOf("ES5.1", Path.of("examples/metalang3/resources/es5/grammar.cdg"), "Program"),
       statsOf("ECMA262(excerpt)", Path.of("examples/metalang3/resources/ecma262-13.cdg"), "Expression"),
       statsOf("Mulang", Path.of("../mulang/grammar/mulang.cdg"), "CompileUnit"),
     )
