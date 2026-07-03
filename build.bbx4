@@ -862,6 +862,16 @@ def runAblationBenchmarkMulang() {
   )
 }
 
+// 논문 §9 문법 통계 (라인/nonterminal/연산자별 조건부 심볼 수)
+@action
+def runGrammarStats() {
+  runJUnitTestSuiteWithEnv(
+    mgroup3.test,
+    .some("com.giyeok.jparser.mgroup3.GrammarStatsTest"),
+    {"GRAMMAR_STATS": "1"},
+  )
+}
+
 // mulang 에 naive2 까지 포함 (2KB 입력에 수 분 소요 — crossover 실증용)
 @action
 def runAblationBenchmarkMulangNaive() {
