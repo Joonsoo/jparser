@@ -218,3 +218,169 @@ time_parse, symdump; jar.bbx 등 코퍼스 추출 방법은 `watcher_anchor_dedu
 3. **1a (23%)**: `<CallChain_+>` 제거 실험 — 1b 와 함께면 체인 정지가
    국소 결정되므로 성립 가능성 높음. 반례는 실험으로 수집.
 4. 지점 3 (타워, main ×5): 1–3 이후 별도 트랙 (AST 스키마 변경).
+
+## 10. 권장안의 구체 CDG 수정안 (2026-07-04 — 검토 세션용 초안, 미적용)
+
+원칙 두 개로 요약된다:
+- **밀착 = generic, 공백 = 비교** (`f<T>(x)` vs `a < b`).
+- **이항 연산자는 lhs 와 같은 줄** (`a +\n b` 허용, `a\n+ b` 는 두 문장 —
+  Kotlin 과 동일).
+
+### 10.0 새 보조 정의
+
+```
+// 같은 줄 공백 1개 이상 — 비교 연산자를 밀착 generic 과 토큰 수준에서 분해.
+WS_NO_NL1 = (' \t' | BlockComment) WS_NO_NL {""}
+```
+
+(대칭 강제 — `a <b` 도 불허 — 를 원하면 op 뒤도 1+ 로:
+`WS1 = (' \n\r\t' | Comment) WS {""}`. 분해에는 op 앞 1+ 만으로 충분해서
+아래 초안은 앞쪽만 강제. 뒤쪽까지 강제할지는 스타일 결정.)
+
+### 10.1 권장안 1 (2a+) — `<AddExpr>` 가족 3종 제거
+
+**(a) LessExpr/GreaterExpr — 가드 제거 + 비교 op 앞 공백 1+ (같은 줄):**
+
+```
+// 현행 (:539-546)
+LessExpr
+  = (<AddExpr> WS ("<" {%LT} | "<=" {%LE})&OpTk WS)+ AddExpr
+    {LessExpr(lhsChain=$0{LessChainLhs(lhs=$0, op: %LessOps=$2)}, rhs=$1)}
+GreaterExpr
+  = (AddExpr WS (">" {%GT} | ">=" {%GE})&OpTk WS)+ AddExpr
+    {GreaterExpr(lhsChain=$0{GreaterChainLhs(lhs=$0, op: %GreaterOps=$2)}, rhs=$1)}
+
+// 수정안 (액션 인덱스 불변 — 원소 수 동일)
+LessExpr
+  = (AddExpr WS_NO_NL1 ("<" {%LT} | "<=" {%LE})&OpTk WS)+ AddExpr
+    {LessExpr(lhsChain=$0{LessChainLhs(lhs=$0, op: %LessOps=$2)}, rhs=$1)}
+GreaterExpr
+  = (AddExpr WS_NO_NL1 (">" {%GT} | ">=" {%GE})&OpTk WS)+ AddExpr
+    {GreaterExpr(lhsChain=$0{GreaterChainLhs(lhs=$0, op: %GreaterOps=$2)}, rhs=$1)}
+```
+
+`>` 계열은 generic 분해에 필수는 아니지만 (`<` 만으로 갈라짐) `a<b` 불허 /
+`a>b` 허용의 비대칭을 피하기 위해 같은 규칙 적용. LessExprNoLambda (:992) /
+GreaterExprNoLambda (:996) 도 동형으로 (`<AddExprNoLambda>` →
+`AddExprNoLambda`, `WS` → `WS_NO_NL1`).
+
+**(b) AddExpr/MulExpr — 자체 `<>` 제거 + op 앞 같은-줄 (0+):**
+
+```
+// 현행 (:552-560)
+AddExpr: AddExprOr = <MulExpr
+  | MulExpr
+    (WS ("+" {%ADD} | "-" {%SUB})&OpTk WS MulExpr {AddChain(op: %AddOps=$1, rhs=$3)})+
+    {AddExpr(lhs=$0, chain=$1)}>
+MulExpr: MulExprOr = PrefixExpr
+  | MulExpr WS ("*" {%MUL} | "/" {%DIV} | "%" {%REM})&OpTk WS PrefixExpr
+    {MulExpr(op: %MulOps=$2, lhs=$0, rhs=$4)}
+
+// 수정안 (액션 인덱스 불변)
+AddExpr: AddExprOr = MulExpr
+  | MulExpr
+    (WS_NO_NL ("+" {%ADD} | "-" {%SUB})&OpTk WS MulExpr {AddChain(op: %AddOps=$1, rhs=$3)})+
+    {AddExpr(lhs=$0, chain=$1)}
+MulExpr: MulExprOr = PrefixExpr
+  | MulExpr WS_NO_NL ("*" {%MUL} | "/" {%DIV} | "%" {%REM})&OpTk WS PrefixExpr
+    {MulExpr(op: %MulOps=$2, lhs=$0, rhs=$4)}
+```
+
+- 근거: AddExpr `<>` 의 실제 역할 = 개행 continuation (`let x = a\n+ b`) vs
+  다음 문장 prefix-op (`+b`/`-b`/`*p = 42`) 모호성 해소 (§9). op 앞
+  WS_NO_NL 로 국소 분해되면 longest 불필요. **:557 주석의 `*p` deref 미해결
+  이슈가 함께 풀린다** (`123\n*p = 42` 에서 `*` 가 이제 continuation 불가 →
+  DerefAssign 문장).
+- 코퍼스의 줄바꿈 체인 4건은 전부 op-at-EOL (`a +\n b`) 이라 그대로 수락.
+- AddExprNoLambda (:1009) / MulExprNoLambda (:1015) 동형 적용.
+- 선택: 나머지 이항 레벨 (Or `||`/And `&&`/Eq/NotEq/Range/In/Is) 도 op 앞
+  WS_NO_NL 로 통일할지. 이들의 op 는 문장을 시작할 수 없어 모호성은 없음 —
+  순수 스타일 일관성 문제 (통일 권장하나 필수 아님).
+
+**(c) GenericArgs 밀착 (WS_NO_NL 제거) — 표현식 위치 5곳 + 타입 위치 3곳:**
+
+```
+// 표현식 위치 (필수 — 이게 있어야 (a) 의 가드 제거가 안전)
+// :587  (BaseCallee)          액션 불변 ($1 = 그룹의 마지막 원소 = GenericArgs)
+| NameTok GenericArgs? {SimpleNameCallee(name=$0, genericArgs=$1)}
+// :591  (BaseCallee)          액션 불변
+| '.' NameTok GenericArgs? {OneofShorthandCreate(name=$1, genericArgs=$2)}
+// :686  (SubscribeAccess)     액션 불변
+= CallExpr-Digits GenericArgs? <Subscribe_+>
+  {SubscribeAccess(base=$0, baseGenericArgs=$1, subs=$2)}
+// :690  (LongNameAccess)      ★ 인덱스 시프트: $2→$1, $3→$2
+= NameLong GenericArgs <MemberSubscribe_+>
+  {LongNameAccess(target=$0, genericArgs=$1, nameChain=$2)}
+// :701  (GenericMemberSubscribe) ★ 인덱스 시프트: $5→$4
+| WS '.' WS NameTok GenericArgs {GenericMemberSubscribe(name=$3, genericArgs=$4)}
+
+// 타입 위치 (일관성 — "generic 은 항상 밀착" 한 문장 규칙을 위해 권장)
+// :163  ClassType             액션 불변
+ClassType = NameLong GenericArgs? {ClassType(clsName=$0, genericArgs=$1)}
+// :270  ExtendFor             액션 불변
+ExtendFor = NameLong GenericArgs? {ExtendFor(name=$0, genericArgs=$1)}
+// :422  TypeWithGenericArgs   ★ 인덱스 시프트: $2→$1
+TypeWithGenericArgs = TypePrimary GenericArgs {TypeWithGenericArgs(base=$0, args=$1)}
+```
+
+주의: 현행은 `WS_NO_NL` (같은 줄 공백 허용) 부착이라 `hello <T>(x)` 도
+generic 인데, 밀착으로 좁혀야 `hello < T` (비교) 와 갈라진다. 코퍼스의
+generic 은 전부 밀착이라 (§9) 실입력 영향 없음.
+
+### 10.2 권장안 2 (1b) — TrailingLambda lookahead 를 1자로
+
+```
+// 현행 (:574-576)
+CallChainArgs
+  = (CallArgs WS_NO_NL)? TrailingLambda {CallChainArgs(args=$0$0, trailingLambda=$1)}
+  | CallArgs !(WS_NO_NL TrailingLambda) {CallChainArgs(args=$0, trailingLambda=null)}
+
+// 수정안 (둘째 arm 의 lookahead 만 교체 — 액션 불변)
+CallChainArgs
+  = (CallArgs WS_NO_NL)? TrailingLambda {CallChainArgs(args=$0$0, trailingLambda=$1)}
+  | CallArgs !(WS_NO_NL '{') {CallChainArgs(args=$0, trailingLambda=null)}
+```
+
+근거: `TrailingLambda = Lambda | Block` 이 둘 다 `'{'` 시작 (§9) — 갈라지는
+입력은 현행에서도 에러. NotExists 워처가 블록-스팬 → 1–2자로.
+
+### 10.3 권장안 3 (1a) — `<CallChain_+>` 제거 (실험 후 확정)
+
+```
+// 현행 (:569-571)
+CallChain
+  = (Annots WS)? BaseCallee <CallChain_+>
+    {CallChainExpr(annots=$0$0, callee=$1, chain=$2)}
+
+// 수정안 (액션 불변)
+CallChain
+  = (Annots WS)? BaseCallee CallChain_+
+    {CallChainExpr(annots=$0$0, callee=$1, chain=$2)}
+```
+
+성립 조건: 체인 연장 지점이 전부 국소 결정 — 트레일러 부착은 WS_NO_NL
+(같은 줄), 람다 vs 비-람다는 10.2 의 1자 lookahead, 문장 경계는 StmtDelim.
+반례 (짧은 체인 해석과 긴 체인 해석이 모두 전체 입력을 완주하는 케이스) 는
+실험으로 수집 — 나오면 그 지점만 국소 가드.
+
+### 10.4 이번 범위 밖 (관련 메모)
+
+- `<Subscribe_+>` (:686, :1044) / `<MemberSubscribe_+>` (:690) /
+  CallChainNoLambda 의 `<(...)+>` (:1047) / `<BorrowSubscribe_*>` — 같은
+  chain-greed 가족이지만 peak 상위 워처가 아니고 스팬이 대체로 짧음
+  (`[Index]` 내부에 큰 식이 오는 경우만 예외). 1a 가 성공하면 같은 논리로
+  후속 정리 가능.
+- 우선순위 타워 (§5) 는 별도 트랙.
+
+### 10.5 표면 규칙 변화 요약 (사용자 결정 사항)
+
+| # | 새 규칙 | 불허되는 것 (현행 허용) | 코퍼스 영향 |
+|---|---|---|---|
+| 1 | 비교 `<`/`<=`/`>`/`>=` 앞 공백 1+ (같은 줄) | `a<b` (비교 의도) | 0건 |
+| 2 | GenericArgs 는 이름에 밀착 | `hello <T>(x)` | 0건 (전부 밀착) |
+| 3 | `+ - * / %` 는 lhs 와 같은 줄 | `a\n+ b` continuation | 0건 (EOL 체인 4건은 유지) |
+| 4 | 같은 줄 `{` 는 무조건 트레일링 람다 | (현행에서도 사실상 에러) | 0건 |
+
+검증 게이트 (§7): 마이크로 A/B → mulang worktree 에서 `parser.generate` →
+MulangCdgTest 15 예제 + NativeParserDiffTest + 실코퍼스 13 파일 전부 수락 →
+jar.bbx profile_steps/time_parse.
