@@ -102,6 +102,14 @@ object Stage4RustEmit {
     |
     |[build-dependencies]
     |prost-build = "0.14"
+    |
+    |# 파서 dylib 는 한 번 빌드해 오래 쓰는 산물이라 빌드 시간보다 런타임 성능 우선.
+    |# fat LTO + 단일 codegen unit 으로 crate 경계(생성 walk ↔ mgroup3-native) 넘는
+    |# 인라이닝을 열어 파싱 hot path 를 최적화한다. (standalone crate 라 이 profile 이
+    |# 의존 그래프 전체에 적용된다.)
+    |[profile.release]
+    |lto = "fat"
+    |codegen-units = 1
     |""".trimMargin()
 
   private fun buildRs(): String = """
