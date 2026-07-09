@@ -32,6 +32,10 @@ restarting performance work.
   ms pre-FxHash (4–9× cumulative on big inputs).
 - Memoizing `evaluate_with_history` is **not pursued** — after 6.7 it is
   no longer dominant in the profile.
+- **Global allocator → mimalloc (default-on feature)** cut parse corpus
+  total by **16%** (per-file jar/cc/maven −14%) with flat peak RSS; allocator
+  self-time on jar parse dropped 20.1% → 6.7%. Output byte-identical. See
+  "Global allocator: mimalloc — landed".
 
 ## Timeline & numbers
 
@@ -335,6 +339,72 @@ benefit. The only overhead on a duplicate-free gen is `AppKey` construction + on
 Verification: `hist_ab <pb> <corpus...>` prints a deterministic FNV fingerprint
 of the full sorted output per file — run the same binary against a pristine build
 and a P1+P3 build; all 11 fingerprints + `COMBINED_FP` matched exactly.
+
+### Global allocator: mimalloc — landed
+
+After the scratch-reuse and step-6 chain-walk work, a re-profile of `parse`
+(jar.bbx, release, `sample`) still showed the **system allocator at ~20% of
+self-time** (`_xzm_xzone_malloc` / `_xzm_free` / `_malloc_zone_malloc` in
+`libsystem_malloc.dylib`). The residual allocations are structural — small,
+short-lived: `AcceptCondition` composites rebuilt in `and_from` (mostly 2–3
+element), `MilestonePath` `Rc`, and `evolve`'s small `Vec`s. Rather than chase
+those individually, we swapped the **global allocator** to
+[`mimalloc`](https://crates.io/crates/mimalloc) — semantically invisible
+(output byte-identical) and low-risk.
+
+Feature gate (`Cargo.toml`, default on):
+
+- `default = ["mimalloc"]` → `#[global_allocator]` = `mimalloc::MiMalloc`
+  (secure mode **off** — `default-features = false` on the dep; hardened heap
+  metadata costs a few % and buys nothing here).
+- `--no-default-features` → system allocator (A/B baseline).
+- `--no-default-features --features jemalloc` → `tikv-jemallocator`, kept for
+  comparison. The two allocator features are mutually exclusive by construction
+  (only one `#[global_allocator]` may exist in a dependency graph). The
+  generated FFI crate that links this one defines no allocator of its own, so
+  the cdylib inherits mimalloc without conflict; the generated crate's
+  self-contained default build does not depend on mgroup3-native and is
+  unaffected.
+
+Measured A/B/C, interleaved (system S / mimalloc M / jemalloc J, back-to-back
+per round), median of ≥5 rounds, load average 1.2–2.1 throughout, no competing
+cargo/rustc:
+
+| workload                | system   | mimalloc          | jemalloc         |
+|-------------------------|----------|-------------------|------------------|
+| parse jar.bbx           | 1073.98ms| 921.28ms (−14.0%) | 969.22ms (−9.0%) |
+| parse cc.bbx            |  706.95ms| 601.44ms (−14.0%) | 640.39ms (−9.0%) |
+| parse maven.bbx         |  732.63ms| 623.43ms (−14.0%) | 648.97ms (−11.0%)|
+| **parse corpus total (11 files)** | **4912.4ms** | **4123.0ms (−16.0%)** | 4339.7ms (−11.0%)|
+| hist corpus total (11)  | 1180.7ms | 1065.5ms (−9.0%)  | 1146.1ms (−2.0%) |
+
+Peak RSS (`/usr/bin/time -l`, median of 3, one parse) is flat to slightly
+lower — no memory penalty:
+
+| workload   | system   | mimalloc         | jemalloc         |
+|------------|----------|------------------|------------------|
+| jar.bbx    | 927.3 MB | 919.9 MB (0.99×) | 928.8 MB (1.00×) |
+| maven.bbx  | 1124.8 MB| 1111.7 MB (0.99×)| 1109.1 MB (0.99×)|
+
+`sample` re-check confirms the mechanism: allocator self-time on jar parse
+fell from **20.1%** (`libsystem_malloc`) to **6.7%** (`mi_*`) — a ~3× drop that
+matches the wall-clock win.
+
+mimalloc beats jemalloc on every metric and adds one fewer build dependency
+(jemalloc pulls a C build of jemalloc-sys; mimalloc's is smaller and already the
+default), so mimalloc is adopted. Correctness gate: `hist_ab` `COMBINED_FP =
+5f6007cfa1114dd8` identical across all three allocators and equal to the prior
+baseline; full `cargo test --release` green; `runMgroup3NativeTest` (FFM, JVM
+loads the mimalloc cdylib) green.
+
+Reproduce:
+
+```sh
+cd mgroup3-native
+cargo build --release --bin time_parse --bin hist_ab                    # mimalloc (default)
+cargo build --release --no-default-features --bin time_parse            # system
+cargo build --release --no-default-features --features jemalloc --bin time_parse  # jemalloc
+```
 
 ### Dropped
 

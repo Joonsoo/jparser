@@ -1,3 +1,21 @@
+// Global allocator override (feature-gated). The parse hot path is dominated by
+// small, short-lived allocations (AcceptCondition `and_from` composites,
+// MilestonePath `Rc`, evolve's small `Vec`s) that malloc/free was showing at
+// ~17% self-time under the system allocator. mimalloc's segment/free-list
+// design handles this class markedly better on macOS. Selecting an allocator is
+// semantically invisible — output is byte-identical (guarded by hist_ab
+// COMBINED_FP). Only one `#[global_allocator]` may exist in a dependency graph;
+// the two features are mutually exclusive by construction, and the generated
+// FFI crate that links this one defines no allocator of its own, so the cdylib
+// inherits this one without conflict.
+#[cfg(feature = "mimalloc")]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
+#[cfg(all(feature = "jemalloc", not(feature = "mimalloc")))]
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+
 pub mod accept_condition;
 pub mod ffi;
 pub mod parser;
