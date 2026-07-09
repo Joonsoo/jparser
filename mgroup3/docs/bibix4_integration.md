@@ -110,20 +110,31 @@ dylib 파일명은 crate 이름의 `-`→`_` 치환에 플랫폼 접두/확장�
 (`lib*.dylib`/`lib*.so`/`*.dll`) — 빌드측 `dylibFileNameOf` 와 런타임 로더가
 같은 규칙을 써야 한다.
 
-런타임 로더는 mulang 의 `NativeMulangParser.kt` 를 그대로 본뜨면 된다
-(리소스를 임시 디렉토리에 추출 — FFM libraryLookup 과 parserdata 로더가
-파일 경로를 요구):
+런타임 로더는 mulang 의 `NativeMulangParser.kt` 를 그대로 본뜨면 된다.
+**영구 content-addressed 캐시 디렉토리** 에 추출하는 것이 핵심이다 (FFM
+libraryLookup 과 parserdata 로더가 파일 경로를 요구하고, Rust 파서가 첫
+로드에서 parserdata 옆에 `.rkyv` 캐시를 구워 이후 로드를 mmap 으로
+가속(~수백 ms → ~125ms)하므로 추출본이 실행 간에 살아남아야 한다 — 매 실행
+fresh temp dir 로 추출하면 rkyv 캐시가 매번 버려진다):
 
 ```kotlin
-val dylibRes = cls.getResourceAsStream("/native/${platformDir()}/$libName") ?: return null
-val dataRes = cls.getResourceAsStream("/mylang-mg3-parserdata.pb.gz") ?: return null
-// 임시 디렉토리에 추출 (parserdata 는 GZIPInputStream 으로 풀어서)
+val dylibBytes = cls.getResourceAsStream("/native/${platformDir()}/$libName")?.readAllBytes() ?: return null
+val dataBytes = cls.getResourceAsStream("/mylang-mg3-parserdata.pb.gz")?.readAllBytes() ?: return null
+// ${user.home}/.cache/<프로젝트>-native/<두 리소스 내용 해시>/ 에 추출.
+//  - parserdata 는 .gz 원본 그대로 (JVM 에서 gunzip 하지 않음 — Rust 가 .gz 처리;
+//    파일명이 .gz 로 끝나야 그 브랜치를 탄다. rkyv 캐시는 Rust 가 옆에 굽는다)
+//  - temp 파일 + atomic move 로 동시 실행 경합 안전
+//  - 캐시 디렉토리 생성/쓰기 실패 시 fresh temp dir 로 폴백 (빌드툴을 깨지 않게)
 val bridge = GeneratedAstNativeBridge(dylibPath)   // jparser.mgroup3.nativeParser
-val handle = bridge.newParserFromFile(dataPath)
+val handle = bridge.newParserFromFileCached(dataPath)  // rkyv 캐시 경유 로드
 // ...
 fun parse(text: String): MylangAst.CompileUnit =
   MylangAstProtoBinding.fromProtoBytes(bridge.parseAst(handle, text))
 ```
+
+(`newParserFromFile` 도 여전히 존재한다 — 캐시 파일을 만들면 안 되는 환경이면
+그쪽을 쓰면 된다. 내용 해시를 디렉토리 이름에 쓰므로 리소스가 갱신되면
+자동으로 새 디렉토리가 되고 stale 캐시 문제가 없다.)
 
 파사드 패턴 (mulang `MulangParser.kt`): native 를 `tryLoad()` 로 우선 사용,
 (a) 리소스 없음/로드 실패 (미지원 플랫폼) → mg2 Kotlin 파서로 fallback,

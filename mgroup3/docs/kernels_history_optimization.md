@@ -154,6 +154,29 @@ dot anchor 만 유지하도록 Kotlin+Rust 수정 (생성기/proto 불변). jar.
 (cc 3.2→1.23s). 전체 스위트 + m2 parity + mulang 55/55 그린. 잔여 후속:
 walk/encode, 문법 트랙 (mulang_grammar_ambiguity.md).
 
+### 0.5 2026-07-09 세션 — Rust 측 일괄 최적화 + 기각 판정들 (요약, 상세는 PERFORMANCE.md)
+
+전부 mgroup3-native (Rust) 측, Kotlin/생성기/proto 불변. 실측 기반으로 진행:
+
+- **실측 재평가로 기각**: "walk/encode ~3s" 는 낡은 수치 (실제 walk 코퍼스 합
+  ~0.3s, encode µs) — walk/encode one-pass·proto 왕복 제거 아이템 폐기.
+  워처-main 시뮬레이션 공유는 상한 실측 1.00× 로 기각
+  (`watcher_main_sharing.md`), step-5 evolve 게이팅은 정확성 완전 검증 후
+  이득 0.32% 로 원복 (`evolve_gating_analysis.md`), Rc<AcceptCondition> 은
+  재프로파일로 기각 (자기시간 ~3% cap + and_from 이 destructure).
+- **랜딩** (각 커밋): rkyv parserdata 캐시 `a00e51b4` (로드 520→125ms), hist
+  per-gen app dedup + linear cond dedup `e42cba1f` (hist 1.3-2.6×), 생성
+  crate KernelSet 융합 `7df169a7` (ks_conv ms→µs), parse scratch 재사용
+  `7c37ff59` (-4.5%), step-6 체인워크 dedup + FxHasher 캐시해시 `270123cc`
+  (jar parse -38%), mimalloc `f7fab22f` (corpus parse -16%).
+- **합산**: jar.bbx parse 1.72→0.92s, hist 228→~80ms. bibix4 실측 (mulang
+  로더 영구 캐시 전환 + dylib 재생성, mulang d5fe391): --profile-startup
+  Phase 1+2 파싱 5498→3438ms (1.60×; mimalloc 미포함 dylib 기준 — 재생성 시
+  추가 하락 예상).
+- **잔여 후보**: LTO/codegen-units (bibix 쪽에서 효과 확인됨), per-step
+  evolve 메모 (중복 factor 프로브 선행), 파스 내부 병렬화 (설계 문서 선행),
+  partial zero-copy (로드 비중 ~3%라 보류). PERFORMANCE.md "Still open" 참고.
+
 ## 1. 목표와 배경
 
 **최종 목표**: mulang 프로젝트의 bibix4 가 빌드스크립트(.bbx4/.bbx, mulang 문법) 파싱을

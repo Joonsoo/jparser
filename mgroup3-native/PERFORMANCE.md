@@ -36,6 +36,17 @@ restarting performance work.
   total by **16%** (per-file jar/cc/maven −14%) with flat peak RSS; allocator
   self-time on jar parse dropped 20.1% → 6.7%. Output byte-identical. See
   "Global allocator: mimalloc — landed".
+- **parse_step scratch reuse (`7c37ff59`)** — per-step collections cleared
+  and reused instead of reallocated: corpus parse −4.5%. **step-6 chain-walk
+  dedup + FxHasher cached hashes (`270123cc`)** — the actual hot leaf was
+  step 6 re-walking every shape's milestone chain each step: jar parse
+  1724→1067 ms (−38%), corpus −32%. With mimalloc on top, jar parse ends the
+  2026-07-09 session at ~0.92 s (was 1.72 s at session start).
+- Investigated with full verification and **rejected on measured gain**:
+  watcher–main simulation sharing (ceiling 1.00×, `mgroup3/docs/
+  watcher_main_sharing.md`), step-5 evolve gating (gate proven correct,
+  gain 0.32% — `mgroup3/docs/evolve_gating_analysis.md`),
+  `Rc<AcceptCondition>` (see "Dropped").
 
 ## Timeline & numbers
 
@@ -406,12 +417,64 @@ cargo build --release --no-default-features --bin time_parse            # system
 cargo build --release --no-default-features --features jemalloc --bin time_parse  # jemalloc
 ```
 
+### parse_step scratch reuse + step-6 chain-walk dedup — landed (2026-07-09)
+
+Two parse-phase rounds driven by a fresh `sample` profile (jar.bbx; the
+stale May view had parse condition-clone-bound — it is actually
+HashMap/allocator-bound):
+
+- **Scratch reuse (`7c37ff59`)**: `parse_step` allocated and dropped a dozen
+  maps/vecs every step (~15% malloc/free self-time + grow-rehash). Step-local
+  collections now live in a `StepScratch` on `ParsingCtx` (parse-local, same
+  thread-safety reasoning as `term_action_cache`) and are `clear()`ed instead
+  of reallocated; per-root inner `PathMap`s come from a bounded pool.
+  Collections that escape into `HistoryEntry`/the returned ctx are deliberately
+  not pooled (aliasing). Corpus parse −4.5% (cc −5.5%, maven −6.7%, jar −1.5%).
+- **Chain-walk dedup + hash fixes (`270123cc`)**: re-profiling re-attributed
+  the hot `HashMap::insert` time (~87% of it) to step 6 re-walking every
+  shape's milestone chain per step (shapes × depth × observing symbols
+  inserts; 83.8% of shapes are unchanged step-over-step). A node's
+  referenced/reported contribution is a pure function of the node and walks
+  always run tip→root, so a per-step visited set (Rc pointer) stops each walk
+  at the first already-visited node. Plus: cached-hash computation switched
+  SipHash→FxHasher (the value never leaves the process), and
+  `MilestonePath`/`PathShape` eq gained a cached-hash mismatch short-circuit.
+  jar parse 1724→1067 ms (−38%), cc −32%, maven −34%, corpus −32%.
+
+Both rounds: output byte-identical on the 11-file corpus (hist_ab
+fingerprints), parser_diff golden, FFM diff, m2 parity all green.
+
 ### Dropped
 
 - **Memoizing `evaluate_with_history`** — after the inverted index lands,
   the function no longer dominates the profile and the inputs we measured
   don't show obviously redundant subtree evaluations. Skip unless a
   future workload re-promotes it.
+- **`Vec<AcceptCondition>` → `Vec<Rc<AcceptCondition>>`** — re-profiled
+  2026-07-09 and **rejected**. Clone volume is large (jar parse: 5.95M clone
+  calls / 13.1M nodes) but directly-attributable clone+drop+dedup-eq
+  self-time is only ~3%, and the dominant clone consumers (`and_from` in
+  term/edge action application) *flatten* their input — children are moved
+  out and the node is rebuilt, so Rc children cannot make them O(1); every
+  such site would `try_unwrap`/clone-out plus pay refcount traffic. The
+  build/dedup/sort work is representation-independent.
+- **Step-5 evolve gating** — implemented behind an identity predicate
+  (event-root disjointness + `gen < end_gen` guard for bounded time-lapse
+  collapse), fully verified byte-identical (11-corpus fingerprints, Kotlin
+  139/139, FFM, m2 parity), then **reverted: gain 0.32%** (jar best case
+  1.5%). Skip rate is 40.6% but 27%p of that is `Always` (already O(1) in
+  evolve); evolve cost concentrates in the event-bearing 60% that can never
+  be skipped. Analysis: `mgroup3/docs/evolve_gating_analysis.md`. Revisit
+  only if a grammar change makes large composite pending conditions persist.
+- **Watcher–main simulation sharing** (parse-side) — measured sharing
+  ceiling 1.000–1.003× under the most permissive structural key; watchers
+  explicitly expand bodies that main abstracts into tip groups, so live
+  structures are disjoint. See `mgroup3/docs/watcher_main_sharing.md`.
+- **Full zero-copy parserdata access** — the ~250 µs lower bound is real but
+  requires the whole parser to read `Archived*` types; the win is a
+  once-per-process ~125 ms. **Partial** variant (mmap only the `added`
+  templates, 53% of deserialize) stays parked: warm 125→~60 ms, but load is
+  ~3% of a real bibix4 invocation (measured 2026-07-09).
 
 ### Still open
 
@@ -427,17 +490,23 @@ Expected payoff: makes the FFM `Mgroup3NativeParser.isAccepted(input)` use
 case match the Kotlin one in cost, and matters most for short inputs
 where `kernels_history` + protobuf is a relatively big slice.
 
-#### 2. Vec<AcceptCondition> → Rc<AcceptCondition> sharing in And/Or (low ROI, big change)
+#### 2. Per-step evolve memoization (needs a duplication-factor probe first)
 
-Currently `And { items: Vec<AcceptCondition> }` deep-clones children on
-every `and_from` / `or_from` / `neg` / `evolve` recursion. Switching to
-`Vec<Rc<AcceptCondition>>` would let `evolve` reuse subtrees that didn't
-change. But this is a larger refactor (touches every `match` arm,
-`Display`, `parse`, equality, and the new `Ord` derive). The current
-profile doesn't flag clone overhead as dominant. **Defer until evidence
-demands it.**
+Evolve cost concentrates in event-bearing conditions (the evolve-gating
+analysis, see "Dropped"). If the *same* condition value recurs across many
+shapes within one step, a per-step (condition → evolved) memo would pay the
+tree-hash cost once per distinct condition. Unmeasured: the intra-step
+duplication factor. Probe first; reject if < 2×.
 
-#### 3. Reusing the term_action_cache across parses (very small ROI)
+#### 3. Intra-parse parallelism (research-grade)
+
+Steps are inherently sequential, but per-step work over shapes/roots could
+fan out (rayon). This is the only remaining lever that attacks straggler
+wall-time (jar.bbx) directly. Costs: fork-join overhead per step (peak steps
+are only ~2.4 ms), shared-map restructuring, and contention with bibix4's
+file-level parallelism. Needs a design doc before any code.
+
+#### 4. Reusing the term_action_cache across parses (very small ROI)
 
 `Mgroup3Parser` clears its `RefCell<HashMap>` cache between parses via
 construction. But the cache is keyed by `(tip_group_id, char)`, which is
