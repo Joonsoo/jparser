@@ -24,8 +24,8 @@ use super::ParsingError;
 
 /// 시동 대기 중인 cond root starter — same_input 이면 이번 입력이 watcher 의 첫 글자
 /// (key==gen 인 lookahead 구 규약이면 실제 span 은 gen-1 — 보고 anchor 별도 기록).
-#[derive(Clone, Copy)]
-pub(crate) struct PendingStarter {
+#[derive(Clone, Copy, Debug)]
+pub struct PendingStarter {
     pub milestone_group_id: i32,
     pub same_input: bool,
 }
@@ -220,6 +220,7 @@ impl Mgroup3Parser {
             ever_seen_cond_roots: Default::default(),
             root_report_gens: Default::default(),
             term_action_cache: Default::default(),
+            step_scratch: Default::default(),
         }
     }
 
@@ -310,8 +311,13 @@ impl Mgroup3Parser {
 
         // 파스-로컬 term action 캐시 — ctx 에서 꺼내 이번 step 동안 사용 후 되돌린다.
         let mut term_cache = std::mem::take(&mut ctx.term_action_cache);
-        let main_paths_before = ctx.paths.get(&ctx.main_root).cloned().unwrap_or_default();
-        if main_paths_before.is_empty() {
+        // 파스-로컬 step scratch — 매 step 새로 할당/폐기하던 컬렉션들을 재사용한다.
+        // ctx 에서 꺼내 (mem::take) 이번 step 동안 쓰고 다음 ctx 로 되돌린다. 모든
+        // 컬렉션은 사용 전 clear() 하므로 capacity 만 이월되고 stale 데이터는 남지 않는다.
+        let mut scratch = std::mem::take(&mut ctx.step_scratch);
+        let main_paths_before_empty =
+            ctx.paths.get(&ctx.main_root).map(|m| m.is_empty()).unwrap_or(true);
+        if main_paths_before_empty {
             let expected = self.expected_inputs_of(&ctx);
             return Err(ParsingError::UnexpectedInput {
                 loc: ctx.gen_idx,
@@ -328,20 +334,36 @@ impl Mgroup3Parser {
             (ctx.line, ctx.col + 1)
         };
 
-        let mut next_paths: HashMap<PathRoot, PathMap> = HashMap::default();
-        let mut apps: Vec<ActionApplication> = Vec::new();
-        let mut finishes: Vec<FinishedKernelRecord> = Vec::new();
-        let mut added: Vec<AddedKernelRecord> = Vec::new();
-        let mut observing: HashSet<i32> = HashSet::default();
-        let mut root_progresses: HashMap<PathRoot, AcceptCondition> = HashMap::default();
-        // 죽는 cond path 의 possible-finish — end 가 직전 gen 인 late 채널.
-        let mut late_pf_progresses: HashMap<PathRoot, AcceptCondition> = HashMap::default();
-        let mut cond_root_starters_from_term: HashMap<PathRoot, PendingStarter> = HashMap::default();
+        // 재사용 대상: 순수 scratch (step 안에서 build→read→drop 되고 출력으로 새지
+        // 않는) 컬렉션만. scratch 에서 mem::take 로 꺼내 owned 로 쓰고 (본문은 예전과
+        // 동일하게 `&mut local` 로 넘긴다), step 끝에서 다시 scratch 로 되돌린다.
+        // clear() 로 내용을 비워 capacity 를 유지한다. by-value 로 소비하던 지점
+        // (paths_evolved step6, new_cond_roots→sorted) 은 컨테이너를 잃지 않도록
+        // drain() 으로 바꿔 재사용을 유지한다.
+        let mut next_paths = std::mem::take(&mut scratch.next_paths);
+        let mut apps = std::mem::take(&mut scratch.apps);
+        let mut finishes = std::mem::take(&mut scratch.finishes);
+        let mut added = std::mem::take(&mut scratch.added);
+        let mut observing = std::mem::take(&mut scratch.observing);
+        let mut root_progresses = std::mem::take(&mut scratch.root_progresses);
+        let mut late_pf_progresses = std::mem::take(&mut scratch.late_pf_progresses);
+        let mut cond_root_starters_from_term =
+            std::mem::take(&mut scratch.cond_root_starters_from_term);
+        next_paths.clear();
+        apps.clear();
+        finishes.clear();
+        added.clear();
+        observing.clear();
+        root_progresses.clear();
+        late_pf_progresses.clear();
+        cond_root_starters_from_term.clear();
 
         // ----- step 1+2: main and cond paths both run through applyTermAction -----
         for (root, path_map) in &ctx.paths {
             let is_main = *root == ctx.main_root;
-            let mut per_root_next: PathMap = PathMap::default();
+            // per-root inner map from the pool (reused capacity) instead of a
+            // fresh allocation each (root × step).
+            let mut per_root_next = scratch.take_path_map();
             for (shape, cond) in path_map {
                 let ta = self.find_applicable_action(&mut term_cache, shape, input);
                 if let Some(ta) = ta {
@@ -393,6 +415,8 @@ impl Mgroup3Parser {
             }
             if !per_root_next.is_empty() {
                 next_paths.insert(*root, per_root_next);
+            } else {
+                scratch.recycle_path_map(per_root_next);
             }
         }
 
@@ -494,8 +518,8 @@ impl Mgroup3Parser {
         }
 
         // ----- step 3: new cond paths from observing closure + condition.referenced_roots -----
-        let mut all_observing: HashSet<i32> =
-            HashSet::with_capacity_and_hasher(observing.len() * 2, Default::default());
+        let mut all_observing = std::mem::take(&mut scratch.all_observing);
+        all_observing.clear();
         for sym in &observing {
             if let Some(closure) = self.plain.transitive_initial_cond_symbols.get(sym) {
                 all_observing.extend(closure.iter().copied());
@@ -504,7 +528,8 @@ impl Mgroup3Parser {
             }
         }
 
-        let mut new_cond_roots: HashSet<PathRoot> = HashSet::default();
+        let mut new_cond_roots = std::mem::take(&mut scratch.new_cond_roots);
+        new_cond_roots.clear();
         for pm in next_paths.values() {
             for cond in pm.values() {
                 cond.referenced_roots().for_each(|r| {
@@ -519,12 +544,16 @@ impl Mgroup3Parser {
             new_cond_roots.insert(root);
         }
 
-        let mut new_cond_root_progresses: HashMap<PathRoot, AcceptCondition> = HashMap::default();
+        let mut new_cond_root_progresses = std::mem::take(&mut scratch.new_cond_root_progresses);
+        new_cond_root_progresses.clear();
         // Iterate over a sorted-by-(sym,next_gen) copy to keep step3 deterministic
-        // across HashSet iteration orders.
-        let mut new_cond_roots_sorted: Vec<PathRoot> = new_cond_roots.into_iter().collect();
+        // across HashSet iteration orders. (drain keeps new_cond_roots' allocation
+        // for reuse; the sorted vec is likewise pooled.)
+        let mut new_cond_roots_sorted = std::mem::take(&mut scratch.new_cond_roots_sorted);
+        new_cond_roots_sorted.clear();
+        new_cond_roots_sorted.extend(new_cond_roots.drain());
         new_cond_roots_sorted.sort_by_key(|r| (r.symbol_id, r.start_gen));
-        for path_root in new_cond_roots_sorted {
+        for &path_root in new_cond_roots_sorted.iter() {
             if path_root == ctx.main_root {
                 continue;
             }
@@ -625,10 +654,16 @@ impl Mgroup3Parser {
         }
 
         // ----- step 5: evolve every condition in every path -----
-        let active_cond_roots: HashSet<PathRoot> = next_paths.keys().copied().collect();
-        let mut paths_evolved: HashMap<PathRoot, PathMap> = HashMap::default();
+        let mut active_cond_roots = std::mem::take(&mut scratch.active_cond_roots);
+        active_cond_roots.clear();
+        active_cond_roots.extend(next_paths.keys().copied());
+        let mut paths_evolved = std::mem::take(&mut scratch.paths_evolved);
+        paths_evolved.clear();
         for (root, pm) in &next_paths {
-            let mut result: PathMap = PathMap::default();
+            // 재사용 pool 에서 빈 inner map 을 꺼낸다 (per-root × step 마다 새로
+            // 할당하던 churn 제거). scratch 접근은 split borrow — next_paths/
+            // paths_evolved 는 mem::take 로 owned local 이라 scratch 와 disjoint.
+            let mut result = scratch.take_path_map();
             for (shape, cond) in pm {
                 let evolved = evolve_accept_condition(
                     cond,
@@ -644,6 +679,9 @@ impl Mgroup3Parser {
             }
             if !result.is_empty() {
                 paths_evolved.insert(*root, result);
+            } else {
+                // 빈 결과는 pool 로 반환 (capacity 재사용).
+                scratch.recycle_path_map(result);
             }
         }
         let main_paths_evolved =
@@ -654,7 +692,14 @@ impl Mgroup3Parser {
         //   (+ lookahead 는 tip/parent anchor 도 — 구 규약의 드리프트 쌍).
         // reported_cond_roots: 보고 대상 — m2 trackings 의 narrow 규칙
         //   (조건 참조 root + observing 의 parent-gen anchor 만).
-        let mut referenced_roots: HashSet<PathRoot> = HashSet::default();
+        // next_paths 의 inner map 들은 step5 에서 읽기만 하고 이후 필요 없다 —
+        // 다음 step 진입 시 clear() 로 drop 되기 전에 inner PathMap 들을 pool 로
+        // 회수해 재사용한다 (outer HashMap 자체는 scratch 로 이월).
+        for (_root, pm) in next_paths.drain() {
+            scratch.recycle_path_map(pm);
+        }
+        let mut referenced_roots = std::mem::take(&mut scratch.referenced_roots);
+        referenced_roots.clear();
         let mut reported_cond_roots: HashSet<PathRoot> = HashSet::default();
         for pm in paths_evolved.values() {
             for (shape, cond) in pm {
@@ -690,10 +735,15 @@ impl Mgroup3Parser {
                 }
             }
         }
+        // paths_filtered 는 반환 ctx.paths (live state) 가 되므로 scratch 로 재사용할
+        // 수 없다 — step 밖으로 새는 컨테이너다. 대신 paths_evolved 를 drain 해
+        // outer 할당을 scratch 로 되돌리고, 걸러진 root 의 inner map 은 pool 로 회수.
         let mut paths_filtered: HashMap<PathRoot, PathMap> = HashMap::default();
-        for (root, pm) in paths_evolved {
+        for (root, pm) in paths_evolved.drain() {
             if root == ctx.main_root || referenced_roots.contains(&root) {
                 paths_filtered.insert(root, pm);
+            } else {
+                scratch.recycle_path_map(pm);
             }
         }
 
@@ -726,20 +776,22 @@ impl Mgroup3Parser {
         let reportable = |r: PathRoot| {
             r == main_root || reported_cond_roots.contains(&r) || prev_reported.contains(&r)
         };
+        // drain() 으로 dedup — apps/finishes/added 의 Vec 할당을 유지해 scratch 로
+        // 되돌린다 (dedup 결과는 HistoryEntry 로 이동하므로 별도 fresh Vec).
         let mut apps_dedup: Vec<ActionApplication> = Vec::new();
-        for app in apps {
+        for app in apps.drain(..) {
             if reportable(app.root) && !apps_dedup.contains(&app) {
                 apps_dedup.push(app);
             }
         }
         let mut finishes_dedup: Vec<FinishedKernelRecord> = Vec::new();
-        for rec in finishes {
+        for rec in finishes.drain(..) {
             if reportable(rec.root) && !finishes_dedup.contains(&rec) {
                 finishes_dedup.push(rec);
             }
         }
         let mut added_dedup: Vec<AddedKernelRecord> = Vec::new();
-        for rec in added {
+        for rec in added.drain(..) {
             if reportable(rec.root) && !added_dedup.contains(&rec) {
                 added_dedup.push(rec);
             }
@@ -756,6 +808,25 @@ impl Mgroup3Parser {
             reported_cond_roots,
         };
 
+        // scratch 로 꺼냈던 owned 컬렉션들을 되돌린다 (다음 step 재사용). drain 된
+        // 컨테이너는 비어있고 capacity 만 유지된 상태. 다음 step 진입 시 clear() 되므로
+        // 여기서 별도 clear 불필요.
+        scratch.next_paths = next_paths;
+        scratch.apps = apps;
+        scratch.finishes = finishes;
+        scratch.added = added;
+        scratch.observing = observing;
+        scratch.root_progresses = root_progresses;
+        scratch.late_pf_progresses = late_pf_progresses;
+        scratch.cond_root_starters_from_term = cond_root_starters_from_term;
+        scratch.all_observing = all_observing;
+        scratch.new_cond_roots = new_cond_roots;
+        scratch.new_cond_roots_sorted = new_cond_roots_sorted;
+        scratch.new_cond_root_progresses = new_cond_root_progresses;
+        scratch.paths_evolved = paths_evolved;
+        scratch.active_cond_roots = active_cond_roots;
+        scratch.referenced_roots = referenced_roots;
+
         let ParsingCtx { mut history, mut ever_seen_cond_roots, root_report_gens, .. } = ctx;
         history.push(history_entry);
         ever_seen_cond_roots.extend(active_cond_paths_for_history);
@@ -770,6 +841,7 @@ impl Mgroup3Parser {
             ever_seen_cond_roots,
             root_report_gens,
             term_action_cache: term_cache,
+            step_scratch: scratch,
         })
     }
 

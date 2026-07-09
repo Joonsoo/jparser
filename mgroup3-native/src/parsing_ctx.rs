@@ -289,6 +289,76 @@ pub struct HistoryEntry {
     pub reported_cond_roots: HashSet<PathRoot>,
 }
 
+/// Per-step scratch collections for `parse_step`, reused across steps to avoid
+/// per-step allocate+drop churn (each step used to `HashMap::default()` /
+/// `Vec::new()` a dozen maps/vecs and drop them at the end — the profiler
+/// attributed ~40% of parse self-time to hashbrown insert/entry/rehash/drop and
+/// ~15% to malloc/free). Held parse-local inside `ParsingCtx` (like
+/// `term_action_cache`): the parser handle is shared across threads (bibix4
+/// parallel file parsing), so scratch must live on the parse-local ctx, never
+/// on the parser. `parse_step` takes it out (`mem::take`) at entry and returns
+/// it in the next ctx; every collection is `clear()`ed before use, so capacity
+/// carries over but no stale data leaks.
+///
+/// Only pure-scratch collections live here (built, read, and dropped within one
+/// step). Collections whose contents are *moved into* the returned ctx or a
+/// `HistoryEntry` (paths_filtered, cond_path_finishes, the *_dedup vecs,
+/// reported_cond_roots, …) are NOT pooled — they escape the step, so reusing
+/// their backing store would alias live state.
+#[derive(Clone, Debug, Default)]
+pub struct StepScratch {
+    pub next_paths: HashMap<PathRoot, PathMap>,
+    pub apps: Vec<ActionApplication>,
+    pub finishes: Vec<FinishedKernelRecord>,
+    pub added: Vec<AddedKernelRecord>,
+    pub observing: HashSet<i32>,
+    pub root_progresses: HashMap<PathRoot, AcceptCondition>,
+    pub late_pf_progresses: HashMap<PathRoot, AcceptCondition>,
+    pub cond_root_starters_from_term: HashMap<PathRoot, crate::parser::core::PendingStarter>,
+    pub all_observing: HashSet<i32>,
+    pub new_cond_roots: HashSet<PathRoot>,
+    pub new_cond_roots_sorted: Vec<PathRoot>,
+    pub new_cond_root_progresses: HashMap<PathRoot, AcceptCondition>,
+    pub paths_evolved: HashMap<PathRoot, PathMap>,
+    pub active_cond_roots: HashSet<PathRoot>,
+    pub referenced_roots: HashSet<PathRoot>,
+    /// Pool of spare inner `PathMap`s. Per-root inner maps (step-1 `per_root_next`,
+    /// step-5 `result`, and the inner maps drained out of `next_paths` / rejected
+    /// `paths_evolved` entries) are the other churn source; instead of allocating
+    /// one per (root × step) we hand out reused maps from here and return drained
+    /// ones. See `take_path_map` / `recycle_path_map` for the bounds.
+    pub path_map_pool: Vec<PathMap>,
+}
+
+impl StepScratch {
+    /// Hand out a cleared inner `PathMap`, reused from the pool if one is
+    /// available (capacity carries over). Empty pool → fresh map.
+    #[inline]
+    pub fn take_path_map(&mut self) -> PathMap {
+        match self.path_map_pool.pop() {
+            Some(mut m) => {
+                m.clear();
+                m
+            }
+            None => PathMap::default(),
+        }
+    }
+
+    /// Return a drained/dead inner `PathMap` to the pool for reuse. Bounded two
+    /// ways: pool length (so a single huge step can't pin unbounded memory) and
+    /// per-map capacity (so we never recycle a pathologically oversized map that
+    /// would make future `clear()`/iteration O(bigcap) for a small need — the
+    /// oversize map is simply dropped instead).
+    #[inline]
+    pub fn recycle_path_map(&mut self, m: PathMap) {
+        const MAX_POOL_LEN: usize = 4096;
+        const MAX_MAP_CAP: usize = 512;
+        if self.path_map_pool.len() < MAX_POOL_LEN && m.capacity() <= MAX_MAP_CAP {
+            self.path_map_pool.push(m);
+        }
+    }
+}
+
 /// Top-level parser state.
 #[derive(Clone, Debug)]
 pub struct ParsingCtx {
@@ -310,6 +380,10 @@ pub struct ParsingCtx {
     /// 파서 인스턴스는 스레드 간 공유되므로 (bibix4 병렬 파싱) 파서에 두면
     /// 핫패스 락 경합이 생긴다. ctx 는 파스마다 하나라 락 불필요.
     pub term_action_cache: HashMap<i64, Option<std::sync::Arc<crate::parser_data::TermActionPlain>>>,
+    /// Per-step scratch collections, reused across steps. Parse-local (see
+    /// `StepScratch`). `parse_step` takes this out at entry and returns it in
+    /// the next ctx.
+    pub step_scratch: StepScratch,
 }
 
 impl ParsingCtx {
@@ -484,6 +558,7 @@ mod tests {
             ever_seen_cond_roots: HashSet::default(),
             root_report_gens: HashMap::default(),
             term_action_cache: Default::default(),
+            step_scratch: Default::default(),
         };
         assert_eq!(ctx.main_paths().unwrap().len(), 1);
         assert_eq!(ctx.cond_paths().count(), 0);
