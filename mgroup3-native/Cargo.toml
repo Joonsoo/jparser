@@ -13,6 +13,14 @@ prost-types = "0.14"
 unicode-general-category = "1"
 flate2 = "1"
 rustc-hash = "2.1.2"
+# rkyv cache: zero-copy archive of ParserDataPlain, bypasses the ~420ms prost
+# decode on warm loads. bytecheck on for validated `access`; see parser_cache.rs.
+rkyv = "0.8"
+# fast non-crypto hash for cache header (source-file + payload integrity).
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
+# mmap the rkyv cache so warm loads skip the 309 MB fs::read + AlignedVec copy;
+# the aligned header lets us access the archive in place. See parser_cache.rs.
+memmap2 = "0.9"
 
 [build-dependencies]
 prost-build = "0.14"

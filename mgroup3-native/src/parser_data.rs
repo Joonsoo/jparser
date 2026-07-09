@@ -10,6 +10,17 @@ use std::sync::Arc;
 use crate::proto::com::giyeok::jparser::mgroup3::proto as pb;
 use crate::proto::com::giyeok::jparser::proto::TermGroup;
 
+// rkyv 캐시(parser_cache.rs): ParserDataPlain 및 도달 가능한 모든 타입에 rkyv
+// derive 를 붙여 from_proto 결과물을 통째로 zero-copy archive 로 굽는다. Arc 필드는
+// rkyv 0.8 의 shared-pointer dedup (ArcFlavor) 로 처리 — 같은 Arc 는 아카이브에서
+// 한 번만 저장되고 deserialize 시 Pool 로 복원되어 공유가 유지된다.
+// 임베드하는 prost 타입들(AcceptConditionTemplate 계열, KernelTemplate 계열,
+// TermGroup 계열)의 rkyv derive 는 build.rs 의 type_attribute 로 주입한다.
+//
+// 스키마 버전 규약: 아래 Plain 구조체나 임베드 prost 타입 집합이 바뀌면
+// parser_cache::PLAIN_SCHEMA_VERSION 을 수동 bump 할 것 (캐시 무효화).
+use rkyv::{with::Skip, Archive, Deserialize, Serialize};
+
 // Re-exported proto types kept raw in plain wrappers — materialization
 // happens in `parser/template.rs` with gen parameters.
 pub type AcceptConditionTemplate = pb::AcceptConditionTemplate;
@@ -18,7 +29,7 @@ pub type ProgressedKernelTemplate = pb::ProgressedKernelTemplate;
 pub type FinishedKernelTemplate = pb::FinishedKernelTemplate;
 pub type AddedKernelTemplate = pb::AddedKernelTemplate;
 
-#[derive(Debug)]
+#[derive(Debug, Archive, Serialize, Deserialize)]
 pub struct ParserDataPlain {
     pub start_symbol_id: i32,
     pub path_roots: HashMap<i32, Arc<PathRootInfoPlain>>,
@@ -29,6 +40,15 @@ pub struct ParserDataPlain {
     pub mid_edge_actions: Vec<MidEdgeActionPair>,
     /// For each symbol, the transitive set of initial cond symbol IDs
     /// (including itself). Cycles produce a set with just the cycle entry-point.
+    ///
+    /// **Derived** from `path_roots` (see `compute_transitive_initial_cond_symbols`),
+    /// so it is *not* archived — `#[rkyv(with = Skip)]` leaves it empty on cache
+    /// restore and the cache loader recomputes it via `recompute_derived`. This
+    /// keeps the cache honest (no derived state on disk); the size/time delta is
+    /// negligible for real grammars (mulang: ~1.8 KB, recompute ~sub-ms) but the
+    /// invariant is worth keeping. When restoring, callers who bypass
+    /// `parser_cache` (there are none today) must call `recompute_derived`.
+    #[rkyv(with = Skip)]
     pub transitive_initial_cond_symbols: HashMap<i32, HashSet<i32>>,
     /// lookahead 가 감시하는 심볼들 — step 3 시동 flavor 판별 (구 규약: same-input).
     pub lookahead_cond_symbols: HashSet<i32>,
@@ -90,6 +110,16 @@ impl ParserDataPlain {
             lookahead_cond_symbols,
         }
     }
+
+    /// Recompute the derived `transitive_initial_cond_symbols` map from
+    /// `path_roots`. Called after a cache restore, where the field is skipped in
+    /// the archive (`#[rkyv(with = Skip)]`) and comes back empty. Idempotent —
+    /// overwrites whatever is there. Cheap (mulang: sub-ms; the closure walk is
+    /// bounded by `path_roots` which has tens of entries, not the full grammar).
+    pub fn recompute_derived(&mut self) {
+        self.transitive_initial_cond_symbols =
+            compute_transitive_initial_cond_symbols(&self.path_roots);
+    }
 }
 
 /// DFS with explicit stack-set for cycle detection. Mirrors
@@ -142,7 +172,7 @@ fn compute_transitive_initial_cond_symbols(
     out
 }
 
-#[derive(Debug)]
+#[derive(Debug, Archive, Serialize, Deserialize)]
 pub struct PathRootInfoPlain {
     pub symbol_id: i32,
     pub milestone_group_id: i32,
@@ -163,7 +193,7 @@ impl PathRootInfoPlain {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Archive, Serialize, Deserialize)]
 pub struct MilestoneGroupPlain {
     pub possible_finishes: Vec<PossibleFinishPlain>,
 }
@@ -180,7 +210,7 @@ impl MilestoneGroupPlain {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Archive, Serialize, Deserialize)]
 pub struct PossibleFinishPlain {
     pub symbol_id: i32,
     pub accept_condition: AcceptConditionTemplate,
@@ -195,7 +225,7 @@ impl PossibleFinishPlain {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Archive, Serialize, Deserialize)]
 pub struct TermGroupActionPlain {
     pub term_group: TermGroup,
     pub term_action: Arc<TermActionPlain>,
@@ -212,7 +242,7 @@ impl TermGroupActionPlain {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Archive, Serialize, Deserialize)]
 pub struct TermActionPlain {
     pub replace_and_appends: Vec<ReplaceAndAppendPlain>,
     pub replace_and_progresses: Vec<ReplaceAndProgressPlain>,
@@ -247,19 +277,19 @@ impl TermActionPlain {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Archive, Serialize, Deserialize)]
 pub struct ReplaceAndAppendPlain {
     pub replace: KernelTemplate,
     pub append: AppendMilestoneGroupPlain,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Archive, Serialize, Deserialize)]
 pub struct ReplaceAndProgressPlain {
     pub replace_milestone_group_id: i32,
     pub accept_condition: AcceptConditionTemplate,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Archive, Serialize, Deserialize)]
 pub struct AppendMilestoneGroupPlain {
     pub milestone_group_id: i32,
     pub accept_condition: AcceptConditionTemplate,
@@ -282,7 +312,7 @@ impl AppendMilestoneGroupPlain {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Archive, Serialize, Deserialize)]
 pub struct CondRootStarterPlain {
     pub symbol_id: i32,
     pub milestone_group_id: i32,
@@ -306,7 +336,7 @@ impl CondRootStarterPlain {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Archive, Serialize, Deserialize)]
 pub struct EdgeActionPlain {
     pub append_milestone_groups: Vec<AppendMilestoneGroupPlain>,
     pub start_node_progress: Option<AcceptConditionTemplate>,
@@ -327,7 +357,7 @@ impl EdgeActionPlain {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Archive, Serialize, Deserialize)]
 pub struct ParsingActionsPlain {
     pub progressed: Vec<ProgressedKernelTemplate>,
     pub finished: Vec<FinishedKernelTemplate>,
@@ -341,7 +371,7 @@ impl ParsingActionsPlain {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Archive, Serialize, Deserialize)]
 pub struct TipEdgeActionPair {
     pub parent: KernelTemplate,
     pub tip_group_id: i32,
@@ -360,7 +390,7 @@ impl TipEdgeActionPair {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Archive, Serialize, Deserialize)]
 pub struct MidEdgeActionPair {
     pub parent: KernelTemplate,
     pub tip: KernelTemplate,

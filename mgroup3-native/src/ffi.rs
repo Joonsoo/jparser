@@ -27,6 +27,7 @@ use std::ptr;
 use prost::Message;
 
 use crate::parser::{encode_parse_result, Mgroup3Parser};
+use crate::parser_cache;
 use crate::proto::com::giyeok::jparser::mgroup3::proto::Mgroup3ParserData;
 
 // Error codes written to `*err` parameters or returned by `parser_parse`.
@@ -36,6 +37,10 @@ pub const MGROUP3_ERR_PROTO_DECODE: i32 = 2;
 pub const MGROUP3_ERR_IO: i32 = 3;
 pub const MGROUP3_ERR_UTF8: i32 = 4;
 pub const MGROUP3_ERR_PANIC: i32 = 5;
+/// rkyv 캐시 로드/작성 orchestration 실패 (파일 IO 또는 proto decode). 세부 원인은
+/// 구분하지 않고 하나의 코드로 보고한다 — 캐시 경로는 실패 시 proto 경로와 동일한
+/// 이유(IO/decode)로만 깨진다.
+pub const MGROUP3_ERR_CACHE: i32 = 6;
 
 fn write_err(err_out: *mut i32, code: i32) {
     if !err_out.is_null() {
@@ -110,6 +115,47 @@ pub extern "C" fn mgroup3_parser_new_from_file(
         let data =
             Mgroup3ParserData::decode(buf.as_slice()).map_err(|_| MGROUP3_ERR_PROTO_DECODE)?;
         Ok(Mgroup3Parser::new(data))
+    }));
+    match result {
+        Ok(Ok(parser)) => {
+            write_err(err, MGROUP3_OK);
+            Box::into_raw(Box::new(parser))
+        }
+        Ok(Err(code)) => {
+            write_err(err, code);
+            ptr::null_mut()
+        }
+        Err(_) => {
+            write_err(err, MGROUP3_ERR_PANIC);
+            ptr::null_mut()
+        }
+    }
+}
+
+/// Like `mgroup3_parser_new_from_file`, but uses a sibling rkyv cache
+/// (`<path>.rkyv`) to skip the prost decode on warm loads. On a cache miss/
+/// invalid/corrupt cache it falls back to the proto path (read → gunzip →
+/// prost decode → from_proto) and best-effort rewrites the cache. The parser
+/// produced is identical to the proto path (same `ParserDataPlain`), so parse
+/// semantics are unchanged.
+///
+/// Same error-code convention as the other constructors. `MGROUP3_ERR_CACHE`
+/// signals an IO or decode failure in the orchestration (a missing/stale cache
+/// is not an error — it silently falls back).
+#[unsafe(no_mangle)]
+pub extern "C" fn mgroup3_parser_new_from_file_cached(
+    path: *const c_char,
+    err: *mut i32,
+) -> *mut Mgroup3Parser {
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        if path.is_null() {
+            return Err(MGROUP3_ERR_NULL_ARG);
+        }
+        let path_cstr = unsafe { CStr::from_ptr(path) };
+        let path_str = path_cstr.to_str().map_err(|_| MGROUP3_ERR_UTF8)?;
+        let plain = parser_cache::load_plain_from_file(std::path::Path::new(path_str))
+            .map_err(|_| MGROUP3_ERR_CACHE)?;
+        Ok(Mgroup3Parser::from_plain(plain))
     }));
     match result {
         Ok(Ok(parser)) => {

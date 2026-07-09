@@ -164,6 +164,117 @@ Default::default())`. Mechanical only — no algorithm change.
   `PartialOrd/Ord` on `AcceptCondition`; switch `canonical_sort` to
   `children.sort()`. Removes `to_string()` allocation per comparison.
 
+### Load-cost: rkyv cache for parserdata — landed
+
+The per-process fixed cost paid *before* the first parse was dominated by
+**prost decode** of the parserdata proto (mulang: 6.8 MB gz → 110 MB proto).
+bibix4 pays this on every CLI invocation. We now cache the *`from_proto`
+result* (`ParserDataPlain`) as a zero-copy rkyv archive in a sibling
+`<parserdata>.pb.gz.rkyv` file and restore it directly on warm loads,
+bypassing gunzip + prost decode entirely.
+
+Design:
+- rkyv 0.8, deriving `Archive`/`Serialize`/`Deserialize` on every type
+  reachable from `ParserDataPlain` (plain structs in `parser_data.rs` +
+  the embedded prost templates, whose derives are injected via
+  `build.rs` `type_attribute`). `Arc<…>` fields use rkyv's shared-pointer
+  dedup, so the restored graph shares exactly like `from_proto`.
+- **Warm load is mmap-based (cache format v2).** The 64-byte cache header is
+  padded so the payload starts at a 16-aligned offset; the loader `mmap`s the
+  file and hands the payload slice straight to rkyv `access_unchecked` (mmap
+  base is page-aligned ⇒ payload is 64-aligned in memory). No `fs::read`, no
+  `AlignedVec` copy. The archive is faulted in lazily as `deserialize` walks it.
+- Cache header (64 B, LE): magic (`MG3RKYV2`) + `PLAIN_SCHEMA_VERSION` + flags +
+  xxh3 of the source file + xxh3 of the payload + payload_len + reserved pad.
+  Version/source-hash mismatch, absence, degenerate/short file, or corruption
+  → silent fall back to the proto path + best-effort cache rewrite
+  (tempfile + atomic rename; skipped if the dir is read-only).
+- **Derived data is not archived.** `transitive_initial_cond_symbols` is a map
+  computed by `from_proto` from `path_roots`; it carries `#[rkyv(with = Skip)]`
+  and is recomputed on load via `ParserDataPlain::recompute_derived`
+  (sub-ms). Keeps the on-disk archive free of derived state. Size effect is
+  negligible here (mulang: 1,816 bytes = 0.0006% of the archive) — see the
+  breakdown below for why: the archive is dominated by `added` kernel templates,
+  not this map.
+- **Validation choice — measured & demoted.** Payload xxh3 verification is now
+  **opt-in** (`MG3_CACHE_VERIFY_PAYLOAD=1` env, or `FORCE_VERIFY_PAYLOAD`
+  const); the default gate is source-hash + version only. Rationale: the
+  payload hash walks all 300 MB of pages, defeating mmap's lazy-fault win and
+  ~doubling warm load (≈110 ms → ≈210–265 ms measured). Integrity is instead
+  guaranteed by (1) atomic rename (no partial writes are ever observed) and
+  (2) the source-hash+version gate (stale/mismatched caches rejected). The
+  cache is a trusted same-crate artifact. bytecheck (`rkyv::access`) is still
+  wired via `VERIFY_WITH_BYTECHECK` for the paranoid path.
+
+**Archive size breakdown** (`target/release/archive_breakdown <pb.gz>`,
+mulang, 309 MB total). Per top-level field, serialized in isolation:
+
+| field | size | share |
+|---|---|---|
+| `term_actions` | 128.5 MB | 41.6% |
+| `tip_edge_actions` | 104.7 MB | 33.9% |
+| `mid_edge_actions` | 75.6 MB | 24.5% |
+| `milestone_groups` | 0.22 MB | 0.07% |
+| `path_roots` | 0.07 MB | 0.02% |
+| `transitive_initial_cond_symbols` (Skip'd) | 1.8 KB | 0.0006% |
+| `lookahead_cond_symbols` | 60 B | ~0 |
+
+Drilling into the three big collections, the dominant cost is the
+`parsing_actions.added` kernel-template lists: **142.5 MB** across the edge
+actions + **95.9 MB** across the term actions = **~238 MB (77%)** of the whole
+archive (~5.6 M `AddedKernelTemplate`s). `added` is used only to materialize
+`kernels_history` (reporting), never for accept/reject — but it *is* part of
+the observable output the equivalence test pins, so it cannot be dropped
+without changing semantics. This is why trimming the derived map moves nothing:
+the size lives in `added`, which is real (if reporting-only) content.
+
+Measured (release, Apple Silicon, mulang `mulang-mg3-parserdata.pb.gz`,
+`target/release/time_load … 5`; measured with no concurrent cargo/rustc):
+
+| path | cost |
+|---|---|
+| **proto total** (read + gunzip + prost_decode + plain+index) | **~510–580 ms** (prost_decode alone ~410–470 ms) |
+| **rkyv cold** (cache miss → proto path + write 309 MB cache) | ~0.66–0.90 s |
+| **rkyv warm — v1** (fs::read + payload xxh3 + AlignedVec copy + deserialize) | ~140–380 ms |
+| **rkyv warm — v2** (mmap + source-hash gate + access + deserialize + recompute) | **~108–135 ms** (steady, page-cache hot) |
+
+v2 warm breakdown (steady state): `mmap` ≈ **25–45 µs**, source-hash ≈
+**190–250 µs**, `access_unchecked` ≈ **0–42 ns**, `deserialize` (rebuild owned
+`ParserDataPlain`) ≈ **99–150 ms** (now the *entire* warm cost), recompute of
+the derived map ≈ **8–20 µs**. The v1 costs that mmap eliminated — fs::read of
+309 MB (~45–56 ms), payload xxh3 (~12–21 ms), AlignedVec copy (~10–38 ms) —
+are gone.
+
+Net: warm load is now **~4–4.9× faster** than the proto path (was ~2× in v1).
+Equivalence is covered by `tests/cache_equivalence.rs` (proto-built vs
+cold-cache vs warm-cache parsers produce identical `is_accepted` +
+`kernels_history` on all committed fixtures, plus degenerate-cache fallback
+tests for the mmap path; cache files go to a tempdir, never the fixture tree).
+Reproduce with `cargo build --release --bin time_load` then
+`target/release/time_load <parserdata.pb.gz> <iters>`.
+
+**Zero-copy lower bound (Task 4, exploratory).** If the parser ran directly off
+`ArchivedParserDataPlain` with no `deserialize`, the fixed warm cost would be
+just mmap + source-hash gate + `access_unchecked` + touching a few fields:
+measured at **~240–300 µs** (`time_load`'s `WARM*` line). That is ~**400×**
+below the current ~110 ms warm path and ~**2000×** below the ~530 ms proto
+path — i.e. `deserialize` *is* the whole warm cost, and eliminating it is the
+only remaining big win. Doing so means rewriting the parser hot path to read
+`Archived*` types (endian-wrapped scalars, `ArchivedVec`/`ArchivedHashMap`,
+`ArchivedArc`) instead of owned ones; that is a large, semantics-sensitive
+refactor and remains out of scope. The µs-level lower bound quantifies the
+prize.
+
+FFI: `mgroup3_parser_new_from_file_cached(path, err)` (the original
+`mgroup3_parser_new_from_file` is unchanged). Rust: `Mgroup3Parser::from_plain`
++ `parser_cache::{load_cached, write_cache, load_plain_from_file}` +
+`ParserDataPlain::recompute_derived`.
+
+Still open here: `deserialize` (~100–150 ms rebuilding the owned graph)
+dominates the warm path — see the zero-copy lower bound above for the ceiling.
+The archive is ~2.8× the uncompressed proto (309 MB vs 110 MB), almost all of
+it the reporting-only `added` kernel templates.
+
 ### Dropped
 
 - **Memoizing `evaluate_with_history`** — after the inverted index lands,

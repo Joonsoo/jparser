@@ -60,6 +60,13 @@ const _: () = {
 impl Mgroup3Parser {
     pub fn new(data: Mgroup3ParserData) -> Self {
         let plain = ParserDataPlain::from_proto(data);
+        Self::from_plain(plain)
+    }
+
+    /// Build a parser from an already-materialized `ParserDataPlain`. This is the
+    /// shared tail of `new` (which goes through proto) and the rkyv cache path —
+    /// both produce identical `ParserDataPlain`, so the parser is identical.
+    pub fn from_plain(plain: ParserDataPlain) -> Self {
         let tip_edge_actions = plain
             .tip_edge_actions
             .iter()
