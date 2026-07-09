@@ -498,6 +498,40 @@ mgroup3(basePath="mgroup3") {
   }
 }
 
+// mgroup4 — bounded interior milestone groups 프로토타입 (Phase A A0+A1).
+// mgroup3 은 다른 프로젝트가 참조하는 안정 모듈이라 무변경 — mgroup4 는 별도 모듈.
+// 최소 포크: parser 런타임(ParsingCtx/AcceptCondition/RecordConditionEvaluator/
+// ParserDataPlain/Mgroup4Parser)만 mgroup4 패키지로 포크하고, proto(Mgroup3ParserData)
+// 는 mgroup3.proto 의존으로 재사용 (parserdata 포맷 동일 — generator 는 mgroup3 것 재사용).
+// 설계·계측 문서: mgroup3/docs/mgroup4_*.md. 게이트: runMgroup4DiffTest.
+mgroup4(basePath="mgroup4") {
+  parser = ktjvm.library(
+    srcs = withBasePath("parser/kotlin") {
+      file.glob("**.kt")
+    },
+    deps = [
+      // proto 는 mgroup3 것 재사용 (parserdata 포맷 동일).
+      mgroup3.proto.javalib,
+      ktlib.main,
+    ],
+  )
+
+  test = ktjvm.library(
+    srcs = withBasePath("test/kotlin") {
+      file.glob("**.kt")
+    },
+    deps = [
+      mgroup4.parser,
+      // G1 차등 오라클용 mgroup3 파서 (Mgroup4Parser(n=1) ≡ Mgroup3Parser 비교).
+      mgroup3.parser,
+      // 문법 인프로세스 생성 (Mgroup3ParserGenerator) + parserdata proto.
+      mgroup3.gen,
+      mgroup3.proto.javalib,
+      metalang.main,
+    ] + testDeps,
+  )
+}
+
 ktlib(basePath="ktlib") {
   main = ktjvm.library(
     srcs = withBasePath("main/kotlin") {
@@ -823,6 +857,48 @@ def runMgroup3MulangCdgTest() {
 @action
 def runMgroup3AdvancedTest() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Mgroup3ParserAdvancedTest"))
+}
+
+// mgroup4 차등 오라클: G1 (mgroup4 n=1 ≡ mgroup3) + G2 (mgroup4 n∈{2,4,6} ≡ n=1) 의
+// kernelsHistory·accept 동일성. 인프로세스 문법 셋(structural corpus + asdl)은 항상,
+// mulang/es5 는 MG4_DIFF=1 + 대형 parserdata 존재 시. MG4_SHAPE_STATS=1 로
+// 병합률/거부사유 카운터 출력. n 은 env var MG4_INTERIOR_N 로도 전역 오버라이드 가능.
+@action
+def runMgroup4DiffTest() {
+  runJUnitTestSuiteWithEnv(
+    mgroup4.test,
+    .some("com.giyeok.jparser.mgroup4.Mgroup4DifferentialTest"),
+    {"MG4_DIFF": "1", "MG4_SHAPE_STATS": "1"},
+  )
+}
+
+// mgroup4 거친 wall-clock 신호 (A4 정식 측정 전 신호용) — json2 n=1 vs n=6.
+@action
+def runMgroup4WallClock() {
+  runJUnitTestSuiteWithEnv(
+    mgroup4.test,
+    .some("com.giyeok.jparser.mgroup4.Mgroup4DifferentialTest"),
+    {"MG4_DIFF": "1", "MG4_WALLCLOCK": "1"},
+  )
+}
+
+// mgroup4 A4: mgroup4.test 의 runtime classpath 를 파일(build/mg4-classpath.txt)로
+// 덤프한다. A4 정식 측정은 n 설정별 **별도 JVM 프로세스**로 돌려야 JIT 순서 편향을
+// 없앨 수 있는데, bibix action 은 런타임 인자를 못 받으므로 classpath 만 내보내고
+// 실제 per-n java 실행은 외부(스크립트)에서 MG4_INTERIOR_N/MG4_BENCH_* env 로 한다.
+@action
+def dumpMgroup4Classpath() {
+  let runtimeClasspath = artifact.awaitAll(
+    jvm.collectClasspathArtifacts(mgroup4.test) + jvm.collectAllResourceDirArtifacts(mgroup4.test)
+  )
+  let cpArg = runtimeClasspath.joinToString(":") { p -> p.absolutePath }
+  let res = context.runCommand(
+    cmd = ["sh", "-c", "mkdir -p build && printf %s \"\$1\" > build/mg4-classpath.txt", "sh", cpArg],
+  )
+  if res.exitCode != 0 {
+    throw "classpath dump failed (exit=${res.exitCode})"
+  }
+  context.log("classpath written to build/mg4-classpath.txt")
 }
 
 @action
