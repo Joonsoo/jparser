@@ -700,6 +700,13 @@ impl Mgroup3Parser {
         }
         let mut referenced_roots = std::mem::take(&mut scratch.referenced_roots);
         referenced_roots.clear();
+        // 체인 노드별 기여는 그 노드만의 순수 함수 (gen 들은 생성 시점에 동결,
+        // parent_gen fallback 은 상수 main-root start gen) 이고 walk 는 항상
+        // tip→root 로 완주하므로, 이미 방문한 노드를 만나면 그 노드와 조상 전부의
+        // 기여가 끝났다는 뜻 — 거기서 끊는다. 결과 집합은 동일 (set 은 어차피
+        // 값 dedup). shapes × depth × |observing| 회 insert → distinct 노드 수로 축소.
+        let mut walked_nodes = std::mem::take(&mut scratch.walked_nodes);
+        walked_nodes.clear();
         let mut reported_cond_roots: HashSet<PathRoot> = HashSet::default();
         for pm in paths_evolved.values() {
             for (shape, cond) in pm {
@@ -709,6 +716,9 @@ impl Mgroup3Parser {
                 });
                 let mut mp = shape.milestone_path.clone();
                 while let Some(node) = mp {
+                    if !walked_nodes.insert(Rc::as_ptr(&node) as usize) {
+                        break;
+                    }
                     for sid in node.observing_cond_symbol_ids.iter().copied() {
                         // span-정규화 key anchor — 이 milestone 의 dot(= gen - 1, 부착은
                         // 항상 dot+1)에서 시작한 watcher (조건이 emit 되기 전 중간 step
@@ -826,6 +836,7 @@ impl Mgroup3Parser {
         scratch.paths_evolved = paths_evolved;
         scratch.active_cond_roots = active_cond_roots;
         scratch.referenced_roots = referenced_roots;
+        scratch.walked_nodes = walked_nodes;
 
         let ParsingCtx { mut history, mut ever_seen_cond_roots, root_report_gens, .. } = ctx;
         history.push(history_entry);

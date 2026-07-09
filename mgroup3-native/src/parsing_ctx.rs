@@ -158,8 +158,14 @@ impl MilestonePath {
     }
 
     fn compute_hash(&self) -> u64 {
-        use std::collections::hash_map::DefaultHasher;
-        let mut h = DefaultHasher::new();
+        // FxHasher (rustc-hash) instead of SipHash: this hash is computed once
+        // per new node and cached, but on ambiguous grammars millions of nodes
+        // are created per parse — SipHash's setup/finalize showed up as ~2% of
+        // parse self-time in the profiler. The value is only used as a map key
+        // after being re-hashed by FxHashMap anyway (it never leaves the process),
+        // so cryptographic mixing buys nothing here.
+        use rustc_hash::FxHasher;
+        let mut h = FxHasher::default();
         self.gen_idx.hash(&mut h);
         self.milestone.hash(&mut h);
         // observingCondSymbolIds: deep
@@ -174,6 +180,7 @@ impl MilestonePath {
         h.finish()
     }
 
+    #[inline]
     fn cached_hash_value(&self) -> u64 {
         *self.cached_hash.get_or_init(|| self.compute_hash())
     }
@@ -189,6 +196,14 @@ impl PartialEq for MilestonePath {
     fn eq(&self, other: &Self) -> bool {
         if std::ptr::eq(self, other) {
             return true;
+        }
+        // Cached-hash short-circuit: unequal hashes ⇒ unequal nodes, so skip the
+        // deep chain/observing comparison. Both operands are map keys whose hash
+        // is already materialized (or cheap: O(1) using the parent's cached hash),
+        // so this is nearly free and prunes the common "same tip, different deep
+        // ancestor" mismatch before it walks the parent chain.
+        if self.cached_hash_value() != other.cached_hash_value() {
+            return false;
         }
         if self.gen_idx != other.gen_idx || self.milestone != other.milestone {
             return false;
@@ -227,8 +242,11 @@ impl PathShape {
     }
 
     fn compute_hash(&self) -> u64 {
-        use std::collections::hash_map::DefaultHasher;
-        let mut h = DefaultHasher::new();
+        // FxHasher instead of SipHash (see MilestonePath::compute_hash). The
+        // milestone_path's own hash is already cached, so this combines two
+        // integers — SipHash's overhead dwarfed the actual work.
+        use rustc_hash::FxHasher;
+        let mut h = FxHasher::default();
         match &self.milestone_path {
             Some(p) => p.hash(&mut h),
             None => 0u64.hash(&mut h),
@@ -237,6 +255,7 @@ impl PathShape {
         h.finish()
     }
 
+    #[inline]
     fn cached_hash_value(&self) -> u64 {
         *self.cached_hash.get_or_init(|| self.compute_hash())
     }
@@ -251,6 +270,11 @@ impl Hash for PathShape {
 impl PartialEq for PathShape {
     fn eq(&self, other: &Self) -> bool {
         if self.tip_group_id != other.tip_group_id {
+            return false;
+        }
+        // Cached-hash short-circuit before the (possibly deep) milestone-path
+        // comparison. Cheap: PathShape hashes are cached and combine two ints.
+        if self.cached_hash_value() != other.cached_hash_value() {
             return false;
         }
         match (&self.milestone_path, &other.milestone_path) {
@@ -322,6 +346,17 @@ pub struct StepScratch {
     pub paths_evolved: HashMap<PathRoot, PathMap>,
     pub active_cond_roots: HashSet<PathRoot>,
     pub referenced_roots: HashSet<PathRoot>,
+    /// Step-6 chain-walk dedup: `MilestonePath` nodes (by Rc pointer) whose
+    /// referenced/reported-root contribution was already collected this step.
+    /// A node's contribution is a pure function of the node alone (its gens are
+    /// frozen at construction and the parent-gen fallback is the constant
+    /// main-root start gen), and every walk runs tip→root, so hitting a visited
+    /// node means it *and all its ancestors* already contributed — the walk can
+    /// stop there. Chains share ancestors heavily (Rc linked lists) and many
+    /// shapes share one tip, so this turns O(shapes × depth × |observing|) set
+    /// inserts per step into O(distinct nodes). Output is identical: the target
+    /// sets dedup by value anyway.
+    pub walked_nodes: HashSet<usize>,
     /// Pool of spare inner `PathMap`s. Per-root inner maps (step-1 `per_root_next`,
     /// step-5 `result`, and the inner maps drained out of `next_paths` / rejected
     /// `paths_evolved` entries) are the other churn source; instead of allocating
