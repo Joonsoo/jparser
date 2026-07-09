@@ -144,6 +144,27 @@ window-exit 비율, P4 테이블 크기).
 
 (미실행)
 
+### 6.0 선행 관찰 — mulang ccgen.mu 비용 조사에서 (2026-07-09, Phase 0 본실행 전)
+
+ccgen.mu (mulang 쪽 최고비용 파일) 가 왜 비싼지 조사하는 과정에서 이 문서의
+가설과 직접 관련된 데이터가 먼저 나왔다:
+
+- **스텝 시간은 live shapes 에 선형** — shape-bucket 별 평균 스텝시간이 전 파일
+  동일 (0-10: 0.01ms … 200-500: 0.18ms), corr(parse-ms/KB, mean shapes/step) =
+  0.997. → shape 감소가 곧 시간 감소 (P1 의 전제 성립).
+- **ccgen 의 원인은 peak 가 아니라 sustained baseline**: peak 552 는 오히려
+  대조군 (train_llama 700) 보다 낮고, 파스 시간의 65.6% 가 >=50-shape 스텝
+  (대조군 39.9%). named-arg 생성자 중첩·트레일링 람다·interpolation 이 파일
+  전체에 밀집해 타워 ×5 / 블록 ×2-3 곱셈이 상시 켜져 있는 구조. → interior
+  병합은 peak 뿐 아니라 이 sustained 대역 전체를 접는다.
+- **fork-depth 표본 (P2 의 예고편)**: ccgen peak gen 의 최대 root (sym1223)
+  에서 sample chain 2개를 diff — prefix/suffix 완전 동일, **tip-거리 3 의
+  interior 노드 하나만 상이** (sym1231 ↔ sym1233, 우선순위 타워 fork). 즉 이
+  사례는 n<=3 bounded window 안. (단 peak 한 지점의 표본 2개 — P2 는 gen-가중
+  전수 분포로 재야 확정.)
+- 계측 도구: `mgroup3-native/src/bin/shape_integral.rs` (적분/히스토그램 —
+  P1 기저 계측으로 재사용), 기존 `profile_steps` (peak/top-N/chain dump).
+
 ## 7. 참고
 
 - `kernels_history_optimization.md` — 엔진 트랙 측정 방법론, Phase B 잔여 분석 (fork 목록)
