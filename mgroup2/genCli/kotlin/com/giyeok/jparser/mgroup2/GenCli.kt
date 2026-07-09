@@ -3,8 +3,10 @@ package com.giyeok.jparser.mgroup2
 import com.giyeok.jparser.metalang3.`MetaLanguage3$`
 import com.giyeok.jparser.metalang3.codegen.KotlinOptCodeGen
 import java.nio.file.Path
+import java.util.zip.GZIPOutputStream
 import kotlin.io.path.Path
 import kotlin.io.path.createDirectories
+import kotlin.io.path.name
 import kotlin.io.path.outputStream
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
@@ -103,7 +105,11 @@ fun main(argv: Array<String>) {
     rawData
   }
   args.parserDataOut.parent?.createDirectories()
-  args.parserDataOut.outputStream().buffered().use { os ->
-    `MilestoneGroupParserDataProtobufConverter$`.`MODULE$`.toProto(data).writeTo(os)
+  // mgroup3 Stage1 과 같은 규약 — out 이 .gz 로 끝나면 gzip 으로 기록. 소비측이
+  // gzip 리소스 (예: mulang 의 mulang-mg2-parserdata.pb.gz) 를 바로 받을 수 있게 한다.
+  val rawOs = args.parserDataOut.outputStream().buffered()
+  val os = if (args.parserDataOut.name.endsWith(".gz")) GZIPOutputStream(rawOs) else rawOs
+  os.use {
+    `MilestoneGroupParserDataProtobufConverter$`.`MODULE$`.toProto(data).writeTo(it)
   }
 }
