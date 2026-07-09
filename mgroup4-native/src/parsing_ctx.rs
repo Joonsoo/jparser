@@ -1,0 +1,736 @@
+//! Port of `mgroup3/parser/kotlin/.../ParsingCtx.kt`.
+//!
+//! Data types for the parsing state. No parser logic here — see
+//! `mgroup4-native/src/parser/`.
+
+use std::cell::OnceCell;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use std::hash::{Hash, Hasher};
+use std::rc::Rc;
+
+use crate::accept_condition::AcceptCondition;
+use crate::path_root::PathRoot;
+
+/// A parse-time kernel (symbol + pointer at a given gen).
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+pub struct Kernel {
+    pub symbol_id: i32,
+    pub pointer: i32,
+    pub gen_idx: i32,
+}
+
+impl Kernel {
+    pub fn new(symbol_id: i32, pointer: i32, gen_idx: i32) -> Self {
+        Self { symbol_id, pointer, gen_idx }
+    }
+
+    pub fn kernel_template(&self) -> KernelTemplatePair {
+        KernelTemplatePair { symbol_id: self.symbol_id, pointer: self.pointer }
+    }
+}
+
+/// (symbolId, pointer) — used as a key in the tip/mid edge action maps.
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+pub struct KernelTemplatePair {
+    pub symbol_id: i32,
+    pub pointer: i32,
+}
+
+/// Finished kernel + the accept condition under which it was produced.
+/// `root` is the path root whose action produced this record (report filter).
+#[derive(Clone, Debug, PartialEq)]
+pub struct FinishedKernelRecord {
+    pub kernel: Kernel,
+    pub condition: AcceptCondition,
+    pub root: PathRoot,
+}
+
+/// Report-only kernel record with explicit begin/end (mirrors Kotlin's
+/// `AddedKernelRecord`). Used for the root ptr0 init kernels.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AddedKernelRecord {
+    pub symbol_id: i32,
+    pub pointer: i32,
+    pub begin_gen: i32,
+    pub end_gen: i32,
+    pub condition: AcceptCondition,
+    pub root: PathRoot,
+}
+
+/// One parsing-action application: a template reference plus its gen bindings.
+/// Report-only — `kernels_history` resolves these lazily (mirror of mgroup2's
+/// genActions; avoids materializing records on the parse hot path).
+/// `rt_*`: runtime bindings (condition resolution — must match cond root
+/// anchoring). `rep_*`: report coordinate bindings (m2 genMap equivalents).
+/// `condition`: the runtime condition that drove this application — edge
+/// actions store the driving `combined` (m2 kernelsHistory gates the whole
+/// edge summary with it); term actions use `Always` (no gate in m2 either).
+#[derive(Clone, Debug)]
+pub struct ActionApplication {
+    pub actions: std::sync::Arc<crate::parser_data::ParsingActionsPlain>,
+    pub root: PathRoot,
+    pub rt_curr: i32,
+    pub rt_mid: i32,
+    pub next: i32,
+    pub rt_grand: i32,
+    pub rep_curr: i32,
+    pub rep_mid: i32,
+    pub rep_grand: i32,
+    pub condition: AcceptCondition,
+}
+
+impl PartialEq for ActionApplication {
+    fn eq(&self, other: &Self) -> bool {
+        std::sync::Arc::ptr_eq(&self.actions, &other.actions)
+            && self.root == other.root
+            && self.rt_curr == other.rt_curr
+            && self.rt_mid == other.rt_mid
+            && self.next == other.next
+            && self.rt_grand == other.rt_grand
+            && self.rep_curr == other.rep_curr
+            && self.rep_mid == other.rep_mid
+            && self.rep_grand == other.rep_grand
+            && self.condition == other.condition
+    }
+}
+
+/// Linked list of milestones forming a parser graph path. Each node is shared
+/// via `Rc` so multiple paths can point at a common ancestor chain.
+///
+/// `Hash`/`Eq` are computed structurally over (gen, milestone/group_members,
+/// observing_cond_symbol_ids, parent). The hash is cached lazily.
+///
+/// mgroup4 interior group (Kotlin ParsingCtx.kt §1.1 (B)): `group_members` =
+/// None → singleton node (== mgroup3, 비트동일). Some(..) → this node is a
+/// **group**; `milestone` is the representative (sorted-first) member,
+/// `group_members` holds every member sorted canonically (symbol_id, pointer,
+/// gen). Members must share gen (runtime anchor) and observing_cond_symbol_ids
+/// to be mergeable (see core.rs `merge_verdict_at_depth`).
+#[derive(Debug)]
+pub struct MilestonePath {
+    pub gen_idx: i32,
+    pub milestone: Kernel,
+    pub parent: Option<Rc<MilestonePath>>,
+    /// Cond symbol IDs observed at this edge. Shared `Arc<[i32]>` so adding/copying
+    /// paths doesn't reallocate.
+    pub observing_cond_symbol_ids: std::sync::Arc<[i32]>,
+    /// Report-only shadow gens (NOT part of Eq/Hash — including them explodes
+    /// path counts on ambiguous grammars). `report_gen`: the gen the tip group
+    /// above this node was last (re)attached — mirrors mgroup2's updated tip
+    /// group gen; refreshed to the current gen on every edge-action append.
+    /// `milestone_report_gen`: mgroup2-style gen of this node's milestone
+    /// kernel — inherits the previous tip's `report_gen` at descend.
+    pub report_gen: i32,
+    pub milestone_report_gen: i32,
+    /// mgroup4 interior group members (sorted canonically). `None` = singleton.
+    /// Present in Eq/Hash (content compare — see below). Kotlin `groupMembers`.
+    pub group_members: Option<Vec<Kernel>>,
+    /// Per-member `milestone_report_gen`, parallel to `group_members` (same idx).
+    /// `None` when singleton. **Excluded from Eq/Hash** — the same reasoning as
+    /// the report-gen exclusion (report-coordinate variants must not split a path
+    /// → OOM on ambiguous grammars; Kotlin `groupMemberReportGens`, §1.4/R4).
+    pub group_member_report_gens: Option<Vec<i32>>,
+    cached_hash: OnceCell<u64>,
+    /// A4 merge-partition acceleration caches (used only by
+    /// `merge_interior_groups`). MilestonePath is immutable and chains are shared
+    /// across gens (only the tip grows via term descend), so a value computed once
+    /// stays valid in later gens → drops the per-shape bucket-hash cost from
+    /// O(whole chain) to O(window). Rust analog of the Kotlin lazy caches
+    /// (Rust interior_merge.rs pre/suf pattern, re-imported here).
+    ///
+    /// ★ 함정/무효화 계약 (Kotlin ParsingCtx.kt 지뢰 주석과 동일): 이 두 해시는
+    /// **node-local identity** (gen, group/milestone, observing) 만 접는다 —
+    /// report_gen/milestone_report_gen 은 제외 (`eq`/`node_local_hash` 계약과
+    /// 정확히 일치; 포함하면 병합 판정이 보고 좌표로 갈려 틀린다). 노드가
+    /// immutable 이라 무효화 불필요. group_members 는 fold 시점에 확정돼 이후
+    /// 안 바뀌므로 group 노드에 대해서도 안전. prefix_hash 는 parent 의
+    /// prefix_hash 에만 의존 → parent 공유 시 캐시도 공유돼 O(1) amortized.
+    node_local_hash: OnceCell<u64>,
+    prefix_hash: OnceCell<u64>,
+    /// root..this 의 노드 수 (this 포함). chain_to_list 없이 length 를 O(1) amortized.
+    chain_depth: OnceCell<i32>,
+}
+
+impl MilestonePath {
+    pub fn new(
+        gen_idx: i32,
+        milestone: Kernel,
+        parent: Option<Rc<MilestonePath>>,
+        observing_cond_symbol_ids: std::sync::Arc<[i32]>,
+        report_gen: i32,
+        milestone_report_gen: i32,
+    ) -> Self {
+        Self {
+            gen_idx,
+            milestone,
+            parent,
+            observing_cond_symbol_ids,
+            report_gen,
+            milestone_report_gen,
+            group_members: None,
+            group_member_report_gens: None,
+            cached_hash: OnceCell::new(),
+            node_local_hash: OnceCell::new(),
+            prefix_hash: OnceCell::new(),
+            chain_depth: OnceCell::new(),
+        }
+    }
+
+    /// Full constructor including group fields. Used by `fold_group` /
+    /// `member_singletons_for_edge` (mgroup4). n=1 never calls this.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_group(
+        gen_idx: i32,
+        milestone: Kernel,
+        parent: Option<Rc<MilestonePath>>,
+        observing_cond_symbol_ids: std::sync::Arc<[i32]>,
+        report_gen: i32,
+        milestone_report_gen: i32,
+        group_members: Option<Vec<Kernel>>,
+        group_member_report_gens: Option<Vec<i32>>,
+    ) -> Self {
+        Self {
+            gen_idx,
+            milestone,
+            parent,
+            observing_cond_symbol_ids,
+            report_gen,
+            milestone_report_gen,
+            group_members,
+            group_member_report_gens,
+            cached_hash: OnceCell::new(),
+            node_local_hash: OnceCell::new(),
+            prefix_hash: OnceCell::new(),
+            chain_depth: OnceCell::new(),
+        }
+    }
+
+    /// Copy this node with the observing list and `report_gen` replaced.
+    /// Used by `applyEdgeAction` appends: the tip group is re-attached at the
+    /// current gen, so the report gen refreshes (runtime gen stays frozen —
+    /// it is co-designed with cond root anchoring).
+    pub fn with_observing_and_report_gen(
+        self: &Rc<MilestonePath>,
+        observing: std::sync::Arc<[i32]>,
+        report_gen: i32,
+    ) -> Rc<MilestonePath> {
+        // Kotlin: parentPath.copy(...) — preserves group fields (edge append only
+        // swaps observing + tip group, chain doesn't grow). Mirror that: carry
+        // group_members / group_member_report_gens through unchanged.
+        Rc::new(MilestonePath::new_group(
+            self.gen_idx,
+            self.milestone,
+            self.parent.clone(),
+            observing,
+            report_gen,
+            self.milestone_report_gen,
+            self.group_members.clone(),
+            self.group_member_report_gens.clone(),
+        ))
+    }
+
+    #[inline]
+    pub fn is_group(&self) -> bool {
+        self.group_members.is_some()
+    }
+
+    fn compute_hash(&self) -> u64 {
+        // FxHasher (rustc-hash) instead of SipHash: this hash is computed once
+        // per new node and cached, but on ambiguous grammars millions of nodes
+        // are created per parse — SipHash's setup/finalize showed up as ~2% of
+        // parse self-time in the profiler. The value is only used as a map key
+        // after being re-hashed by FxHashMap anyway (it never leaves the process),
+        // so cryptographic mixing buys nothing here.
+        use rustc_hash::FxHasher;
+        let mut h = FxHasher::default();
+        self.gen_idx.hash(&mut h);
+        // group 이면 대표 milestone 대신 멤버 배열 (정렬돼 order 안정), singleton 은
+        // milestone — Kotlin hashCode 와 동형 (groupMembers?.hashCode() ?: milestone).
+        match &self.group_members {
+            Some(members) => members.hash(&mut h),
+            None => self.milestone.hash(&mut h),
+        }
+        // observingCondSymbolIds: deep
+        for sid in self.observing_cond_symbol_ids.iter() {
+            sid.hash(&mut h);
+        }
+        // parent: include either the cached hash of the parent (recursive) or 0
+        match &self.parent {
+            Some(p) => p.cached_hash_value().hash(&mut h),
+            None => 0u64.hash(&mut h),
+        }
+        h.finish()
+    }
+
+    #[inline]
+    fn cached_hash_value(&self) -> u64 {
+        *self.cached_hash.get_or_init(|| self.compute_hash())
+    }
+
+    /// root..this 의 노드 수 (this 포함). parent 캐시 재사용 (immutable).
+    /// Kotlin `chainDepthCached`.
+    pub fn chain_depth_cached(&self) -> i32 {
+        *self.chain_depth.get_or_init(|| {
+            self.parent.as_ref().map(|p| p.chain_depth_cached()).unwrap_or(0) + 1
+        })
+    }
+
+    /// node-local(비재귀) hash — `node_local_eq` 계약과 정합
+    /// (gen · milestone/group · observing). report_gen 류 제외. Kotlin
+    /// `nodeLocalHashCached`.
+    pub fn node_local_hash_cached(&self) -> u64 {
+        *self.node_local_hash.get_or_init(|| {
+            use rustc_hash::FxHasher;
+            let mut h = FxHasher::default();
+            self.gen_idx.hash(&mut h);
+            match &self.group_members {
+                Some(members) => members.hash(&mut h),
+                None => self.milestone.hash(&mut h),
+            }
+            for sid in self.observing_cond_symbol_ids.iter() {
+                sid.hash(&mut h);
+            }
+            h.finish()
+        })
+    }
+
+    /// root→this 누적 rolling hash: prefix = combine(parent.prefix, node_local).
+    /// 버킷 키의 prefix 성분을 O(1) 로 준다 (parent 캐시 재사용). Kotlin
+    /// `prefixHashCached` (seed 1). combine = 31*acc + node — merge 버킷 키와 정렬.
+    pub fn prefix_hash_cached(&self) -> u64 {
+        *self.prefix_hash.get_or_init(|| {
+            let parent_prefix = self.parent.as_ref().map(|p| p.prefix_hash_cached()).unwrap_or(1);
+            parent_prefix.wrapping_mul(31).wrapping_add(self.node_local_hash_cached())
+        })
+    }
+}
+
+impl Hash for MilestonePath {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.cached_hash_value().hash(state)
+    }
+}
+
+impl PartialEq for MilestonePath {
+    fn eq(&self, other: &Self) -> bool {
+        if std::ptr::eq(self, other) {
+            return true;
+        }
+        // Cached-hash short-circuit: unequal hashes ⇒ unequal nodes, so skip the
+        // deep chain/observing comparison. Both operands are map keys whose hash
+        // is already materialized (or cheap: O(1) using the parent's cached hash),
+        // so this is nearly free and prunes the common "same tip, different deep
+        // ancestor" mismatch before it walks the parent chain.
+        if self.cached_hash_value() != other.cached_hash_value() {
+            return false;
+        }
+        if self.gen_idx != other.gen_idx {
+            return false;
+        }
+        // group 여부가 다르면 다른 shape (한쪽 null, 한쪽 non-null 은 대표 milestone 만
+        // 비교하면 오병합). group 이면 멤버 내용 비교 (정렬됨), singleton 은 milestone.
+        // Kotlin equals 와 동형. group_member_report_gens 는 제외 (§1.4).
+        match (&self.group_members, &other.group_members) {
+            (None, None) => {
+                if self.milestone != other.milestone {
+                    return false;
+                }
+            }
+            (Some(a), Some(b)) => {
+                if a != b {
+                    return false;
+                }
+            }
+            _ => return false,
+        }
+        if self.observing_cond_symbol_ids.len() != other.observing_cond_symbol_ids.len()
+            || self
+                .observing_cond_symbol_ids
+                .iter()
+                .zip(other.observing_cond_symbol_ids.iter())
+                .any(|(a, b)| a != b)
+        {
+            return false;
+        }
+        match (&self.parent, &other.parent) {
+            (None, None) => true,
+            (Some(a), Some(b)) => Rc::ptr_eq(a, b) || a == b,
+            _ => false,
+        }
+    }
+}
+
+impl Eq for MilestonePath {}
+
+/// Path shape = (milestone chain, tip group id). The "shape" of a path,
+/// independent of its accept condition. Used as the key of `PathMap`.
+#[derive(Debug, Clone)]
+pub struct PathShape {
+    pub milestone_path: Option<Rc<MilestonePath>>,
+    pub tip_group_id: i32,
+    cached_hash: OnceCell<u64>,
+}
+
+impl PathShape {
+    pub fn new(milestone_path: Option<Rc<MilestonePath>>, tip_group_id: i32) -> Self {
+        Self { milestone_path, tip_group_id, cached_hash: OnceCell::new() }
+    }
+
+    fn compute_hash(&self) -> u64 {
+        // FxHasher instead of SipHash (see MilestonePath::compute_hash). The
+        // milestone_path's own hash is already cached, so this combines two
+        // integers — SipHash's overhead dwarfed the actual work.
+        use rustc_hash::FxHasher;
+        let mut h = FxHasher::default();
+        match &self.milestone_path {
+            Some(p) => p.hash(&mut h),
+            None => 0u64.hash(&mut h),
+        }
+        self.tip_group_id.hash(&mut h);
+        h.finish()
+    }
+
+    #[inline]
+    fn cached_hash_value(&self) -> u64 {
+        *self.cached_hash.get_or_init(|| self.compute_hash())
+    }
+}
+
+impl Hash for PathShape {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.cached_hash_value().hash(state)
+    }
+}
+
+impl PartialEq for PathShape {
+    fn eq(&self, other: &Self) -> bool {
+        if self.tip_group_id != other.tip_group_id {
+            return false;
+        }
+        // Cached-hash short-circuit before the (possibly deep) milestone-path
+        // comparison. Cheap: PathShape hashes are cached and combine two ints.
+        if self.cached_hash_value() != other.cached_hash_value() {
+            return false;
+        }
+        match (&self.milestone_path, &other.milestone_path) {
+            (None, None) => true,
+            (Some(a), Some(b)) => Rc::ptr_eq(a, b) || a == b,
+            _ => false,
+        }
+    }
+}
+
+impl Eq for PathShape {}
+
+/// PathShape → its accept condition.
+pub type PathMap = HashMap<PathShape, AcceptCondition>;
+
+/// One step's worth of recorded actions.
+#[derive(Clone, Debug, Default)]
+pub struct HistoryEntry {
+    /// Parsing-action applications this step (lazy report channel).
+    pub action_applications: Vec<ActionApplication>,
+    /// Extra records outside the action templates (root progress finishes /
+    /// report-only root ptr0 kernels).
+    pub finished_kernels: Vec<FinishedKernelRecord>,
+    pub added_kernels: Vec<AddedKernelRecord>,
+    pub cond_path_finishes: HashMap<PathRoot, AcceptCondition>,
+    /// 죽은 cond path 의 possible-finish — end 가 직전 gen (entry gen - 1).
+    /// bounded/longest 의 정확한 span discharge 를 위해 eager 채널과 분리.
+    pub late_cond_path_finishes: HashMap<PathRoot, AcceptCondition>,
+    pub active_cond_paths: HashSet<PathRoot>,
+    /// Or-merged conditions of main-root progress this step. `is_accepted`
+    /// evaluates only this — finished_kernels is report-only.
+    pub main_root_finish: Option<AcceptCondition>,
+    /// Cond roots eligible for reporting (mgroup2 trackings-style narrow rule:
+    /// condition-referenced roots + observing anchored at parent gens).
+    /// Records are filtered against this (current ∪ previous entry) at store time.
+    pub reported_cond_roots: HashSet<PathRoot>,
+}
+
+/// Per-step scratch collections for `parse_step`, reused across steps to avoid
+/// per-step allocate+drop churn (each step used to `HashMap::default()` /
+/// `Vec::new()` a dozen maps/vecs and drop them at the end — the profiler
+/// attributed ~40% of parse self-time to hashbrown insert/entry/rehash/drop and
+/// ~15% to malloc/free). Held parse-local inside `ParsingCtx` (like
+/// `term_action_cache`): the parser handle is shared across threads (bibix4
+/// parallel file parsing), so scratch must live on the parse-local ctx, never
+/// on the parser. `parse_step` takes it out (`mem::take`) at entry and returns
+/// it in the next ctx; every collection is `clear()`ed before use, so capacity
+/// carries over but no stale data leaks.
+///
+/// Only pure-scratch collections live here (built, read, and dropped within one
+/// step). Collections whose contents are *moved into* the returned ctx or a
+/// `HistoryEntry` (paths_filtered, cond_path_finishes, the *_dedup vecs,
+/// reported_cond_roots, …) are NOT pooled — they escape the step, so reusing
+/// their backing store would alias live state.
+#[derive(Clone, Debug, Default)]
+pub struct StepScratch {
+    pub next_paths: HashMap<PathRoot, PathMap>,
+    pub apps: Vec<ActionApplication>,
+    pub finishes: Vec<FinishedKernelRecord>,
+    pub added: Vec<AddedKernelRecord>,
+    pub observing: HashSet<i32>,
+    pub root_progresses: HashMap<PathRoot, AcceptCondition>,
+    pub late_pf_progresses: HashMap<PathRoot, AcceptCondition>,
+    pub cond_root_starters_from_term: HashMap<PathRoot, crate::parser::core::PendingStarter>,
+    pub all_observing: HashSet<i32>,
+    pub new_cond_roots: HashSet<PathRoot>,
+    pub new_cond_roots_sorted: Vec<PathRoot>,
+    pub new_cond_root_progresses: HashMap<PathRoot, AcceptCondition>,
+    pub paths_evolved: HashMap<PathRoot, PathMap>,
+    pub active_cond_roots: HashSet<PathRoot>,
+    pub referenced_roots: HashSet<PathRoot>,
+    /// Step-6 chain-walk dedup: `MilestonePath` nodes (by Rc pointer) whose
+    /// referenced/reported-root contribution was already collected this step.
+    /// A node's contribution is a pure function of the node alone (its gens are
+    /// frozen at construction and the parent-gen fallback is the constant
+    /// main-root start gen), and every walk runs tip→root, so hitting a visited
+    /// node means it *and all its ancestors* already contributed — the walk can
+    /// stop there. Chains share ancestors heavily (Rc linked lists) and many
+    /// shapes share one tip, so this turns O(shapes × depth × |observing|) set
+    /// inserts per step into O(distinct nodes). Output is identical: the target
+    /// sets dedup by value anyway.
+    pub walked_nodes: HashSet<usize>,
+    /// Pool of spare inner `PathMap`s. Per-root inner maps (step-1 `per_root_next`,
+    /// step-5 `result`, and the inner maps drained out of `next_paths` / rejected
+    /// `paths_evolved` entries) are the other churn source; instead of allocating
+    /// one per (root × step) we hand out reused maps from here and return drained
+    /// ones. See `take_path_map` / `recycle_path_map` for the bounds.
+    pub path_map_pool: Vec<PathMap>,
+}
+
+impl StepScratch {
+    /// Hand out a cleared inner `PathMap`, reused from the pool if one is
+    /// available (capacity carries over). Empty pool → fresh map.
+    #[inline]
+    pub fn take_path_map(&mut self) -> PathMap {
+        match self.path_map_pool.pop() {
+            Some(mut m) => {
+                m.clear();
+                m
+            }
+            None => PathMap::default(),
+        }
+    }
+
+    /// Return a drained/dead inner `PathMap` to the pool for reuse. Bounded two
+    /// ways: pool length (so a single huge step can't pin unbounded memory) and
+    /// per-map capacity (so we never recycle a pathologically oversized map that
+    /// would make future `clear()`/iteration O(bigcap) for a small need — the
+    /// oversize map is simply dropped instead).
+    #[inline]
+    pub fn recycle_path_map(&mut self, m: PathMap) {
+        const MAX_POOL_LEN: usize = 4096;
+        const MAX_MAP_CAP: usize = 512;
+        if self.path_map_pool.len() < MAX_POOL_LEN && m.capacity() <= MAX_MAP_CAP {
+            self.path_map_pool.push(m);
+        }
+    }
+}
+
+/// Top-level parser state.
+#[derive(Clone, Debug)]
+pub struct ParsingCtx {
+    pub gen_idx: i32,
+    pub line: i32,
+    pub col: i32,
+    pub main_root: PathRoot,
+    /// All live paths — main path plus every active cond root.
+    pub paths: HashMap<PathRoot, PathMap>,
+    pub history: Vec<HistoryEntry>,
+    /// Union of every `active_cond_paths` seen so far. Carried forward so
+    /// `parseStep` can skip re-registering dead cond roots.
+    pub ever_seen_cond_roots: HashSet<PathRoot>,
+    /// Report-only anchor per cond root: same-input starters actually span
+    /// from (creation gen - 1); report coordinates use this instead of
+    /// `root.start_gen`. Runtime keys/anchoring unchanged.
+    pub root_report_gens: HashMap<PathRoot, i32>,
+    /// (tipGroupId << 32) | charCode → term action 조회 캐시 — 파스-로컬.
+    /// 파서 인스턴스는 스레드 간 공유되므로 (bibix4 병렬 파싱) 파서에 두면
+    /// 핫패스 락 경합이 생긴다. ctx 는 파스마다 하나라 락 불필요.
+    pub term_action_cache: HashMap<i64, Option<std::sync::Arc<crate::parser_data::TermActionPlain>>>,
+    /// Per-step scratch collections, reused across steps. Parse-local (see
+    /// `StepScratch`). `parse_step` takes this out at entry and returns it in
+    /// the next ctx.
+    pub step_scratch: StepScratch,
+}
+
+impl ParsingCtx {
+    /// View of just the main path (or an empty borrow if main is gone).
+    pub fn main_paths(&self) -> Option<&PathMap> {
+        self.paths.get(&self.main_root)
+    }
+
+    /// Iterate cond-only roots (every key except `main_root`).
+    pub fn cond_paths(&self) -> impl Iterator<Item = (&PathRoot, &PathMap)> {
+        let main = self.main_root;
+        self.paths.iter().filter(move |(r, _)| **r != main)
+    }
+}
+
+/// Rust analog of `com.giyeok.jparser.ktlib.Kernel`. Used by `kernels_history`
+/// output. Distinct from the in-graph `Kernel` (no `endGen` there).
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
+pub struct KtlibKernel {
+    pub symbol_id: i32,
+    pub pointer: i32,
+    pub begin_gen: i32,
+    pub end_gen: i32,
+}
+
+/// Add a path to a `PathMap`, Or-merging the condition if a shape already
+/// exists. `Never` conditions are dropped. Mirrors
+/// `MutableMap<PathShape, AcceptCondition>.addPath` in Kotlin
+/// (`ParsingCtx.kt:140-144`).
+pub fn add_path(map: &mut PathMap, shape: PathShape, cond: AcceptCondition) {
+    if matches!(cond, AcceptCondition::Never) {
+        return;
+    }
+    use std::collections::hash_map::Entry;
+    match map.entry(shape) {
+        Entry::Vacant(v) => {
+            v.insert(cond);
+        }
+        Entry::Occupied(mut o) => {
+            let existing = o.get().clone();
+            o.insert(AcceptCondition::or_from([existing, cond]));
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ex(s: i32, g: i32) -> AcceptCondition {
+        AcceptCondition::Exists { symbol_id: s, start_gen: g }
+    }
+
+    fn mp_root(gen_idx: i32, sid: i32) -> Rc<MilestonePath> {
+        Rc::new(MilestonePath::new(
+            gen_idx,
+            Kernel::new(sid, 0, gen_idx),
+            None,
+            std::sync::Arc::from(Vec::<i32>::new()),
+            gen_idx,
+            gen_idx,
+        ))
+    }
+
+    #[test]
+    fn kernel_template() {
+        let k = Kernel::new(1, 2, 3);
+        assert_eq!(k.kernel_template(), KernelTemplatePair { symbol_id: 1, pointer: 2 });
+    }
+
+    #[test]
+    fn milestone_path_eq_with_shared_parent() {
+        let parent = mp_root(0, 100);
+        let a = Rc::new(MilestonePath::new(
+            1,
+            Kernel::new(7, 0, 1),
+            Some(parent.clone()),
+            std::sync::Arc::from(vec![1, 2]),
+            1,
+            0,
+        ));
+        let b = Rc::new(MilestonePath::new(
+            1,
+            Kernel::new(7, 0, 1),
+            Some(parent.clone()),
+            std::sync::Arc::from(vec![1, 2]),
+            1,
+            0,
+        ));
+        assert_eq!(a, b);
+        // Different observing list — not equal.
+        let c = Rc::new(MilestonePath::new(
+            1,
+            Kernel::new(7, 0, 1),
+            Some(parent),
+            std::sync::Arc::from(vec![1, 3]),
+            1,
+            0,
+        ));
+        assert_ne!(a, c);
+    }
+
+    #[test]
+    fn milestone_path_hash_is_idempotent() {
+        let p = mp_root(5, 9);
+        let h1 = {
+            use std::hash::{Hash, Hasher};
+            let mut s = std::collections::hash_map::DefaultHasher::new();
+            p.hash(&mut s);
+            s.finish()
+        };
+        let h2 = {
+            use std::hash::{Hash, Hasher};
+            let mut s = std::collections::hash_map::DefaultHasher::new();
+            p.hash(&mut s);
+            s.finish()
+        };
+        assert_eq!(h1, h2);
+    }
+
+    #[test]
+    fn path_shape_eq_and_hash() {
+        let parent = mp_root(0, 100);
+        let a = PathShape::new(Some(parent.clone()), 5);
+        let b = PathShape::new(Some(parent.clone()), 5);
+        let c = PathShape::new(Some(parent), 6);
+        let d = PathShape::new(None, 5);
+        assert_eq!(a, b);
+        assert_ne!(a, c);
+        assert_ne!(a, d);
+
+        // hash equality matches structural equality
+        use std::hash::{Hash, Hasher};
+        let mut ha = std::collections::hash_map::DefaultHasher::new();
+        let mut hb = std::collections::hash_map::DefaultHasher::new();
+        a.hash(&mut ha);
+        b.hash(&mut hb);
+        assert_eq!(ha.finish(), hb.finish());
+    }
+
+    #[test]
+    fn add_path_drops_never() {
+        let mut m: PathMap = HashMap::default();
+        add_path(&mut m, PathShape::new(None, 1), AcceptCondition::Never);
+        assert!(m.is_empty());
+    }
+
+    #[test]
+    fn add_path_or_merges() {
+        let mut m: PathMap = HashMap::default();
+        let shape = PathShape::new(None, 1);
+        add_path(&mut m, shape.clone(), ex(1, 0));
+        add_path(&mut m, shape.clone(), ex(2, 0));
+        let v = m.get(&shape).unwrap();
+        assert_eq!(*v, AcceptCondition::or_from([ex(1, 0), ex(2, 0)]));
+    }
+
+    #[test]
+    fn parsing_ctx_main_paths_view() {
+        let main_root = PathRoot::new(1, 0);
+        let mut paths: HashMap<PathRoot, PathMap> = HashMap::default();
+        let mut mp = PathMap::default();
+        mp.insert(PathShape::new(None, 5), AcceptCondition::Always);
+        paths.insert(main_root, mp);
+        let ctx = ParsingCtx {
+            gen_idx: 0,
+            line: 0,
+            col: 0,
+            main_root,
+            paths,
+            history: vec![],
+            ever_seen_cond_roots: HashSet::default(),
+            root_report_gens: HashMap::default(),
+            term_action_cache: Default::default(),
+            step_scratch: Default::default(),
+        };
+        assert_eq!(ctx.main_paths().unwrap().len(), 1);
+        assert_eq!(ctx.cond_paths().count(), 0);
+    }
+}
