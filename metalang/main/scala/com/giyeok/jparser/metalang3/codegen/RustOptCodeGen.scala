@@ -977,7 +977,7 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
     writer.write("#![allow(unused_variables)]\n\n")
     writer.write("use crate::ktlib::{\n")
     writer.write("    get_sequence_elems, has_single_true, unroll_repeat0, unroll_repeat1,\n")
-    writer.write("    IdIssuer, KernelSet,\n")
+    writer.write("    IdIssuer, KernelSet, KernelSetExt,\n")
     writer.write("};\n\n")
 
     writer.write(enumDefs())

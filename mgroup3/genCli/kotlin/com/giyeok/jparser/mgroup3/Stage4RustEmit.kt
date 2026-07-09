@@ -70,6 +70,11 @@ object Stage4RustEmit {
     |[dependencies]
     |prost = "0.14"
     |bytes = "1"
+    |# KernelSet = FxHashSet<Kernel>. 기본(self-contained) 빌드에도 필요.
+    |# 순수 Rust crate 라 self-contained 를 깨지 않는다. feature 빌드에서는
+    |# mgroup3-native 가 쓰는 것과 같은 crate 인스턴스여야 kernels_history 출력
+    |# (Vec<FxHashSet<KtlibKernel>>) 타입과 일치하므로 semver 를 통일해 둔다.
+    |rustc-hash = "2.1"
     |# check_ast 검증 bin 전용 (feature 로 격리 — 기본 빌드는 self-contained).
     |# 주의: path dependency 는 cargo 가 feature off 여도 manifest 해석 시 존재를
     |# 요구하므로, crate 를 리포 밖에 생성할 땐 GenCli 의 -mgroup3-native 로
@@ -124,7 +129,6 @@ object Stage4RustEmit {
     |use prost::Message;
     |
     |use $crateLibName::ast::Ctx;
-    |use $crateLibName::ktlib::{Kernel, KernelSet};
     |use mgroup3_native::parser::Mgroup3Parser;
     |use mgroup3_native::proto::com::giyeok::jparser::mgroup3::proto::Mgroup3ParserData;
     |
@@ -163,22 +167,9 @@ object Stage4RustEmit {
     |    if !parser.is_accepted(&ctx) {
     |        return Err("not accepted".to_string());
     |    }
-    |    let hist = parser.kernels_history(&ctx);
-    |    let history: Vec<KernelSet> = hist
-    |        .iter()
-    |        .map(|ks| {
-    |            KernelSet::new(
-    |                ks.iter()
-    |                    .map(|k| Kernel {
-    |                        symbol_id: k.symbol_id,
-    |                        pointer: k.pointer,
-    |                        begin_gen: k.begin_gen,
-    |                        end_gen: k.end_gen,
-    |                    })
-    |                    .collect(),
-    |            )
-    |        })
-    |        .collect();
+    |    // `kernels_history` returns `Vec<FxHashSet<KtlibKernel>>` = `Vec<KernelSet>`
+    |    // in a feature build; hand it to the walk directly (no rebuild/downgrade).
+    |    let history = parser.kernels_history(&ctx);
     |    let chars: Vec<char> = input.chars().collect();
     |    let result = std::panic::catch_unwind(move || {
     |        let mut walk_ctx = Ctx::new(&chars, &history);
@@ -237,7 +228,6 @@ object Stage4RustEmit {
     |
     |use crate::ast::Ctx;
     |use crate::encode;
-    |use crate::ktlib::{Kernel, KernelSet};
     |
     |pub const MGROUP3_GEN_OK: i32 = 0;
     |pub const MGROUP3_GEN_ERR_NULL_ARG: i32 = 1;
@@ -280,22 +270,11 @@ object Stage4RustEmit {
     |        if !parser_ref.is_accepted(&ctx) {
     |            return Err(MGROUP3_GEN_ERR_REJECTED);
     |        }
-    |        let hist = parser_ref.kernels_history(&ctx);
-    |        let history: Vec<KernelSet> = hist
-    |            .iter()
-    |            .map(|ks| {
-    |                KernelSet::new(
-    |                    ks.iter()
-    |                        .map(|k| Kernel {
-    |                            symbol_id: k.symbol_id,
-    |                            pointer: k.pointer,
-    |                            begin_gen: k.begin_gen,
-    |                            end_gen: k.end_gen,
-    |                        })
-    |                        .collect(),
-    |                )
-    |            })
-    |            .collect();
+    |        // `kernels_history` already returns `Vec<FxHashSet<KtlibKernel>>`,
+    |        // which is exactly `Vec<KernelSet>` in a feature build (Kernel aliases
+    |        // KtlibKernel, KernelSet = FxHashSet<Kernel>). Feed it to the walk
+    |        // directly — no per-element rebuild, no hasher downgrade.
+    |        let history = parser_ref.kernels_history(&ctx);
     |        let chars: Vec<char> = text.chars().collect();
     |        let mut walk_ctx = Ctx::new(&chars, &history);
     |        let ast = walk_ctx.match_start();
@@ -340,8 +319,14 @@ object Stage4RustEmit {
     |// Generated (static) by Stage4RustEmit. Port of ktlib + AstifierUtil.
     |// TODO: move into mgroup3-native and depend on it instead of copying.
     |
-    |use std::collections::HashSet;
+    |use rustc_hash::FxHashSet;
     |
+    |// `Kernel` is the per-gen kernel record. In the default (self-contained)
+    |// build it is defined locally. When the crate is built with the `check-ast`
+    |// or `ffi` feature, it aliases `mgroup3_native::parsing_ctx::KtlibKernel`
+    |// (field/derive identical) so the parser's `kernels_history` output is fed
+    |// into the walk with no per-element rebuild or hasher downgrade.
+    |#[cfg(not(any(feature = "check-ast", feature = "ffi")))]
     |#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
     |pub struct Kernel {
     |    pub symbol_id: i32,
@@ -350,43 +335,46 @@ object Stage4RustEmit {
     |    pub end_gen: i32,
     |}
     |
-    |#[derive(Clone, Debug, Default)]
-    |pub struct KernelSet {
-    |    pub kernels: HashSet<Kernel>,
+    |#[cfg(any(feature = "check-ast", feature = "ffi"))]
+    |pub type Kernel = mgroup3_native::parsing_ctx::KtlibKernel;
+    |
+    |// A per-gen kernel set. Alias over `FxHashSet<Kernel>` so it is exactly the
+    |// element type produced by `Mgroup3Parser::kernels_history`
+    |// (`Vec<FxHashSet<KtlibKernel>>`) — no wrap, no conversion.
+    |pub type KernelSet = FxHashSet<Kernel>;
+    |
+    |// Query helpers over a kernel set. Kept as an extension trait so the walk
+    |// (`ast.rs`) and the free helpers below can call `set.find_by_begin_gen_opt(..)`
+    |// with method syntax even though `KernelSet` is a plain type alias.
+    |pub trait KernelSetExt {
+    |    fn filter_by_begin_gen(&self, symbol_id: i32, pointer: i32, begin_gen: i32) -> Vec<Kernel>;
+    |    fn find_by_begin_gen(&self, symbol_id: i32, pointer: i32, begin_gen: i32) -> Kernel;
+    |    fn find_by_begin_gen_opt(&self, symbol_id: i32, pointer: i32, begin_gen: i32) -> Option<Kernel>;
+    |    fn get_single(&self, symbol_id: i32, pointer: i32, begin_gen: i32, end_gen: i32) -> Kernel;
     |}
     |
-    |impl KernelSet {
-    |    pub fn new(kernels: HashSet<Kernel>) -> Self {
-    |        Self { kernels }
-    |    }
-    |
-    |    pub fn contains(&self, kernel: &Kernel) -> bool {
-    |        self.kernels.contains(kernel)
-    |    }
-    |
-    |    pub fn filter_by_begin_gen(&self, symbol_id: i32, pointer: i32, begin_gen: i32) -> Vec<Kernel> {
-    |        self.kernels
-    |            .iter()
+    |impl KernelSetExt for KernelSet {
+    |    fn filter_by_begin_gen(&self, symbol_id: i32, pointer: i32, begin_gen: i32) -> Vec<Kernel> {
+    |        self.iter()
     |            .filter(|k| k.symbol_id == symbol_id && k.pointer == pointer && k.begin_gen == begin_gen)
     |            .copied()
     |            .collect()
     |    }
     |
-    |    pub fn find_by_begin_gen(&self, symbol_id: i32, pointer: i32, begin_gen: i32) -> Kernel {
+    |    fn find_by_begin_gen(&self, symbol_id: i32, pointer: i32, begin_gen: i32) -> Kernel {
     |        let matches = self.filter_by_begin_gen(symbol_id, pointer, begin_gen);
     |        check_single(&matches);
     |        matches[0]
     |    }
     |
-    |    pub fn find_by_begin_gen_opt(&self, symbol_id: i32, pointer: i32, begin_gen: i32) -> Option<Kernel> {
+    |    fn find_by_begin_gen_opt(&self, symbol_id: i32, pointer: i32, begin_gen: i32) -> Option<Kernel> {
     |        let matches = self.filter_by_begin_gen(symbol_id, pointer, begin_gen);
     |        check_single_or_none(&matches);
     |        matches.into_iter().next()
     |    }
     |
-    |    pub fn get_single(&self, symbol_id: i32, pointer: i32, begin_gen: i32, end_gen: i32) -> Kernel {
-    |        self.kernels
-    |            .iter()
+    |    fn get_single(&self, symbol_id: i32, pointer: i32, begin_gen: i32, end_gen: i32) -> Kernel {
+    |        self.iter()
     |            .copied()
     |            .find(|k| {
     |                k.symbol_id == symbol_id
