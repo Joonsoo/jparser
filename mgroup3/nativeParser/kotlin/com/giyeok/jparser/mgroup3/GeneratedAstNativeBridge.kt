@@ -15,7 +15,8 @@ import java.nio.file.Path
  * (`cargo build --features ffi`) 를 FFM 으로 로드하는 브릿지.
  *
  * 생성 dylib 은 mgroup3-native 의 export (`mgroup3_parser_new_from_file`,
- * `mgroup3_parser_free`, `mgroup3_free_buffer`)와 per-grammar 의
+ * `mgroup3_parser_new_from_file_cached`, `mgroup3_parser_free`,
+ * `mgroup3_free_buffer`)와 per-grammar 의
  * `mgroup3_gen_parse_ast` 를 함께 노출한다. `parseAst` 가 돌려주는 바이트는
  * 그 문법의 ast.proto `ParseResult` — Kotlin 쪽에서는 생성된
  * `AstProtoBinding.fromProtoBytes` 로 typed AST 를 복원한다.
@@ -32,6 +33,10 @@ class GeneratedAstNativeBridge(libPath: Path) : AutoCloseable {
 
   private val parserNewFromFile: MethodHandle = downcall(
     "mgroup3_parser_new_from_file",
+    FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS),
+  )
+  private val parserNewFromFileCached: MethodHandle = downcall(
+    "mgroup3_parser_new_from_file_cached",
     FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS),
   )
   private val parserFree: MethodHandle = downcall(
@@ -55,16 +60,37 @@ class GeneratedAstNativeBridge(libPath: Path) : AutoCloseable {
   )
 
   /** parserdata 파일에서 파서 핸들 생성. 실패 시 throw. */
-  fun newParserFromFile(parserDataPath: Path): MemorySegment = withConfinedArena { arena ->
+  fun newParserFromFile(parserDataPath: Path): MemorySegment =
+    newParserFromFileVia(parserNewFromFile, "mgroup3_parser_new_from_file", parserDataPath)
+
+  /**
+   * parserdata 파일에서 파서 핸들 생성 — 첫 로드에서 sibling `.rkyv` 캐시를 굽고
+   * 이후 로드는 mmap 으로 재사용해 prost decode 를 건너뛴다 (warm ~125ms).
+   * 경로가 `.gz` 로 끝나면 Rust 쪽이 gunzip 한다 (JVM 에서 풀 필요 없음).
+   * 산출 파서는 [newParserFromFile] 과 동일한 semantics. 실패 시 throw
+   * (에러 규약 동일 + 코드 6 = cache orchestration 실패).
+   */
+  fun newParserFromFileCached(parserDataPath: Path): MemorySegment =
+    newParserFromFileVia(
+      parserNewFromFileCached,
+      "mgroup3_parser_new_from_file_cached",
+      parserDataPath,
+    )
+
+  private fun newParserFromFileVia(
+    handleFn: MethodHandle,
+    symbolName: String,
+    parserDataPath: Path,
+  ): MemorySegment = withConfinedArena { arena ->
     val pathBytes = parserDataPath.toAbsolutePath().toString().toByteArray(StandardCharsets.UTF_8)
     val pathSeg = arena.allocate((pathBytes.size + 1).toLong())
     MemorySegment.copy(pathBytes, 0, pathSeg, ValueLayout.JAVA_BYTE, 0, pathBytes.size)
     pathSeg.set(ValueLayout.JAVA_BYTE, pathBytes.size.toLong(), 0)
     val errSeg = arena.allocate(ValueLayout.JAVA_INT)
-    val handle = parserNewFromFile.invokeExact(pathSeg, errSeg) as MemorySegment
+    val handle = handleFn.invokeExact(pathSeg, errSeg) as MemorySegment
     val err = errSeg.get(ValueLayout.JAVA_INT, 0)
     check(err == 0 && handle.address() != 0L) {
-      "mgroup3_parser_new_from_file failed: err=$err path=$parserDataPath"
+      "$symbolName failed: err=$err path=$parserDataPath"
     }
     handle
   }
