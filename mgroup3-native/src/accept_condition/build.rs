@@ -74,10 +74,25 @@ impl AcceptCondition {
     }
 }
 
-/// In-place dedup preserving order. Items must be `Hash + Eq`. Linear-probe
-/// HashSet is fine for the small lists we build.
+/// In-place dedup preserving order. Items must be `Hash + Eq`. For the small
+/// lists this builds (almost all length 2-3), a linear O(n^2) scan is far
+/// cheaper than allocating a HashSet + cloning each element into it — the
+/// HashSet path showed up as a top allocator cost in kernels_history.
 fn dedup_inplace(items: &mut Vec<AcceptCondition>) {
-    if items.len() < 2 {
+    let len = items.len();
+    if len < 2 {
+        return;
+    }
+    if len <= 8 {
+        // Linear dedup, no allocation, order-preserving. Drain into a temporary
+        // and push back only first occurrences.
+        let drained: Vec<AcceptCondition> = std::mem::take(items);
+        items.reserve(len);
+        for c in drained {
+            if !items.contains(&c) {
+                items.push(c);
+            }
+        }
         return;
     }
     let original = std::mem::take(items);
@@ -191,6 +206,30 @@ mod tests {
         match r {
             AcceptCondition::And { items } => assert_eq!(items.len(), 5),
             other => panic!("expected And, got {other}"),
+        }
+    }
+
+    #[test]
+    fn dedup_agrees_across_size_threshold() {
+        // dedup_inplace has two branches (linear scan for len<=8, HashSet
+        // otherwise). Feed duplicate-laden inputs that straddle the boundary and
+        // confirm both branches produce the same deduped, canonical result.
+        // 6 distinct exists (len 8 after 2 dups) exercises the linear branch;
+        // 10 distinct (len 12 after 2 dups) exercises the HashSet branch.
+        for distinct in [6usize, 10usize] {
+            let mut children: Vec<AcceptCondition> = (0..distinct as i32).map(|i| ex(i, 0)).collect();
+            children.push(ex(0, 0)); // dup of first
+            children.push(ex((distinct as i32) - 1, 0)); // dup of last
+            let r = AcceptCondition::and_from(children);
+            match r {
+                AcceptCondition::And { items } => {
+                    assert_eq!(items.len(), distinct, "distinct={distinct}");
+                    for i in 0..distinct as i32 {
+                        assert!(items.contains(&ex(i, 0)));
+                    }
+                }
+                other => panic!("expected And, got {other}"),
+            }
         }
     }
 

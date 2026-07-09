@@ -275,6 +275,67 @@ dominates the warm path — see the zero-copy lower bound above for the ceiling.
 The archive is ~2.8× the uncompressed proto (309 MB vs 110 MB), almost all of
 it the reporting-only `added` kernel templates.
 
+### kernels_history: per-gen app dedup + linear cond dedup — landed
+
+Post-rkyv, `kernels_history` (the per-generation kernel-set materializer read on
+the bibix4 hot path) dominated the parse-result cost. A profile attributed ~47%
+of it to `build_condition` (AcceptCondition tree allocation), i.e. it was
+allocation-bound, and showed the same `ActionApplication` recurring up to 11× per
+gen (jar.bbx: 91% of apps in a gen are duplicates of another app in that gen;
+90.5% of built conditions are `Always`, distinct conditions are 0.05–0.34%). Two
+independent changes:
+
+- **P1 — per-gen ActionApplication dedup (`parser/core.rs`).** Within each gen,
+  bucket applications by a cheap integer key `AppKey` (actions template `Arc`
+  pointer + the rt/rep gen bindings) and skip an app whose (key, condition) was
+  already materialized this gen. Dropping a duplicate is output-invariant: kernel
+  coordinates are a pure function of the app's fields (equal for a duplicate) and
+  every emit is an idempotent set `insert`, so a skipped duplicate would only
+  re-insert kernels already present — `parser_diff`'s golden byte-compare and an
+  11-corpus fingerprint A/B confirm byte-identical output. The dedup map is
+  allocated once and cleared per gen (no per-gen allocation). Conditions — the
+  only field `AppKey` omits — are disambiguated inside the bucket by *value*
+  (`SmallCondSet`, a tiny linear-compare list), so composite condition trees are
+  never hashed (hashing them would regress nontrivial-condition inputs — that was
+  the whole point of the split key).
+- **P3 — linear in-place dedup for small condition lists (`accept_condition/build.rs`).**
+  `dedup_inplace` (shared with the `and_from`/`or_from` parse hot path) allocated
+  an `FxHashSet` and cloned every element into it. For the small lists it actually
+  builds (almost all length 2–3), a length-`≤8` linear `contains` scan is
+  dramatically cheaper — no allocation, order-preserving, same result. Lists of
+  length `>8` keep the HashSet path. Covered by a boundary test that feeds
+  duplicate-laden inputs straddling the threshold.
+
+Measured `kernels_history` median (11-corpus, `hist_ab`, release, no concurrent
+cargo/rustc; parserdata `mulang-mg3.pb`), before (pristine, neither change) →
+after (P1+P3):
+
+| corpus | before | after | speedup |
+|---|---|---|---|
+| json.bbx | 16.7 ms | 17.5 ms | 0.95× |
+| xml.bbx | 13.6 ms | 13.3 ms | 1.02× |
+| utils.bbx | 65.3 ms | 44.8 ms | 1.46× |
+| java.bbx | 96.9 ms | 44.5 ms | 2.18× |
+| jar.bbx | 228.2 ms | 87.6 ms | **2.60×** |
+| ktjvm.bbx | 178.3 ms | 93.4 ms | 1.91× |
+| junit.bbx | 160.6 ms | 99.4 ms | 1.62× |
+| protobuf.bbx | 170.7 ms | 105.5 ms | 1.62× |
+| jvm.bbx | 209.3 ms | 159.0 ms | 1.32× |
+| cc.bbx | 364.7 ms | 238.4 ms | 1.53× |
+| maven.bbx | 449.0 ms | 275.7 ms | 1.63× |
+
+**Small-file regression is un-gated by design.** The two files with no
+duplicate apps and hist <100 ms are json/xml. json's steady-state cost rises
+~0.8 ms (16.7 → 17.5 ms, ~5% relative but **+0.8 ms absolute**); xml is flat.
+The plan's gate threshold was +5 ms absolute — json is well under it — so no
+per-gen app-count gate is added; a gate would branch the hot loop for negligible
+benefit. The only overhead on a duplicate-free gen is `AppKey` construction + one
+`FxHashMap` lookup per app (the map itself is allocated once, cleared per gen).
+
+Verification: `hist_ab <pb> <corpus...>` prints a deterministic FNV fingerprint
+of the full sorted output per file — run the same binary against a pristine build
+and a P1+P3 build; all 11 fingerprints + `COMBINED_FP` matched exactly.
+
 ### Dropped
 
 - **Memoizing `evaluate_with_history`** — after the inverted index lands,

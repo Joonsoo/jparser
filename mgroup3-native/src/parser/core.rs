@@ -844,10 +844,38 @@ impl Mgroup3Parser {
         // evaluator 의 인덱스/메모는 이 호출 로컬 — 파서 인스턴스는 Send+Sync 유지.
         let evaluator = super::record_cond::RecordConditionEvaluator::new(&ctx.history, &end_late);
         let mut out = Vec::with_capacity(ctx.history.len());
+        // Per-gen ActionApplication dedup. The same (actions template, gen
+        // bindings, condition) recurs many times within a gen (up to 11x on
+        // jar.bbx); each redundant app rebuilds+re-evaluates+re-emits the same
+        // kernels into the same set. Skipping duplicates is output-invariant:
+        // the kernel coordinates are a pure function of the app's fields (which
+        // are equal for a duplicate) and every emit is a set `insert`, which is
+        // idempotent — so a dropped duplicate would only re-insert kernels
+        // already present. Bucket on a cheap integer key (`AppKey`) and
+        // disambiguate the rare differing-condition case inside the bucket by
+        // value (`SmallCondSet`), so composite condition trees are never hashed.
+        // The map is allocated once and cleared per gen.
+        let mut seen: HashMap<AppKey, SmallCondSet> = HashMap::default();
         for (gen_idx, entry) in ctx.history.iter().enumerate() {
             let gen_idx = gen_idx as i32;
             let mut kernels: HashSet<KtlibKernel> = HashSet::default();
+            seen.clear();
             for app in &entry.action_applications {
+                let key = AppKey {
+                    actions: Arc::as_ptr(&app.actions) as usize,
+                    rt_curr: app.rt_curr,
+                    rt_mid: app.rt_mid,
+                    next: app.next,
+                    rt_grand: app.rt_grand,
+                    rep_curr: app.rep_curr,
+                    rep_mid: app.rep_mid,
+                    rep_grand: app.rep_grand,
+                };
+                let bucket = seen.entry(key).or_default();
+                if bucket.contains(&app.condition) {
+                    continue; // identical app already materialized this gen
+                }
+                bucket.push(app.condition.clone());
                 // edge action 은 구동 조건으로 전체 게이팅.
                 if !matches!(app.condition, AcceptCondition::Always)
                     && !evaluator.evaluate(&app.condition, gen_idx)
@@ -1275,6 +1303,42 @@ fn initial_application(pa: Arc<ParsingActionsPlain>, root: PathRoot) -> ActionAp
         rep_mid: base,
         rep_grand: base,
         condition: AcceptCondition::Always,
+    }
+}
+
+/// Per-gen ActionApplication dedup key (see `kernels_history`). Cheap integer
+/// identity: the actions template (Arc ptr, since templates are shared) plus the
+/// rt/rep gen bindings. Condition variants — the only field this omits — are
+/// disambiguated inside the bucket (`SmallCondSet`) by value, so composite
+/// condition trees are never hashed.
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+struct AppKey {
+    actions: usize,
+    rt_curr: i32,
+    rt_mid: i32,
+    next: i32,
+    rt_grand: i32,
+    rep_curr: i32,
+    rep_mid: i32,
+    rep_grand: i32,
+}
+
+/// Conditions seen for one `AppKey` bucket this gen. Almost always length 0 or 1
+/// (differing conditions under one key are rare), so a linear compare is cheaper
+/// than hashing the condition tree. Owns its conditions so the bucket map can be
+/// reused (cleared) across gens without lifetime ties.
+#[derive(Default)]
+struct SmallCondSet {
+    items: Vec<AcceptCondition>,
+}
+impl SmallCondSet {
+    #[inline]
+    fn contains(&self, c: &AcceptCondition) -> bool {
+        self.items.iter().any(|x| x == c)
+    }
+    #[inline]
+    fn push(&mut self, c: AcceptCondition) {
+        self.items.push(c);
     }
 }
 
