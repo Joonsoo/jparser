@@ -1,0 +1,151 @@
+// bibix4 번들 stdlib — JVM jar 패키징 룰.
+//
+// ## 룰 구성
+//
+// - `jar.library(name, lib)` — `JvmLib` 의 classesDir + resourcesDir 를 단일 `.jar` 로 묶기.
+//   transitive deps 는 포함하지 않음 (단일 라이브러리 jar).
+// - `jar.executableUberJar(name, deps, mainClass)` — 모든 transitive jar / classes / resources
+//   를 풀어서 한 fat jar 로 묶기. Main-Class manifest 포함.
+//
+// ## 외부 도구 의존
+//
+// 시스템 `jar`, `unzip`, `bash` 명령에 의존. macOS / Linux 에서 동작. JDK 가 깔려 있으면
+// `jar` 는 함께 제공.
+
+import jvm
+
+namespace jar {
+  class JvmJar {
+    jarFile: artifact
+  }
+
+  // 단일 라이브러리 jar 패키징 — mainNode 의 classDirs + resourceDirs 만 포함,
+  // transitive 미포함. mainNode.jars 는 무시 (이 룰의 의미는 "self 모듈을 jar 로 묶기"
+  // 이므로 외부 jar 가 섞여 있으면 안 됨).
+  // 캐시 키 / jar 파일 이름은 `context.thisTargetName` 자동 사용.
+  def library(lib: jvm.JvmLib): JvmJar {
+    let targetName = context.thisTargetName
+    return cached("jar.library.${targetName}") {
+      let destDir = context.destDirectory()
+      let outJar = destDir / "${targetName}.jar"
+
+      let mainNode = match lib.nodes[lib.mainNodeId] {
+        case .some(n) -> n
+        case .none -> throw "jar.library ${targetName}: lib.mainNodeId not in nodes"
+      }
+
+      let jarArtifact = artifact.build(outJar) {
+        // staging 디렉토리에 mainNode 의 classDirs + resourceDirs 의 내용을 모은다.
+        let staging = destDir / "staging"
+        file.clearDirectory(staging)
+        file.createDirectory(staging)
+        for c in mainNode.classDirs {
+          file.copyDirectory(c.await(), staging)
+        }
+        for r in mainNode.resourceDirs {
+          file.copyDirectory(r.await(), staging)
+        }
+
+        let result = context.runCommand(["jar", "cf", outJar.absolutePath, "-C", staging.absolutePath, "."])
+        if result.exitCode != 0 {
+          throw "jar.library ${targetName} (exit=${result.exitCode}): ${result.stderr}"
+        }
+        outJar
+      }
+
+      JvmJar(jarFile = jarArtifact)
+    }
+  }
+
+  // executable uber jar — transitive deps 의 모든 jar 내용 + classesDir + resources 를 unzip
+  // 해서 한 디렉토리에 모은 뒤 `jar cfm` 으로 패키징. Main-Class manifest 포함.
+  // 캐시 키 / jar 파일 이름은 `context.thisTargetName` 자동 사용.
+  def executableUberJar(
+    deps: list<jvm.JvmLib>,
+    mainClass: string,
+  ): JvmJar {
+    let targetName = context.thisTargetName
+    return cached("jar.executableUberJar.${targetName}") {
+      let destDir = context.destDirectory()
+      let outJar = destDir / "${targetName}.jar"
+
+      // deps 전체를 하나의 통합 그래프로 보고 BFS — invariant ("같은 id = 같은 내용")
+      // 덕에 dep 들이 공통 노드 (예: kotlin-stdlib) 를 들고 있어도 한 번만 처리된다.
+      // 노드 구조상 classDirs / jars / resourceDirs 가 필드 단위로 이미 분리돼 있어
+      // isDirectory() 분기 불필요.
+      let allClassesDirArtifacts: list<artifact> = jvm.collectAllClassDirArtifactsFromDeps(deps)
+      let allJarArtifacts: list<artifact> = jvm.collectAllJarArtifactsFromDeps(deps)
+      let allResourceArtifacts: list<artifact> = jvm.collectAllResourceDirArtifactsFromDeps(deps)
+
+      let jarArtifact = artifact.build(outJar) {
+        let staging = destDir / "staging"
+        file.clearDirectory(staging)
+        file.createDirectory(staging)
+
+        let allClassesDirs = artifact.awaitAll(allClassesDirArtifacts)
+        let allJars = artifact.awaitAll(allJarArtifacts)
+        let allResources = artifact.awaitAll(allResourceArtifacts)
+
+        // 1) 모든 jar 를 staging 에 unzip.
+        for j in allJars {
+          // -o: overwrite, -q: quiet
+          let result = context.runCommand(
+            cmd = ["unzip", "-o", "-q", j.absolutePath, "-d", staging.absolutePath],
+          )
+          if result.exitCode != 0 {
+            // 일부 jar 가 빈 경우도 있어서 nonzero 가 절대적 실패는 아닐 수 있음.
+            // 우선은 경고만.
+            context.warning("jar.executableUberJar ${targetName}: unzip ${j.absolutePath} exit=${result.exitCode}")
+          }
+        }
+
+        // 2) classes 디렉토리들 staging 으로 복사.
+        for c in allClassesDirs {
+          file.copyDirectory(c, staging)
+        }
+
+        // 3) resources 복사.
+        for r in allResources {
+          file.copyDirectory(r, staging)
+        }
+
+        // 3.5) 서명된 dep jar (예: org.eclipse.lsp4j) 의 서명 파일 제거. 이 파일들이
+        // 남아 있으면 uberjar 재패키징으로 내용이 바뀌어 JVM 이 "Invalid signature file
+        // digest for Manifest main attributes" 로 main class 로드를 거부한다. jar 서명은
+        // 통합 산출물에서 의미가 없으므로 안전하게 삭제.
+        let metaInf = staging / "META-INF"
+        if metaInf.exists() {
+          let stripResult = context.runCommand([
+            "find", metaInf.absolutePath, "-type", "f",
+            "(", "-name", "*.SF", "-o", "-name", "*.RSA", "-o", "-name", "*.DSA",
+            "-o", "-name", "*.EC", ")", "-delete",
+          ])
+          if stripResult.exitCode != 0 {
+            context.warning("jar.executableUberJar ${targetName}: strip signature files exit=${stripResult.exitCode}")
+          }
+        }
+
+        // 4) META-INF/MANIFEST.MF 작성 (Main-Class).
+        let manifestDir = staging / "META-INF"
+        file.createDirectory(manifestDir)
+        let manifestFile = manifestDir / "MANIFEST.MF"
+        file.writeText(
+          manifestFile,
+          "Manifest-Version: 1.0\nMain-Class: ${mainClass}\n",
+        )
+
+        // 5) `jar cfm <out> <manifest> -C staging .`
+        let result = context.runCommand([
+          "jar", "cfm", outJar.absolutePath, manifestFile.absolutePath,
+          "-C", staging.absolutePath, ".",
+        ])
+        if result.exitCode != 0 {
+          throw "jar.executableUberJar ${targetName} (exit=${result.exitCode}): ${result.stderr}"
+        }
+        outJar
+      }
+
+      JvmJar(jarFile = jarArtifact)
+    }
+  }
+}
