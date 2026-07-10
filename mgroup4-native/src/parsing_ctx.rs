@@ -149,6 +149,15 @@ pub struct MilestonePath {
     prefix_hash: OnceCell<u64>,
     /// root..this 의 노드 수 (this 포함). chain_to_list 없이 length 를 O(1) amortized.
     chain_depth: OnceCell<i32>,
+    /// mgroup4 Phase G-b5 (lazy cache): 이 노드의 gen-무관 chain 시그니처 id (lazy).
+    /// Kotlin `MilestonePath.chainSigIdCache` 이식. intern 테이블(LazyMergeCache)에서
+    /// (parentSigId, node-local 템플릿) 쌍으로 조회한 결과를 노드에 상주시킨다 —
+    /// MilestonePath 는 immutable 이고 체인이 gen 간 공유되므로 tip 노드 조회 1회면
+    /// 전체 체인 시그니처가 O(1) (parent id 들이 이미 캐시됨). ★ 노드는 파스-로컬
+    /// (Rc, 파스마다 새로 만들어짐)이라 이 캐시는 파스마다 리셋되지만, intern 테이블은
+    /// LazyMergeCache 에 상주해 파스 간 유지된다 — 같은 NodeTemplateKey 는 같은 id 로
+    /// 재현되므로 warm 재파스가 정확하다.
+    pub(crate) chain_sig_id_cache: OnceCell<u32>,
 }
 
 impl MilestonePath {
@@ -173,6 +182,7 @@ impl MilestonePath {
             node_local_hash: OnceCell::new(),
             prefix_hash: OnceCell::new(),
             chain_depth: OnceCell::new(),
+            chain_sig_id_cache: OnceCell::new(),
         }
     }
 
@@ -202,6 +212,7 @@ impl MilestonePath {
             node_local_hash: OnceCell::new(),
             prefix_hash: OnceCell::new(),
             chain_depth: OnceCell::new(),
+            chain_sig_id_cache: OnceCell::new(),
         }
     }
 
@@ -554,6 +565,11 @@ pub struct ParsingCtx {
     /// `StepScratch`). `parse_step` takes this out at entry and returns it in
     /// the next ctx.
     pub step_scratch: StepScratch,
+    /// mgroup4 Phase G-b5 — lazy 병합 전이 캐시 (설계 §2). 파스-로컬 (term_action_cache
+    /// 와 동일 패턴 — 파서는 Send+Sync 로 스레드 간 공유되므로 캐시는 ctx 에 둔다).
+    /// warm 재파스는 이 캐시를 파스 간 넘겨 공유 (cross-parse warming). n=1 이면 병합
+    /// 패스가 미실행이라 이 캐시도 미접촉 (제로코스트).
+    pub lazy_cache: crate::parser::lazy_cache::LazyMergeCache,
 }
 
 impl ParsingCtx {
@@ -729,6 +745,7 @@ mod tests {
             root_report_gens: HashMap::default(),
             term_action_cache: Default::default(),
             step_scratch: Default::default(),
+            lazy_cache: Default::default(),
         };
         assert_eq!(ctx.main_paths().unwrap().len(), 1);
         assert_eq!(ctx.cond_paths().count(), 0);

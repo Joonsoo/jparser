@@ -421,6 +421,19 @@ n=3 = 4.8×, n=4 = 9.6× — 킬 게이트 (n=2 에서 10×) 통과, 포화 곡�
 1회" 로 바꾸는 유력 경로. Phase G 는 G1 (설계 — 정적 생성기 vs lazy 캐시 비교)
 로 진행. 상세: `mgroup4/docs/phase_g_plan.md` §5 (v1 기록)·§6 (정정).
 
+### 6.11 Phase G 완주 (2026-07-10) — 최종: Rust 채택 기각, mgroup4 트랙 완결
+
+lazy 물질화를 Kotlin (G-b0~b4.5: State 인터닝으로 캐시가 packing 을 ~1.05× 역전)
+과 Rust (G-b5: mgroup4-native 재배선) 에 완성, 게이트 전승 (byte-parity 8/8 셀,
+Kotlin 교차 소수 3자리, 병렬 검증 600k+ gen — 실버그 1건을 오라클이 잡음). **그러나
+Rust 시간은 전 셀이 mgroup3-native 미달** (es5 웜 0.64~0.84×): 병합 자기시간을
+44→35% 로 줄여도 **n≥2 그룹 기계 자체가 순손실** — realized R 1.45~1.74 의 절감이
+그룹 기계 비용을 못 넘는다. **설계 공간 완전 폐쇄**: ① 런타임 packing (JVM 2.19× /
+Rust 회귀) ② 정적 결정화 (상태 유한하나 불필요) ③ lazy 물질화 (JVM 서 packing 동급
+/ Rust 여전히 손실). 결론 — interior grouping 의 이득은 런타임의 할당-지배 여부의
+함수이며, 값-타입 엔진에선 이 R 대역으로 못 갚는다. **프로덕션 = mgroup3-native
+확정 유지.** 상세·재방문 트리거: `mgroup4/docs/phase_g_plan.md` §7.
+
 ## 7. 참고
 
 - `kernels_history_optimization.md` — 엔진 트랙 측정 방법론, Phase B 잔여 분석 (fork 목록)

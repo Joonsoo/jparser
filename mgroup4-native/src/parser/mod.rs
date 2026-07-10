@@ -1,11 +1,13 @@
 //! Mgroup3 parser. Port of `mgroup3/parser/kotlin/.../Mgroup4Parser.kt`.
 
 pub mod core;
+pub mod lazy_cache;
 pub mod record_cond;
 pub mod result;
 pub mod template;
 
 pub use core::Mgroup4Parser;
+pub use lazy_cache::LazyMergeCache;
 pub use result::{build_result, encode_parse_result};
 pub use template::{build_condition, resolve_gen};
 

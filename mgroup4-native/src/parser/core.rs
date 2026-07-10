@@ -10,6 +10,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::accept_condition::AcceptCondition;
+use crate::parser::lazy_cache::{BoundaryEntry as LazyBoundaryEntry, LazyMergeCache};
 use crate::parser::template::{build_condition, resolve_gen_i32};
 use crate::parser_data::{EdgeActionPlain, ParserDataPlain, ParsingActionsPlain, TermActionPlain};
 use crate::parsing_ctx::{
@@ -71,6 +72,21 @@ fn mg4_shape_stats_enabled() -> bool {
 // 들어감. 정식 시간 측정에서는 꺼야 오버헤드 없는 실측이 된다. Kotlin mg4MergeProfileEnabled.
 fn mg4_merge_profile_enabled() -> bool {
     std::env::var_os("MG4_MERGE_PROFILE").is_some()
+}
+
+// mgroup4 Phase G-b5 — lazy 병합 전이 캐시 opt-in (설계 §2.4). 기본 활성 (env
+// MG4_LAZY_CACHE=0 으로 강제 비활성 — baseline=Phase B packing 대조용). n=1 은 병합
+// 패스 자체가 미실행이라 캐시 코드도 미실행 (제로코스트). Kotlin mg4LazyCacheEnabled.
+fn mg4_lazy_cache_enabled() -> bool {
+    std::env::var("MG4_LAZY_CACHE").map(|v| v != "0").unwrap_or(true)
+}
+
+// mgroup4 Phase G-b5 — 병렬 검증 모드 (R1). MG4_LAZY_VERIFY=1 이면 캐시 히트 경로가 만든
+// merged 결과를 현행 재파티션 결과와 나란히 계산해 대조, 불일치 시 즉시 panic + 최소 재현
+// 덤프. 경계 edge 캐시 경로도 (캐시 조회 vs 직접 조회) 대조. 게이트는 이 모드를 켠 채로도
+// 전부 그린이어야 한다. Kotlin mg4LazyVerifyEnabled.
+fn mg4_lazy_verify_enabled() -> bool {
+    std::env::var_os("MG4_LAZY_VERIFY").is_some()
 }
 
 /// mgroup4 interior group counters (opt-in via `MG4_SHAPE_STATS`). Atomic so the
@@ -169,6 +185,10 @@ pub struct Mgroup4Parser {
     stats_enabled: bool,
     /// opt-in merge-pass self-time profile (`MG4_MERGE_PROFILE`).
     merge_profile: bool,
+    /// Phase G-b5 — lazy 병합 전이 캐시 활성 (env `MG4_LAZY_CACHE`, 기본 on).
+    lazy_cache_enabled: bool,
+    /// Phase G-b5 — 병렬 검증 모드 (env `MG4_LAZY_VERIFY`).
+    lazy_verify_enabled: bool,
     stats: Mg4Stats,
 }
 
@@ -245,6 +265,8 @@ impl Mgroup4Parser {
             merge_min_shapes: mg4_env_merge_min_shapes(),
             stats_enabled: mg4_shape_stats_enabled(),
             merge_profile: mg4_merge_profile_enabled(),
+            lazy_cache_enabled: mg4_lazy_cache_enabled(),
+            lazy_verify_enabled: mg4_lazy_verify_enabled(),
             stats: Mg4Stats::default(),
         }
     }
@@ -266,6 +288,25 @@ impl Mgroup4Parser {
     /// disabled. Diagnostic only.
     pub fn report_mg4_stats(&self) -> String {
         self.stats.report(self.interior_group_max_depth)
+    }
+
+    /// Phase G-b5 lazy 캐시 카운터 리포트 (ctx 의 파스-로컬 캐시에서). 히트율·캐시 크기·
+    /// 인터닝 규모·축출 수. 진단 전용. Kotlin reportMg4Stats 의 cache[...]/boundaryCache[...]
+    /// /intern[...] 부분에 대응.
+    pub fn report_lazy_cache_stats(&self, ctx: &ParsingCtx) -> String {
+        let c = &ctx.lazy_cache;
+        let total = c.cache_hits + c.cache_misses;
+        let hit_rate = if total > 0 { 100.0 * c.cache_hits as f64 / total as f64 } else { 0.0 };
+        let btotal = c.boundary_cache_hits + c.boundary_cache_misses;
+        let b_hit_rate = if btotal > 0 { 100.0 * c.boundary_cache_hits as f64 / btotal as f64 } else { 0.0 };
+        format!(
+            "cache[hits={} misses={} hitRate={:.1}% cacheSize={} evict={} verifyChecks={}] \
+             boundaryCache[hits={} misses={} hitRate={:.1}% cacheSize={} evict={}]",
+            c.cache_hits, c.cache_misses, hit_rate, c.merge_cache_size(), c.merge_evictions,
+            c.lazy_verify_checks,
+            c.boundary_cache_hits, c.boundary_cache_misses, b_hit_rate, c.boundary_cache_size(),
+            c.boundary_evictions,
+        )
     }
 
     /// 병합 패스 전체 self-time (ns). `MG4_MERGE_PROFILE` opt-in 일 때만.
@@ -294,6 +335,41 @@ impl Mgroup4Parser {
     /// Initialize a parsing context at the configured start symbol.
     pub fn init_ctx(&self) -> ParsingCtx {
         self.init_ctx_with_start(self.plain.start_symbol_id)
+    }
+
+    /// Phase G-b5 warm 재파스용 — 이전 파스에서 꺼낸 lazy 캐시를 이월해 새 ctx 를 만든다.
+    /// 파스 간 캐시 공유(warm)를 실현: 워밍업된 병합 결정/인터닝/경계 조회가 재사용된다.
+    /// 정확성 불변 — verdict 재확인이 매번 gen 을 정확히 처리 (parity 게이트가 증명).
+    pub fn init_ctx_reusing_cache(
+        &self,
+        mut cache: crate::parser::lazy_cache::LazyMergeCache,
+    ) -> ParsingCtx {
+        // ★ chain_sig_id_cache 는 노드에 상주하는데 노드는 파스마다 새로 만들어진다. 이월된
+        //   intern 테이블은 유지되나, 이전 파스의 노드 sig 캐시(이미 drop됨)와의 정합만 신경.
+        //   새 파스의 새 노드들은 이월된 intern 테이블에 대해 조회 → 같은 NodeTemplateKey 는
+        //   같은 id 로 재현되므로 캐시 히트가 정확. cond_sig gen memo 는 anchor 회전으로 어차피
+        //   매 gen 클리어되므로 이월 무해 (다음 anchor 에서 클리어).
+        let mut ctx = self.init_ctx();
+        // init_ctx 의 빈 캐시를 이월 캐시로 교체.
+        std::mem::swap(&mut ctx.lazy_cache, &mut cache);
+        ctx
+    }
+
+    /// Warm 파스 헬퍼: 이전 파스 결과 ctx 의 캐시를 재사용해 text 를 파스한다. 반환 ctx 의
+    /// 캐시는 다시 워밍업된 상태 (다음 warm 파스로 이월 가능). 측정/차등에서 warm 셀에 사용.
+    pub fn parse_reusing_cache(
+        &self,
+        prev_ctx: ParsingCtx,
+        text: &str,
+    ) -> Result<ParsingCtx, ParsingError> {
+        let cache = prev_ctx.lazy_cache;
+        let chars: Vec<char> = text.chars().collect();
+        let total = chars.len();
+        let mut ctx = self.init_ctx_reusing_cache(cache);
+        for (idx, c) in chars.into_iter().enumerate() {
+            ctx = self.parse_step(ctx, c, idx + 1 == total)?;
+        }
+        Ok(ctx)
     }
 
     /// Initialize a parsing context starting from `start_symbol_id`.
@@ -381,10 +457,11 @@ impl Mgroup4Parser {
             root_report_gens: Default::default(),
             term_action_cache: Default::default(),
             step_scratch: Default::default(),
+            lazy_cache: Default::default(),
         }
     }
 
-    
+
 
     /// Build initial path maps for every symbol in the transitive closure of
     /// `cond_symbol_ids`. Mirrors `Mgroup4Parser.kt:72-86`. Each created path
@@ -471,6 +548,13 @@ impl Mgroup4Parser {
 
         // 파스-로컬 term action 캐시 — ctx 에서 꺼내 이번 step 동안 사용 후 되돌린다.
         let mut term_cache = std::mem::take(&mut ctx.term_action_cache);
+        // 파스-로컬 lazy 병합 캐시 — ctx 에서 꺼내 이번 step 동안 사용 후 되돌린다 (§G-b5).
+        // mem::replace(빈 placeholder)로 꺼내 per-step env 재읽기(Default)를 피한다. 에러
+        // 조기 반환 경로에서는 ctx 가 폐기되므로 캐시 유실 무관 (파스 실패).
+        let mut lazy_cache = std::mem::replace(
+            &mut ctx.lazy_cache,
+            crate::parser::lazy_cache::LazyMergeCache::new(0, 0),
+        );
         // 파스-로컬 step scratch — 매 step 새로 할당/폐기하던 컬렉션들을 재사용한다.
         // ctx 에서 꺼내 (mem::take) 이번 step 동안 쓰고 다음 ctx 로 되돌린다. 모든
         // 컬렉션은 사용 전 clear() 하므로 capacity 만 이월되고 stale 데이터는 남지 않는다.
@@ -530,6 +614,7 @@ impl Mgroup4Parser {
                     let root_report_gen =
                         ctx.root_report_gens.get(root).copied().unwrap_or(root.start_gen);
                     self.apply_term_action(
+                        &mut lazy_cache,
                         shape,
                         cond,
                         *root,
@@ -638,6 +723,7 @@ impl Mgroup4Parser {
                     let mut per_starter_next: PathMap = PathMap::default();
                     let mut ignored_starters: HashMap<PathRoot, PendingStarter> = HashMap::default();
                     self.apply_term_action(
+                        &mut lazy_cache,
                         &starter_shape,
                         &AcceptCondition::Always,
                         starter_root,
@@ -768,6 +854,7 @@ impl Mgroup4Parser {
                     let mut starter_next_paths: PathMap = PathMap::default();
                     let mut ignored_starters: HashMap<PathRoot, PendingStarter> = HashMap::default();
                     self.apply_term_action(
+                        &mut lazy_cache,
                         &starter_shape,
                         &AcceptCondition::Always,
                         path_root,
@@ -857,8 +944,18 @@ impl Mgroup4Parser {
                 // 유지/분열은 이 게이트와 무관하므로 출력은 불변). 기본 0 은 게이트
                 // 없음 = 기존 동작.
                 if main_evolved.len() >= 2 && main_evolved.len() >= self.merge_min_shapes as usize {
-                    let re =
-                        self.merge_interior_groups(main_evolved, self.interior_group_max_depth, next_gen);
+                    // Phase G-b5: 캐시 활성 시 캐시-백드 병합 (미스=현행 재파티션 1회, 히트=파티션
+                    // 결정 재사용). 비활성이면 현행 재파티션 그대로 (=Phase B packing baseline).
+                    let re = if self.lazy_cache_enabled {
+                        self.merge_interior_groups_cached(
+                            &mut lazy_cache,
+                            main_evolved,
+                            self.interior_group_max_depth,
+                            next_gen,
+                        )
+                    } else {
+                        self.merge_interior_groups(main_evolved, self.interior_group_max_depth, next_gen)
+                    };
                     // 병합 전 map 은 pool 로 회수 (capacity 재사용).
                     if let Some(old) = paths_evolved.insert(ctx.main_root, re) {
                         scratch.recycle_path_map(old);
@@ -1041,6 +1138,7 @@ impl Mgroup4Parser {
             root_report_gens,
             term_action_cache: term_cache,
             step_scratch: scratch,
+            lazy_cache,
         })
     }
 
@@ -1234,8 +1332,10 @@ impl Mgroup4Parser {
 
     /// Apply one `TermAction` to a single (shape, cond) pair, accumulating
     /// outputs. Mirrors `Mgroup4Parser.kt:180-278`.
+    #[allow(clippy::too_many_arguments)]
     fn apply_term_action(
         &self,
+        lazy_cache: &mut LazyMergeCache,
         old_shape: &PathShape,
         old_condition: &AcceptCondition,
         path_root: PathRoot,
@@ -1270,6 +1370,7 @@ impl Mgroup4Parser {
                 }
                 for member_shape in Self::explode_shape_fully(old_shape) {
                     self.apply_term_action(
+                        lazy_cache,
                         &member_shape,
                         old_condition,
                         path_root,
@@ -1412,45 +1513,79 @@ impl Mgroup4Parser {
                     // 분열 (spec item 2). singleton 이면 1개 멤버로 그대로 처리 (제로코스트).
                     // apply_edge_action 의 invariant: parent_path 는 항상 singleton (group 은
                     // 이 진입점과 midEdge 진입점에서 미리 멤버 singleton 으로 펼침).
-                    let parent_members = Self::member_singletons_for_edge(parent_path);
-                    if parent_members.len() > 1 && self.stats_enabled {
-                        self.stats
-                            .reduce_splits
-                            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                    }
-                    for pm in &parent_members {
-                        let key = (
-                            pm.milestone.kernel_template(),
-                            rap.replace_milestone_group_id,
-                        );
-                        let Some(tip_edge_action) = self.tip_edge_actions.get(&key).cloned() else {
-                            continue;
-                        };
-                        let grand_parent_gen = pm
-                            .parent
-                            .as_ref()
-                            .map(|p| p.gen_idx)
-                            .unwrap_or(path_root.start_gen);
-                        self.apply_edge_action(
-                            pm,
-                            &tip_edge_action,
-                            path_root,
-                            &combined,
-                            grand_parent_gen,
-                            pm.gen_idx,
-                            gen_idx,
-                            // m2 tip edge = (parent milestone @ m2 gen) -> (tip group @ 갱신된 부착 gen)
-                            pm.milestone_report_gen,
-                            pm.report_gen,
-                            root_report_gen,
-                            next_paths_out,
-                            apps_out,
-                            finishes_out,
-                            added_out,
-                            root_progresses_out,
-                            observing_out,
-                            cond_root_starters_out,
-                        );
+                    // G-b5: group 노드면 경계 tipEdge 캐시로 (어느 멤버가 edge action 을 갖는지)
+                    // 재사용 — 그 멤버만 singleton 물질화. singleton 노드는 현행 조회 1회 (제로코스트).
+                    match parent_path.group_members.as_ref() {
+                        None => {
+                            // singleton 경로 — n=1 포함. 현행 그대로 (조회 1회, 캐시 미접촉).
+                            let key =
+                                (parent_path.milestone.kernel_template(), rap.replace_milestone_group_id);
+                            if let Some(tip_edge_action) = self.tip_edge_actions.get(&key).cloned() {
+                                let grand_parent_gen = parent_path
+                                    .parent
+                                    .as_ref()
+                                    .map(|p| p.gen_idx)
+                                    .unwrap_or(path_root.start_gen);
+                                self.apply_edge_action(
+                                    lazy_cache,
+                                    parent_path,
+                                    &tip_edge_action,
+                                    path_root,
+                                    &combined,
+                                    grand_parent_gen,
+                                    parent_path.gen_idx,
+                                    gen_idx,
+                                    parent_path.milestone_report_gen,
+                                    parent_path.report_gen,
+                                    root_report_gen,
+                                    next_paths_out,
+                                    apps_out,
+                                    finishes_out,
+                                    added_out,
+                                    root_progresses_out,
+                                    observing_out,
+                                    cond_root_starters_out,
+                                );
+                            }
+                        }
+                        Some(members) => {
+                            if self.stats_enabled {
+                                self.stats.reduce_splits.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                            }
+                            let entry = self.tip_edge_member_lookup(
+                                lazy_cache,
+                                members,
+                                rap.replace_milestone_group_id,
+                            );
+                            for (mi, tip_edge_action) in &entry.member_edges {
+                                let pm = Self::member_singleton_at(parent_path, *mi);
+                                let grand_parent_gen = pm
+                                    .parent
+                                    .as_ref()
+                                    .map(|p| p.gen_idx)
+                                    .unwrap_or(path_root.start_gen);
+                                self.apply_edge_action(
+                                    lazy_cache,
+                                    &pm,
+                                    tip_edge_action,
+                                    path_root,
+                                    &combined,
+                                    grand_parent_gen,
+                                    pm.gen_idx,
+                                    gen_idx,
+                                    pm.milestone_report_gen,
+                                    pm.report_gen,
+                                    root_report_gen,
+                                    next_paths_out,
+                                    apps_out,
+                                    finishes_out,
+                                    added_out,
+                                    root_progresses_out,
+                                    observing_out,
+                                    cond_root_starters_out,
+                                );
+                            }
+                        }
                     }
                 }
             }
@@ -1459,8 +1594,10 @@ impl Mgroup4Parser {
 
     /// Apply an `EdgeAction` reduction. Mirrors `Mgroup4Parser.kt:285-377`.
     /// `parent_path` is the milestone immediately upstream from the just-finished tip.
+    #[allow(clippy::too_many_arguments)]
     fn apply_edge_action(
         &self,
+        lazy_cache: &mut LazyMergeCache,
         parent_path: &Rc<MilestonePath>,
         edge_action: &EdgeActionPlain,
         path_root: PathRoot,
@@ -1579,50 +1716,180 @@ impl Mgroup4Parser {
                         // singleton 을 새 frame 의 parent_path 로 재귀 → apply_edge_action 의
                         // parent_path 는 항상 singleton (invariant 유지). parent_path (현 frame)
                         // 는 이미 singleton 이므로 .milestone.kernel_template() 안전.
-                        let grand_members = Self::member_singletons_for_edge(grand_parent);
-                        if grand_members.len() > 1 && self.stats_enabled {
-                            self.stats
-                                .reduce_splits
-                                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                        }
-                        for gm in &grand_members {
-                            let key = (
-                                gm.milestone.kernel_template(),
-                                parent_path.milestone.kernel_template(),
-                            );
-                            let Some(mid_edge) = self.mid_edge_actions.get(&key).cloned() else {
-                                continue;
-                            };
-                            let grand_grand_parent_gen_2 = gm
-                                .parent
-                                .as_ref()
-                                .map(|p| p.gen_idx)
-                                .unwrap_or(path_root.start_gen);
-                            self.apply_edge_action(
-                                gm,
-                                &mid_edge,
-                                path_root,
-                                &combined,
-                                grand_grand_parent_gen_2,
-                                gm.gen_idx,
-                                gen_idx,
-                                // m2 mid edge = (grandParent milestone @ m2 gen) -> (parent milestone @ m2 gen)
-                                gm.milestone_report_gen,
-                                parent_path.milestone_report_gen,
-                                root_report_gen,
-                                next_paths_out,
-                                apps_out,
-                                finishes_out,
-                                added_out,
-                                root_progresses_out,
-                                observing_out,
-                                cond_root_starters_out,
-                            );
+                        // G-b5: grandParent 가 group 이면 경계 midEdge 캐시로 재사용 (그 멤버만 물질화).
+                        let tip_template = parent_path.milestone.kernel_template();
+                        match grand_parent.group_members.as_ref() {
+                            None => {
+                                let key = (grand_parent.milestone.kernel_template(), tip_template);
+                                if let Some(mid_edge) = self.mid_edge_actions.get(&key).cloned() {
+                                    let ggp_gen = grand_parent
+                                        .parent
+                                        .as_ref()
+                                        .map(|p| p.gen_idx)
+                                        .unwrap_or(path_root.start_gen);
+                                    self.apply_edge_action(
+                                        lazy_cache,
+                                        grand_parent,
+                                        &mid_edge,
+                                        path_root,
+                                        &combined,
+                                        ggp_gen,
+                                        grand_parent.gen_idx,
+                                        gen_idx,
+                                        grand_parent.milestone_report_gen,
+                                        parent_path.milestone_report_gen,
+                                        root_report_gen,
+                                        next_paths_out,
+                                        apps_out,
+                                        finishes_out,
+                                        added_out,
+                                        root_progresses_out,
+                                        observing_out,
+                                        cond_root_starters_out,
+                                    );
+                                }
+                            }
+                            Some(members) => {
+                                if self.stats_enabled {
+                                    self.stats.reduce_splits.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                                }
+                                let entry = self.mid_edge_member_lookup(lazy_cache, members, tip_template);
+                                for (mi, mid_edge) in &entry.member_edges {
+                                    let gm = Self::member_singleton_at(grand_parent, *mi);
+                                    let ggp_gen = gm
+                                        .parent
+                                        .as_ref()
+                                        .map(|p| p.gen_idx)
+                                        .unwrap_or(path_root.start_gen);
+                                    self.apply_edge_action(
+                                        lazy_cache,
+                                        &gm,
+                                        mid_edge,
+                                        path_root,
+                                        &combined,
+                                        ggp_gen,
+                                        gm.gen_idx,
+                                        gen_idx,
+                                        // m2 mid edge = (grandParent milestone @ m2 gen) -> (parent milestone @ m2 gen)
+                                        gm.milestone_report_gen,
+                                        parent_path.milestone_report_gen,
+                                        root_report_gen,
+                                        next_paths_out,
+                                        apps_out,
+                                        finishes_out,
+                                        added_out,
+                                        root_progresses_out,
+                                        observing_out,
+                                        cond_root_starters_out,
+                                    );
+                                }
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    // === mgroup4 Phase G-b5 — 경계 reduce (T3/T5) 전이 캐시 (설계 §4 G-b2/G-b5) ===
+    //
+    // 대상: reduce 가 window 안 group 노드에 도달할 때의 멤버별 edge 조회
+    // (member_singletons_for_edge + tipEdge/midEdge 조회). group 노드가 K 멤버면 K 개
+    // singleton 을 물질화하고 K 번 조회하나 다수는 edge action 이 없어 버려진다. 캐시는
+    // **어느 멤버가 edge action 을 갖고 그것이 무엇인지**를 (정렬 멤버 템플릿, reduce 타깃)
+    // 키로 저장 — 조회·버려질 singleton 물질화를 스킵. Kotlin tipEdgeMemberLookup/midEdgeMemberLookup.
+    //
+    // ★ 함정 (gen 완전 제외): 키/값은 gen-무관 템플릿뿐. tip/mid edge 조회는 이미
+    //   ((symbolId,pointer), 타깃) 로 gen-free 키잉이라 결과(Arc<EdgeActionPlain>)가 gen 무관.
+    //   apply_edge_action 은 히트에서도 멤버별 런타임 gen 으로 재실행 → byte-parity 불변.
+    // ★ 함정 (지문 금지): 키는 정렬 멤버 템플릿의 정확 리스트 + 타깃. 지문 축약 금지.
+    // ★ 함정 (n=1 제로코스트): group 노드가 없으면 (member_singletons_for_edge 가 1개) 이
+    //   캐시는 조회조차 안 한다 — 아래 진입점이 members.len()>=2 (group) 일 때만 캐시 경로.
+
+    /// tipEdge 멤버 조회 (캐시). 미스면 조회 후 저장. Kotlin `tipEdgeMemberLookup`.
+    fn tip_edge_member_lookup(
+        &self,
+        cache: &mut LazyMergeCache,
+        members: &[Kernel],
+        replace_mgroup_id: i32,
+    ) -> LazyBoundaryEntry {
+        use crate::parser::lazy_cache as lz;
+        if !self.lazy_cache_enabled {
+            return lz::compute_tip_edge_member_edges(&self.tip_edge_actions, members, replace_mgroup_id);
+        }
+        let key = lz::BoundaryKey {
+            member_templates: lz::member_template_key(members),
+            target: replace_mgroup_id as u64,
+            is_tip: true,
+        };
+        if let Some(cached) = cache.boundary_transition_cache.get(&key) {
+            cache.boundary_cache_hits += 1;
+            let cached = cached.clone();
+            if self.lazy_verify_enabled {
+                let fresh = lz::compute_tip_edge_member_edges(&self.tip_edge_actions, members, replace_mgroup_id);
+                assert!(
+                    lz::boundary_entries_equal(&cached, &fresh),
+                    "MG4_LAZY_VERIFY: boundary(tip) cache diverges from direct lookup (target={replace_mgroup_id})"
+                );
+            }
+            return cached;
+        }
+        cache.boundary_cache_misses += 1;
+        let entry = lz::compute_tip_edge_member_edges(&self.tip_edge_actions, members, replace_mgroup_id);
+        cache.insert_boundary_entry(key, entry.clone());
+        entry
+    }
+
+    /// midEdge 멤버 조회 (캐시). Kotlin `midEdgeMemberLookup`.
+    fn mid_edge_member_lookup(
+        &self,
+        cache: &mut LazyMergeCache,
+        members: &[Kernel],
+        tip_template: KernelTemplatePair,
+    ) -> LazyBoundaryEntry {
+        use crate::parser::lazy_cache as lz;
+        if !self.lazy_cache_enabled {
+            return lz::compute_mid_edge_member_edges(&self.mid_edge_actions, members, tip_template);
+        }
+        let key = lz::BoundaryKey {
+            member_templates: lz::member_template_key(members),
+            target: lz::pack_template(tip_template.symbol_id, tip_template.pointer),
+            is_tip: false,
+        };
+        if let Some(cached) = cache.boundary_transition_cache.get(&key) {
+            cache.boundary_cache_hits += 1;
+            let cached = cached.clone();
+            if self.lazy_verify_enabled {
+                let fresh = lz::compute_mid_edge_member_edges(&self.mid_edge_actions, members, tip_template);
+                assert!(
+                    lz::boundary_entries_equal(&cached, &fresh),
+                    "MG4_LAZY_VERIFY: boundary(mid) cache diverges from direct lookup"
+                );
+            }
+            return cached;
+        }
+        cache.boundary_cache_misses += 1;
+        let entry = lz::compute_mid_edge_member_edges(&self.mid_edge_actions, members, tip_template);
+        cache.insert_boundary_entry(key, entry.clone());
+        entry
+    }
+
+    /// group 노드의 특정 멤버 index 에 대한 singleton MilestonePath 하나만 만든다 (경계 캐시
+    /// 히트 경로용 — edge action 이 있는 멤버만 물질화). member_singletons_for_edge 의
+    /// per-member 구성과 byte-동일. Kotlin `memberSingletonAt`.
+    fn member_singleton_at(node: &Rc<MilestonePath>, i: usize) -> Rc<MilestonePath> {
+        let members = node.group_members.as_ref().expect("member_singleton_at on non-group");
+        let report_gens = node.group_member_report_gens.as_ref();
+        Rc::new(MilestonePath::new_group(
+            node.gen_idx,
+            members[i],
+            node.parent.clone(),
+            Arc::clone(&node.observing_cond_symbol_ids),
+            node.report_gen,
+            report_gens.map(|g| g[i]).unwrap_or(node.milestone_report_gen),
+            None,
+            None,
+        ))
     }
 
     // === mgroup4 interior milestone group — merge / split (Phase A → Rust) ===
@@ -1855,6 +2122,408 @@ impl Mgroup4Parser {
         }
         if let Some(t) = t_merge_start {
             self.stats.merge_nanos[3].fetch_add(t.elapsed().as_nanos() as i64, Relaxed);
+        }
+        merged
+    }
+
+    // === mgroup4 Phase G-b5 — lazy 병합 전이 캐시 (설계 §2.4, §4 G-b1/G-b5) ===
+    //
+    // 대상 (설계 §2.7): merge_interior_groups 의 per-gen 재파티션을 State 전이 캐시로.
+    // 미스=첫 조우: 현행 재파티션(버킷팅+verdict+fold)을 1회 수행하고 파티션 결정을
+    // gen-정규화 stateSig 로 캐시. 히트: 버킷팅·verdict 순회를 건너뛰고 캐시된 파티션
+    // 결정대로 verdict 재확인 + fold 만 재수행. Kotlin mergeInteriorGroupsCached 이식.
+    //
+    // ★ 함정 (템플릿-바인딩 경계 — 캐시 정확성의 핵심): 캐시 키/값은 gen-정규화 stateSig
+    //   (curGen 앵커 상대 오프셋)로만 표현하고, 실제 MilestonePath 인스턴스(gen 포함)는
+    //   히트 시점의 입력 shape 에서 가져온다. fold 는 항상 실제 인스턴스로 수행 (fold_group)
+    //   → realized R·byte-parity 불변.
+    // ★ 함정 (realized R 보존): plan 은 gen-무관 stateSig 로 group 후보를 지목하지만, 같은
+    //   State 라도 이번 gen 의 gen 패턴이 다르면 병합 여부가 다를 수 있다. 그래서 히트 시
+    //   후보를 merge_verdict_at_depth 로 **재확인**해 MERGE 인 쌍만 fold — 재파티션과 동일한
+    //   병합 결정 (apply_transition_entry).
+
+    /// 한 shape 의 window 밖 마지막 노드 (= 공유 prefix 인스턴스, State 버킷 키). window =
+    /// tip-most (n-1) 노드. Kotlin `windowPrefixNode`.
+    fn window_prefix_node(&self, shape: &PathShape) -> Option<Rc<MilestonePath>> {
+        let l = shape.milestone_path.as_ref().map(|t| t.chain_depth_cached()).unwrap_or(0);
+        let window_nodes = (self.interior_group_max_depth - 1).min(l);
+        let prefix_end = l - window_nodes;
+        if prefix_end <= 0 {
+            return None;
+        }
+        let mut node = shape.milestone_path.clone();
+        let mut up = window_nodes;
+        while up > 0 {
+            match node {
+                Some(n) => {
+                    node = n.parent.clone();
+                    up -= 1;
+                }
+                None => break,
+            }
+        }
+        node
+    }
+
+    /// 캐시-백드 병합 (설계 §2.4, §4 G-b1). main path map 을 State 버킷으로 나누고, 각 버킷을
+    /// **State 단위**로 캐싱한다 — State 재사용률(~96 gen)을 실현하는 핵심. 미스: 그 버킷만
+    /// 재파티션 + 파티션 결정 캡처 → 캐시. 히트: 결정 재사용 (버킷팅·후보탐색 스킵, verdict 재확인).
+    /// Kotlin `mergeInteriorGroupsCached`.
+    pub fn merge_interior_groups_cached(
+        &self,
+        cache: &mut LazyMergeCache,
+        main_path_map: &PathMap,
+        n: i32,
+        cur_gen: i32,
+    ) -> PathMap {
+        use crate::parser::lazy_cache::{BucketStateKey, TransitionEntry};
+        use std::sync::atomic::Ordering::Relaxed;
+        // 병합 패스 전체 self-time (MG4_MERGE_PROFILE opt-in) — 캐시-백드 경로도 재파티션
+        // 경로와 같은 merge_nanos[3] 슬롯에 누적해 두 경로의 자기시간 비중을 비교 가능하게.
+        let t_merge_start = if self.merge_profile { Some(std::time::Instant::now()) } else { None };
+        let mut merged: PathMap = HashMap::default();
+        // State 버킷팅 (prefix 인스턴스, tipGroupId, condSigId). group 노드 이미 있는 shape 는
+        // 병합 후보 아님 — 즉시 통과. StateBucketKey = (prefix, tipGroupId, condSigId).
+        // ★ 함정 (구조 동등, ptr 아님): Kotlin StateBucketKey 는 data class 로 prefix 를
+        //   MilestonePath.equals(구조 동등)로 비교한다. Rust 에서 Rc<MilestonePath> 의
+        //   PartialEq/Hash 도 **구조 위임** (내부 MilestonePath 의 cached-hash 동등). ptr 동일성
+        //   으로 버킷팅하면 구조는 같지만 인스턴스가 다른 prefix 가 다른 버킷에 갈려 병합 후보가
+        //   쪼개져 under-merge → 재파티션과 divergence (실측: gen 9527 에서 10 vs 6). 구조 키 필수.
+        let mut state_buckets: HashMap<
+            (Option<Rc<MilestonePath>>, i32, u32),
+            Vec<(PathShape, AcceptCondition)>,
+        > = HashMap::default();
+        for (shape, cond) in main_path_map {
+            if Self::shape_has_group(shape) {
+                if self.stats_enabled {
+                    self.stats.skip_existing_group.fetch_add(1, Relaxed);
+                }
+                merge_into(&mut merged, shape.clone(), cond.clone());
+                continue;
+            }
+            let prefix = self.window_prefix_node(shape);
+            let cond_sig = cache.cond_sig_id_of(cond, cur_gen);
+            state_buckets
+                .entry((prefix, shape.tip_group_id, cond_sig))
+                .or_default()
+                .push((shape.clone(), cond.clone()));
+        }
+
+        for (_, rows) in state_buckets {
+            if rows.len() < 2 {
+                // 단독 버킷은 병합 불가 — 캐시 불필요, 그대로 통과.
+                for (shape, cond) in rows {
+                    merge_into(&mut merged, shape, cond);
+                }
+                continue;
+            }
+            // 버킷 State 키 = 버킷 안 shape 들의 gen-무관 interned stateSig 멀티셋 (정렬).
+            let mut sigs: Vec<u64> = rows
+                .iter()
+                .map(|(shape, cond)| cache.state_sig_of(shape, cond, cur_gen))
+                .collect();
+            sigs.sort_unstable();
+            let bucket_key = BucketStateKey { sigs };
+            let bucket_merged: PathMap;
+            if let Some(entry) = cache.merge_transition_cache.get(&bucket_key).cloned() {
+                cache.cache_hits += 1;
+                // 히트: 캐시 엔트리(Rc)로 verdict 재확인 + fold. Rc clone 은 refcount bump 만
+                // (groups Vec 통째 복제 회피 — Kotlin 이 clone 안 하는 것에 상응).
+                bucket_merged = self.apply_transition_entry(cache, &rows, &entry.groups, cur_gen);
+            } else {
+                cache.cache_misses += 1;
+                let (bm, entry) = self.merge_bucket_with_plan_capture(cache, &rows, n, cur_gen);
+                cache.insert_merge_entry(bucket_key, TransitionEntry { groups: entry });
+                bucket_merged = bm;
+            }
+            for (shape, cond) in bucket_merged {
+                merge_into(&mut merged, shape, cond);
+            }
+        }
+
+        // 병합 self-time 누적 (verify/검증 오버헤드는 제외 — 순수 병합 비용만).
+        if let Some(t) = t_merge_start {
+            self.stats.merge_nanos[3].fetch_add(t.elapsed().as_nanos() as i64, Relaxed);
+        }
+
+        // 병렬 검증 (R1): 캐시-백드 병합 결과가 현행 재파티션과 동일한지 대조. 불일치 시 즉시
+        // panic. verify 모드는 진단 전용 (측정/카운터-교차 실행에서는 끔) — 재파티션 참조가
+        // 카운터를 double-count 하나 무해 (Kotlin 과 동일). PathMap 은 shape→cond 동등 비교.
+        if self.lazy_verify_enabled {
+            cache.lazy_verify_checks += 1;
+            let reference = self.merge_interior_groups(main_path_map, n, cur_gen);
+            assert!(
+                merged == reference,
+                "MG4_LAZY_VERIFY: cache-backed merge diverges from re-partition at gen={cur_gen} \
+                 (cache size={} ref size={})",
+                merged.len(),
+                reference.len()
+            );
+        }
+        merged
+    }
+
+    /// 한 prefix 버킷을 재파티션하며 파티션 결정을 stateSig 로 캡처. merge_interior_groups 의
+    /// depth-루프 구조를 그대로 따르되 입력이 버킷(한 State)으로 국한. fold 되는 group 마다
+    /// (depth, 멤버 stateSig 정렬 리스트) 를 기록. Kotlin `mergeBucketWithPlanCapture`.
+    fn merge_bucket_with_plan_capture(
+        &self,
+        cache: &mut LazyMergeCache,
+        rows: &[(PathShape, AcceptCondition)],
+        n: i32,
+        cur_gen: i32,
+    ) -> (PathMap, Vec<(i32, Vec<u64>)>) {
+        use std::sync::atomic::Ordering::Relaxed;
+        let mut remaining: PathMap = HashMap::default();
+        let mut merged: PathMap = HashMap::default();
+        for (shape, cond) in rows {
+            remaining.insert(shape.clone(), cond.clone());
+        }
+        let mut plan_groups: Vec<(i32, Vec<u64>)> = Vec::new();
+        let mut d = 2;
+        while d <= n {
+            let mut buckets: HashMap<u64, Vec<MergeCandidate>> = HashMap::default();
+            for (shape, cond) in remaining.iter() {
+                let tip = shape.milestone_path.clone();
+                let l = tip.as_ref().map(|t| t.chain_depth_cached()).unwrap_or(0);
+                if d > l {
+                    continue;
+                }
+                let idx = l - (d - 1);
+                if idx < 0 {
+                    continue;
+                }
+                let mut diff_node = tip.clone();
+                let mut steps_up = d - 2;
+                let mut suffix_nodes: Vec<Rc<MilestonePath>> = Vec::new();
+                while steps_up > 0 {
+                    match diff_node {
+                        Some(node) => {
+                            let parent = node.parent.clone();
+                            suffix_nodes.push(node);
+                            diff_node = parent;
+                            steps_up -= 1;
+                        }
+                        None => break,
+                    }
+                }
+                let Some(diff_node) = diff_node else { continue };
+                if diff_node.group_members.is_some() {
+                    continue;
+                }
+                let prefix_node = diff_node.parent.clone();
+                let mut h: u64 = 1;
+                h = h.wrapping_mul(31).wrapping_add(l as u64);
+                h = h.wrapping_mul(31).wrapping_add(shape.tip_group_id as u64);
+                h = h.wrapping_mul(31).wrapping_add(idx as u64);
+                let prefix_rolling = prefix_node.as_ref().map(|p| p.prefix_hash_cached()).unwrap_or(1);
+                h = h.wrapping_mul(31).wrapping_add(prefix_rolling);
+                for node in suffix_nodes.iter().rev() {
+                    h = h.wrapping_mul(31).wrapping_add(node.node_local_hash_cached());
+                }
+                buckets
+                    .entry(h)
+                    .or_default()
+                    .push(MergeCandidate::new(shape.clone(), cond.clone(), tip, l));
+            }
+
+            let mut to_remove: Vec<PathShape> = Vec::new();
+            let mut folded: Vec<(PathShape, AcceptCondition)> = Vec::new();
+            for bucket in buckets.values() {
+                if bucket.len() < 2 {
+                    continue;
+                }
+                let mut used = vec![false; bucket.len()];
+                for i in 0..bucket.len() {
+                    if used[i] {
+                        continue;
+                    }
+                    used[i] = true;
+                    let mut group: Vec<&MergeCandidate> = Vec::new();
+                    for k in (i + 1)..bucket.len() {
+                        if used[k] {
+                            continue;
+                        }
+                        match self.merge_verdict_at_depth(&bucket[i], &bucket[k], d) {
+                            MergeVerdict::Merge => {
+                                if group.is_empty() {
+                                    group.push(&bucket[i]);
+                                }
+                                group.push(&bucket[k]);
+                                used[k] = true;
+                            }
+                            MergeVerdict::RejectCond => {
+                                if self.stats_enabled {
+                                    self.stats.reject_cond_diff.fetch_add(1, Relaxed);
+                                }
+                            }
+                            MergeVerdict::RejectGenObs => {
+                                if self.stats_enabled {
+                                    self.stats.reject_gen_obs_diff.fetch_add(1, Relaxed);
+                                }
+                            }
+                            MergeVerdict::RejectReportCoord => {
+                                if self.stats_enabled {
+                                    self.stats.reject_report_coord_diff.fetch_add(1, Relaxed);
+                                }
+                            }
+                            MergeVerdict::NotCandidate => {}
+                        }
+                    }
+                    if group.len() >= 2 {
+                        let (folded_shape, folded_cond) = Self::fold_group(&group, d);
+                        // plan: 이 group 의 멤버 stateSig (정렬).
+                        let mut member_sigs: Vec<u64> = group
+                            .iter()
+                            .map(|m| cache.state_sig_of(&m.shape, &m.cond, cur_gen))
+                            .collect();
+                        member_sigs.sort_unstable();
+                        plan_groups.push((d, member_sigs));
+                        for m in &group {
+                            to_remove.push(m.shape.clone());
+                        }
+                        folded.push((folded_shape, folded_cond));
+                        if self.stats_enabled {
+                            if (d as usize) < self.stats.merges_at_depth.len() {
+                                self.stats.merges_at_depth[d as usize]
+                                    .fetch_add((group.len() - 1) as i64, Relaxed);
+                            }
+                            self.classify_merge_origin(&group, d, cur_gen);
+                        }
+                    }
+                }
+            }
+            for shape in &to_remove {
+                remaining.remove(shape);
+            }
+            for (shape, cond) in folded {
+                merge_into(&mut merged, shape, cond);
+            }
+            d += 1;
+        }
+        for (shape, cond) in remaining.drain() {
+            merge_into(&mut merged, shape, cond);
+        }
+        (merged, plan_groups)
+    }
+
+    /// 캐시된 파티션 결정을 버킷 입력에 적용 — depth 롤링해시 버킷팅·후보 탐색을 스킵하고
+    /// plan 이 지목한 stateSig group 후보만 verdict 재확인 후 fold. Kotlin `applyTransitionEntry`.
+    fn apply_transition_entry(
+        &self,
+        cache: &mut LazyMergeCache,
+        rows: &[(PathShape, AcceptCondition)],
+        groups: &[(i32, Vec<u64>)],
+        cur_gen: i32,
+    ) -> PathMap {
+        use std::sync::atomic::Ordering::Relaxed;
+        let mut merged: PathMap = HashMap::default();
+        // stateSig → 이 시그니처를 가진 (아직 안 쓰인) 후보 큐. 같은 stateSig 다수(multiplicity)면
+        // 큐로 소비 (재파티션도 같은 구조 다수를 각각 접으므로 개수 보존). Kotlin bySig.
+        let mut by_sig: HashMap<u64, std::collections::VecDeque<MergeCandidate>> = HashMap::default();
+        for (shape, cond) in rows {
+            let tip = shape.milestone_path.clone();
+            let l = tip.as_ref().map(|t| t.chain_depth_cached()).unwrap_or(0);
+            let sig = cache.state_sig_of(shape, cond, cur_gen);
+            by_sig
+                .entry(sig)
+                .or_default()
+                .push_back(MergeCandidate::new(shape.clone(), cond.clone(), tip, l));
+        }
+        // 계획 group 순서대로 (depth 오름차순 기록) — 각 group 후보를 stateSig 로 모아 verdict
+        // 재확인 후 fold. plan 이 지목한 후보라도 이번 gen 에 병합 불가면 singleton 통과.
+        //
+        // ★ 순서 계약 (Kotlin applyTransitionEntry 와 byte-동일 필수): 같은 stateSig 다수
+        //   (multiplicity) 는 gen-무관 sig 로는 동일하나 gen/cond/report 가 다를 수 있어 verdict
+        //   재확인이 특정 인스턴스를 가른다. 되돌리는(REJECT/부족) 후보의 큐 front 순서가
+        //   Kotlin 과 달라지면 다음 plan group 이 다른 인스턴스를 집어 결과가 갈린다. Kotlin 은
+        //   (a) 부족 시 소비 cands 를 **forward 순**으로 addFirst, (b) greedy 중 REJECT 를
+        //   **encounter 순(k 오름차순)**으로 addFirst — 둘 다 forward push_front. 그대로 재현.
+        for (d, member_sigs) in groups {
+            let d = *d;
+            // 후보 수집 (stateSig 큐에서 pop). 부족하면 plan 불일치 — 소비분 되돌리고 skip.
+            let mut cands: Vec<Option<MergeCandidate>> = Vec::with_capacity(member_sigs.len());
+            let mut cand_sigs: Vec<u64> = Vec::with_capacity(member_sigs.len());
+            let mut enough = true;
+            for &ms in member_sigs {
+                match by_sig.get_mut(&ms).and_then(|q| q.pop_front()) {
+                    Some(c) => {
+                        cands.push(Some(c));
+                        cand_sigs.push(ms);
+                    }
+                    None => {
+                        enough = false;
+                        break;
+                    }
+                }
+            }
+            if !enough {
+                // 되돌림 — Kotlin: `for (c in cands) addFirst(c)` (forward push_front).
+                for k in 0..cands.len() {
+                    if let Some(c) = cands[k].take() {
+                        by_sig.entry(cand_sigs[k]).or_default().push_front(c);
+                    }
+                }
+                continue;
+            }
+            // greedy 병합 재현: cands[0] 을 대표로, 나머지를 verdict 재확인해 MERGE 인 것만 group.
+            // REJECT/NOT 인 후보는 **즉시** 되돌려(k 오름차순 push_front) 이후 group/singleton 통과.
+            let mut group_idx: Vec<usize> = vec![0];
+            for k in 1..cands.len() {
+                let verdict = self.merge_verdict_at_depth(
+                    cands[0].as_ref().unwrap(),
+                    cands[k].as_ref().unwrap(),
+                    d,
+                );
+                match verdict {
+                    MergeVerdict::Merge => group_idx.push(k),
+                    other => {
+                        if self.stats_enabled {
+                            match other {
+                                MergeVerdict::RejectCond => {
+                                    self.stats.reject_cond_diff.fetch_add(1, Relaxed);
+                                }
+                                MergeVerdict::RejectGenObs => {
+                                    self.stats.reject_gen_obs_diff.fetch_add(1, Relaxed);
+                                }
+                                MergeVerdict::RejectReportCoord => {
+                                    self.stats.reject_report_coord_diff.fetch_add(1, Relaxed);
+                                }
+                                _ => {}
+                            }
+                        }
+                        // 즉시 되돌림 (Kotlin addFirst 시점과 동일 — encounter 순).
+                        if let Some(c) = cands[k].take() {
+                            by_sig.entry(cand_sigs[k]).or_default().push_front(c);
+                        }
+                    }
+                }
+            }
+            if group_idx.len() < 2 {
+                // 대표만 남음 — cands[0] 만 되돌림 (나머지는 위에서 이미 되돌아감). Kotlin 과 동일.
+                if let Some(c) = cands[0].take() {
+                    by_sig.entry(cand_sigs[0]).or_default().push_front(c);
+                }
+                continue;
+            }
+            // group fold — group_idx 순서대로 참조 수집 (전부 아직 소비 안 됨 = Some).
+            let group_refs: Vec<&MergeCandidate> =
+                group_idx.iter().map(|&k| cands[k].as_ref().unwrap()).collect();
+            let (folded_shape, folded_cond) = Self::fold_group(&group_refs, d);
+            if self.stats_enabled {
+                if (d as usize) < self.stats.merges_at_depth.len() {
+                    self.stats.merges_at_depth[d as usize]
+                        .fetch_add((group_refs.len() - 1) as i64, Relaxed);
+                }
+                self.classify_merge_origin(&group_refs, d, cur_gen);
+            }
+            merge_into(&mut merged, folded_shape, folded_cond);
+        }
+        // 안 접힌 나머지 (계획에 안 든 stateSig 또는 verdict REJECT 로 되돌아온 후보) 는 그대로.
+        for (_, q) in by_sig.iter_mut() {
+            for cand in q.drain(..) {
+                merge_into(&mut merged, cand.shape, cand.cond);
+            }
         }
         merged
     }
