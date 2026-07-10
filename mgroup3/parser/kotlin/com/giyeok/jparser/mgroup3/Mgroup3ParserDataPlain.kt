@@ -39,6 +39,44 @@ class ParserDataPlain(val proto: Mgroup3ParserData) {
       k to v.actionsList.map { TermGroupActionPlain(it) }
     }
 
+  // "anychar 1글자" cond symbol (EOF = `!.` 의 부정 본문). 이 심볼 S 의 watcher S@g 는
+  // "gen g 에 글자가 하나라도 있는가"와 동치이므로 NotExists(S@g) 는 입력 길이만의
+  // 함수다 — parseStep 이 조건 생성 시점에 즉시 Never/Always 로 확정한다
+  // (eager EOF resolution; 줄주석 내부 유령 경계 shape 차단 —
+  // mulang docs/parser_phantom_block_comment.md). 판별 기준 (보수적 — 미탐지는
+  // 최적화 미적용일 뿐):
+  //   - starter group 의 term action 이 정확히 하나이고 term group 이 전체 문자 커버
+  //   - replaceAndAppends 없음 (정확히 1글자에서 종결)
+  //   - replaceAndProgresses 조건이 전부 Always (무조건 root 완성)
+  //   - self-finish 없음 (빈 매치 불가)
+  //
+  // 기준이 오탐하지 않는 근거 (생성기 불변식). replaceAndProgresses 의 의미는
+  // 생성기에서 고정된다: Mgroup3ParserGenerator.kt:410-412 —
+  // "replaceAndProgresses = graph 의 milestone 중 자기 자신의 끝까지 진행된 것들"
+  // (barrier 그래프의 완성분만; 계속 진행분은 append 로 나간다). 따라서 위 4조건을
+  // 만족하려면 starter group 이 정확히 1글자를 소비하고 그 즉시 root 가 무조건
+  // 완성돼야 한다 — EOF 부정 본문(`!.` 의 `.`, "글자 하나 존재")의 구조와 정확히
+  // 일치한다. 다글자 심볼은 append(경로 연장)를 남기므로 replaceAndAppends 비어있음
+  // 조건에서, 조건부/빈 매치 심볼은 progresses 의 Always 조건 또는 self-finish
+  // 조건에서 걸러진다.
+  val eofCondSymbols: Set<Int> = run {
+    val out = HashSet<Int>()
+    for ((sym, info) in pathRoots) {
+      if (info.selfFinishAcceptCondition != null) continue
+      val actions = termActions[info.milestoneGroupId] ?: continue
+      if (actions.size != 1) continue
+      val tga = actions[0]
+      if (!tga.termGroup.hasAllCharsExcluding()) continue
+      val excluding = tga.termGroup.allCharsExcluding.excluding
+      if (excluding.unicodeCategoriesCount != 0 || excluding.chars.isNotEmpty()) continue
+      val ta = tga.termAction
+      if (ta.replaceAndAppends.isNotEmpty() || ta.replaceAndProgresses.isEmpty()) continue
+      if (!ta.replaceAndProgresses.all { it.acceptCondition.hasAlways() }) continue
+      out.add(sym)
+    }
+    out
+  }
+
   val tipEdgeActions: List<TipEdgeActionPair> =
     proto.tipEdgeActionsList.map { TipEdgeActionPair(it.parent, it.tipGroupId, EdgeActionPlain(it.edgeAction)) }
 

@@ -194,6 +194,61 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
   //   CURR (Prev) = parent milestone 의 gen (= path 의 tip 이 만들어진 gen)
   //   MID  (Curr) = ctx.gen (직전 입력 후 gen)
   //   NEXT (Next) = gen (이번 입력 후 gen)
+  // Eager EOF resolution: NotExists/Exists(S@g) 의 S 가 "anychar 1글자" cond symbol
+  // (ParserDataPlain.eofCondSymbols — EOF `!.` 의 부정 본문) 이면 그 진릿값은 입력
+  // 길이만의 함수다 — `nextGen - 1` 위치의 글자를 소비하는 step 에서 이미 확정
+  // 가능하다 (anchor 는 nextGen 을 넘지 않으므로 모든 leaf 가 해소된다). 기존에는
+  // S@g watcher 의 완성이 한 step 뒤에야 조건을 falsify 했는데, 그 1-step 창 동안
+  // 문법적으로 죽은 "줄주석이 여기서 EOF 로 끝났다" 경계 shape 이 term action 을
+  // 발화해 유령 워처들을 Always 조건으로 시동시켰다
+  // (mulang docs/parser_phantom_block_comment.md). 생성 시점에 leaf 를 접어 그 창을 없앤다.
+  private fun resolveEofLeaves(cond: AcceptCondition, nextGen: Int, isLastInput: Boolean): AcceptCondition {
+    if (plain.eofCondSymbols.isEmpty()) return cond
+    // gen g 의 글자 존재: g < nextGen 이면 이미 소비됨(존재), g == nextGen 이면
+    // 이번 글자가 마지막인지에 달렸다.
+    fun charExistsAt(g: Int): Boolean = g < nextGen || !isLastInput
+    fun walk(c: AcceptCondition): AcceptCondition = when (c) {
+      // Soundness armor: fold 의 전제는 "조건 anchor(startGen) 는 nextGen 을 넘지
+      // 않는다"이다 — leaf 는 이번 step 에서 소비되는 글자(<= nextGen-1) 를 감시하기
+      // 때문. 현 gen 태그 체계에선 startGen > nextGen 이 도달 불가하지만, 만약
+      // 그렇다면 charExistsAt 가 !isLastInput 을 반환해 미래 anchor 를 "존재"로
+      // 오판할 수 있으므로, 방어적으로 fold 하지 않고 leaf 를 그대로 둔다 (그러면
+      // 기존 watcher 경로가 처리 — 정확도 손실 없음).
+      is NotExists ->
+        if (c.symbolId in plain.eofCondSymbols && c.startGen <= nextGen) {
+          if (charExistsAt(c.startGen)) Never else Always
+        } else c
+      is Exists ->
+        if (c.symbolId in plain.eofCondSymbols && c.startGen <= nextGen) {
+          if (charExistsAt(c.startGen)) Always else Never
+        } else c
+      is And -> {
+        // changed-flag: 자식이 하나도 접히지 않으면 원본 인스턴스를 그대로 반환해
+        // 불필요한 And.from 재구성(정렬/dedup) 을 회피.
+        var changed = false
+        val items = ArrayList<AcceptCondition>(c.size)
+        c.forEach { child ->
+          val w = walk(child)
+          if (w !== child) changed = true
+          items.add(w)
+        }
+        if (changed) And.from(items) else c
+      }
+      is Or -> {
+        var changed = false
+        val items = ArrayList<AcceptCondition>(c.size)
+        c.forEach { child ->
+          val w = walk(child)
+          if (w !== child) changed = true
+          items.add(w)
+        }
+        if (changed) Or.from(items) else c
+      }
+      else -> c
+    }
+    return walk(cond)
+  }
+
   private fun applyTermAction(
     oldShape: PathShape,
     oldCondition: AcceptCondition,
@@ -203,6 +258,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     gen: Int,
     // 보고 전용 root anchor (same-input starter 는 startGen-1) — 좌표 보고에만 사용.
     rootReportGen: Int,
+    // eager EOF resolution 용 (resolveEofLeaves) — 이번 step 이 마지막 입력인지.
+    isLastInput: Boolean,
     nextPathsOut: MutableMap<PathShape, AcceptCondition>,
     appsOut: MutableList<ActionApplication>,
     finishesOut: MutableList<FinishedKernelRecord>,
@@ -227,7 +284,9 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     }
 
     for (rea in termAction.replaceAndAppends) {
-      val newAcceptCondition = rea.append.acceptCondition.toAcceptCondition(parentGen, midGen, gen, grandGen)
+      val newAcceptCondition = resolveEofLeaves(
+        rea.append.acceptCondition.toAcceptCondition(parentGen, midGen, gen, grandGen), gen, isLastInput
+      )
       val combined = And.from(oldCondition, newAcceptCondition)
       if (combined == Never) continue
 
@@ -255,7 +314,9 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     }
 
     for (rap in termAction.replaceAndProgresses) {
-      val newAcceptCondition = rap.acceptCondition.toAcceptCondition(parentGen, midGen, gen, grandGen)
+      val newAcceptCondition = resolveEofLeaves(
+        rap.acceptCondition.toAcceptCondition(parentGen, midGen, gen, grandGen), gen, isLastInput
+      )
       val combined = And.from(oldCondition, newAcceptCondition)
       if (combined == Never) continue
 
@@ -294,6 +355,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
             reportCurrGen = parentPath.milestoneReportGen,
             reportMidGen = parentPath.reportGen,
             rootReportGen = rootReportGen,
+            isLastInput = isLastInput,
             nextPathsOut = nextPathsOut,
             appsOut = appsOut,
             finishesOut = finishesOut,
@@ -326,6 +388,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     reportCurrGen: Int,
     reportMidGen: Int,
     rootReportGen: Int,
+    // eager EOF resolution 용 (resolveEofLeaves).
+    isLastInput: Boolean,
     nextPathsOut: MutableMap<PathShape, AcceptCondition>,
     appsOut: MutableList<ActionApplication>,
     finishesOut: MutableList<FinishedKernelRecord>,
@@ -353,7 +417,9 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     }
 
     for (append in edgeAction.appendMilestoneGroups) {
-      val condition = append.acceptCondition.toAcceptCondition(grandParentGen, parentGen, gen, grandGrandParentGen)
+      val condition = resolveEofLeaves(
+        append.acceptCondition.toAcceptCondition(grandParentGen, parentGen, gen, grandGrandParentGen), gen, isLastInput
+      )
       val combined = And.from(prevCondition, condition)
       if (combined == Never) continue
       // 런타임 gen(mp.gen) 은 처음 부착 gen 고정 (조건 anchoring 과 한 몸 — 갱신 금지).
@@ -377,8 +443,10 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     }
 
     if (edgeAction.startNodeProgress != null) {
-      val startNodeProgressCondition =
-        edgeAction.startNodeProgress.toAcceptCondition(grandParentGen, parentGen, gen, grandGrandParentGen)
+      val startNodeProgressCondition = resolveEofLeaves(
+        edgeAction.startNodeProgress.toAcceptCondition(grandParentGen, parentGen, gen, grandGrandParentGen),
+        gen, isLastInput,
+      )
       val combined = And.from(prevCondition, startNodeProgressCondition)
       if (combined != Never) {
         val grandParent = parentPath.parent
@@ -415,6 +483,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
               reportCurrGen = grandParent.milestoneReportGen,
               reportMidGen = parentPath.milestoneReportGen,
               rootReportGen = rootReportGen,
+              isLastInput = isLastInput,
               nextPathsOut = nextPathsOut,
               appsOut = appsOut,
               finishesOut = finishesOut,
@@ -501,6 +570,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
             midGen = ctx.gen,
             gen = gen,
             rootReportGen = ctx.rootReportGens[root] ?: root.startGen,
+            isLastInput = isLastInput,
             nextPathsOut = perRootNext,
             appsOut = appsByGroup,
             finishesOut = finishesByGroup,
@@ -519,7 +589,9 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
               if (pf.symbolId == root.symbolId) {
                 val prevGen = shape.milestonePath?.gen ?: root.startGen
                 val midGenLocal = ctx.gen
-                val pfCond = pf.acceptCondition.toAcceptCondition(prevGen, midGenLocal, gen)
+                val pfCond = resolveEofLeaves(
+                  pf.acceptCondition.toAcceptCondition(prevGen, midGenLocal, gen), gen, isLastInput
+                )
                 val combined = And.from(cond, pfCond)
                 if (combined != Never) {
                   val existing = latePfProgresses[root]
@@ -583,6 +655,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
             midGen = ctx.gen,
             gen = gen,
             rootReportGen = reportGen,
+            isLastInput = isLastInput,
             nextPathsOut = perStarterNext,
             appsOut = appsByGroup,
             finishesOut = finishesByGroup,
@@ -603,7 +676,10 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         }
       }
       if (rootInfo.selfFinishAcceptCondition != null) {
-        val cond = rootInfo.selfFinishAcceptCondition.toAcceptCondition(starterRoot.startGen, starterRoot.startGen, gen)
+        val cond = resolveEofLeaves(
+          rootInfo.selfFinishAcceptCondition.toAcceptCondition(starterRoot.startGen, starterRoot.startGen, gen),
+          gen, isLastInput,
+        )
         val existing = rootProgresses[starterRoot]
         rootProgresses[starterRoot] = if (existing != null) Or.from(existing, cond) else cond
       }
@@ -643,7 +719,10 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       if (pathRoot in everSeenCondRoots) continue
       val rootInfo = plain.pathRoots[pathRoot.symbolId] ?: continue
       if (rootInfo.selfFinishAcceptCondition != null) {
-        val selfCond = rootInfo.selfFinishAcceptCondition.toAcceptCondition(pathRoot.startGen, pathRoot.startGen, gen)
+        val selfCond = resolveEofLeaves(
+          rootInfo.selfFinishAcceptCondition.toAcceptCondition(pathRoot.startGen, pathRoot.startGen, gen),
+          gen, isLastInput,
+        )
         newCondRootProgresses[pathRoot] = selfCond
       }
       val starterShape = PathShape(null, rootInfo.milestoneGroupId)
@@ -680,6 +759,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
             midGen = ctx.gen,
             gen = gen,
             rootReportGen = reportGen,
+            isLastInput = isLastInput,
             nextPathsOut = starterNextPaths,
             appsOut = appsByGroup,
             finishesOut = finishesByGroup,
@@ -901,7 +981,11 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         for (pf in mg.possibleFinishes) {
           if (pf.symbolId == root.symbolId) {
             val prevGen = shape.milestonePath?.gen ?: root.startGen
-            val pfCond = pf.acceptCondition.toAcceptCondition(prevGen, ctx.gen, ctx.gen + 1)
+            // 입력이 끝난 시점 — 글자는 0..ctx.gen-1 에만 존재하므로
+            // (nextGen=ctx.gen, isLast=true) 로 해소한다.
+            val pfCond = resolveEofLeaves(
+              pf.acceptCondition.toAcceptCondition(prevGen, ctx.gen, ctx.gen + 1), ctx.gen, true
+            )
             val combined = And.from(cond, pfCond)
             if (combined != Never) {
               val existing = result[root]

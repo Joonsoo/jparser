@@ -1,5 +1,6 @@
 //! Mgroup3 parser. Port of `mgroup3/parser/kotlin/.../Mgroup3Parser.kt`.
 
+pub mod birth_log;
 pub mod core;
 pub mod record_cond;
 pub mod result;

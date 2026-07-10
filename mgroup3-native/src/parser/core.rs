@@ -281,6 +281,104 @@ impl Mgroup3Parser {
         result
     }
 
+    /// Eager EOF resolution: `NotExists/Exists(S@g)` where S 는 "anychar 1글자"
+    /// cond symbol (`ParserDataPlain::eof_cond_symbols` — EOF `!.` 의 부정 본문)
+    /// 이면 그 진릿값은 입력 길이만의 함수다 — `next_gen - 1` 위치의 글자를
+    /// 소비하는 step 에서 이미 확정 가능하다 (anchor 는 next_gen 을 넘지 않으므로
+    /// 모든 leaf 가 해소된다). 기존에는 S@g watcher 의 완성이 한 step 뒤에
+    /// 조건을 falsify 했는데, 그 1-step 창 동안 문법적으로 죽은 "줄주석이 여기서
+    /// EOF 로 끝났다" 경계 shape 이 term action 을 발화해 유령 워처들을 Always
+    /// 조건으로 시동시켰다 (mulang docs/parser_phantom_block_comment.md).
+    /// 조건 생성 시점에 leaf 를 Never/Always 로 접어 그 창을 없앤다.
+    fn resolve_eof_leaves(
+        &self,
+        cond: AcceptCondition,
+        next_gen: i32,
+        is_last_input: bool,
+    ) -> AcceptCondition {
+        if self.plain.eof_cond_symbols.is_empty() {
+            return cond;
+        }
+        // 무변경이면 `None` 을 반환 — 자식이 하나도 접히지 않은 And/Or 는 원본
+        // 인스턴스를 그대로 쓰게 해 불필요한 and_from/or_from 재구성(정렬/dedup) 을
+        // 회피한다 (changed-flag; borrow 기반이라 clone 없음).
+        fn walk(
+            parser: &Mgroup3Parser,
+            cond: &AcceptCondition,
+            next_gen: i32,
+            is_last_input: bool,
+        ) -> Option<AcceptCondition> {
+            // gen g 의 글자 존재: g < next_gen 이면 이미 소비됨(존재), g == next_gen
+            // 이면 이번 글자가 마지막인지에 달렸다.
+            let char_exists = |g: i32| g < next_gen || !is_last_input;
+            match cond {
+                // Soundness armor: fold 의 전제는 "조건 anchor(start_gen) 는 next_gen
+                // 을 넘지 않는다"이다 — leaf 는 이번 step 에서 소비되는 글자(<=
+                // next_gen-1) 를 감시하기 때문. 현 gen 태그 체계에선 start_gen >
+                // next_gen 이 도달 불가하지만, 만약 그렇다면 char_exists 가
+                // !is_last_input 을 반환해 미래 anchor 를 "존재"로 오판할 수 있으므로,
+                // 방어적으로 fold 하지 않고 leaf 를 그대로 둔다 (무변경 → `None`;
+                // 그러면 기존 watcher 경로가 처리 — 정확도 손실 없음).
+                AcceptCondition::NotExists { symbol_id, start_gen }
+                    if parser.plain.eof_cond_symbols.contains(symbol_id) && *start_gen <= next_gen =>
+                {
+                    Some(if char_exists(*start_gen) {
+                        AcceptCondition::Never
+                    } else {
+                        AcceptCondition::Always
+                    })
+                }
+                AcceptCondition::Exists { symbol_id, start_gen }
+                    if parser.plain.eof_cond_symbols.contains(symbol_id) && *start_gen <= next_gen =>
+                {
+                    Some(if char_exists(*start_gen) {
+                        AcceptCondition::Always
+                    } else {
+                        AcceptCondition::Never
+                    })
+                }
+                AcceptCondition::And { items } => {
+                    let mut changed = false;
+                    let walked: Vec<AcceptCondition> = items
+                        .iter()
+                        .map(|c| match walk(parser, c, next_gen, is_last_input) {
+                            Some(w) => {
+                                changed = true;
+                                w
+                            }
+                            None => c.clone(),
+                        })
+                        .collect();
+                    if changed {
+                        Some(AcceptCondition::and_from(walked))
+                    } else {
+                        None
+                    }
+                }
+                AcceptCondition::Or { items } => {
+                    let mut changed = false;
+                    let walked: Vec<AcceptCondition> = items
+                        .iter()
+                        .map(|c| match walk(parser, c, next_gen, is_last_input) {
+                            Some(w) => {
+                                changed = true;
+                                w
+                            }
+                            None => c.clone(),
+                        })
+                        .collect();
+                    if changed {
+                        Some(AcceptCondition::or_from(walked))
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            }
+        }
+        walk(self, &cond, next_gen, is_last_input).unwrap_or(cond)
+    }
+
     /// Collect the term groups reachable from the main path's tips into a
     /// `TermSet`. Used in error messages. Mirrors `Mgroup3Parser.kt:151-162`.
     pub fn expected_inputs_of(&self, ctx: &ParsingCtx) -> TermSet {
@@ -333,6 +431,29 @@ impl Mgroup3Parser {
         } else {
             (ctx.line, ctx.col + 1)
         };
+        if super::birth_log::in_range(next_gen) {
+            eprintln!(
+                "=== STEP gen {}->{} input={:?} roots={}",
+                ctx.gen_idx,
+                next_gen,
+                input,
+                ctx.paths.len()
+            );
+            let mut roots: Vec<_> = ctx.paths.iter().collect();
+            roots.sort_by_key(|(r, _)| (r.symbol_id, r.start_gen));
+            for (root, pm) in roots {
+                let mut tips: Vec<i32> = pm.keys().map(|s| s.tip_group_id).collect();
+                tips.sort_unstable();
+                tips.dedup();
+                eprintln!(
+                    "    root {}{} shapes={} tips={:?}",
+                    super::birth_log::fmt_root(root),
+                    if *root == ctx.main_root { "(MAIN)" } else { "" },
+                    pm.len(),
+                    tips
+                );
+            }
+        }
 
         // 재사용 대상: 순수 scratch (step 안에서 build→read→drop 되고 출력으로 새지
         // 않는) 컬렉션만. scratch 에서 mem::take 로 꺼내 owned 로 쓰고 (본문은 예전과
@@ -377,6 +498,7 @@ impl Mgroup3Parser {
                         ctx.gen_idx,
                         next_gen,
                         root_report_gen,
+                        is_last_input,
                         &mut per_root_next,
                         &mut apps,
                         &mut finishes,
@@ -396,12 +518,16 @@ impl Mgroup3Parser {
                                     .map(|mp| mp.gen_idx)
                                     .unwrap_or(root.start_gen);
                                 let mid_gen_local = ctx.gen_idx;
-                                let pf_cond = build_condition(
-                                    &pf.accept_condition,
-                                    prev_gen,
-                                    mid_gen_local,
+                                let pf_cond = self.resolve_eof_leaves(
+                                    build_condition(
+                                        &pf.accept_condition,
+                                        prev_gen,
+                                        mid_gen_local,
+                                        next_gen,
+                                        prev_gen,
+                                    ),
                                     next_gen,
-                                    prev_gen,
+                                    is_last_input,
                                 );
                                 let combined =
                                     AcceptCondition::and_from([cond.clone(), pf_cond]);
@@ -458,8 +584,16 @@ impl Mgroup3Parser {
                 continue;
             };
             let starter_shape = PathShape::new(None, pending.milestone_group_id);
+            let blog = super::birth_log::in_range(next_gen);
             if !pending.same_input {
                 // fresh 시동만.
+                if blog {
+                    eprintln!(
+                        "  START1b {} g{} fresh-seeded",
+                        super::birth_log::fmt_root(&starter_root),
+                        pending.milestone_group_id
+                    );
+                }
                 let mut seeded = PathMap::default();
                 seeded.insert(starter_shape, AcceptCondition::Always);
                 next_paths.insert(starter_root, seeded);
@@ -485,6 +619,7 @@ impl Mgroup3Parser {
                         ctx.gen_idx,
                         next_gen,
                         report_gen,
+                        is_last_input,
                         &mut per_starter_next,
                         &mut apps,
                         &mut finishes,
@@ -494,24 +629,50 @@ impl Mgroup3Parser {
                         &mut ignored_starters,
                     );
                     if !per_starter_next.is_empty() {
+                        if blog {
+                            eprintln!(
+                                "  START1b {} g{} same-input LIVE shapes={}",
+                                super::birth_log::fmt_root(&starter_root),
+                                pending.milestone_group_id,
+                                per_starter_next.len()
+                            );
+                        }
                         let acc = next_paths.entry(starter_root).or_insert_with(PathMap::default);
                         for (s, c) in per_starter_next {
                             add_path(acc, s, c);
                         }
                     } else {
+                        if blog {
+                            eprintln!(
+                                "  START1b {} g{} same-input DIED(no-survivor)",
+                                super::birth_log::fmt_root(&starter_root),
+                                pending.milestone_group_id
+                            );
+                        }
                         starter_died!(starter_root, starter_shape, next_paths, ctx);
                     }
                 } else {
+                    if blog {
+                        eprintln!(
+                            "  START1b {} g{} same-input DIED(no-term-action input mismatch)",
+                            super::birth_log::fmt_root(&starter_root),
+                            pending.milestone_group_id
+                        );
+                    }
                     starter_died!(starter_root, starter_shape, next_paths, ctx);
                 }
             }
             if let Some(self_finish_tpl) = root_info.self_finish_accept_condition.as_ref() {
-                let cond = build_condition(
-                    self_finish_tpl,
-                    starter_root.start_gen,
-                    starter_root.start_gen,
+                let cond = self.resolve_eof_leaves(
+                    build_condition(
+                        self_finish_tpl,
+                        starter_root.start_gen,
+                        starter_root.start_gen,
+                        next_gen,
+                        starter_root.start_gen,
+                    ),
                     next_gen,
-                    starter_root.start_gen,
+                    is_last_input,
                 );
                 or_merge(&mut root_progresses, starter_root, cond);
             }
@@ -567,12 +728,16 @@ impl Mgroup3Parser {
                 continue;
             };
             if let Some(tpl) = root_info.self_finish_accept_condition.as_ref() {
-                let self_cond = build_condition(
-                    tpl,
-                    path_root.start_gen,
-                    path_root.start_gen,
+                let self_cond = self.resolve_eof_leaves(
+                    build_condition(
+                        tpl,
+                        path_root.start_gen,
+                        path_root.start_gen,
+                        next_gen,
+                        path_root.start_gen,
+                    ),
                     next_gen,
-                    path_root.start_gen,
+                    is_last_input,
                 );
                 new_cond_root_progresses.insert(path_root, self_cond);
             }
@@ -590,7 +755,15 @@ impl Mgroup3Parser {
             } else {
                 continue;
             };
+            let blog = super::birth_log::in_range(next_gen);
             if !same_input {
+                if blog {
+                    eprintln!(
+                        "  START3 {} g{} fresh-seeded",
+                        super::birth_log::fmt_root(&path_root),
+                        root_info.milestone_group_id
+                    );
+                }
                 let mut seeded = PathMap::default();
                 seeded.insert(starter_shape, AcceptCondition::Always);
                 next_paths.insert(path_root, seeded);
@@ -615,6 +788,7 @@ impl Mgroup3Parser {
                         ctx.gen_idx,
                         next_gen,
                         report_gen,
+                        is_last_input,
                         &mut starter_next_paths,
                         &mut apps,
                         &mut finishes,
@@ -624,11 +798,33 @@ impl Mgroup3Parser {
                         &mut ignored_starters,
                     );
                     if !starter_next_paths.is_empty() {
+                        if blog {
+                            eprintln!(
+                                "  START3 {} g{} same-input LIVE shapes={}",
+                                super::birth_log::fmt_root(&path_root),
+                                root_info.milestone_group_id,
+                                starter_next_paths.len()
+                            );
+                        }
                         next_paths.insert(path_root, starter_next_paths);
                     } else {
+                        if blog {
+                            eprintln!(
+                                "  START3 {} g{} same-input DIED(no-survivor)",
+                                super::birth_log::fmt_root(&path_root),
+                                root_info.milestone_group_id
+                            );
+                        }
                         starter_died!(path_root, starter_shape, next_paths, ctx);
                     }
                 } else {
+                    if blog {
+                        eprintln!(
+                            "  START3 {} g{} same-input DIED(no-term-action input mismatch)",
+                            super::birth_log::fmt_root(&path_root),
+                            root_info.milestone_group_id
+                        );
+                    }
                     starter_died!(path_root, starter_shape, next_paths, ctx);
                 }
             }
@@ -900,12 +1096,18 @@ impl Mgroup3Parser {
                             .as_ref()
                             .map(|mp| mp.gen_idx)
                             .unwrap_or(root.start_gen);
-                        let pf_cond = build_condition(
-                            &pf.accept_condition,
-                            prev_gen,
+                        // 입력이 끝난 시점 — 글자는 0..ctx.gen_idx 에만 존재하므로
+                        // (next_gen=ctx.gen_idx, is_last=true) 로 해소한다.
+                        let pf_cond = self.resolve_eof_leaves(
+                            build_condition(
+                                &pf.accept_condition,
+                                prev_gen,
+                                ctx.gen_idx,
+                                ctx.gen_idx + 1,
+                                prev_gen,
+                            ),
                             ctx.gen_idx,
-                            ctx.gen_idx + 1,
-                            prev_gen,
+                            true,
                         );
                         let combined = AcceptCondition::and_from([cond.clone(), pf_cond]);
                         if !matches!(combined, AcceptCondition::Never) {
@@ -1056,6 +1258,8 @@ impl Mgroup3Parser {
         gen_idx: i32,
         // 보고 전용 root anchor (same-input starter 는 startGen-1).
         root_report_gen: i32,
+        // eager EOF resolution 용 (resolve_eof_leaves) — 이번 step 이 마지막 입력인지.
+        is_last_input: bool,
         next_paths_out: &mut PathMap,
         apps_out: &mut Vec<ActionApplication>,
         finishes_out: &mut Vec<FinishedKernelRecord>,
@@ -1103,12 +1307,16 @@ impl Mgroup3Parser {
         }
 
         for rea in &term_action.replace_and_appends {
-            let new_cond = build_condition(
-                &rea.append.accept_condition,
-                parent_gen,
-                mid_gen,
+            let new_cond = self.resolve_eof_leaves(
+                build_condition(
+                    &rea.append.accept_condition,
+                    parent_gen,
+                    mid_gen,
+                    gen_idx,
+                    grand_gen,
+                ),
                 gen_idx,
-                grand_gen,
+                is_last_input,
             );
             let combined = AcceptCondition::and_from([old_condition.clone(), new_cond]);
             if matches!(combined, AcceptCondition::Never) {
@@ -1126,11 +1334,34 @@ impl Mgroup3Parser {
                 gen_idx,
                 report_parent_gen,
             ));
-            add_path(
-                next_paths_out,
-                PathShape::new(Some(new_mp), rea.append.milestone_group_id),
-                combined,
-            );
+            let new_shape = PathShape::new(Some(new_mp), rea.append.milestone_group_id);
+            if super::birth_log::in_range(gen_idx) {
+                let starters: Vec<String> = rea
+                    .append
+                    .cond_root_starters
+                    .iter()
+                    .map(|s| {
+                        format!(
+                            "sym{}->g{} key={:?} same={}",
+                            s.symbol_id,
+                            s.milestone_group_id,
+                            starter_key_of(s.key_gen, mid_gen, gen_idx),
+                            s.same_input
+                        )
+                    })
+                    .collect();
+                eprintln!(
+                    "  TERM {} old={} repl={}.{} +new={} cond={} starters=[{}]",
+                    super::birth_log::fmt_root(&path_root),
+                    super::birth_log::fmt_shape(old_shape),
+                    rea.replace.symbol_id,
+                    rea.replace.pointer,
+                    super::birth_log::fmt_shape(&new_shape),
+                    combined,
+                    starters.join("; ")
+                );
+            }
+            add_path(next_paths_out, new_shape, combined);
             for sid in rea.append.observing_cond_symbol_ids.iter().copied() {
                 observing_out.insert(sid);
             }
@@ -1149,12 +1380,16 @@ impl Mgroup3Parser {
         }
 
         for rap in &term_action.replace_and_progresses {
-            let new_cond = build_condition(
-                &rap.accept_condition,
-                parent_gen,
-                mid_gen,
+            let new_cond = self.resolve_eof_leaves(
+                build_condition(
+                    &rap.accept_condition,
+                    parent_gen,
+                    mid_gen,
+                    gen_idx,
+                    grand_gen,
+                ),
                 gen_idx,
-                grand_gen,
+                is_last_input,
             );
             let combined = AcceptCondition::and_from([old_condition.clone(), new_cond]);
             if matches!(combined, AcceptCondition::Never) {
@@ -1203,6 +1438,7 @@ impl Mgroup3Parser {
                             parent_path.milestone_report_gen,
                             parent_path.report_gen,
                             root_report_gen,
+                            is_last_input,
                             next_paths_out,
                             apps_out,
                             finishes_out,
@@ -1232,6 +1468,8 @@ impl Mgroup3Parser {
         report_curr_gen: i32,
         report_mid_gen: i32,
         root_report_gen: i32,
+        // eager EOF resolution 용 (resolve_eof_leaves).
+        is_last_input: bool,
         next_paths_out: &mut PathMap,
         apps_out: &mut Vec<ActionApplication>,
         finishes_out: &mut Vec<FinishedKernelRecord>,
@@ -1269,12 +1507,16 @@ impl Mgroup3Parser {
         }
 
         for append in &edge_action.append_milestone_groups {
-            let cond = build_condition(
-                &append.accept_condition,
-                grand_parent_gen,
-                parent_gen,
+            let cond = self.resolve_eof_leaves(
+                build_condition(
+                    &append.accept_condition,
+                    grand_parent_gen,
+                    parent_gen,
+                    gen_idx,
+                    grand_grand_parent_gen,
+                ),
                 gen_idx,
-                grand_grand_parent_gen,
+                is_last_input,
             );
             let combined = AcceptCondition::and_from([prev_condition.clone(), cond]);
             if matches!(combined, AcceptCondition::Never) {
@@ -1283,9 +1525,35 @@ impl Mgroup3Parser {
             // 새 tip group 은 이번 gen 에 재부착 — 보고용 report_gen 갱신 (런타임 gen 불변).
             let new_parent_path = parent_path
                 .with_observing_and_report_gen(Arc::clone(&append.observing_cond_symbol_ids), gen_idx);
+            let new_shape = PathShape::new(Some(new_parent_path), append.milestone_group_id);
+            if super::birth_log::in_range(gen_idx) {
+                let starters: Vec<String> = append
+                    .cond_root_starters
+                    .iter()
+                    .map(|s| {
+                        format!(
+                            "sym{}->g{} key={:?} same={}",
+                            s.symbol_id,
+                            s.milestone_group_id,
+                            starter_key_of(s.key_gen, parent_gen, gen_idx),
+                            s.same_input
+                        )
+                    })
+                    .collect();
+                eprintln!(
+                    "  EDGE {} parent={}.{}@{} +new={} cond={} starters=[{}]",
+                    super::birth_log::fmt_root(&path_root),
+                    parent_path.milestone.symbol_id,
+                    parent_path.milestone.pointer,
+                    parent_path.gen_idx,
+                    super::birth_log::fmt_shape(&new_shape),
+                    combined,
+                    starters.join("; ")
+                );
+            }
             add_path(
                 next_paths_out,
-                PathShape::new(Some(new_parent_path), append.milestone_group_id),
+                new_shape,
                 combined,
             );
             for sid in append.observing_cond_symbol_ids.iter().copied() {
@@ -1307,12 +1575,16 @@ impl Mgroup3Parser {
         }
 
         if let Some(start_node_tpl) = edge_action.start_node_progress.as_ref() {
-            let start_node_cond = build_condition(
-                start_node_tpl,
-                grand_parent_gen,
-                parent_gen,
+            let start_node_cond = self.resolve_eof_leaves(
+                build_condition(
+                    start_node_tpl,
+                    grand_parent_gen,
+                    parent_gen,
+                    gen_idx,
+                    grand_grand_parent_gen,
+                ),
                 gen_idx,
-                grand_grand_parent_gen,
+                is_last_input,
             );
             let combined = AcceptCondition::and_from([prev_condition.clone(), start_node_cond]);
             if !matches!(combined, AcceptCondition::Never) {
@@ -1356,6 +1628,7 @@ impl Mgroup3Parser {
                                 grand_parent.milestone_report_gen,
                                 parent_path.milestone_report_gen,
                                 root_report_gen,
+                                is_last_input,
                                 next_paths_out,
                                 apps_out,
                                 finishes_out,
