@@ -15,126 +15,127 @@ package com.giyeok.jparser.mgroup4
 // 수집하고, 파스 끝에 distinct 상태 수를 보고한다.
 //
 // -----------------------------------------------------------------------------
-// 캐노니컬라이제이션 규칙 (보고 §b — gen 정규화, 조건 클래스 근사)
+// 캐노니컬라이제이션 규칙 (v2 — 상위 세션 리뷰 반영: gen 을 상태 정체성에서 완전 제거)
 // -----------------------------------------------------------------------------
 //
+// v1 의 결함: gen 을 "현재 gen 대비 원값 오프셋" (off = curGen − g) 으로 상태 정체성에
+// 포함했었다. window 노드는 긴 스캔 중 tip 근처에 오래 머물 수 있어 오프셋이 무한히
+// 자라고, 같은 구조적 설정이 매 gen 새 상태로 집계됐다 (실측 "gen 당 ~0.5 신규 상태"
+// 꼬리의 원인). 현행 parserdata 처럼 gen 은 전부 런타임 바인딩 — 정적 상태 정체성에
+// 들어가면 안 된다.
+//
 // window 크기 n. 각 live shape 는 milestone chain (tip-most = shape.milestonePath,
-// root = parent==null) + tipGroupId 로 구성. group 노드는 멤버로 완전히 펼쳐(explode)
-// singleton shape 들로 환원한 뒤 처리 (병합이 관찰을 왜곡하지 않게 — 상위 지시).
+// root = parent==null) + tipGroupId. group 노드는 멤버로 완전히 펼쳐(explode) singleton
+// shape 들로 환원한 뒤 처리 (병합이 관찰을 왜곡하지 않게).
 //
-//  1) 윈도 분할: chain 을 tip 에서부터 최대 (n-1) 개 milestone 노드까지가 "window
-//     내부 노드", 그 위(root 쪽 전부)가 "out-of-window prefix". suffix 튜플 = window
-//     내부 노드들의 (symbolId, pointer, gen오프셋) 열 + tipGroupId. depth 정의:
-//     tipGroupId 자체가 depth-1 (n=1 이면 window 내부 milestone 노드 0개 → suffix =
-//     tipGroupId 하나 = 현행 milestone group 과 동형).
+//  1) 윈도 분할: chain 의 tip-most (n-1) 개 milestone 노드 = window 내부, 그 위(root
+//     쪽 전부) = out-of-window prefix. n=1 이면 window 내부 milestone 노드 0개 →
+//     suffix = tipGroupId 하나 = 현행 milestone group 동형 (대조군).
 //
-//  2) prefix 버킷 키: out-of-window prefix 체인의 구조 identity —
-//     각 노드의 (symbolId, pointer, gen오프셋) 을 root→prefix끝 순서로 나열. 같은 prefix
-//     버킷에 떨어지는 shape 들의 suffix 튜플들을 한 상태의 "suffix-set" 으로 모은다.
+//  2) 버킷팅 (상태 정체성 아님): 같은 **구체(concrete) prefix 인스턴스** 를 공유하는
+//     shape 들이 한 버킷 = 한 "관찰된 suffix-set 상태" 의 멤버. 버킷 키 = prefix 의
+//     마지막 노드 (MilestonePath equals — gen 포함한 인스턴스 동일성). 목표 아키텍처의
+//     런타임 행 (prefix 포인터) 에 대응 — 서로 다른 살아있는 prefix 는 다른 행이고,
+//     행이 가리키는 **정적 상태 id** 만 gen-무관 캐논으로 센다.
 //
-//  3) gen 정규화 (정적 상태는 gen-무관해야 함): 모든 gen 값을 **현재 파스 gen(curGen)
-//     기준 상대 오프셋** 으로 치환 — off(g) = curGen - g. 노드가 k gen 전에 부착됐다는
-//     "gen-since-attachment" 패턴만 남는다. 이는 gen 간 상대 오프셋 패턴 (절대 위치
-//     무관). prefix·suffix·milestone.gen 전부 이 규칙 적용. 오프셋이 window 밖에서도
-//     커지지만 (prefix 는 오래된 노드), 구조가 같고 상대 오프셋 패턴이 같으면 같은 상태.
-//     → 이 정규화로 "같은 모양이 여러 절대 gen 에 등장" 이 하나의 상태로 접힌다
-//       (late-convergence 가 상태를 부풀리는지 = 포화 여부를 정직하게 재려면 필수).
+//  3) 상태 정체성 — 변형 2종:
+//     [변형 A (주)] 튜플 = window 노드들의 (symbolId, pointer[, observing]) 열 +
+//       tipGroupId. gen 성분 완전 제외. 상태 = 정렬된 튜플 **집합** (같은 kernel-패턴
+//       튜플의 다른-gen 중복 인스턴스는 집합화로 자연 흡수 — multiplicity 도 정체성에서
+//       제외. 오늘날 같은 group 아래 여러 path 가 런타임 행인 것과 동형).
+//     [변형 B (참고)] A + "gen-동등 패턴": 상태 내 모든 window 슬롯의 gen 값들
+//       (슬롯당 2개 — 노드 부착 gen, milestone kernel gen) 을 **상태 내 등수(rank)** 로
+//       치환한 패턴. 원값이 아니라 "어떤 슬롯들이 같은 gen 을 공유하는가 + 상대
+//       신구(新舊) 순서" 만 남는다 (순수 동등-파티션보다 약간 세밀한 상한 근사 —
+//       순서까지 구분. 즉 |B| ≥ |순수동등| ≥ |A|). A↔B 격차 = gen 패턴 분화 기여의 상한.
+//       B 에서 같은 kernel-패턴의 다른-gen 인스턴스는 구분되어 남는다 (rank 열이 다름).
 //
-//  4) 조건 분화 (두 모드):
-//     (a) 조건 무시 — suffix 튜플에 condition 정보 없음.
-//     (b) 조건 포함 — 각 suffix 튜플에 그 path 의 AcceptCondition 의 **구조 클래스**
-//         (structural class) 를 붙인다. 값(gen/symbolId)이 아니라 형태:
-//         condClass(cond) = 조건 트리를 순회하며 각 leaf 를 그 종류(NoLongerMatch/
-//         Exists/Unless/OnlyIf/...)로, And/Or 를 자식 클래스의 정렬된 멀티셋으로 접은
-//         문자열. 근사: leaf 의 symbolId 는 **포함**하되 startGen/endGen 은 gen 오프셋
-//         으로 상대화(off). 이는 "어떤 심볼에 대한 어떤 종류의 조건이 걸렸나 + 그 span
-//         이 현재로부터 몇 gen 전에 시작하나" 를 형태로 잡는다. 정확한 조건 템플릿
-//         추출(생성기 remap)은 어렵기에 이 런타임 근사를 쓰고 방식을 명시.
+//  4) 조건 분화 (두 모드, A/B 각각):
+//     (a) 조건 무시 — 튜플에 condition 정보 없음.
+//     (b) 조건 포함 — 각 튜플에 그 path 의 AcceptCondition 의 **구조 클래스** 를 붙임:
+//         leaf = 종류(NoLongerMatch/Exists/Unless/OnlyIf/...) + 대상 symbolId (gen 값
+//         제외 — v2), And/Or = 자식 클래스의 정렬 멀티셋. 값이 아닌 형태. 조건의 gen
+//         들은 B 의 동등-파티션에도 넣지 않는다 (window 슬롯 gen 만) — 근사 명시.
 //
-//  5) 상태 캐논 = 한 prefix 버킷의 {정렬된 suffix 튜플 문자열} 집합 → 정렬 join.
-//     전역 set 에 이 문자열을 넣고 distinct count 를 센다. 상태당 튜플 수도 집계.
+//  5) 상태 캐논 = 버킷의 {정렬된 튜플 (집합 | B 는 rank열 포함 시퀀스)} 문자열 →
+//     128-bit 지문(Long) 으로 전역 set 에 수집 (메모리 — 수십만 상태 규모).
 //
-// 병합(runtime packing) 이 켜진 상태에서 수집하되, group 은 멤버로 펼쳐 반영하므로
-// 관찰이 왜곡되지 않는다 (병합 여부와 무관하게 같은 live path 집합을 본다).
-//
-// 파스 출력 무영향 (계측 전용, env MG4_G0_STATS 로 파서에서 게이트). 이 클래스 자체는
-// 순수 수집기 — 파서는 hook 만 호출한다.
+// 파스 출력 무영향 (계측 전용, env MG4_G0_STATS 로 파서에서 게이트).
 
-class G0SuffixSetStats(val n: Int) {
-  // 전역 distinct 상태 (조건 무시 / 조건 포함). 메모리 절약 위해 canonical 문자열을
-  // 128-bit 지문(두 개의 독립 64-bit 해시를 하나의 Long 으로 접음)으로만 보관 —
-  // jquery 급 입력에서 수십만 상태의 full 문자열 누적은 -Xmx10g 로도 OOM (실측).
-  // 충돌 확률: 50만 상태에서 64-bit 지문 충돌 기대 < 1e-8 → distinct count 에 무영향.
-  private val statesNoCond = HashSet<Long>()
-  private val statesWithCond = HashSet<Long>()
+class G0SuffixSetStats(
+  val n: Int,
+  // 포화 곡선의 선형 샘플링용 예상 총 gen 수 (= 입력 길이). 0 이면 지수 샘플만.
+  val expectedTotalGens: Int = 0,
+) {
+  // 전역 distinct 상태 — 변형 A/B × 조건 무시/포함.
+  private val statesANoCond = HashSet<Long>()
+  private val statesAWithCond = HashSet<Long>()
+  private val statesBNoCond = HashSet<Long>()
+  private val statesBWithCond = HashSet<Long>()
 
-  // 상태당 suffix 튜플 수 분포 (조건 무시 기준 — 상태 구조 재료).
-  // key = 튜플 수, value = 그 튜플 수를 가진 (상태,gen) 관찰 횟수. 상태 재관찰도 세므로
-  // "가중" 분포 (한 상태가 여러 gen 살면 여러 번 셈) — 정성 재료용.
+  // 상태당 suffix 튜플 수 분포 (변형 A 조건무시 기준 — 상태 구조 재료).
+  // 상태 재관찰도 세는 "가중" 분포 (한 상태가 여러 gen 살면 여러 번 셈).
   private val tupleCountHist = HashMap<Int, Long>()
-  // distinct 상태별 튜플 수 (평균/최대용, 상태 처음 볼 때만).
   private var distinctTupleSum = 0L
   private var distinctTupleMax = 0
 
-  // 두 독립 seed 로 문자열을 접어 128-bit 지문을 하나의 Long 으로 (상위/하위 32bit 혼합).
-  private fun fingerprint(s: String): Long {
-    var h1 = 1125899906842597L // seed
-    var h2 = -0x61c8864680b583ebL // 다른 seed (golden ratio 계열)
-    for (i in s.indices) {
-      val c = s[i].code
-      h1 = 31 * h1 + c
-      h2 = 0x100000001b3L * (h2 xor c.toLong()) // FNV-ish
-    }
-    // 두 해시를 섞어 하나의 64-bit 로 — 충돌은 두 해시가 동시에 충돌해야.
-    return h1 xor java.lang.Long.rotateLeft(h2, 32)
-  }
-
-  // 관찰된 gen 수, 총 live shape (explode 후) 수.
   var gensObserved = 0L; private set
   var totalExplodedShapes = 0L; private set
-  // 매 gen distinct 상태(조건무시) 수 누적 (상태/gen 평균).
   var perGenStateSum = 0L; private set
   var perGenStateMax = 0; private set
 
-  // 포화 추적: 특정 gen 스냅샷마다 전역 distinct 상태 수를 기록 (증가 곡선).
-  // 너무 촘촘하면 메모리 — 로그 간격으로 샘플.
-  val saturationCurve = ArrayList<Pair<Long, Int>>() // (gensObserved, statesNoCond.size)
+  // 포화 곡선 (변형 A 조건무시): 지수 간격 + (expectedTotalGens 있으면) 5% 선형 간격.
+  val saturationCurve = ArrayList<Pair<Long, Int>>()
   private var nextSampleAt = 1L
+  val linearCurve = ArrayList<Pair<Long, Int>>()
+  private val linearStep = if (expectedTotalGens > 0) (expectedTotalGens / 20).coerceAtLeast(1).toLong() else 0L
+  private var nextLinearAt = if (linearStep > 0) linearStep else Long.MAX_VALUE
 
-  val distinctStatesNoCond: Int get() = statesNoCond.size
-  val distinctStatesWithCond: Int get() = statesWithCond.size
-  val meanTuplesPerState: Double get() = if (statesNoCond.isEmpty()) 0.0 else distinctTupleSum.toDouble() / statesNoCond.size
+  val distinctStatesANoCond: Int get() = statesANoCond.size
+  val distinctStatesAWithCond: Int get() = statesAWithCond.size
+  val distinctStatesBNoCond: Int get() = statesBNoCond.size
+  val distinctStatesBWithCond: Int get() = statesBWithCond.size
+  val meanTuplesPerState: Double get() = if (statesANoCond.isEmpty()) 0.0 else distinctTupleSum.toDouble() / statesANoCond.size
   val maxTuplesPerState: Int get() = distinctTupleMax
   val meanStatesPerGen: Double get() = if (gensObserved == 0L) 0.0 else perGenStateSum.toDouble() / gensObserved
 
-  // gen 오프셋 정규화.
-  private fun off(g: Int, curGen: Int): Int = curGen - g
+  // 두 독립 seed 로 문자열을 접어 128-bit 지문을 하나의 Long 으로.
+  // 충돌 확률: 100만 상태에서 64-bit 지문 충돌 기대 << 1e-6 → distinct count 무영향.
+  private fun fingerprint(s: String): Long {
+    var h1 = 1125899906842597L
+    var h2 = -0x61c8864680b583ebL
+    for (i in s.indices) {
+      val c = s[i].code
+      h1 = 31 * h1 + c
+      h2 = 0x100000001b3L * (h2 xor c.toLong())
+    }
+    return h1 xor java.lang.Long.rotateLeft(h2, 32)
+  }
 
-  // 조건 구조 클래스 문자열 (gen 상대화). 형태만 — 값 중 symbolId 는 유지, gen 은 off.
-  private fun condClass(cond: AcceptCondition, curGen: Int): String = when (cond) {
+  // 조건 구조 클래스 (v2: gen-free) — leaf 종류 + symbolId 만, And/Or 는 정렬 멀티셋.
+  private fun condClass(cond: AcceptCondition): String = when (cond) {
     Always -> "T"
     Never -> "F"
     is And -> {
       val parts = ArrayList<String>(cond.size)
-      cond.forEach { parts.add(condClass(it, curGen)) }
+      cond.forEach { parts.add(condClass(it)) }
       parts.sort()
       "&(${parts.joinToString(",")})"
     }
     is Or -> {
       val parts = ArrayList<String>(cond.size)
-      cond.forEach { parts.add(condClass(it, curGen)) }
+      cond.forEach { parts.add(condClass(it)) }
       parts.sort()
       "|(${parts.joinToString(",")})"
     }
-    is NoLongerMatch -> "NLM${cond.symbolId}@${off(cond.startGen, curGen)}+${off(cond.minEndGen, curGen)}"
-    is NeedLongerMatch -> "NDLM${cond.symbolId}@${off(cond.startGen, curGen)}+${off(cond.minEndGen, curGen)}"
-    is Exists -> "EX${cond.symbolId}@${off(cond.startGen, curGen)}"
-    is NotExists -> "NEX${cond.symbolId}@${off(cond.startGen, curGen)}"
-    is Unless -> "UN${cond.symbolId}@${off(cond.startGen, curGen)}..${off(cond.endGen, curGen)}"
-    is OnlyIf -> "OI${cond.symbolId}@${off(cond.startGen, curGen)}..${off(cond.endGen, curGen)}"
+    is NoLongerMatch -> "NLM${cond.symbolId}"
+    is NeedLongerMatch -> "NDLM${cond.symbolId}"
+    is Exists -> "EX${cond.symbolId}"
+    is NotExists -> "NEX${cond.symbolId}"
+    is Unless -> "UN${cond.symbolId}"
+    is OnlyIf -> "OI${cond.symbolId}"
   }
 
-  // chain 을 root..tip 순서 배열로. (tip-most = shape.milestonePath)
   private fun chainToList(tip: MilestonePath?): ArrayList<MilestonePath> {
     val rev = ArrayList<MilestonePath>()
     var cur = tip
@@ -143,15 +144,12 @@ class G0SuffixSetStats(val n: Int) {
     return rev
   }
 
-  // group 노드를 멤버로 완전히 펼쳐 singleton shape 들로 환원. group 이 여러 개면
-  // 카테시안 곱 (실측상 chain 당 group ≤ 1 이 압도적 — spec item 6 "2중 group 없음").
-  // 방어적으로 다중 group 도 처리.
+  // group 노드를 멤버로 완전히 펼쳐 singleton shape 들로 환원 (재귀 — 다중 group 방어).
   private fun explodeAll(shape: PathShape): List<PathShape> {
     val chain = chainToList(shape.milestonePath)
     var gIdx = -1
     for (j in chain.indices) if (chain[j].groupMembers != null) { gIdx = j; break }
     if (gIdx < 0) return listOf(shape)
-    // gIdx 위치 group 을 멤버로 펼친 뒤 재귀 (남은 group 도 처리).
     val groupNode = chain[gIdx]
     val members = groupNode.groupMembers!!
     val reportGens = groupNode.groupMemberReportGens
@@ -174,80 +172,110 @@ class G0SuffixSetStats(val n: Int) {
     return out
   }
 
-  // 한 exploded singleton shape → (prefixKey, suffixTuple[, condClass]).
-  // suffix = window 내부 (n-1) milestone 노드 (tip-most 부터) + tipGroupId.
-  // prefix = 그 위 전부.
-  private data class Split(val prefixKey: String, val suffixTuple: String)
+  // 버킷 멤버 한 항목: 조건 무시/포함 튜플 문자열 (gen-free) + window 슬롯 gen 열.
+  private class Entry(val tNo: String, val tCond: String, val gens: IntArray)
 
-  private fun splitShape(shape: PathShape, cond: AcceptCondition, curGen: Int, withCond: Boolean): Split {
-    val chain = chainToList(shape.milestonePath) // index 0 = root-most
-    val L = chain.size
-    // window 내부 milestone 노드 수 = min(n-1, L). tip-most (n-1) 개.
-    val windowNodes = if (n - 1 < L) n - 1 else L
-    val prefixEnd = L - windowNodes // prefix = chain[0 until prefixEnd]
-    // prefix 키 (root→prefix끝). gen 오프셋 정규화.
-    val pk = StringBuilder()
-    for (j in 0 until prefixEnd) {
-      val node = chain[j]
-      pk.append(node.milestone.symbolId).append('.').append(node.milestone.pointer)
-        .append('@').append(off(node.milestone.gen, curGen))
-      // observing 도 prefix identity 에 포함 (미래 조건 anchor — 상태 구분 요인).
-      if (node.observingCondSymbolIds.isNotEmpty()) {
-        pk.append('o').append(node.observingCondSymbolIds.joinToString("_"))
-      }
-      pk.append('|')
+  // 변형 B 캐논: (튜플, gen열) 목록 → 정확중복 제거 → 상태 내 전체 gen 값을 등수(rank)
+  // 로 치환 → (튜플, rank열) 정렬 → join. rank 는 상태 내 distinct gen 의 오름차순 index
+  // — 동등성과 상대 순서만 남는다 (원값/오프셋 아님).
+  private fun canonB(entries: List<Entry>, useCond: Boolean): String {
+    // 정확중복 (같은 튜플 + 같은 gen열 = 같은 런타임 행의 재관찰) 제거.
+    val seen = HashSet<String>()
+    val ded = ArrayList<Entry>(entries.size)
+    for (e in entries) {
+      val t = if (useCond) e.tCond else e.tNo
+      if (seen.add(t + "~" + e.gens.contentToString())) ded.add(e)
     }
-    // suffix 튜플 (window 내부 milestone 노드 tip-most→root쪽 안정 순서 + tipGroupId).
-    val st = StringBuilder()
-    st.append("tg").append(shape.tipGroupId)
-    for (j in prefixEnd until L) {
-      val node = chain[j]
-      st.append(';').append(node.milestone.symbolId).append('.').append(node.milestone.pointer)
-        .append('@').append(off(node.milestone.gen, curGen))
-      if (node.observingCondSymbolIds.isNotEmpty()) {
-        st.append('o').append(node.observingCondSymbolIds.joinToString("_"))
+    // 상태 내 등장 gen 전체의 rank map.
+    val distinct = java.util.TreeSet<Int>()
+    for (e in ded) for (g in e.gens) distinct.add(g)
+    val rank = HashMap<Int, Int>(distinct.size * 2)
+    var r = 0
+    for (g in distinct) rank[g] = r++
+    // (튜플, rank열) 로 치환 후 정렬 (튜플 사전순 → rank열 사전순).
+    val ranked = ArrayList<Pair<String, IntArray>>(ded.size)
+    for (e in ded) {
+      val t = if (useCond) e.tCond else e.tNo
+      val rs = IntArray(e.gens.size)
+      for (i in e.gens.indices) rs[i] = rank[e.gens[i]]!!
+      ranked.add(Pair(t, rs))
+    }
+    ranked.sortWith { a, b ->
+      val c = a.first.compareTo(b.first)
+      if (c != 0) c
+      else {
+        val x = a.second; val y = b.second
+        var res = 0
+        val m = if (x.size < y.size) x.size else y.size
+        for (i in 0 until m) if (x[i] != y[i]) { res = x[i] - y[i]; break }
+        if (res != 0) res else x.size - y.size
       }
     }
-    if (withCond) st.append("#").append(condClass(cond, curGen))
-    return Split(pk.toString(), st.toString())
+    return ranked.joinToString("|") { "${it.first}~${it.second.joinToString(",")}" }
   }
 
-  // 매 gen main root 의 pathMap (pre-filter, group 포함) 을 받아 상태들을 수집.
-  fun observe(mainPathMap: Map<PathShape, AcceptCondition>, curGen: Int) {
+  // 매 gen main root 의 pathMap (post-merge, pre-filter) 을 받아 상태들을 수집.
+  // curGen 은 상태 정체성에 사용하지 않는다 (v2) — API 호환용.
+  fun observe(mainPathMap: Map<PathShape, AcceptCondition>, @Suppress("UNUSED_PARAMETER") curGen: Int) {
     if (mainPathMap.isEmpty()) return
     gensObserved++
-    // prefix 버킷 → suffix 튜플 집합 (조건 무시 / 조건 포함).
-    val bucketsNoCond = HashMap<String, TreeSet<String>>()
-    val bucketsWithCond = HashMap<String, TreeSet<String>>()
+    // 버킷 키 = 구체 prefix 인스턴스 (마지막 prefix 노드; 전체 chain 이 window 안이면 null).
+    val buckets = HashMap<MilestonePath?, ArrayList<Entry>>()
     for ((shape, cond) in mainPathMap) {
       for (ex in explodeAll(shape)) {
         totalExplodedShapes++
-        val sNo = splitShape(ex, cond, curGen, withCond = false)
-        bucketsNoCond.getOrPut(sNo.prefixKey) { TreeSet() }.add(sNo.suffixTuple)
-        val sWith = splitShape(ex, cond, curGen, withCond = true)
-        bucketsWithCond.getOrPut(sWith.prefixKey) { TreeSet() }.add(sWith.suffixTuple)
+        val chain = chainToList(ex.milestonePath)
+        val L = chain.size
+        val windowNodes = if (n - 1 < L) n - 1 else L
+        val prefixEnd = L - windowNodes
+        val bucketKey: MilestonePath? = if (prefixEnd == 0) null else chain[prefixEnd - 1]
+        // suffix 튜플 (gen-free): tipGroupId + window 노드들의 (symbolId, pointer[, obs]).
+        val sb = StringBuilder()
+        sb.append("tg").append(ex.tipGroupId)
+        val gens = IntArray(windowNodes * 2)
+        for (j in prefixEnd until L) {
+          val node = chain[j]
+          sb.append(';').append(node.milestone.symbolId).append('.').append(node.milestone.pointer)
+          if (node.observingCondSymbolIds.isNotEmpty()) {
+            sb.append('o').append(node.observingCondSymbolIds.joinToString("_"))
+          }
+          val k = (j - prefixEnd) * 2
+          gens[k] = node.gen               // 노드 부착 gen
+          gens[k + 1] = node.milestone.gen // milestone kernel gen
+        }
+        val tNo = sb.toString()
+        val tCond = tNo + "#" + condClass(cond)
+        buckets.getOrPut(bucketKey) { ArrayList() }.add(Entry(tNo, tCond, gens))
       }
     }
-    // 각 버킷 = 한 suffix-set 상태. 캐논 = 정렬된 suffix 튜플 join.
     var perGenDistinct = 0
-    for (tuples in bucketsNoCond.values) {
-      val canon = fingerprint(tuples.joinToString("|"))
-      if (statesNoCond.add(canon)) {
-        distinctTupleSum += tuples.size
-        if (tuples.size > distinctTupleMax) distinctTupleMax = tuples.size
+    for (entries in buckets.values) {
+      // 변형 A: 정렬된 튜플 집합 (중복/multiplicity 자연 흡수).
+      val tupSetNo = java.util.TreeSet<String>()
+      val tupSetCond = java.util.TreeSet<String>()
+      for (e in entries) { tupSetNo.add(e.tNo); tupSetCond.add(e.tCond) }
+      val aCanon = fingerprint(tupSetNo.joinToString("|"))
+      if (statesANoCond.add(aCanon)) {
+        distinctTupleSum += tupSetNo.size
+        if (tupSetNo.size > distinctTupleMax) distinctTupleMax = tupSetNo.size
       }
-      tupleCountHist.merge(tuples.size, 1L) { a, b -> a + b }
+      tupleCountHist.merge(tupSetNo.size, 1L) { a, b -> a + b }
+      statesAWithCond.add(fingerprint(tupSetCond.joinToString("|")))
+      // 변형 B: A + gen 동등/순서 패턴 (rank 열).
+      statesBNoCond.add(fingerprint(canonB(entries, useCond = false)))
+      statesBWithCond.add(fingerprint(canonB(entries, useCond = true)))
       perGenDistinct++
-    }
-    for (tuples in bucketsWithCond.values) {
-      statesWithCond.add(fingerprint(tuples.joinToString("|")))
     }
     perGenStateSum += perGenDistinct
     if (perGenDistinct > perGenStateMax) perGenStateMax = perGenDistinct
-    // 포화 곡선 샘플 (지수 간격).
+    // 포화 곡선 (변형 A 조건무시) — 지수 + 선형 샘플.
     if (gensObserved >= nextSampleAt) {
-      saturationCurve.add(Pair(gensObserved, statesNoCond.size))
+      saturationCurve.add(Pair(gensObserved, statesANoCond.size))
       nextSampleAt = (gensObserved * 2).coerceAtLeast(gensObserved + 1)
+    }
+    if (gensObserved >= nextLinearAt) {
+      linearCurve.add(Pair(gensObserved, statesANoCond.size))
+      nextLinearAt += linearStep
     }
   }
 
@@ -261,19 +289,21 @@ class G0SuffixSetStats(val n: Int) {
     sb.append("[G0-STATS] $label n=$n:\n")
     sb.append("  gensObserved=$gensObserved totalExplodedShapes=$totalExplodedShapes ")
     sb.append("meanShapes/gen=%.2f\n".format(if (gensObserved > 0) totalExplodedShapes.toDouble() / gensObserved else 0.0))
-    sb.append("  distinctStates(noCond)=$distinctStatesNoCond distinctStates(withCond)=$distinctStatesWithCond\n")
-    sb.append("  meanTuples/state=%.2f maxTuples/state=$maxTuplesPerState\n".format(meanTuplesPerState))
+    sb.append("  [A] distinctStates noCond=$distinctStatesANoCond withCond=$distinctStatesAWithCond\n")
+    sb.append("  [B] distinctStates noCond=$distinctStatesBNoCond withCond=$distinctStatesBWithCond\n")
+    sb.append("  meanTuples/state(A)=%.2f maxTuples/state(A)=$maxTuplesPerState\n".format(meanTuplesPerState))
     sb.append("  meanStates/gen=%.2f maxStates/gen=$perGenStateMax\n".format(meanStatesPerGen))
     if (currentMilestoneGroups > 0) {
       sb.append("  vs current milestoneGroups=$currentMilestoneGroups : ")
-      sb.append("noCond=%.3fx withCond=%.3fx\n".format(
-        distinctStatesNoCond.toDouble() / currentMilestoneGroups,
-        distinctStatesWithCond.toDouble() / currentMilestoneGroups))
+      sb.append("A: %.3fx / %.3fx (noCond/withCond)  B: %.3fx / %.3fx\n".format(
+        distinctStatesANoCond.toDouble() / currentMilestoneGroups,
+        distinctStatesAWithCond.toDouble() / currentMilestoneGroups,
+        distinctStatesBNoCond.toDouble() / currentMilestoneGroups,
+        distinctStatesBWithCond.toDouble() / currentMilestoneGroups))
     }
-    sb.append("  tupleCountHist(weighted): ${tupleCountHistogramString()}\n")
-    sb.append("  saturationCurve(gen->states): ${saturationCurve.joinToString(" ") { "${it.first}->${it.second}" }}")
+    sb.append("  tupleCountHist(A,weighted): ${tupleCountHistogramString()}\n")
+    sb.append("  saturationCurveExp(A,gen->states): ${saturationCurve.joinToString(" ") { "${it.first}->${it.second}" }}\n")
+    sb.append("  saturationCurveLin(A,gen->states): ${linearCurve.joinToString(" ") { "${it.first}->${it.second}" }}")
     return sb.toString()
   }
 }
-
-private typealias TreeSet<T> = java.util.TreeSet<T>

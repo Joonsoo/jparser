@@ -31,12 +31,56 @@ class G0StaticProbe {
 
   private fun probeOne(label: String, data: Mgroup3ParserData, input: String) {
     for (n in nsToProbe) {
-      val stats = G0SuffixSetStats(n)
+      val stats = G0SuffixSetStats(n, expectedTotalGens = input.length)
       val parser = Mgroup4Parser(data, interiorGroupMaxDepth = n).setG0Stats(stats)
       val ctx = parser.parse(input)
       val accepted = parser.isAccepted(ctx)
       println(stats.report("$label (accepted=$accepted, ${input.length} chars)", parser.milestoneGroupCount))
     }
+  }
+
+  // 캐노니컬라이제이션 유닛 검증 (합성 chain) — 실코퍼스에서 B==A 관찰이 수집기 버그가
+  // 아님을 못박는다: A 는 gen 무시, B 는 gen 동등/순서 패턴을 실제로 구분해야 한다.
+  //  - obs1/obs2: 같은 구조, 절대 gen 만 평행이동 (동등/순서 패턴 동일) → A 1개, B 1개.
+  //  - obs3: 같은 구조, fork 두 tuple 의 부착 gen 이 같아짐 (패턴 상이) → A 그대로 1개,
+  //    B 는 2개로 갈라져야 한다.
+  @Test
+  fun canonicalizationUnitCheck() {
+    val obs = emptyList<Int>()
+    // n=3: window = tip-most 2 milestone 노드. prefix = 그 아래.
+    fun shape(prefixGen: Int, k2: Kernel, g2: Int, k1: Kernel, g1: Int, tip: Int): PathShape {
+      val prefix = MilestonePath(gen = prefixGen, milestone = Kernel(10, 1, prefixGen - 1), parent = null,
+        observingCondSymbolIds = obs, reportGen = prefixGen, milestoneReportGen = prefixGen)
+      val n2 = MilestonePath(gen = g2, milestone = k2, parent = prefix,
+        observingCondSymbolIds = obs, reportGen = g2, milestoneReportGen = g2)
+      val n1 = MilestonePath(gen = g1, milestone = k1, parent = n2,
+        observingCondSymbolIds = obs, reportGen = g1, milestoneReportGen = g1)
+      return PathShape(n1, tip)
+    }
+    val stats = G0SuffixSetStats(3)
+    // obs1: fork 형제 a/c 가 gen 2 에 부착, 공통 b 가 gen 3 에 부착.
+    stats.observe(linkedMapOf(
+      shape(1, Kernel(20, 1, 2), 2, Kernel(30, 1, 3), 3, 9) to Always,
+      shape(1, Kernel(21, 1, 2), 2, Kernel(30, 1, 3), 3, 9) to Always,
+    ), 3)
+    org.junit.jupiter.api.Assertions.assertEquals(1, stats.distinctStatesANoCond)
+    org.junit.jupiter.api.Assertions.assertEquals(1, stats.distinctStatesBNoCond)
+    // obs2: 같은 구조를 절대 gen +10 평행이동 — A/B 모두 같은 상태로 접혀야 (gen-무관).
+    stats.observe(linkedMapOf(
+      shape(11, Kernel(20, 1, 12), 12, Kernel(30, 1, 13), 13, 9) to Always,
+      shape(11, Kernel(21, 1, 12), 12, Kernel(30, 1, 13), 13, 9) to Always,
+    ), 13)
+    org.junit.jupiter.api.Assertions.assertEquals(1, stats.distinctStatesANoCond) { "A must be gen-invariant" }
+    org.junit.jupiter.api.Assertions.assertEquals(1, stats.distinctStatesBNoCond) { "B must be invariant to order-preserving gen shift" }
+    // obs3: 같은 구조인데 b 의 부착 gen 이 a/c 와 같음 (동등 패턴 상이: {2,2,3,3} 이 아니라
+    // 전부 같은 gen) → A 는 여전히 1개 (gen 무시), B 는 새 상태.
+    stats.observe(linkedMapOf(
+      shape(1, Kernel(20, 1, 2), 2, Kernel(30, 1, 2), 2, 9) to Always,
+      shape(1, Kernel(21, 1, 2), 2, Kernel(30, 1, 2), 2, 9) to Always,
+    ), 3)
+    org.junit.jupiter.api.Assertions.assertEquals(1, stats.distinctStatesANoCond) { "A must ignore gen pattern" }
+    org.junit.jupiter.api.Assertions.assertEquals(2, stats.distinctStatesBNoCond) { "B must distinguish gen-equality patterns" }
+    println("[G0-STATS] canonicalizationUnitCheck OK — A gen-invariant, B distinguishes gen patterns")
   }
 
   // --- asdl (인프로세스 생성, 4 입력) — 항상 실행 (대형 pb 불필요) ---

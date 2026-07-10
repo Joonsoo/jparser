@@ -408,16 +408,18 @@ mgroup4-native (Rust 미러, 커밋 45ffe8bc) 는 정확성 게이트 전승 (fi
 분석·재방문 트리거: `mgroup4/docs/phase_b_plan.md` §5. 유지 가치: JVM 엔진 2.1~2.2×
 (Kotlin 모듈), 논문 재료 (late-convergence 90.5% + packing 이득의 런타임 의존성).
 
-### 6.10 Phase G 결과 (2026-07-10) — generator-native 도 기각, 트랙 완결
+### 6.10 Phase G0 (2026-07-10) — 1차 기각 판정은 측정 결함으로 철회, 재측정 후 재개
 
-사용자 원안 (parserdata 를 mgroup→mgroup 곱 상태로 결정화 + 신규 생성기) 의 정적
-타당성 프로브 (G0) 에서 **suffix-set 상태 공간이 입력 의존적으로 발산** — jquery
-기준 n=1 은 790 상태로 포화 (정적 열거 성립 = 현행 mgroup3), n=2 는 169k+ (현행
-group 의 92.9×, 하한) 로 무포화 발산. 킬 게이트 (10×) 9~46× 초과로 G1 이후 미착수
-종료. **결론: n=1 (tip group) 이 정적 열거 가능한 grouping 깊이의 실측 경계** —
-mgroup3 설계점의 사후 정당화. interior 공유의 세 아키텍처 (런타임 packing §6.8~6.9
-/ 정적 결정화 / lazy 하이브리드) 가 전부 측정으로 닫힘: JVM 에서만 런타임 packing
-이 이득 (2.1~2.2×). 상세: `mgroup4/docs/phase_g_plan.md` §5.
+1차 프로브는 "suffix-set 상태 발산 (jquery n=2 169k+, 92.9×)" 으로 기각 판정했으나,
+사용자 리뷰 ("유한 문법이 발산할 수 있나") 가 **상태 정체성에 gen 원값 오프셋이
+들어간 결함**을 드러냈다 — 집계의 94~98% 가 아티팩트. **정정 (gen 은 런타임 바인딩
+— 현행 parserdata 와 같은 팩터링) 후 재측정: jquery n=2 = 3,047 상태 (1.67×),
+n=3 = 4.8×, n=4 = 9.6× — 킬 게이트 (n=2 에서 10×) 통과, 포화 곡선은 n=1 대조군과
+동질의 로그형.** 추가 발견: gen 동등 패턴은 상태를 사실상 안 가름 (B−A ≤ 2) →
+"gen = 순수 런타임 바인딩" 실측 검증; 상태당 평균 재사용 ~96 gen → **lazy 물질화
+(상태 JIT + 캐시) 가 상각됨** — Phase B 를 죽인 per-gen packing 비용을 "상태당
+1회" 로 바꾸는 유력 경로. Phase G 는 G1 (설계 — 정적 생성기 vs lazy 캐시 비교)
+로 진행. 상세: `mgroup4/docs/phase_g_plan.md` §5 (v1 기록)·§6 (정정).
 
 ## 7. 참고
 
