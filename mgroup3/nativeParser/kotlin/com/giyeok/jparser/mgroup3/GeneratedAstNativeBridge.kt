@@ -59,6 +59,52 @@ class GeneratedAstNativeBridge(libPath: Path) : AutoCloseable {
     ),
   )
 
+  // ---------------------------------------------------------------------------
+  // Incremental parse session (Phase I3) — ADDITIVE. 세션은 파서 핸들을 **빌린다**
+  // (소유 X): 파서 핸들 하나가 여러 문서 세션을 뒷받침한다. 수명 계약 = 모든 세션을
+  // sessionDestroy 한 뒤에만 freeParser (그 전 free 는 dangling deref). 같은 세션 핸들
+  // 동시 호출 금지 (호출측이 문서별 직렬화). `pos_char`/`old_len_char` 는 코드포인트
+  // 오프셋 (UTF-16/바이트 아님) — 변환은 호스트 책임. 결과 바이트는 `parseAst`
+  // (= `mgroup3_gen_parse_ast`) 와 동일한 ast.proto ParseResult 인코딩이고, 전체
+  // 재파스와 byte-identical 이 계약이다.
+
+  private val genSessionNew: MethodHandle = downcall(
+    "mgroup3_gen_session_new",
+    FunctionDescriptor.of(
+      ValueLayout.ADDRESS, // *mut ParseSession (핸들)
+      ValueLayout.ADDRESS, // parser
+      ValueLayout.ADDRESS, // err *i32 (out)
+    ),
+  )
+  private val genSessionParseFull: MethodHandle = downcall(
+    "mgroup3_gen_session_parse_full",
+    FunctionDescriptor.of(
+      ValueLayout.JAVA_INT, // i32 status
+      ValueLayout.ADDRESS, // session
+      ValueLayout.ADDRESS, // input_bytes
+      ValueLayout.JAVA_LONG, // input_len
+      ValueLayout.ADDRESS, // out_ptr **u8
+      ValueLayout.ADDRESS, // out_len *usize
+    ),
+  )
+  private val genSessionEdit: MethodHandle = downcall(
+    "mgroup3_gen_session_edit",
+    FunctionDescriptor.of(
+      ValueLayout.JAVA_INT, // i32 status
+      ValueLayout.ADDRESS, // session
+      ValueLayout.JAVA_LONG, // pos_char (코드포인트 오프셋)
+      ValueLayout.JAVA_LONG, // old_len_char (코드포인트)
+      ValueLayout.ADDRESS, // new_bytes
+      ValueLayout.JAVA_LONG, // new_len
+      ValueLayout.ADDRESS, // out_ptr **u8
+      ValueLayout.ADDRESS, // out_len *usize
+    ),
+  )
+  private val genSessionDestroy: MethodHandle = downcall(
+    "mgroup3_gen_session_destroy",
+    FunctionDescriptor.ofVoid(ValueLayout.ADDRESS),
+  )
+
   /** parserdata 파일에서 파서 핸들 생성. 실패 시 throw. */
   fun newParserFromFile(parserDataPath: Path): MemorySegment =
     newParserFromFileVia(parserNewFromFile, "mgroup3_parser_new_from_file", parserDataPath)
@@ -105,13 +151,7 @@ class GeneratedAstNativeBridge(libPath: Path) : AutoCloseable {
    */
   fun parseAst(parser: MemorySegment, input: String): ByteArray = withConfinedArena { arena ->
     val inputBytes = input.toByteArray(StandardCharsets.UTF_8)
-    val inputSeg: MemorySegment = if (inputBytes.isEmpty()) {
-      MemorySegment.NULL
-    } else {
-      val seg = arena.allocate(inputBytes.size.toLong())
-      MemorySegment.copy(inputBytes, 0, seg, ValueLayout.JAVA_BYTE, 0, inputBytes.size)
-      seg
-    }
+    val inputSeg = allocInputBytes(arena, inputBytes)
     val outPtrSeg = arena.allocate(ValueLayout.ADDRESS)
     val outLenSeg = arena.allocate(ValueLayout.JAVA_LONG)
     val code = genParseAst.invokeExact(
@@ -124,9 +164,104 @@ class GeneratedAstNativeBridge(libPath: Path) : AutoCloseable {
     if (code != 0) {
       throw GeneratedAstParseException(code, input)
     }
+    readAndFreeOutBuffer(outPtrSeg, outLenSeg)
+  }
+
+  /**
+   * 파서 핸들 위에 증분 파스 세션을 연다. 파서를 **빌린다** — 세션보다 파서가 오래
+   * 살아야 한다 (수명 계약: 모든 세션 [sessionDestroy] 후에만 [freeParser]).
+   * 실패 시 [GeneratedAstParseException].
+   */
+  fun sessionNew(parser: MemorySegment): MemorySegment = withConfinedArena { arena ->
+    val errSeg = arena.allocate(ValueLayout.JAVA_INT)
+    val session = genSessionNew.invokeExact(parser, errSeg) as MemorySegment
+    val err = errSeg.get(ValueLayout.JAVA_INT, 0)
+    if (err != 0 || session.address() == 0L) {
+      throw GeneratedAstParseException(if (err != 0) err else 5, "<session_new>")
+    }
+    session
+  }
+
+  /**
+   * 세션에 전문(全文) 재파스를 먹인다 (gen 0 부터 — 체크포인트 링 리셋). 결과 바이트는
+   * [parseAst] 와 동일 인코딩. 입력 거부 시 [GeneratedAstParseException] (code 6/7).
+   */
+  fun sessionParseFull(session: MemorySegment, input: String): ByteArray =
+    withConfinedArena { arena ->
+      val inputBytes = input.toByteArray(StandardCharsets.UTF_8)
+      val inputSeg = allocInputBytes(arena, inputBytes)
+      val outPtrSeg = arena.allocate(ValueLayout.ADDRESS)
+      val outLenSeg = arena.allocate(ValueLayout.JAVA_LONG)
+      val code = genSessionParseFull.invokeExact(
+        session,
+        inputSeg,
+        inputBytes.size.toLong(),
+        outPtrSeg,
+        outLenSeg,
+      ) as Int
+      if (code != 0) {
+        throw GeneratedAstParseException(code, input)
+      }
+      readAndFreeOutBuffer(outPtrSeg, outLenSeg)
+    }
+
+  /**
+   * 세션에 단일 치환 편집을 먹인다. [posChar]/[oldLenChar] 는 **코드포인트 오프셋**
+   * (UTF-16/바이트 아님 — 호출측이 변환). 결과 바이트는 [parseAst] 와 동일 인코딩이고
+   * 전문 재파스와 byte-identical.
+   *
+   * 파스 실패 (code 6/7) 시에도 Rust 세션 내부 문서(`self.doc`)는 편집이 이미 반영된
+   * 상태이며 세션은 다음 edit 에 안전하다 (jparser 계약) — 이 메소드는 그 경우
+   * [GeneratedAstParseException] 을 던지되 세션을 파괴하지 않는다. 호출측은 tracked
+   * 텍스트를 편집 반영으로 갱신해야 Rust 문서와 어긋나지 않는다.
+   */
+  fun sessionEdit(
+    session: MemorySegment,
+    posChar: Long,
+    oldLenChar: Long,
+    newText: String,
+  ): ByteArray = withConfinedArena { arena ->
+    val newBytes = newText.toByteArray(StandardCharsets.UTF_8)
+    val newSeg = allocInputBytes(arena, newBytes)
+    val outPtrSeg = arena.allocate(ValueLayout.ADDRESS)
+    val outLenSeg = arena.allocate(ValueLayout.JAVA_LONG)
+    val code = genSessionEdit.invokeExact(
+      session,
+      posChar,
+      oldLenChar,
+      newSeg,
+      newBytes.size.toLong(),
+      outPtrSeg,
+      outLenSeg,
+    ) as Int
+    if (code != 0) {
+      throw GeneratedAstParseException(code, newText)
+    }
+    readAndFreeOutBuffer(outPtrSeg, outLenSeg)
+  }
+
+  /** 세션 핸들 해제. 빌린 파서는 해제하지 않는다 (별도 [freeParser], 모든 세션 후에). */
+  fun sessionDestroy(session: MemorySegment) {
+    genSessionDestroy.invokeExact(session)
+  }
+
+  private fun allocInputBytes(arena: Arena, bytes: ByteArray): MemorySegment =
+    if (bytes.isEmpty()) {
+      MemorySegment.NULL
+    } else {
+      val seg = arena.allocate(bytes.size.toLong())
+      MemorySegment.copy(bytes, 0, seg, ValueLayout.JAVA_BYTE, 0, bytes.size)
+      seg
+    }
+
+  /** out-param (out_ptr/out_len) 이 가리키는 Rust 버퍼를 복사한 뒤 `mgroup3_free_buffer`. */
+  private fun readAndFreeOutBuffer(
+    outPtrSeg: MemorySegment,
+    outLenSeg: MemorySegment,
+  ): ByteArray {
     val outAddr = outPtrSeg.get(ValueLayout.ADDRESS, 0)
     val outLen = outLenSeg.get(ValueLayout.JAVA_LONG, 0)
-    try {
+    return try {
       if (outAddr.address() == 0L || outLen == 0L) {
         ByteArray(0)
       } else {
