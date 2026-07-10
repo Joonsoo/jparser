@@ -45,8 +45,9 @@ chain_boundaries.mu × 편집 44종 (삽입/삭제/치환 × 위치 + 주석/문
 - **Phase I0** — ParseSession + 주기 체크포인트 (K gen 링) + prefix 재개.
   게이트: 전체 재파스와 kernels history·accept **byte-identical** (편집 퍼징
   차등 오라클 — 완벽한 정확성 게이트가 공짜로 존재).
-- **Phase I1** — per-gen strict 지문 보존 + 수렴 감지 (splice 없이 "재사용
-  가능했던 양" 카운터 — 실현 이득 측정).
+- **Phase I1** — per-gen strict 지문으로 수렴 감지 (splice 없이 "재사용
+  가능했던 양" 카운터 — 실현 이득 측정). 구 파스 지문은 `BaselineWalker` 로 lazy
+  산출 (upfront 전체 트레이스 아님 — design §2.1).
 - **Phase I2** — splice: 동기화 지점에서 구조적 완전 일치 1회 검증 (해시 충돌
   차단) 후 suffix 상태 gen-rebase + history 를 세그먼트+오프셋 rope 로 splice.
 - **Phase I3** — FFI 세션 API + mulang LSP 배선.

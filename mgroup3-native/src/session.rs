@@ -396,22 +396,19 @@ impl ParseSession {
         self.stats = SessionStats::default();
         self.stats.last_had_baseline = had_baseline;
 
-        // Compute the baseline (A) per-gen strict fingerprints under THIS anchor,
-        // exactly as the probe: a full fingerprint trace of the old document. Only
-        // needed when we have a baseline (skip on the first edit after an errored /
-        // absent parse).
-        let baseline_fp: Option<Vec<Fp>> = if had_baseline {
-            Some(self.fingerprint_trace(&baseline_doc, anchor))
-        } else {
-            None
-        };
-
+        // Convergence detection compares the edited parse, gen by gen, against the
+        // OLD document's per-gen strict fingerprints under THIS anchor. Those
+        // fingerprints are produced LAZILY by a `BaselineWalker` inside
+        // `reparse_incremental` (only the gens actually queried are computed), not
+        // by an upfront full trace of the old document — see that method and
+        // `BaselineWalker`. Detection is enabled only when we have a baseline (skip
+        // on the first edit after an errored / absent parse).
         let ok = self.reparse_incremental(
             pos,
             anchor,
             delta,
             edit_end,
-            baseline_fp.as_deref(),
+            had_baseline,
             &baseline_doc,
         );
         self.finish_parse(ok);
@@ -551,25 +548,88 @@ impl ParseSession {
         }
     }
 
+    /// The newest checkpoint at gen <= `target_old_gen`, as a `BaselineWalker`
+    /// resume point over the OLD document. Same selection as `resume_checkpoint`
+    /// but semantically distinct: this indexes the OLD gen space (baseline fps),
+    /// not the NEW prefix. Called BEFORE the ring is truncated, so `self.checkpoints`
+    /// still holds the OLD parse's ring — the returned checkpoint is cloned out so
+    /// the truncation that follows cannot invalidate it. The checkpoint carries no
+    /// history (see `Checkpoint`), which is exactly what the walker needs.
+    fn old_resume_checkpoint(&self, target_old_gen: usize) -> Checkpoint {
+        let mut chosen: Option<&Checkpoint> = None;
+        for c in &self.checkpoints {
+            if c.at_gen <= target_old_gen {
+                chosen = Some(c);
+            } else {
+                break;
+            }
+        }
+        match chosen {
+            Some(c) => c.clone(),
+            None => Checkpoint { at_gen: 0, ctx: self.parser.get().init_ctx() },
+        }
+    }
+
     /// Re-parse from the resume checkpoint to end of the (edited) document,
     /// rebuilding the checkpoint ring beyond the resume point and detecting
-    /// convergence against `baseline_fp` (A's per-gen strict fps under `anchor`).
-    /// On convergence at q* < last gen, SPLICE (I2): verify the structural full
-    /// match then stop parsing and reuse the old suffix. `old_doc` is the previous
-    /// document (splice source), re-parsed to q*-delta on demand for the guard.
-    /// Returns true on success.
+    /// convergence against the OLD document's per-gen strict fps under `anchor`.
+    /// Those baseline fps are produced LAZILY by a `BaselineWalker` (only the gens
+    /// actually queried are computed) instead of an upfront full trace of the old
+    /// document — see `BaselineWalker`. On convergence at q* < last gen, SPLICE
+    /// (I2): verify the structural full match (using the walker's live state at
+    /// q*-delta) then stop parsing and reuse the old suffix. `old_doc` is the
+    /// previous document (the walker's parse source + splice source).
+    /// `had_baseline` gates convergence detection (false = no prior successful
+    /// parse to compare against). Returns true on success.
     fn reparse_incremental(
         &mut self,
         pos: usize,
         anchor: i32,
         delta: i32,
         edit_end: usize,
-        baseline_fp: Option<&[Fp]>,
+        had_baseline: bool,
         old_doc: &[char],
     ) -> bool {
         let resume = self.resume_checkpoint(pos);
         let resume_gen = resume.at_gen;
         self.stats.last_resume_gen = resume_gen;
+
+        // The gen-rebase mapping from OLD gen space to NEW: `g<=p → g`, `g>p → g+delta`.
+        let rebase = GenRebase::new(anchor, delta);
+
+        // Map a NEW gen `q` to the OLD gen it should align with (q - delta). Used to
+        // index the baseline walker and, on a splice, the old suffix.
+        let old_gen_of = |q: usize| -> Option<usize> {
+            let pi = q as i64 - delta as i64;
+            if pi < 0 {
+                None
+            } else {
+                Some(pi as usize)
+            }
+        };
+
+        // Splicing needs the old parse's full history + final ctx. They are the
+        // retained `canonical_history` / `prev_final_ctx` (still the OLD parse's at
+        // this point — overwritten only after this returns).
+        let can_splice = had_baseline && self.prev_final_ctx.is_some();
+
+        // Build the lazy baseline walker over the OLD document BEFORE truncating the
+        // checkpoint ring below — its resume checkpoint is cloned from the OLD ring
+        // (which the truncation is about to rebuild for the NEW parse). The earliest
+        // gen the convergence loop can query is `og_min = old_gen_of(edit_end)` (the
+        // first `g >= edit_end` maps there); the walker resumes from the newest OLD
+        // checkpoint at gen <= og_min so it walks the least possible distance. The
+        // walker needs NO history: `fp_state` and `paths_match_after_rebase` read
+        // only `ctx.paths`, and `paths` evolution is independent of `ctx.history`
+        // (the sole history read in `parse_step` — `prev_reported` — feeds only the
+        // discarded report channels, never the live state). See `BaselineWalker`.
+        let mut walker: Option<BaselineWalker> = if had_baseline {
+            let og_min = old_gen_of(edit_end).unwrap_or(0);
+            let cp = self.old_resume_checkpoint(og_min);
+            Some(BaselineWalker::new(self.parser.get(), old_doc, anchor, cp))
+        } else {
+            None
+        };
 
         // Drop checkpoints strictly beyond the resume gen (they belong to the old
         // parse); keep [0, resume_gen].
@@ -589,28 +649,6 @@ impl ParseSession {
         let mut convergence_gen: Option<usize> = None;
         let mut rediverged = false;
 
-        // The gen-rebase mapping from OLD gen space to NEW: `g<=p → g`, `g>p → g+delta`.
-        let rebase = GenRebase::new(anchor, delta);
-
-        // Splicing needs the old parse's full history + final ctx. They are the
-        // retained `canonical_history` / `prev_final_ctx` (still the OLD parse's at
-        // this point — overwritten only after this returns).
-        let can_splice = baseline_fp.is_some() && self.prev_final_ctx.is_some();
-
-        // B's strict fp at gen q, compared to A's fp at gen q-delta (== old gen).
-        let old_gen_of = |q: usize| -> Option<usize> {
-            let pi = q as i64 - delta as i64;
-            if pi < 0 {
-                None
-            } else {
-                Some(pi as usize)
-            }
-        };
-        let baseline_at = |q: usize| -> Option<Fp> {
-            let bf = baseline_fp?;
-            bf.get(old_gen_of(q)?).copied()
-        };
-
         let mut reparsed = 0usize;
         let mut spliced_at: Option<usize> = None; // new-gen q* where we spliced
         for idx in resume_gen..total {
@@ -621,9 +659,9 @@ impl ParseSession {
                     reparsed += 1;
                     let g = ctx.gen_idx as usize;
 
-                    if baseline_fp.is_some() {
+                    if let Some(w) = walker.as_mut() {
                         if convergence_gen.is_none() && g >= edit_end {
-                            if let Some(af) = baseline_at(g) {
+                            if let Some(af) = old_gen_of(g).and_then(|og| w.fp_at(og)) {
                                 let bf = fp_state(&ctx, anchor, ctx.gen_idx, Variant::Strict);
                                 if bf == af {
                                     convergence_gen = Some(g);
@@ -632,15 +670,15 @@ impl ParseSession {
                                     // reused suffix's `is_last_input` folds match.
                                     // `g == total` is the last gen (idx == total-1).
                                     if can_splice && g < total {
-                                        let og = old_gen_of(g).expect("old gen for q*");
                                         // Structural full-match guard (§2.1): the OLD
-                                        // live state at og, rebased, must equal the
-                                        // NEW live state at g. Blocks hash collisions.
-                                        // The old state is recovered by a targeted
-                                        // re-parse of the old doc to og (O(og), once).
-                                        let old_state = self.old_live_state_at(old_doc, og);
-                                        let guard_ok = old_state
-                                            .as_ref()
+                                        // live state at og (== q*-delta), rebased, must
+                                        // equal the NEW live state at g. Blocks hash
+                                        // collisions. The walker is standing exactly at
+                                        // og (fp_at above advanced it there), so its
+                                        // current live ctx IS that old state — no
+                                        // separate re-parse needed.
+                                        let guard_ok = w
+                                            .current_ctx()
                                             .map(|os| paths_match_after_rebase(&rebase, os, &ctx))
                                             .unwrap_or(false);
                                         if guard_ok {
@@ -660,7 +698,7 @@ impl ParseSession {
                             // stability: after q*, later gens should keep matching.
                             // (Only reached when a splice was NOT taken at q*.)
                             if g > cg && !rediverged {
-                                if let Some(af) = baseline_at(g) {
+                                if let Some(af) = old_gen_of(g).and_then(|og| w.fp_at(og)) {
                                     let bf = fp_state(&ctx, anchor, ctx.gen_idx, Variant::Strict);
                                     if bf != af {
                                         rediverged = true;
@@ -765,57 +803,6 @@ impl ParseSession {
         self.outcome = Some(ParseOutcome::Ok(final_ctx));
     }
 
-    /// Fingerprint every gen of `chars` under `anchor` (STRICT variant). Drives a
-    /// fresh parse over `chars` from `init_ctx` — the same as the probe's
-    /// `parse_trace`, restricted to strict. Returns fp[0..=gens_ok]. If the parse
-    /// errors, the returned vec ends at the last OK gen.
-    fn fingerprint_trace(&self, chars: &[char], anchor: i32) -> Vec<Fp> {
-        let total = chars.len();
-        let mut ctx = self.parser.get().init_ctx();
-        let mut out: Vec<Fp> = Vec::with_capacity(total + 1);
-        out.push(fp_state(&ctx, anchor, ctx.gen_idx, Variant::Strict));
-        for (idx, &c) in chars.iter().enumerate() {
-            match self.parser.get().parse_step(ctx, c, idx + 1 == total) {
-                Ok(next) => {
-                    ctx = next;
-                    out.push(fp_state(&ctx, anchor, ctx.gen_idx, Variant::Strict));
-                }
-                Err(_) => break,
-            }
-        }
-        out
-    }
-
-    /// I2 splice guard support: the OLD parse's LIVE state (paths) at gen
-    /// `target_old_gen`. Re-parses the OLD document from `init_ctx` up to that gen
-    /// only (O(target_old_gen), once per splicing edit) and returns the ctx there.
-    /// This deterministic re-parse reproduces the old parse's gen-`target_old_gen`
-    /// state exactly, so it is the correct comparand for the structural full-match
-    /// guard. Returns `None` if the target is out of range or the parse errors.
-    /// Only the `paths` field is used by the guard; `history` is left as produced.
-    fn old_live_state_at(&self, old_doc: &[char], target_old_gen: usize) -> Option<ParsingCtx> {
-        let total = old_doc.len();
-        if target_old_gen > total {
-            return None;
-        }
-        let mut ctx = self.parser.get().init_ctx();
-        if target_old_gen == 0 {
-            return Some(ctx);
-        }
-        for (idx, &c) in old_doc.iter().enumerate().take(target_old_gen) {
-            match self.parser.get().parse_step(ctx, c, idx + 1 == total) {
-                Ok(next) => {
-                    ctx = next;
-                    if ctx.gen_idx as usize == target_old_gen {
-                        return Some(ctx);
-                    }
-                }
-                Err(_) => return None,
-            }
-        }
-        None
-    }
-
     /// Debug self-check (design §2.5): full re-parse of the current document and a
     /// byte-compare of accept + kernels_history. Panics with a dump on mismatch.
     fn verify_against_full_reparse(&self) {
@@ -853,6 +840,121 @@ impl ParseSession {
 
 fn hists_equal(a: &[HashSet<KtlibKernel>], b: &[HashSet<KtlibKernel>]) -> bool {
     a.len() == b.len() && a.iter().zip(b.iter()).all(|(x, y)| x == y)
+}
+
+/// Lazy producer of the OLD document's per-gen STRICT fingerprints (Phase I1/I2
+/// convergence baseline), replacing the old upfront `fingerprint_trace`.
+///
+/// ## Why lazy (the consumption sites are local and monotone)
+///
+/// The convergence loop (`reparse_incremental`) consumes baseline fps at exactly
+/// three sites, and every one requests OLD gens that only ever *increase*:
+///   1. convergence detection: `fp_at(og)` for `og = g - delta`, `g` scanned from
+///      `edit_end` upward (monotone increasing).
+///   2. redivergence stability (splice declined): same `g > q*`, still increasing.
+///   3. the splice structural guard: the OLD live `paths` at the convergence gen
+///      `og = q* - delta` — the walker is *already standing there* after the
+///      detection query, so `current_ctx()` serves it with no extra work.
+/// Measured convergence distance is tiny (median 0 / p90 22 gens), so the walk
+/// advances only a handful of gens past the edit in the common case, versus the
+/// old code which re-parsed the ENTIRE old document from gen 0 on every edit.
+///
+/// ## Why it needs NO history
+///
+/// `fp_state` and `paths_match_after_rebase` read only `ctx.paths`. `paths`
+/// evolution in `parse_step` is independent of `ctx.history`: the single history
+/// read there (`history.last()` → `prev_reported`) feeds only the report-channel
+/// dedup filter of the pushed `HistoryEntry`, never the returned live `paths` /
+/// `gen_idx`. So the walker resumes from a history-less checkpoint and advances
+/// with an empty (then self-accumulated, discarded) history, and every fp / guard
+/// result is byte-identical to what the upfront trace produced.
+///
+/// ## Checkpoint-ring lifetime
+///
+/// The resume checkpoint is cloned out of the OLD ring by the caller BEFORE the
+/// ring is truncated/rebuilt for the NEW parse (see `old_resume_checkpoint`), so
+/// the walker owns its resume state and the truncation cannot invalidate it. The
+/// walker borrows only the (read-only, shared) parser and the caller's `old_doc`
+/// slice — never the session — so it coexists with the session mutating its ring
+/// during the re-parse loop.
+struct BaselineWalker<'a> {
+    parser: &'a Mgroup3Parser,
+    old_doc: &'a [char],
+    /// Fingerprint anchor `p` (== the edit char index), shared with the new parse.
+    anchor: i32,
+    /// Live ctx of the OLD parse, advanced up to (and standing at) `cur_gen`. Its
+    /// `paths` are exact; its `history` is irrelevant scratch (see struct doc).
+    /// `None` once a step has errored (an invariant violation — the OLD parse
+    /// succeeded — handled defensively as "no baseline past here").
+    ctx: Option<ParsingCtx>,
+    /// Gen `ctx` currently sits at (== `ctx.gen_idx`). Monotone non-decreasing.
+    cur_gen: usize,
+}
+
+impl<'a> BaselineWalker<'a> {
+    fn new(parser: &'a Mgroup3Parser, old_doc: &'a [char], anchor: i32, resume: Checkpoint) -> Self {
+        // The resume checkpoint's ctx is history-less (see `Checkpoint`) — exactly
+        // what the walker needs. Its `paths`/`gen_idx` reproduce the OLD parse's
+        // state at `resume.at_gen`, so advancing from here re-derives every later
+        // OLD gen's `paths` identically to a from-gen-0 re-parse.
+        BaselineWalker {
+            parser,
+            old_doc,
+            anchor,
+            ctx: Some(resume.ctx),
+            cur_gen: resume.at_gen,
+        }
+    }
+
+    /// STRICT fingerprint of the OLD parse's live state at OLD gen `og`. Advances
+    /// the internal ctx forward from `cur_gen` to `og` (monotone: `og` must be
+    /// `>= cur_gen`). Returns `None` if `og` is past the OLD document's last gen
+    /// (mirrors the old `baseline_fp.get(og)` returning `None` past the vec end)
+    /// or a step errored (invariant violation on a proven-good OLD parse — treated
+    /// defensively as no baseline).
+    fn fp_at(&mut self, og: usize) -> Option<Fp> {
+        debug_assert!(
+            og >= self.cur_gen,
+            "BaselineWalker queried backwards: og={} < cur_gen={}",
+            og,
+            self.cur_gen
+        );
+        if og > self.old_doc.len() {
+            return None;
+        }
+        let total = self.old_doc.len();
+        while self.cur_gen < og {
+            let ctx = self.ctx.take()?;
+            let idx = self.cur_gen; // char index consumed to reach cur_gen+1
+            match self.parser.parse_step(ctx, self.old_doc[idx], idx + 1 == total) {
+                Ok(next) => {
+                    debug_assert_eq!(
+                        next.gen_idx as usize,
+                        self.cur_gen + 1,
+                        "BaselineWalker gen desync"
+                    );
+                    self.cur_gen += 1;
+                    self.ctx = Some(next);
+                }
+                Err(_) => {
+                    // The OLD parse succeeded (have_baseline), so a step error here
+                    // is impossible; be defensive rather than panic in release.
+                    self.ctx = None;
+                    return None;
+                }
+            }
+        }
+        let ctx = self.ctx.as_ref()?;
+        Some(fp_state(ctx, self.anchor, ctx.gen_idx, Variant::Strict))
+    }
+
+    /// The OLD parse's live ctx at the gen the walker last advanced to. After a
+    /// `fp_at(og)` that returned `Some`, the walker stands exactly at `og`, so this
+    /// is the OLD live state at `og` — the comparand for the splice structural
+    /// guard (`paths_match_after_rebase` reads only its `paths`).
+    fn current_ctx(&self) -> Option<&ParsingCtx> {
+        self.ctx.as_ref()
+    }
 }
 
 #[cfg(test)]
@@ -1058,5 +1160,70 @@ mod tests {
             }
         }
         assert!(splices > 0, "expected some splices across the chain");
+    }
+
+    /// The lazy `BaselineWalker` must produce, for every OLD gen, the SAME strict
+    /// fingerprint an upfront from-gen-0 trace would — regardless of which
+    /// checkpoint it resumes from. This is the core equivalence the lazy rewrite
+    /// rests on (history-less resume + monotone forward walk == full trace).
+    #[test]
+    fn baseline_walker_matches_upfront_trace() {
+        let parser = nested_repeat_parser();
+        let doc: Vec<char> = "abababababababab".chars().collect(); // 16 gens
+        let anchor = 6i32;
+
+        // Reference: an upfront full trace from gen 0 (the old `fingerprint_trace`).
+        let reference: Vec<Fp> = {
+            let total = doc.len();
+            let mut ctx = parser.init_ctx();
+            let mut out = Vec::with_capacity(total + 1);
+            out.push(fp_state(&ctx, anchor, ctx.gen_idx, Variant::Strict));
+            for (idx, &c) in doc.iter().enumerate() {
+                ctx = parser.parse_step(ctx, c, idx + 1 == total).expect("step");
+                out.push(fp_state(&ctx, anchor, ctx.gen_idx, Variant::Strict));
+            }
+            out
+        };
+
+        // For several resume gens, drive a walker from a checkpoint at that gen and
+        // query every OLD gen >= the resume gen; each must match the reference.
+        for resume_gen in [0usize, 1, 4, 8, 12] {
+            // Build the resume checkpoint by parsing the old doc up to resume_gen and
+            // emptying its history (exactly what `snapshot` does).
+            let mut ctx = parser.init_ctx();
+            for (idx, &c) in doc.iter().enumerate().take(resume_gen) {
+                ctx = parser.parse_step(ctx, c, idx + 1 == doc.len()).expect("step");
+            }
+            ctx.history = Vec::new();
+            let cp = Checkpoint { at_gen: resume_gen, ctx };
+
+            let mut w = BaselineWalker::new(&parser, &doc, anchor, cp);
+            for og in resume_gen..=doc.len() {
+                assert_eq!(
+                    w.fp_at(og),
+                    Some(reference[og]),
+                    "walker fp mismatch at og={og} (resume_gen={resume_gen})"
+                );
+            }
+            // Past the last gen must be None (mirrors old baseline_fp.get()).
+            assert_eq!(w.fp_at(doc.len() + 1), None, "past-end fp must be None");
+        }
+    }
+
+    /// Large interval + interior edit: the walker must resume from a DISTANT old
+    /// checkpoint (gen 0, since interval > doc) and still walk to q* correctly so
+    /// the splice fires and byte-matches. Guards the walker's checkpoint-lifetime
+    /// handling (cloned before ring truncation) and resume-then-walk path.
+    #[test]
+    fn walker_resume_from_distant_checkpoint_splices() {
+        let parser = nested_repeat_parser();
+        // interval 1000 >> doc => the only checkpoint below the edit is gen 0, so
+        // the walker resumes at gen 0 and walks all the way to q*.
+        let mut s = ParseSession::with_interval(Arc::clone(&parser), 1000);
+        s.parse_full("abababababababababab"); // 20 chars
+        s.edit(4, 0, "ab"); // interior insert -> splice expected
+        let st = s.stats();
+        assert!(st.last_spliced, "expected splice with distant resume; stats={st:?}");
+        assert_eq!(sess_str(&parser, &s), full(&parser, "ababababababababababab"));
     }
 }

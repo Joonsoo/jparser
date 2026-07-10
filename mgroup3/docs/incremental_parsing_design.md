@@ -135,18 +135,33 @@ I0 에서도 history clone 을 회피할 수 있다 (단일 append-only 로그 �
 
 ### 2.1 수렴 감지 (프로브의 실행 정의를 프로덕션으로)
 
-- **구 파스의 per-gen strict 지문 시퀀스 보존.** 프로브 `fp_state(..., Variant::
-  Strict)` 가 gen 당 128비트 (16B). 파일당 수천 gen → 수십 KB. 세션은 `parse_full`
-  /매 edit 후 최종 파스의 gen별 strict 지문을 벡터로 든다 (`Vec<u128>`, gen 인덱스).
+- **구 파스의 per-gen strict 지문을 `BaselineWalker` 로 lazy 산출.** 프로브
+  `fp_state(..., Variant::Strict)` 가 gen 당 128비트 (16B). 개념적으로는 구 파스의
+  gen별 strict 지문 시퀀스지만, **구현은 매 edit 마다 이 시퀀스를 upfront 로 전부
+  계산하지 않는다** — 그건 편집당 구 문서 전체를 gen 0 부터 재파스하는 비용
+  (≥ 전문 파스 1회) 이라 세션 이득을 지운다. 대신 소비 지점이 전부 **국소적·단조
+  증가**임을 이용한다: 수렴 탐지는 `g >= edit_end` 부터 `og = g - delta` 를 오름차순으로만
+  조회하고, 재발산 안정성 체크·splice guard 도 같은 방향이다. 실측 수렴 거리가
+  median 0 / p90 22 gen 이므로 실제로 필요한 구-gen 지문은 편집 근방 소수뿐.
+  → `BaselineWalker` (`session.rs`): 구 파스의 체크포인트 링에서 조회 시작 지점
+  이하의 체크포인트 하나를 (링 truncate **전에** clone) 골라 그 라이브 상태를
+  복원하고, `old_doc` 을 **요청받는 gen 까지만** 전진 파스하며 각 gen 의 strict
+  지문을 내놓는다 (`fp_at(og)`, 단조 전진). walker 는 **history 가 필요 없다** —
+  `fp_state`/`paths_match_after_rebase` 는 `ctx.paths` 만 읽고, `paths` 진화는
+  `parse_step` 안에서 `ctx.history` 와 독립 (유일한 history 읽기 `prev_reported`
+  는 폐기되는 report 채널 dedup 에만 쓰임) — 이므로 history-less 체크포인트에서
+  복원해 전진해도 지문/guard 값이 upfront 트레이스와 byte-identical.
 - **anchor 인코딩**: 프로브 `enc_gen(g, p, cur_gen)` 를 그대로 재사용 — 편집 위치
   p 이전은 절대, 이후는 `cur_gen - g` 오프셋. 이 인코딩이 **shift-동치를 지문 일치로**
   만든다 (프로브 헤더의 QED). 편집 재파스 중 매 gen 의 지문을 구 파스의
-  `gen - delta` 지문과 대조.
+  `gen - delta` 지문과 대조 (구 지문은 위 walker 가 그 gen 까지 전진해 산출).
 - **일치 시 구조적 완전 일치 1회 검증** (해시 충돌 차단): 지문이 처음 일치한
   gen q\* 에서, 신·구 두 라이브 상태 (`ctx.paths`) 를 **shift-정규화해 구조적으로
   완전 비교** (O(live state) 1회). `PathRoot`/`PathShape`/`MilestonePath`/조건을
   gen-정규화한 정준형으로 equals. 통과하면 splice, 실패하면 (충돌 — 극히 희박)
-  splice 포기하고 계속 파스 (§2.5 폴백).
+  splice 포기하고 계속 파스 (§2.5 폴백). **구 라이브 상태는 walker 가 방금 q\*-delta
+  까지 전진했으므로 그 `current_ctx()` 를 그대로 쓴다** — 별도 재파스 불필요
+  (예전엔 `old_live_state_at` 이 구 문서를 gen 0 부터 q\*-delta 까지 재파스했다).
 - **왜 strict 로 감지하나**: history splice (§2.3) 는 보고 shadow 까지 일치해야
   재사용 가능. strict 지문은 보고 shadow (`report_gen`/`milestone_report_gen`) 를
   포함하므로, strict 수렴 = "라이브 상태 + 보고 좌표 모두 shift-동치" = history
@@ -322,8 +337,9 @@ byte-identical 임을 오라클로 강제한다.
 
 ### I1 — 지문 보존 + 수렴 감지 (splice 없이 카운터) (난이도: 중)
 
-- 최종 파스의 per-gen strict 지문 시퀀스 보존 (§2.1). 매 edit 재파스 중 구 파스
-  지문과 대조해 **수렴 gen q\* 를 감지** — 하지만 splice 는 아직 안 함 (계속 파스).
+- 구 파스의 per-gen strict 지문을 매 edit 재파스 중 구 파스와 대조해 **수렴 gen q\*
+  를 감지** — 하지만 splice 는 아직 안 함 (계속 파스). (현행 구현은 이 지문을
+  upfront 벡터로 들지 않고 `BaselineWalker` 로 lazy 산출한다 — §2.1 갱신본 참고.)
   "수렴 이후 재사용 가능했던 gen 수" 를 카운터로 (실현 이득 사전 측정 — 프로브
   수치의 프로덕션 재확인).
 - **게이트**: 결과 byte-identical 무변경 (지문·카운터는 계측만, 파스 무영향).
