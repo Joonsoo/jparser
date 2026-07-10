@@ -20,6 +20,14 @@ import java.io.File
  *   MG4_BENCH_RUNS     = 측정 파스 횟수 (기본 5, 중앙값)
  *   MG4_MERGE_PROFILE  = set 이면 병합-패스 세부 타이머 출력 (측정과 분리 실행 권장)
  *   MG4_SHAPE_STATS    = set 이면 realized ratio 출력
+ *   MG4_BENCH_WARM_CACHE = set 이면 파서 인스턴스를 warmup+측정 전체에 걸쳐 **재사용**
+ *       (G-b3 파스-간 캐시 공유가 실제로 워밍업된 상태로 측정됨 — "웜" 셀).
+ *       미설정(기본)이면 매 파스 fresh 파서 (매 측정 파스가 캐시 콜드 — "콜드" 셀,
+ *       Phase G-b4 정식 측정 매트릭스의 두 축).
+ *   MG4_HIT_TIMING_DETAIL = set 이면 (mergeProfile 과 별도로) 캐시 히트 경로 3분해
+ *       프로파일 run 을 추가 실행 — 파서를 웜업(웜 상태)한 뒤 1회 측정 파스에서
+ *       (a) 시그니처 재계산 (b) verdict 재확인 (c) fold/맵 조립 self-time 을 리포트.
+ *       wall-clock 측정(위)과 분리된 별도 run (nanoTime 오버헤드가 실측을 오염 안 함).
  *
  * 파스 시간은 순수 parse() 만 (parserdata 로드/warmup 제외). phase timing 은 마지막
  * 측정 run 에서만 켜서 (nanoTime 오버헤드가 실측을 오염 안 하도록) 자기시간 % 를 뽑는다.
@@ -85,15 +93,21 @@ object Mgroup4Bench {
 
     val shapeStats = mg4ShapeStatsEnabled
     val mergeProfile = mg4MergeProfileEnabled
+    val warmCache = System.getenv("MG4_BENCH_WARM_CACHE") != null
 
-    // 웜업 — parserdata 재사용, 매 파스 새 파서 (파서는 termActionCache 등 상태를 갖지만
-    // parse() 는 매번 fresh ctx 라 반복 안전; 새 파서로 cold cache 편향도 방지).
+    // 웜업. warmCache=false(기본): 매 파스 새 파서 (파서는 termActionCache 등 상태를 갖지만
+    // parse() 는 매번 fresh ctx 라 반복 안전; 새 파서로 cold cache 편향도 방지) — "콜드" 셀의
+    // 웜업은 JIT 만 데운다, 캐시는 매번 비어 있음. warmCache=true: **단일 파서 인스턴스**를
+    // 재사용해 G-b3 파스-간 캐시가 실제로 채워진 채로 측정 진입 — "웜" 셀.
+    val sharedParser: Mgroup4Parser? = if (warmCache) Mgroup4Parser(data, interiorGroupMaxDepth = n) else null
     repeat(warmup) {
-      val p = Mgroup4Parser(data, interiorGroupMaxDepth = n)
+      val p = sharedParser ?: Mgroup4Parser(data, interiorGroupMaxDepth = n)
       check(p.isAccepted(p.parse(src)))
     }
 
-    // 측정 — 순수 parse() (isAccepted 는 시간 밖). 매 run fresh 파서.
+    // 측정 — 순수 parse() (isAccepted 는 시간 밖). warmCache=false 는 매 run fresh 파서
+    // (콜드), warmCache=true 는 웜업에서 쓴 같은 파서를 계속 재사용 (웜 — 캐시 히트율이
+    // 정상 상태에 도달한 채로 측정).
     // 매 run 전 System.gc() 로 heap 을 청소해 "이전 run 이 채운 old-gen 때문에 이번
     // run 중간에 GC 가 터지는" 누적 편향을 제거한다 (n=1/n=6 이 live-set 크기가 달라
     // GC 스케줄이 run 순서에 따라 코인플립하던 문제). 이렇게 하면 측정값이 순수 compute
@@ -103,7 +117,7 @@ object Mgroup4Bench {
     var lastShapeRatio = 0.0
     for (r in 1..runs) {
       if (gcBetween) { System.gc(); Thread.sleep(50) }
-      val p = Mgroup4Parser(data, interiorGroupMaxDepth = n)
+      val p = sharedParser ?: Mgroup4Parser(data, interiorGroupMaxDepth = n)
       if (shapeStats) p.resetMg4Stats()
       val t0 = System.nanoTime()
       val ctx = p.parse(src)
@@ -120,6 +134,7 @@ object Mgroup4Bench {
     val med = median(times)
     val sb = StringBuilder(
       "[MG4-BENCH] target=$targetName engine=mg4 n=$n chars=${src.length} " +
+        "warmCache=$warmCache " +
         "load=${"%.0f".format(loadMs)}ms parse_median=${"%.1f".format(med)}ms " +
         "parse_min=${"%.1f".format(times.min())}ms runs=${times.map { "%.0f".format(it) }}"
     )
@@ -136,6 +151,20 @@ object Mgroup4Bench {
       check(p.isAccepted(ctx))
       println("[MG4-BENCH-PROFILE] target=$targetName n=$n ${p.reportPhaseTimers()}")
       println("[MG4-BENCH-PROFILE] target=$targetName n=$n ${p.reportMergeTimers()}")
+    }
+
+    // G-b4 §작업2 — 히트 경로 3분해 프로파일 run (mg4HitTimingDetailEnabled). 별도 파서를
+    // 웜업(캐시 채움)한 뒤 1회 측정 파스에서 (a)/(b)/(c) self-time 합을 리포트. wall-clock
+    // 측정(위)과 절대 같은 run 에 섞지 않는다 — nanoTime 계측 자체가 hot path 오버헤드.
+    if (mg4HitTimingDetailEnabled) {
+      val p = Mgroup4Parser(data, interiorGroupMaxDepth = n)
+      repeat(warmup) { check(p.isAccepted(p.parse(src))) }
+      p.resetMg4Stats()
+      val t0 = System.nanoTime()
+      val ctx = p.parse(src)
+      val parseMs = (System.nanoTime() - t0) / 1e6
+      check(p.isAccepted(ctx))
+      println("[MG4-BENCH-HITDETAIL] target=$targetName n=$n parseMs=${"%.1f".format(parseMs)} ${p.reportMg4Stats()}")
     }
   }
 }

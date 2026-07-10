@@ -59,6 +59,14 @@ val mg4BoundaryCacheBudget: Int =
 val mg4HitTimingEnabled: Boolean =
   System.getenv("MG4_HIT_TIMING") != null || System.getProperty("mg4.hitTiming") != null
 
+// mgroup4 Phase G-b4 — 히트 경로 3분해 opt-in (§작업2). MG4_HIT_TIMING 의 조대(coarse)
+// self-time 을 (a) State 키/시그니처 재계산, (b) verdict 재확인, (c) merged map 재구성
+// (foldGroup·맵 조립) 세 구간으로 더 잘게 나눈다. 기본 off — hot path 에 추가 nanoTime
+// 호출이 들어가므로 이 플래그를 켠 실행은 wall-clock 측정과 절대 같이 하지 않는다
+// (측정 전용, 캐시/파서 로직 무변경 — Row 전이-추적 개조 필요성 판단 재료).
+val mg4HitTimingDetailEnabled: Boolean =
+  System.getenv("MG4_HIT_TIMING_DETAIL") != null || System.getProperty("mg4.hitTimingDetail") != null
+
 class Mgroup4Parser(
   val data: Mgroup3ParserData,
   // mgroup4: interior milestone group 의 window 크기 n (tip 쪽 마지막 n 개 노드까지
@@ -1335,6 +1343,13 @@ class Mgroup4Parser(
   var mg4CacheHitNanos: Long = 0     // 히트 self-time (verdict 재확인 포함 — G-b4 준비)
   var mg4LazyVerifyChecks: Long = 0  // 병렬 검증 대조 횟수
 
+  // G-b4 히트 경로 3분해 카운터 (MG4_HIT_TIMING_DETAIL opt-in). applyTransitionEntry
+  // 내부의 세 구간 self-time 합 (ns) — Row 전이-추적 개조 (키 재계산 제거) 가 회수할 수
+  // 있는 상한을 (a) 가 지배적인지로 판단하기 위한 재료.
+  var mg4HitSigNanos: Long = 0      // (a) State 키/시그니처 재계산 (stateSignature 호출들)
+  var mg4HitVerdictNanos: Long = 0  // (b) verdict 재확인 (mergeVerdictAtDepth 호출들)
+  var mg4HitFoldNanos: Long = 0     // (c) merged map 재구성 (foldGroup·맵 조립·잔여 flush)
+
   // === mgroup4 Phase G-b2 — 경계 reduce (T3/T5) 전이 캐시 (설계 §4 G-b2) ===
   //
   // 대상 (설계 §2.2 축 2, §2.4 경계 reduce 전이 캐시): reduce 가 window 안 **group 노드**에
@@ -1812,6 +1827,33 @@ class Mgroup4Parser(
   //
   // ★ 순서 계약: plan group 은 재파티션의 depth 오름차순 + 버킷 내 iteration 순으로 기록됐다.
   //   적용도 같은 순서로 consume 하되, greedy 병합(첫 멤버 대비 나머지 verdict)을 재현한다.
+  // G-b4 §작업2 3분해 헬퍼 — mg4HitTimingDetailEnabled 일 때만 nanoTime 측정 (기본 off,
+  // hot path 제로코스트 유지). sig() 는 (a) 구간, verdict 호출 지점은 (b), fold·맵 조립은
+  // (c) 로 귀속. 캐시/파서 로직은 무변경 — 순수 계측 래핑.
+  private inline fun <T> timedSig(block: () -> T): T {
+    if (!mg4HitTimingDetailEnabled) return block()
+    val t0 = System.nanoTime()
+    val r = block()
+    mg4HitSigNanos += System.nanoTime() - t0
+    return r
+  }
+
+  private inline fun <T> timedVerdict(block: () -> T): T {
+    if (!mg4HitTimingDetailEnabled) return block()
+    val t0 = System.nanoTime()
+    val r = block()
+    mg4HitVerdictNanos += System.nanoTime() - t0
+    return r
+  }
+
+  private inline fun <T> timedFold(block: () -> T): T {
+    if (!mg4HitTimingDetailEnabled) return block()
+    val t0 = System.nanoTime()
+    val r = block()
+    mg4HitFoldNanos += System.nanoTime() - t0
+    return r
+  }
+
   private fun applyTransitionEntry(
     rows: List<Pair<PathShape, AcceptCondition>>,
     entry: TransitionEntry,
@@ -1825,7 +1867,8 @@ class Mgroup4Parser(
       val tip = shape.milestonePath
       val len = tip?.chainDepthCached() ?: 0
       val cand = MergeCandidate(shape, cond, tip, len)
-      bySig.getOrPut(stateSignature(shape, cond, curGen)) { ArrayDeque() }.addLast(cand)
+      val sig = timedSig { stateSignature(shape, cond, curGen) }
+      bySig.getOrPut(sig) { ArrayDeque() }.addLast(cand)
     }
     // 계획 group 순서대로 (depth 오름차순 기록) — 각 group 후보를 stateSig 로 모아 verdict
     // 재확인 후 fold. plan 이 지목한 후보라도 이번 gen 에 병합 불가면(verdict REJECT/NOT)
@@ -1840,7 +1883,10 @@ class Mgroup4Parser(
         cands.add(q.removeFirst())
       }
       if (!enough) {
-        for (c in cands) bySig.getOrPut(stateSignature(c.shape, c.cond, curGen)) { ArrayDeque() }.addFirst(c)
+        for (c in cands) {
+          val sig = timedSig { stateSignature(c.shape, c.cond, curGen) }
+          bySig.getOrPut(sig) { ArrayDeque() }.addFirst(c)
+        }
         continue
       }
       // greedy 병합 재현: cands[0] 을 대표로, 나머지를 verdict 재확인해 MERGE 인 것만 group.
@@ -1848,32 +1894,37 @@ class Mgroup4Parser(
       val group = ArrayList<MergeCandidate>(cands.size)
       group.add(cands[0])
       for (k in 1 until cands.size) {
-        when (mergeVerdictAtDepth(cands[0], cands[k], d)) {
+        when (timedVerdict { mergeVerdictAtDepth(cands[0], cands[k], d) }) {
           MergeVerdict.MERGE -> group.add(cands[k])
-          MergeVerdict.REJECT_COND -> { if (mg4ShapeStatsEnabled) mg4RejectCondDiff++; bySig.getOrPut(stateSignature(cands[k].shape, cands[k].cond, curGen)) { ArrayDeque() }.addFirst(cands[k]) }
-          MergeVerdict.REJECT_GEN_OBS -> { if (mg4ShapeStatsEnabled) mg4RejectGenObsDiff++; bySig.getOrPut(stateSignature(cands[k].shape, cands[k].cond, curGen)) { ArrayDeque() }.addFirst(cands[k]) }
-          MergeVerdict.REJECT_REPORT_COORD -> { if (mg4ShapeStatsEnabled) mg4RejectReportCoordDiff++; bySig.getOrPut(stateSignature(cands[k].shape, cands[k].cond, curGen)) { ArrayDeque() }.addFirst(cands[k]) }
-          MergeVerdict.NOT_CANDIDATE -> bySig.getOrPut(stateSignature(cands[k].shape, cands[k].cond, curGen)) { ArrayDeque() }.addFirst(cands[k])
+          MergeVerdict.REJECT_COND -> { if (mg4ShapeStatsEnabled) mg4RejectCondDiff++; val sig = timedSig { stateSignature(cands[k].shape, cands[k].cond, curGen) }; bySig.getOrPut(sig) { ArrayDeque() }.addFirst(cands[k]) }
+          MergeVerdict.REJECT_GEN_OBS -> { if (mg4ShapeStatsEnabled) mg4RejectGenObsDiff++; val sig = timedSig { stateSignature(cands[k].shape, cands[k].cond, curGen) }; bySig.getOrPut(sig) { ArrayDeque() }.addFirst(cands[k]) }
+          MergeVerdict.REJECT_REPORT_COORD -> { if (mg4ShapeStatsEnabled) mg4RejectReportCoordDiff++; val sig = timedSig { stateSignature(cands[k].shape, cands[k].cond, curGen) }; bySig.getOrPut(sig) { ArrayDeque() }.addFirst(cands[k]) }
+          MergeVerdict.NOT_CANDIDATE -> { val sig = timedSig { stateSignature(cands[k].shape, cands[k].cond, curGen) }; bySig.getOrPut(sig) { ArrayDeque() }.addFirst(cands[k]) }
         }
       }
       if (group.size < 2) {
         // 대표만 남음 — singleton 통과 (되돌림).
-        bySig.getOrPut(stateSignature(group[0].shape, group[0].cond, curGen)) { ArrayDeque() }.addFirst(group[0])
+        val sig = timedSig { stateSignature(group[0].shape, group[0].cond, curGen) }
+        bySig.getOrPut(sig) { ArrayDeque() }.addFirst(group[0])
         continue
       }
-      val (foldedShape, foldedCond) = foldGroup(group, d)
-      val existing = merged[foldedShape]
-      merged[foldedShape] = if (existing == null) foldedCond else Or.from(existing, foldedCond)
-      if (mg4ShapeStatsEnabled) {
-        if (d < mg4MergesAtDepth.size) mg4MergesAtDepth[d] += (group.size - 1).toLong()
-        classifyMergeOrigin(group, d, curGen)
+      timedFold {
+        val (foldedShape, foldedCond) = foldGroup(group, d)
+        val existing = merged[foldedShape]
+        merged[foldedShape] = if (existing == null) foldedCond else Or.from(existing, foldedCond)
+        if (mg4ShapeStatsEnabled) {
+          if (d < mg4MergesAtDepth.size) mg4MergesAtDepth[d] += (group.size - 1).toLong()
+          classifyMergeOrigin(group, d, curGen)
+        }
       }
     }
     // 안 접힌 나머지 (계획에 안 든 stateSig 또는 verdict REJECT 로 되돌아온 후보) 는 그대로.
-    for ((_, q) in bySig) {
-      for (cand in q) {
-        val existing = merged[cand.shape]
-        merged[cand.shape] = if (existing == null) cand.cond else Or.from(existing, cand.cond)
+    timedFold {
+      for ((_, q) in bySig) {
+        for (cand in q) {
+          val existing = merged[cand.shape]
+          merged[cand.shape] = if (existing == null) cand.cond else Or.from(existing, cand.cond)
+        }
       }
     }
     return merged
@@ -2173,6 +2224,8 @@ class Mgroup4Parser(
     // G-b1/G-b2/G-b3 캐시 카운터 (통계만 리셋 — 전이 캐시 자체는 파스 간 공유라 클리어 안 함).
     mg4CacheHits = 0; mg4CacheMisses = 0; mg4CacheMissNanos = 0; mg4CacheHitNanos = 0; mg4LazyVerifyChecks = 0
     mg4BoundaryCacheHits = 0; mg4BoundaryCacheMisses = 0; mg4BoundaryEvictions = 0; mg4MergeEvictions = 0
+    // G-b4 히트 경로 3분해 카운터.
+    mg4HitSigNanos = 0; mg4HitVerdictNanos = 0; mg4HitFoldNanos = 0
   }
   fun reportMg4Stats(): String {
     val meanMerged = if (mg4Gens > 0) mg4MergedShapeSum.toDouble() / mg4Gens else 0.0
@@ -2187,7 +2240,10 @@ class Mgroup4Parser(
     val bHitRate = if (bTotal > 0) 100.0 * mg4BoundaryCacheHits / bTotal else 0.0
     return ("mg4 n=$interiorGroupMaxDepth: gens=$mg4Gens meanBase=%.2f meanMerged=%.2f ratio=%.3f rejectCondDiff=$mg4RejectCondDiff rejectGenObsDiff=$mg4RejectGenObsDiff rejectReportCoordDiff=$mg4RejectReportCoordDiff skipExistingGroup=$mg4SkipExistingGroup creationMergeable=$mg4CreationMergeable lateConvergence=$mg4LateConvergence reduceSplits=$mg4ReduceSplits windowExitSplits=$mg4WindowExitSplits mergesByDepth=[$byDepth] " +
       "cache[hits=$mg4CacheHits misses=$mg4CacheMisses hitRate=%.1f%% missSelfTime=%.1fms hitSelfTime=%.1fms cacheSize=${mergeTransitionCache.size} evict=$mg4MergeEvictions verifyChecks=$mg4LazyVerifyChecks] " +
-      "boundaryCache[hits=$mg4BoundaryCacheHits misses=$mg4BoundaryCacheMisses hitRate=%.1f%% cacheSize=${boundaryTransitionCache.size} evict=$mg4BoundaryEvictions]")
+      "boundaryCache[hits=$mg4BoundaryCacheHits misses=$mg4BoundaryCacheMisses hitRate=%.1f%% cacheSize=${boundaryTransitionCache.size} evict=$mg4BoundaryEvictions]" +
+      (if (mg4HitTimingDetailEnabled) " hitDetail[sig=%.1fms verdict=%.1fms fold=%.1fms]".format(
+        mg4HitSigNanos / 1_000_000.0, mg4HitVerdictNanos / 1_000_000.0, mg4HitFoldNanos / 1_000_000.0
+      ) else ""))
       .format(meanBase, meanMerged, ratio, hitRate, missMs, hitMs, bHitRate)
   }
 
