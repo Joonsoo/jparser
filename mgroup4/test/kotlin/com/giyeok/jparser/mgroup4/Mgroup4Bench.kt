@@ -113,6 +113,7 @@ object Mgroup4Bench {
     // GC 스케줄이 run 순서에 따라 코인플립하던 문제). 이렇게 하면 측정값이 순수 compute
     // 에 수렴 — GC 는 각 run 시작 전 (타이밍 밖) 에만 돈다. gcBetween=false 로 끌 수 있음.
     val gcBetween = System.getenv("MG4_BENCH_NO_GC") == null
+    val warmTrace = System.getenv("MG4_BENCH_WARM_TRACE") != null
     val times = ArrayList<Double>(runs)
     var lastShapeRatio = 0.0
     for (r in 1..runs) {
@@ -123,6 +124,7 @@ object Mgroup4Bench {
       val ctx = p.parse(src)
       val ms = (System.nanoTime() - t0) / 1e6
       check(p.isAccepted(ctx))
+      if (warmTrace) println("[WARM-TRACE] run=$r ms=${"%.1f".format(ms)} ${p.reportMg4Stats()}")
       times.add(ms)
       if (shapeStats && r == runs) {
         val base = p.mg4BaseShapeSum.toDouble()

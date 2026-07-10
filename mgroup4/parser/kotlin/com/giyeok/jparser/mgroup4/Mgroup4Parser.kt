@@ -1152,6 +1152,10 @@ class Mgroup4Parser(
     val tip: MilestonePath?,
     val length: Int,
   ) {
+    // G-b4.5: 이 후보의 interned stateSig(Long). applyTransitionEntry 가 삽입 시 1회 계산해
+    // 실어두고, verdict REJECT 로 되돌릴 때 재계산 없이 재사용 (작업4 — sig 재계산 제거).
+    // Long.MIN_VALUE = 미설정 sentinel (유효 stateSig 팩 값은 상위 비트가 0 이라 음수 불가).
+    var sigCached: Long = Long.MIN_VALUE
     private var _chain: ArrayList<MilestonePath>? = null
     // root..tip 배열 (index 0 = root-most). 필요 시 한 번만 물질화.
     fun chain(): ArrayList<MilestonePath> {
@@ -1327,14 +1331,28 @@ class Mgroup4Parser(
   // groups: 각 원소 = (depth d, 그 group 을 이루는 멤버 시그니처들의 정렬 리스트).
   //   히트 시 입력 shape 를 시그니처로 버킷팅해 각 group 을 foldGroup.
   // 파티션에 안 든 시그니처는 singleton 통과 (groups 에 없는 입력은 그대로).
+  // G-b4.5: 멤버 시그니처는 이제 interned stateSig (Long) — 문자열 대신 정확 id 팩.
   private class TransitionEntry(
-    val groups: List<Pair<Int, List<String>>>,  // (depth, 멤버 시그니처 정렬 리스트)
+    val groups: List<Pair<Int, LongArray>>,  // (depth, 멤버 stateSig(Long) 정렬 배열)
   )
 
   // 파서 인스턴스 수준 전이 캐시 (파스 간 공유 — 설계 §2.5; 프로토타입 단일 스레드 가정).
-  // 키 = State 시그니처 (입력 shape 들의 gen-정규화 구조 멀티셋 문자열). 정확 키 (충돌 없음).
+  // 키 = State 시그니처 (입력 shape 들의 gen-정규화 구조 멀티셋). 정확 키 (충돌 없음).
+  // G-b4.5: 키를 문자열 멀티셋 조인 대신 interned stateSig(Long) 정렬 배열의 값-동등 래퍼로.
   // G-b3: 파스 간 공유 (resetMg4Stats 가 안 지움). LRU 예산 가드는 evictIfOverBudget().
-  private val mergeTransitionCache = LinkedHashMap<String, TransitionEntry>()
+  private val mergeTransitionCache = LinkedHashMap<BucketStateKey, TransitionEntry>()
+
+  // 버킷 State 키 — 버킷 안 shape 들의 interned stateSig(Long) 정렬 배열. 값-동등 (정확 키).
+  // 같은 State 는 같은 배열 → 같은 키 (~96 gen 재사용). 문자열 조인/해시 축약 아님 (지문 금지).
+  private class BucketStateKey(val sigs: LongArray) {
+    private val _hash: Int = sigs.contentHashCode()
+    override fun hashCode(): Int = _hash
+    override fun equals(other: Any?): Boolean {
+      if (this === other) return true
+      if (other !is BucketStateKey) return false
+      return sigs.contentEquals(other.sigs)
+    }
+  }
 
   // G-b1 카운터 (mg4 stats 확장) — 파스 출력 무영향.
   var mg4CacheHits: Long = 0
@@ -1546,10 +1564,132 @@ class Mgroup4Parser(
     boundaryTransitionCache.clear()
   }
 
+  // === mgroup4 Phase G-b4.5 — 시그니처 인터닝/메모이즈 (설계 §2.3 정확 키 계약) ===
+  //
+  // 배경: G-b4 히트 경로 3분해에서 self-time 의 88% 가 시그니처 재계산 (stateSignature —
+  // row 당·gen 당 전체 체인 문자열 재구성). 인터닝은 이 88% 를 제거하되 §2.3 "지문(해시) 금지"
+  // 계약을 지킨다: intern 시점 1회 전체 구조 비교로 id 를 부여하면, 이후 id 비교 = 정확 비교
+  // (id 는 구조와 1:1). 문자열/지문이 아니다.
+  //
+  // 구조: stateSig = (chainSigId, tipGroupId, condSigId) 3-튜플 → Long 팩. 문자열 빌드 제거.
+  //   - chainSigId: MilestonePath 노드에 lazy 캐시 (chainSigIdOf) — 전역 intern 테이블에서
+  //     (parentSigId, node-local 템플릿) 쌍으로 조회, 미스 시 1회 등록. gen 무관 → immutable
+  //     체인 공유로 tip 노드 조회 1회면 O(1).
+  //   - condSigId: (cond 객체 identity, anchor) 쌍으로 메모 → 그 결과 condSig 구조를 intern.
+  //     anchor(=curGen) 가 매 gen 회전하므로 (cond, anchor) 를 키로 재계산만 제거 (오프셋은
+  //     정확성 위해 시그니처에 유지 — §범위 밖 회전 해소는 미적용, 소견에서 여지만 보고).
+
+  // node-local 템플릿 정확 키 (gen 제외 — symbolId.pointer / group 멤버 템플릿 / observing).
+  // stateSignature 의 노드 성분과 정확히 동일 정보. equals/hashCode 로 intern 테이블 정확 조회.
+  // ★ 지문 금지: milestone/멤버 리스트/observing 을 **값으로** 들어 구조 비교 (해시 축약 아님).
+  private class NodeTemplateKey(
+    val parentSigId: Int,
+    val isGroup: Boolean,
+    // singleton: milestone 템플릿 (symbolId,pointer) packed. group: null.
+    val singleton: Long,
+    // group: 멤버 (symbolId,pointer) packed 리스트 (fold canonical 순 — 그대로 값 비교). singleton: null.
+    val members: List<Long>?,
+    val observing: List<Int>,
+  ) {
+    private val _hash: Int = run {
+      var h = parentSigId
+      h = 31 * h + if (isGroup) 1 else 0
+      h = 31 * h + singleton.hashCode()
+      h = 31 * h + (members?.hashCode() ?: 0)
+      h = 31 * h + observing.hashCode()
+      h
+    }
+    override fun hashCode(): Int = _hash
+    override fun equals(other: Any?): Boolean {
+      if (this === other) return true
+      if (other !is NodeTemplateKey) return false
+      return parentSigId == other.parentSigId && isGroup == other.isGroup &&
+        singleton == other.singleton && members == other.members && observing == other.observing
+    }
+  }
+
+  // (parentSigId, node-local 템플릿) → chainSigId. 정확 키 intern (지문 아님).
+  private val chainSigInternTable = HashMap<NodeTemplateKey, Int>()
+  private var chainSigCounter = 0
+
+  // 노드의 gen-무관 체인 시그니처 id (lazy). parent 재귀 후 이 노드 성분과 합쳐 intern.
+  // ★ chainSigIdCache 는 노드에 상주 (immutable 체인 공유) — 한 번 부여되면 gen 간 재사용.
+  //   tip 노드 조회 1회로 전체 체인 시그니처가 O(1) (parent id 들이 이미 캐시).
+  private fun chainSigIdOf(node: MilestonePath?): Int {
+    if (node == null) return 0 // null prefix = id 0 (root 경계)
+    val cached = node.chainSigIdCache
+    if (cached >= 0) return cached
+    val parentId = chainSigIdOf(node.parent)
+    val g = node.groupMembers
+    val key: NodeTemplateKey = if (g != null) {
+      val members = ArrayList<Long>(g.size)
+      for (m in g) members.add(packTemplate(m.symbolId, m.pointer))
+      NodeTemplateKey(parentId, isGroup = true, singleton = 0L, members = members, observing = node.observingCondSymbolIds)
+    } else {
+      NodeTemplateKey(
+        parentId, isGroup = false,
+        singleton = packTemplate(node.milestone.symbolId, node.milestone.pointer),
+        members = null, observing = node.observingCondSymbolIds,
+      )
+    }
+    val id = chainSigInternTable.getOrPut(key) { ++chainSigCounter }
+    node.chainSigIdCache = id
+    return id
+  }
+
+  // condSig intern — 조건 구조 시그니처 문자열(anchor 상대 오프셋 포함) → Int id. 정확 키
+  // (구조 문자열 자체가 정확 표현 — 지문 아님; 문자열 비교 = 구조 비교). anchor 회전으로 매 gen
+  // 문자열이 달라질 수 있으나 그건 정확성(오프셋)의 결과이지 지문 축약이 아니다.
+  private val condSigInternTable = HashMap<String, Int>()
+  private var condSigCounter = 0
+  // per-gen (cond → condSigId) 메모 — anchor 는 한 gen 안에서 상수(=curGen)라 cond 만 키.
+  // anchor 가 다음 gen 으로 넘어가면 통째로 클리어 (누적 폭발 방지 — anchor 회전 특성상
+  // 이전 gen 의 (cond,anchor) 엔트리는 다시 안 쓰인다). 이러면 같은 gen 안의 모든 row 가
+  // 공유하는 cond 의 문자열 빌드가 gen 당 조건 구조 수만큼만 (row 수가 아니라) 일어난다.
+  private val condSigGenMemo = HashMap<AcceptCondition, Int>()
+  private var condSigMemoAnchor = Int.MIN_VALUE
+
+  // 조건의 anchor-상대 시그니처 id. per-gen memo (재계산 제거) → 결과 구조 문자열을 intern.
+  // 히트 시 문자열 빌드조차 안 함 (memo 히트). anchor 전환 시 memo 클리어.
+  private fun condSigIdOf(cond: AcceptCondition, anchor: Int): Int {
+    if (anchor != condSigMemoAnchor) {
+      condSigGenMemo.clear()
+      condSigMemoAnchor = anchor
+    }
+    val memo = condSigGenMemo[cond]
+    if (memo != null) return memo
+    val sig = condSignature(cond, anchor)
+    val id = condSigInternTable.getOrPut(sig) { ++condSigCounter }
+    condSigGenMemo[cond] = id
+    return id
+  }
+
+  // stateSig 팩 (63비트, sign 비트 0 유지): chainSigId (비트 42..62, 21비트) | tipGroupId
+  // (비트 21..41, 21비트) | condSigId (비트 0..20, 21비트). 세 필드 모두 21비트(2M) — 실측
+  // State/tipGroup/cond 구조 수(수천~수만)에 넉넉. sign 비트를 안 써 stateSig 는 항상
+  // 비음수 → MergeCandidate.sigCached 의 Long.MIN_VALUE sentinel 과 절대 안 겹친다.
+  // 정확 키: 세 성분 모두 구조와 1:1 인 intern id → 팩 값 동등 = State 동등 (지문 아님).
+  // ★ 함정 (비트 겹침·부호): 각 필드 21비트 마스크. 오버플로 시 폴백 (정확성 우선).
+  private fun stateSigOf(shape: PathShape, cond: AcceptCondition, curGen: Int): Long {
+    val chainId = chainSigIdOf(shape.milestonePath)
+    val condId = condSigIdOf(cond, curGen)
+    val tg = shape.tipGroupId
+    // 방어: 필드가 21비트 초과면 팩이 충돌 → 정확성 깨짐. 실측 범위에선 발생 안 함.
+    if (chainId ushr 21 != 0 || tg ushr 21 != 0 || condId ushr 21 != 0) {
+      // 폴백: 초대형 문법(필드>2M)에서만 — 문자열 시그니처 hashCode 로. 극히 드문 경로라
+      // 충돌 가능성이 있으나 실측 미발생 (필드 최대 수만). 발생 시 방어적 non-neg 유지.
+      return (stateSignature(shape, cond, curGen).hashCode().toLong() and 0x7FFF_FFFFL)
+    }
+    return (chainId.toLong() shl 42) or (tg.toLong() shl 21) or condId.toLong()
+  }
+
   // 한 shape 의 **stateSig** (캐시 버킷 키용) — window 노드도 gen **완전 제외** (G-b0 브리지
   // 변형 A 와 동일). node-local 템플릿 (symbolId.pointer[.group][obs]) + tipGroupId + 조건
   // 템플릿. 같은 stateSig = 같은 State → 캐시 재사용의 단위 (gen-무관이라 ~96 gen 재사용).
   // reportGen 제외 (equals 계약과 정합).
+  //
+  // ★ G-b4.5: 이 문자열 버전은 이제 **폴백/디버그 전용** (stateSigOf 오버플로 폴백,
+  //   dumpLazyVerifyMismatch, condSigIdOf 의 intern 대상 생성). hot path 는 stateSigOf(Long).
   //
   // ★ 함정 (발산 꼬리 — G0SuffixSetStats.kt:20-25 v1 실수 방지): chain 전체 gen 오프셋을 담으면
   //   prefix 노드 오프셋이 curGen 증가에 비례해 발산 (히트 0%). gen 을 완전 제외해 발산 꼬리
@@ -1629,10 +1769,11 @@ class Mgroup4Parser(
   // ★ 함정: prefix 만으로 버킷팅하면 한 prefix 아래 여러 (tip, cond) 조합이 멀티셋 키에
   //   섞여 gen 마다 유니크해진다 (실측 히트 <5%). tip·cond 를 버킷 축으로 올려야 State
   //   재사용(~96 gen)이 실현된다.
+  // G-b4.5: condTemplate 문자열 대신 interned condSigId(Int). 정확 키 (id 는 구조와 1:1).
   private data class StateBucketKey(
     val prefix: MilestonePath?,
     val tipGroupId: Int,
-    val condTemplate: String,
+    val condSigId: Int,
   )
 
   // 캐시-백드 병합 (설계 §2.4, §4 G-b1). main path map 을 State 버킷으로 나누고,
@@ -1655,7 +1796,7 @@ class Mgroup4Parser(
         merged[shape] = if (existing == null) cond else Or.from(existing, cond)
         continue
       }
-      val bk = StateBucketKey(windowPrefixNode(shape), shape.tipGroupId, condSignature(cond, curGen))
+      val bk = StateBucketKey(windowPrefixNode(shape), shape.tipGroupId, condSigIdOf(cond, curGen))
       stateBuckets.getOrPut(bk) { ArrayList() }.add(Pair(shape, cond))
     }
 
@@ -1707,13 +1848,14 @@ class Mgroup4Parser(
     return merged
   }
 
-  // 버킷 State 키 = 버킷 안 shape 들의 gen-무관 stateSig 멀티셋 (정렬). 같은 State 는 같은 키
-  // (~96 gen 재사용). gen 은 stateSig 에서 제외 — planSig 로만 fold 매칭 시 확인.
-  private fun bucketStateKey(rows: List<Pair<PathShape, AcceptCondition>>, curGen: Int): String {
-    val sigs = ArrayList<String>(rows.size)
-    for ((shape, cond) in rows) sigs.add(stateSignature(shape, cond, curGen))
+  // 버킷 State 키 = 버킷 안 shape 들의 gen-무관 interned stateSig(Long) 멀티셋 (정렬). 같은
+  // State 는 같은 배열 → 같은 키 (~96 gen 재사용). gen 은 stateSig 에서 제외 (verdict 재확인 담당).
+  // G-b4.5: 문자열 멀티셋 조인 대신 stateSigOf(Long) 정렬 배열 — 문자열 빌드/조인 제거.
+  private fun bucketStateKey(rows: List<Pair<PathShape, AcceptCondition>>, curGen: Int): BucketStateKey {
+    val sigs = LongArray(rows.size)
+    for (i in rows.indices) sigs[i] = stateSigOf(rows[i].first, rows[i].second, curGen)
     sigs.sort()
-    return sigs.joinToString("\n")
+    return BucketStateKey(sigs)
   }
 
   // 한 prefix 버킷을 재파티션하며 파티션 결정을 시그니처로 캡처. mergeInteriorGroups 의
@@ -1732,9 +1874,10 @@ class Mgroup4Parser(
   ): Pair<Map<PathShape, AcceptCondition>, TransitionEntry> {
     val remaining = LinkedHashMap<PathShape, MergeCandidate>()
     val merged = LinkedHashMap<PathShape, AcceptCondition>()
-    val sigOf = HashMap<PathShape, String>()
-    fun sig(shape: PathShape, cond: AcceptCondition): String =
-      sigOf.getOrPut(shape) { stateSignature(shape, cond, curGen) }
+    // G-b4.5: 멤버 시그니처는 interned stateSig(Long) — 문자열 빌드 없이 O(1) (인턴 캐시 히트).
+    val sigOf = HashMap<PathShape, Long>()
+    fun sig(shape: PathShape, cond: AcceptCondition): Long =
+      sigOf.getOrPut(shape) { stateSigOf(shape, cond, curGen) }
 
     for ((shape, cond) in rows) {
       val tip = shape.milestonePath
@@ -1742,7 +1885,7 @@ class Mgroup4Parser(
       remaining[shape] = MergeCandidate(shape, cond, tip, len)
     }
 
-    val planGroups = ArrayList<Pair<Int, List<String>>>()
+    val planGroups = ArrayList<Pair<Int, LongArray>>()
     var d = 2
     while (d <= n) {
       val buckets = HashMap<Long, ArrayList<MergeCandidate>>()
@@ -1794,8 +1937,8 @@ class Mgroup4Parser(
           }
           if (group != null && group.size >= 2) {
             val (foldedShape, foldedCond) = foldGroup(group, d)
-            val memberSigs = ArrayList<String>(group.size)
-            for (m in group) memberSigs.add(sig(m.shape, m.cond))
+            val memberSigs = LongArray(group.size)
+            for (gi in group.indices) memberSigs[gi] = sig(group[gi].shape, group[gi].cond)
             memberSigs.sort()
             planGroups.add(Pair(d, memberSigs))
             for (m in group) remaining.remove(m.shape)
@@ -1862,12 +2005,15 @@ class Mgroup4Parser(
     val merged = LinkedHashMap<PathShape, AcceptCondition>()
     // stateSig → 이 시그니처를 가진 (아직 안 쓰인) 후보들. 같은 stateSig 다수(multiplicity)면
     // 큐로 소비 (재파티션도 같은 구조 다수를 각각 접으므로 개수 보존).
-    val bySig = HashMap<String, ArrayDeque<MergeCandidate>>()
+    // G-b4.5: 키 = interned stateSig(Long) — 문자열 빌드 없이 O(1) (인턴 캐시 히트).
+    val bySig = HashMap<Long, ArrayDeque<MergeCandidate>>()
     for ((shape, cond) in rows) {
       val tip = shape.milestonePath
       val len = tip?.chainDepthCached() ?: 0
       val cand = MergeCandidate(shape, cond, tip, len)
-      val sig = timedSig { stateSignature(shape, cond, curGen) }
+      // G-b4.5 (작업4): sig 를 후보에 실어둔다 — verdict REJECT 로 되돌릴 때 재계산 없이 재사용.
+      val sig = timedSig { stateSigOf(shape, cond, curGen) }
+      cand.sigCached = sig
       bySig.getOrPut(sig) { ArrayDeque() }.addLast(cand)
     }
     // 계획 group 순서대로 (depth 오름차순 기록) — 각 group 후보를 stateSig 로 모아 verdict
@@ -1883,10 +2029,8 @@ class Mgroup4Parser(
         cands.add(q.removeFirst())
       }
       if (!enough) {
-        for (c in cands) {
-          val sig = timedSig { stateSignature(c.shape, c.cond, curGen) }
-          bySig.getOrPut(sig) { ArrayDeque() }.addFirst(c)
-        }
+        // 되돌림: 실어둔 sigCached 재사용 (재계산 없음).
+        for (c in cands) bySig.getOrPut(c.sigCached) { ArrayDeque() }.addFirst(c)
         continue
       }
       // greedy 병합 재현: cands[0] 을 대표로, 나머지를 verdict 재확인해 MERGE 인 것만 group.
@@ -1896,16 +2040,15 @@ class Mgroup4Parser(
       for (k in 1 until cands.size) {
         when (timedVerdict { mergeVerdictAtDepth(cands[0], cands[k], d) }) {
           MergeVerdict.MERGE -> group.add(cands[k])
-          MergeVerdict.REJECT_COND -> { if (mg4ShapeStatsEnabled) mg4RejectCondDiff++; val sig = timedSig { stateSignature(cands[k].shape, cands[k].cond, curGen) }; bySig.getOrPut(sig) { ArrayDeque() }.addFirst(cands[k]) }
-          MergeVerdict.REJECT_GEN_OBS -> { if (mg4ShapeStatsEnabled) mg4RejectGenObsDiff++; val sig = timedSig { stateSignature(cands[k].shape, cands[k].cond, curGen) }; bySig.getOrPut(sig) { ArrayDeque() }.addFirst(cands[k]) }
-          MergeVerdict.REJECT_REPORT_COORD -> { if (mg4ShapeStatsEnabled) mg4RejectReportCoordDiff++; val sig = timedSig { stateSignature(cands[k].shape, cands[k].cond, curGen) }; bySig.getOrPut(sig) { ArrayDeque() }.addFirst(cands[k]) }
-          MergeVerdict.NOT_CANDIDATE -> { val sig = timedSig { stateSignature(cands[k].shape, cands[k].cond, curGen) }; bySig.getOrPut(sig) { ArrayDeque() }.addFirst(cands[k]) }
+          MergeVerdict.REJECT_COND -> { if (mg4ShapeStatsEnabled) mg4RejectCondDiff++; bySig.getOrPut(cands[k].sigCached) { ArrayDeque() }.addFirst(cands[k]) }
+          MergeVerdict.REJECT_GEN_OBS -> { if (mg4ShapeStatsEnabled) mg4RejectGenObsDiff++; bySig.getOrPut(cands[k].sigCached) { ArrayDeque() }.addFirst(cands[k]) }
+          MergeVerdict.REJECT_REPORT_COORD -> { if (mg4ShapeStatsEnabled) mg4RejectReportCoordDiff++; bySig.getOrPut(cands[k].sigCached) { ArrayDeque() }.addFirst(cands[k]) }
+          MergeVerdict.NOT_CANDIDATE -> { bySig.getOrPut(cands[k].sigCached) { ArrayDeque() }.addFirst(cands[k]) }
         }
       }
       if (group.size < 2) {
-        // 대표만 남음 — singleton 통과 (되돌림).
-        val sig = timedSig { stateSignature(group[0].shape, group[0].cond, curGen) }
-        bySig.getOrPut(sig) { ArrayDeque() }.addFirst(group[0])
+        // 대표만 남음 — singleton 통과 (되돌림, sigCached 재사용).
+        bySig.getOrPut(group[0].sigCached) { ArrayDeque() }.addFirst(group[0])
         continue
       }
       timedFold {
@@ -2240,7 +2383,8 @@ class Mgroup4Parser(
     val bHitRate = if (bTotal > 0) 100.0 * mg4BoundaryCacheHits / bTotal else 0.0
     return ("mg4 n=$interiorGroupMaxDepth: gens=$mg4Gens meanBase=%.2f meanMerged=%.2f ratio=%.3f rejectCondDiff=$mg4RejectCondDiff rejectGenObsDiff=$mg4RejectGenObsDiff rejectReportCoordDiff=$mg4RejectReportCoordDiff skipExistingGroup=$mg4SkipExistingGroup creationMergeable=$mg4CreationMergeable lateConvergence=$mg4LateConvergence reduceSplits=$mg4ReduceSplits windowExitSplits=$mg4WindowExitSplits mergesByDepth=[$byDepth] " +
       "cache[hits=$mg4CacheHits misses=$mg4CacheMisses hitRate=%.1f%% missSelfTime=%.1fms hitSelfTime=%.1fms cacheSize=${mergeTransitionCache.size} evict=$mg4MergeEvictions verifyChecks=$mg4LazyVerifyChecks] " +
-      "boundaryCache[hits=$mg4BoundaryCacheHits misses=$mg4BoundaryCacheMisses hitRate=%.1f%% cacheSize=${boundaryTransitionCache.size} evict=$mg4BoundaryEvictions]" +
+      "boundaryCache[hits=$mg4BoundaryCacheHits misses=$mg4BoundaryCacheMisses hitRate=%.1f%% cacheSize=${boundaryTransitionCache.size} evict=$mg4BoundaryEvictions] " +
+      "intern[chainSig=${chainSigInternTable.size} condSig=${condSigInternTable.size}]" +
       (if (mg4HitTimingDetailEnabled) " hitDetail[sig=%.1fms verdict=%.1fms fold=%.1fms]".format(
         mg4HitSigNanos / 1_000_000.0, mg4HitVerdictNanos / 1_000_000.0, mg4HitFoldNanos / 1_000_000.0
       ) else ""))

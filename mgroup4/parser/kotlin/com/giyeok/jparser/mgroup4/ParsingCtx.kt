@@ -187,6 +187,21 @@ class MilestonePath(
   // root..this 의 노드 수 (this 포함) — chainToList 없이 length 를 O(1) amortized 로.
   private var _chainDepth: Int = 0
 
+  // === G-b4.5 시그니처 인터닝 — gen-무관 체인 시그니처 id 의 lazy 캐시 ===
+  // stateSignature 의 체인 성분(전 노드 (symbolId.pointer[.group][obs]) 열, gen 제외)을
+  // 문자열 재구성 없이 O(1) 로 주기 위한 인턴 id. 값은 Mgroup4Parser.chainSigIdOf() 가
+  // 전역 인턴 테이블 (parentSigId, node-local 템플릿) 로 채운다 — 인턴 시점 1회 구조 비교로
+  // id 부여, 이후 id 비교 = 정확 비교 (지문 금지 계약 준수: id 는 구조와 1:1).
+  //
+  // ★ 무효화 계약: MilestonePath 는 immutable 이고 체인이 gen 간 공유되므로 이 id 는
+  //   한 번 부여되면 영원히 유효 (nodeLocalHashCached 와 동일한 immutable 근거).
+  //   node-local 템플릿은 **gen 제외** (symbolId.pointer / group 멤버 템플릿 / observing)
+  //   만 접는다 — stateSignature 가 gen 을 제외하는 것과 정확히 일치. gen 이 들어가면
+  //   State 재사용(~96 gen)이 깨진다 (stateSignature.kt 발산-꼬리 함정과 동형).
+  //   groupMembers 는 fold 시점 확정 후 불변이라 group 노드에도 안전.
+  // -1 = 미부여 (0 은 유효 id 이므로 sentinel 로 못 씀).
+  internal var chainSigIdCache: Int = -1
+
   // root 부터 이 노드까지의 노드 수 (this 포함). parent 캐시 재사용 (immutable).
   fun chainDepthCached(): Int {
     if (_chainDepth == 0) {
