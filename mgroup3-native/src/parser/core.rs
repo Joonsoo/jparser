@@ -299,44 +299,84 @@ impl Mgroup3Parser {
         if self.plain.eof_cond_symbols.is_empty() {
             return cond;
         }
+        // 무변경이면 `None` 을 반환 — 자식이 하나도 접히지 않은 And/Or 는 원본
+        // 인스턴스를 그대로 쓰게 해 불필요한 and_from/or_from 재구성(정렬/dedup) 을
+        // 회피한다 (changed-flag; borrow 기반이라 clone 없음).
         fn walk(
             parser: &Mgroup3Parser,
-            cond: AcceptCondition,
+            cond: &AcceptCondition,
             next_gen: i32,
             is_last_input: bool,
-        ) -> AcceptCondition {
+        ) -> Option<AcceptCondition> {
             // gen g 의 글자 존재: g < next_gen 이면 이미 소비됨(존재), g == next_gen
             // 이면 이번 글자가 마지막인지에 달렸다.
             let char_exists = |g: i32| g < next_gen || !is_last_input;
             match cond {
+                // Soundness armor: fold 의 전제는 "조건 anchor(start_gen) 는 next_gen
+                // 을 넘지 않는다"이다 — leaf 는 이번 step 에서 소비되는 글자(<=
+                // next_gen-1) 를 감시하기 때문. 현 gen 태그 체계에선 start_gen >
+                // next_gen 이 도달 불가하지만, 만약 그렇다면 char_exists 가
+                // !is_last_input 을 반환해 미래 anchor 를 "존재"로 오판할 수 있으므로,
+                // 방어적으로 fold 하지 않고 leaf 를 그대로 둔다 (무변경 → `None`;
+                // 그러면 기존 watcher 경로가 처리 — 정확도 손실 없음).
                 AcceptCondition::NotExists { symbol_id, start_gen }
-                    if parser.plain.eof_cond_symbols.contains(&symbol_id) =>
+                    if parser.plain.eof_cond_symbols.contains(symbol_id) && *start_gen <= next_gen =>
                 {
-                    if char_exists(start_gen) {
+                    Some(if char_exists(*start_gen) {
                         AcceptCondition::Never
                     } else {
                         AcceptCondition::Always
-                    }
+                    })
                 }
                 AcceptCondition::Exists { symbol_id, start_gen }
-                    if parser.plain.eof_cond_symbols.contains(&symbol_id) =>
+                    if parser.plain.eof_cond_symbols.contains(symbol_id) && *start_gen <= next_gen =>
                 {
-                    if char_exists(start_gen) {
+                    Some(if char_exists(*start_gen) {
                         AcceptCondition::Always
                     } else {
                         AcceptCondition::Never
+                    })
+                }
+                AcceptCondition::And { items } => {
+                    let mut changed = false;
+                    let walked: Vec<AcceptCondition> = items
+                        .iter()
+                        .map(|c| match walk(parser, c, next_gen, is_last_input) {
+                            Some(w) => {
+                                changed = true;
+                                w
+                            }
+                            None => c.clone(),
+                        })
+                        .collect();
+                    if changed {
+                        Some(AcceptCondition::and_from(walked))
+                    } else {
+                        None
                     }
                 }
-                AcceptCondition::And { items } => AcceptCondition::and_from(
-                    items.into_iter().map(|c| walk(parser, c, next_gen, is_last_input)),
-                ),
-                AcceptCondition::Or { items } => AcceptCondition::or_from(
-                    items.into_iter().map(|c| walk(parser, c, next_gen, is_last_input)),
-                ),
-                other => other,
+                AcceptCondition::Or { items } => {
+                    let mut changed = false;
+                    let walked: Vec<AcceptCondition> = items
+                        .iter()
+                        .map(|c| match walk(parser, c, next_gen, is_last_input) {
+                            Some(w) => {
+                                changed = true;
+                                w
+                            }
+                            None => c.clone(),
+                        })
+                        .collect();
+                    if changed {
+                        Some(AcceptCondition::or_from(walked))
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
             }
         }
-        walk(self, cond, next_gen, is_last_input)
+        walk(self, &cond, next_gen, is_last_input).unwrap_or(cond)
     }
 
     /// Collect the term groups reachable from the main path's tips into a

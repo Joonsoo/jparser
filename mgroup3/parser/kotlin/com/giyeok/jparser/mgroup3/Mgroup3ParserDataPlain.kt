@@ -49,6 +49,16 @@ class ParserDataPlain(val proto: Mgroup3ParserData) {
   //   - replaceAndAppends 없음 (정확히 1글자에서 종결)
   //   - replaceAndProgresses 조건이 전부 Always (무조건 root 완성)
   //   - self-finish 없음 (빈 매치 불가)
+  //
+  // 기준이 오탐하지 않는 근거 (생성기 불변식). replaceAndProgresses 의 의미는
+  // 생성기에서 고정된다: Mgroup3ParserGenerator.kt:410-412 —
+  // "replaceAndProgresses = graph 의 milestone 중 자기 자신의 끝까지 진행된 것들"
+  // (barrier 그래프의 완성분만; 계속 진행분은 append 로 나간다). 따라서 위 4조건을
+  // 만족하려면 starter group 이 정확히 1글자를 소비하고 그 즉시 root 가 무조건
+  // 완성돼야 한다 — EOF 부정 본문(`!.` 의 `.`, "글자 하나 존재")의 구조와 정확히
+  // 일치한다. 다글자 심볼은 append(경로 연장)를 남기므로 replaceAndAppends 비어있음
+  // 조건에서, 조건부/빈 매치 심볼은 progresses 의 Always 조건 또는 self-finish
+  // 조건에서 걸러진다.
   val eofCondSymbols: Set<Int> = run {
     val out = HashSet<Int>()
     for ((sym, info) in pathRoots) {

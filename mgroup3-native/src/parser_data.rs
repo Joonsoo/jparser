@@ -61,6 +61,16 @@ pub struct ParserDataPlain {
     ///
     /// **Derived** from `path_roots`+`term_actions` — `transitive_initial_cond_symbols`
     /// 와 같은 이유로 not archived; 캐시 복원 시 `recompute_derived` 가 재계산.
+    ///
+    /// **캐시 호환 (magic bump 불필요).** `Skip` 의 archived 타입은 `()` (rkyv 0.8:
+    /// `impl ArchiveWith<F> for Skip { type Archived = (); }`) — 크기 0·정렬 1 의
+    /// ZST 이고 이 필드는 struct 끝에 붙으므로, 기존 archived 필드들의 오프셋도 전체
+    /// 크기도 바뀌지 않는다. 즉 옛 `.rkyv` (eof 필드 없이 구운 것) 의 바이트열이 새
+    /// `ArchivedParserDataPlain` 으로 그대로 `access_unchecked` 된다. 이 필드 추가
+    /// 전(부모 커밋) 바이너리로 구운 캐시를 이 코드로 로드해 proto 경로와 파스 결과가
+    /// 일치함을 실측 확인했다 (그래서 `parser_cache.rs::PLAIN_SCHEMA_VERSION` 은
+    /// 그대로 2). 참고: parser_cache.rs 의 "Skip 필드 추가 시 bump" 는 보수적 기본값 —
+    /// 임의 위치/타입 변경까지 포괄하려는 것이고, 끝에 붙는 Skip ZST 는 실측상 안전.
     #[rkyv(with = Skip)]
     pub eof_cond_symbols: HashSet<i32>,
 }
@@ -144,6 +154,16 @@ impl ParserDataPlain {
 ///   - self-finish 없음 (빈 매치 불가)
 /// 이면 S@g 의 완성은 "gen g 에 글자 존재"와 동치. 기준은 의도적으로 보수적 —
 /// 놓친 심볼은 기존 watcher 경로로 처리될 뿐 (정확도 손실 없음).
+///
+/// **기준이 오탐하지 않는 근거 (생성기 불변식).** replace_and_progresses 의 의미는
+/// 생성기에서 고정된다: `mgroup3/gen/kotlin/.../Mgroup3ParserGenerator.kt:410-412` —
+/// "replace_and_progresses = graph 의 milestone 중 **자기 자신의 끝까지 진행된**
+/// 것들" (barrier 그래프의 완성분만; 계속 진행분은 append 로 나간다). 따라서
+/// 위 4조건을 만족하려면 starter group 이 정확히 1글자를 소비하고 그 즉시 root 가
+/// 무조건 완성돼야 한다 — 이는 EOF 부정 본문(`!.` 의 `.`, 즉 "글자 하나 존재")의
+/// 구조와 정확히 일치한다. 다글자를 소비하는 심볼은 append(경로 연장)를 반드시
+/// 남기므로 replace_and_appends 비어있음 조건에서, 조건부/빈 매치 심볼은
+/// progresses 의 Always 조건 또는 self-finish 조건에서 걸러진다.
 fn compute_eof_cond_symbols(
     path_roots: &HashMap<i32, Arc<PathRootInfoPlain>>,
     term_actions: &HashMap<i32, Vec<Arc<TermGroupActionPlain>>>,

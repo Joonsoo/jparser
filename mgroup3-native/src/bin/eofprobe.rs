@@ -13,6 +13,11 @@ fn main() {
     let proto = Mgroup3ParserData::decode(&data[..]).expect("decode");
     let plain = ParserDataPlain::from_proto(proto);
 
+    // The structurally-detected set (what eager EOF resolution folds against).
+    let mut eof: Vec<i32> = plain.eof_cond_symbols.iter().copied().collect();
+    eof.sort_unstable();
+    println!("eof_cond_symbols = {:?} (count={})", eof, eof.len());
+
     let syms: Vec<i32> = args[2..].iter().map(|s| s.parse().unwrap()).collect();
     for (sym, info) in {
         let mut v: Vec<_> = plain.path_roots.iter().collect();

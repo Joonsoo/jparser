@@ -208,23 +208,41 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     // 이번 글자가 마지막인지에 달렸다.
     fun charExistsAt(g: Int): Boolean = g < nextGen || !isLastInput
     fun walk(c: AcceptCondition): AcceptCondition = when (c) {
+      // Soundness armor: fold 의 전제는 "조건 anchor(startGen) 는 nextGen 을 넘지
+      // 않는다"이다 — leaf 는 이번 step 에서 소비되는 글자(<= nextGen-1) 를 감시하기
+      // 때문. 현 gen 태그 체계에선 startGen > nextGen 이 도달 불가하지만, 만약
+      // 그렇다면 charExistsAt 가 !isLastInput 을 반환해 미래 anchor 를 "존재"로
+      // 오판할 수 있으므로, 방어적으로 fold 하지 않고 leaf 를 그대로 둔다 (그러면
+      // 기존 watcher 경로가 처리 — 정확도 손실 없음).
       is NotExists ->
-        if (c.symbolId in plain.eofCondSymbols) {
+        if (c.symbolId in plain.eofCondSymbols && c.startGen <= nextGen) {
           if (charExistsAt(c.startGen)) Never else Always
         } else c
       is Exists ->
-        if (c.symbolId in plain.eofCondSymbols) {
+        if (c.symbolId in plain.eofCondSymbols && c.startGen <= nextGen) {
           if (charExistsAt(c.startGen)) Always else Never
         } else c
       is And -> {
+        // changed-flag: 자식이 하나도 접히지 않으면 원본 인스턴스를 그대로 반환해
+        // 불필요한 And.from 재구성(정렬/dedup) 을 회피.
+        var changed = false
         val items = ArrayList<AcceptCondition>(c.size)
-        c.forEach { items.add(walk(it)) }
-        And.from(items)
+        c.forEach { child ->
+          val w = walk(child)
+          if (w !== child) changed = true
+          items.add(w)
+        }
+        if (changed) And.from(items) else c
       }
       is Or -> {
+        var changed = false
         val items = ArrayList<AcceptCondition>(c.size)
-        c.forEach { items.add(walk(it)) }
-        Or.from(items)
+        c.forEach { child ->
+          val w = walk(child)
+          if (w !== child) changed = true
+          items.add(w)
+        }
+        if (changed) Or.from(items) else c
       }
       else -> c
     }
