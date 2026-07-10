@@ -297,6 +297,13 @@ impl GenRebase {
             ctx.root_report_gens.iter().map(|(r, g)| (self.root(*r), self.map(*g))).collect();
         ParsingCtx {
             gen_idx: self.map(ctx.gen_idx),
+            // line/col are copied from the OLD parse's final ctx and may be stale
+            // when the edit changed the number of newlines before the suffix. They
+            // are error-message coordinates only — never read by kernels_history /
+            // is_accepted (the gated outputs) — and a spliced result is by
+            // construction a completed parse, so no error path consumes them.
+            // If a future consumer needs exact line/col on spliced results,
+            // recompute from the session's current document instead.
             line: ctx.line,
             col: ctx.col,
             main_root: self.root(ctx.main_root),
