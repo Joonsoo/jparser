@@ -39,8 +39,25 @@ val mg4LazyCacheEnabled: Boolean =
 // mgroup4 Phase G-b1 — 병렬 검증 모드 (R1). env MG4_LAZY_VERIFY=1 이면 캐시 히트 경로가
 // 만든 merged 결과를 현행 재파티션 결과와 나란히 계산해 equals 대조, 불일치 시 즉시 실패
 // + 최소 재현 덤프. 게이트 실행은 이 모드를 켠 채로도 전부 그린이어야 한다.
+// G-b2 확장: 경계 edge 캐시 경로도 (캐시 조회 vs 직접 조회) 대조 — computeXxxMemberEdges 와
+// 캐시 히트 결과가 다르면 즉시 실패.
 val mg4LazyVerifyEnabled: Boolean =
   System.getenv("MG4_LAZY_VERIFY") != null || System.getProperty("mg4.lazyVerify") != null
+
+// mgroup4 Phase G-b3 — 파스 간 공유 캐시의 LRU 예산 상한 (설계 §2.5). 캐시 엔트리 수가 예산을
+// 넘으면 가장 오래전 접근된 엔트리부터 축출. 축출돼도 재구성만 되므로 정확성 불변 (parity 게이트가
+// 증명). 0 이하 = 무제한 (기본 — 실코퍼스는 수천 엔트리라 상한 불필요; 테스트가 작은 예산으로 축출
+// 정확성을 증명). env MG4_CACHE_BUDGET, MG4_BOUNDARY_CACHE_BUDGET 로 오버라이드.
+val mg4MergeCacheBudget: Int =
+  (System.getenv("MG4_CACHE_BUDGET") ?: System.getProperty("mg4.cacheBudget"))?.toIntOrNull() ?: 0
+val mg4BoundaryCacheBudget: Int =
+  (System.getenv("MG4_BOUNDARY_CACHE_BUDGET") ?: System.getProperty("mg4.boundaryCacheBudget"))?.toIntOrNull() ?: 0
+
+// mgroup4 Phase G-b3 — 히트 경로 자기비용 타이머 opt-in. 기본 off 라 hot path 에 nanoTime 미진입
+// (mergeProfile 과 동일 전략). 켜면 캐시 히트(verdict 재확인 포함)의 self-time 을 미스와 분리 측정 —
+// G-b4 의 "히트 경로가 충분히 싼가" 를 위한 준비. 정식 시간 측정에서는 꺼야 오버헤드 없는 실측.
+val mg4HitTimingEnabled: Boolean =
+  System.getenv("MG4_HIT_TIMING") != null || System.getProperty("mg4.hitTiming") != null
 
 class Mgroup4Parser(
   val data: Mgroup3ParserData,
@@ -378,33 +395,33 @@ class Mgroup4Parser(
         // (spec item 2). singleton 이면 1개 멤버로 그대로 처리 (제로코스트).
         // applyEdgeAction 의 invariant: parentPath 는 항상 singleton (group 은 이
         // 진입점과 midEdge 진입점에서 미리 멤버 singleton 으로 펼침).
-        val parentMembers = memberSingletonsForEdge(parentPath)
-        if (parentMembers.size > 1 && mg4ShapeStatsEnabled) mg4ReduceSplits++
-        for (pm in parentMembers) {
+        // G-b2: group 노드면 경계 edge 캐시로 (어느 멤버가 edge action 을 갖는지) 결정을
+        // 재사용 — 그 멤버만 singleton 물질화. singleton 노드는 현행 조회 1회 (제로코스트).
+        val group = parentPath.groupMembers
+        if (group == null) {
+          // singleton 경로 — n=1 포함. 현행 그대로 (조회 1회, 캐시 미접촉).
           val tipEdgeAction = tipEdgeActionsMap[
-            Pair(pm.milestone.kernelTemplate, rap.replaceMilestoneGroupId)
-          ] ?: continue
-          val grandParentGen = pm.parent?.gen ?: pathRoot.startGen
-          applyEdgeAction(
-            parentPath = pm,
-            edgeAction = tipEdgeAction,
-            pathRoot = pathRoot,
-            prevCondition = combined,
-            grandParentGen = grandParentGen,
-            parentGen = pm.gen,
-            gen = gen,
-            // m2 tip edge = (parent milestone @ milestoneReportGen) -> (tip group @ reportGen)
-            reportCurrGen = pm.milestoneReportGen,
-            reportMidGen = pm.reportGen,
-            rootReportGen = rootReportGen,
-            nextPathsOut = nextPathsOut,
-            appsOut = appsOut,
-            finishesOut = finishesOut,
-            addedOut = addedOut,
-            rootProgressesOut = rootProgressesOut,
-            observingSymbolIdsOut = observingSymbolIdsOut,
-            condRootStartersOut = condRootStartersOut,
-          )
+            Pair(parentPath.milestone.kernelTemplate, rap.replaceMilestoneGroupId)
+          ]
+          if (tipEdgeAction != null) {
+            applyTipEdgeForMember(
+              parentPath, tipEdgeAction, pathRoot, combined, gen, rootReportGen,
+              nextPathsOut, appsOut, finishesOut, addedOut, rootProgressesOut,
+              observingSymbolIdsOut, condRootStartersOut,
+            )
+          }
+        } else {
+          if (mg4ShapeStatsEnabled) mg4ReduceSplits++
+          val entry = tipEdgeMemberLookup(group, rap.replaceMilestoneGroupId)
+          val reportGens = parentPath.groupMemberReportGens
+          for ((mi, tipEdgeAction) in entry.memberEdges) {
+            val pm = memberSingletonAt(parentPath, mi, group, reportGens)
+            applyTipEdgeForMember(
+              pm, tipEdgeAction, pathRoot, combined, gen, rootReportGen,
+              nextPathsOut, appsOut, finishesOut, addedOut, rootProgressesOut,
+              observingSymbolIdsOut, condRootStartersOut,
+            )
+          }
         }
       }
     }
@@ -506,37 +523,117 @@ class Mgroup4Parser(
           // 새 frame 의 parentPath 로 재귀 → applyEdgeAction 의 parentPath 는 항상
           // singleton (invariant 유지). parentPath (현 frame) 는 이미 singleton 이므로
           // .milestone.kernelTemplate 은 안전.
-          val grandMembers = memberSingletonsForEdge(grandParent)
-          if (grandMembers.size > 1 && mg4ShapeStatsEnabled) mg4ReduceSplits++
-          for (gm in grandMembers) {
+          // G-b2: grandParent 가 group 이면 경계 midEdge 캐시로 (어느 멤버가 edge action 을
+          // 갖는지) 재사용 — 그 멤버만 singleton 물질화. singleton 이면 현행 조회 1회.
+          val grandGroup = grandParent.groupMembers
+          if (grandGroup == null) {
             val midEdge = midEdgeActionsMap[
-              Pair(gm.milestone.kernelTemplate, parentPath.milestone.kernelTemplate)
-            ] ?: continue
-            val grandGrandParentGen2 = gm.parent?.gen ?: pathRoot.startGen
-            applyEdgeAction(
-              parentPath = gm,
-              edgeAction = midEdge,
-              pathRoot = pathRoot,
-              prevCondition = combined,
-              grandParentGen = grandGrandParentGen2,
-              parentGen = gm.gen,
-              gen = gen,
-              // m2 mid edge = (grandParent milestone @ m2 gen) -> (parent milestone @ m2 gen)
-              reportCurrGen = gm.milestoneReportGen,
-              reportMidGen = parentPath.milestoneReportGen,
-              rootReportGen = rootReportGen,
-              nextPathsOut = nextPathsOut,
-              appsOut = appsOut,
-              finishesOut = finishesOut,
-              addedOut = addedOut,
-              rootProgressesOut = rootProgressesOut,
-              observingSymbolIdsOut = observingSymbolIdsOut,
-              condRootStartersOut = condRootStartersOut,
-            )
+              Pair(grandParent.milestone.kernelTemplate, parentPath.milestone.kernelTemplate)
+            ]
+            if (midEdge != null) {
+              applyMidEdgeForMember(
+                grandParent, parentPath, midEdge, pathRoot, combined, gen, rootReportGen,
+                nextPathsOut, appsOut, finishesOut, addedOut, rootProgressesOut,
+                observingSymbolIdsOut, condRootStartersOut,
+              )
+            }
+          } else {
+            if (mg4ShapeStatsEnabled) mg4ReduceSplits++
+            val entry = midEdgeMemberLookup(grandGroup, parentPath.milestone.kernelTemplate)
+            val reportGens = grandParent.groupMemberReportGens
+            for ((mi, midEdge) in entry.memberEdges) {
+              val gm = memberSingletonAt(grandParent, mi, grandGroup, reportGens)
+              applyMidEdgeForMember(
+                gm, parentPath, midEdge, pathRoot, combined, gen, rootReportGen,
+                nextPathsOut, appsOut, finishesOut, addedOut, rootProgressesOut,
+                observingSymbolIdsOut, condRootStartersOut,
+              )
+            }
           }
         }
       }
     }
+  }
+
+  // G-b2: tipEdge 멤버 진입 — memberSingletonsForEdge 로 편 singleton(또는 singleton 노드
+  // 자체) pm 에 대해 tipEdge action 을 적용. gen 바인딩은 원래 loop 과 byte-동일.
+  private fun applyTipEdgeForMember(
+    pm: MilestonePath,
+    tipEdgeAction: EdgeActionPlain,
+    pathRoot: PathRoot,
+    combined: AcceptCondition,
+    gen: Int,
+    rootReportGen: Int,
+    nextPathsOut: MutableMap<PathShape, AcceptCondition>,
+    appsOut: MutableList<ActionApplication>,
+    finishesOut: MutableList<FinishedKernelRecord>,
+    addedOut: MutableList<AddedKernelRecord>,
+    rootProgressesOut: MutableMap<PathRoot, AcceptCondition>,
+    observingSymbolIdsOut: MutableSet<Int>,
+    condRootStartersOut: MutableMap<PathRoot, PendingStarter>,
+  ) {
+    val grandParentGen = pm.parent?.gen ?: pathRoot.startGen
+    applyEdgeAction(
+      parentPath = pm,
+      edgeAction = tipEdgeAction,
+      pathRoot = pathRoot,
+      prevCondition = combined,
+      grandParentGen = grandParentGen,
+      parentGen = pm.gen,
+      gen = gen,
+      // m2 tip edge = (parent milestone @ milestoneReportGen) -> (tip group @ reportGen)
+      reportCurrGen = pm.milestoneReportGen,
+      reportMidGen = pm.reportGen,
+      rootReportGen = rootReportGen,
+      nextPathsOut = nextPathsOut,
+      appsOut = appsOut,
+      finishesOut = finishesOut,
+      addedOut = addedOut,
+      rootProgressesOut = rootProgressesOut,
+      observingSymbolIdsOut = observingSymbolIdsOut,
+      condRootStartersOut = condRootStartersOut,
+    )
+  }
+
+  // G-b2: midEdge 멤버 진입 — grandParent group 의 멤버 singleton gm 에 대해 midEdge 적용.
+  // reportMidGen 은 현 frame 의 parentPath.milestoneReportGen (원래 loop 과 byte-동일).
+  private fun applyMidEdgeForMember(
+    gm: MilestonePath,
+    parentPath: MilestonePath,
+    midEdge: EdgeActionPlain,
+    pathRoot: PathRoot,
+    combined: AcceptCondition,
+    gen: Int,
+    rootReportGen: Int,
+    nextPathsOut: MutableMap<PathShape, AcceptCondition>,
+    appsOut: MutableList<ActionApplication>,
+    finishesOut: MutableList<FinishedKernelRecord>,
+    addedOut: MutableList<AddedKernelRecord>,
+    rootProgressesOut: MutableMap<PathRoot, AcceptCondition>,
+    observingSymbolIdsOut: MutableSet<Int>,
+    condRootStartersOut: MutableMap<PathRoot, PendingStarter>,
+  ) {
+    val grandGrandParentGen2 = gm.parent?.gen ?: pathRoot.startGen
+    applyEdgeAction(
+      parentPath = gm,
+      edgeAction = midEdge,
+      pathRoot = pathRoot,
+      prevCondition = combined,
+      grandParentGen = grandGrandParentGen2,
+      parentGen = gm.gen,
+      gen = gen,
+      // m2 mid edge = (grandParent milestone @ m2 gen) -> (parent milestone @ m2 gen)
+      reportCurrGen = gm.milestoneReportGen,
+      reportMidGen = parentPath.milestoneReportGen,
+      rootReportGen = rootReportGen,
+      nextPathsOut = nextPathsOut,
+      appsOut = appsOut,
+      finishesOut = finishesOut,
+      addedOut = addedOut,
+      rootProgressesOut = rootProgressesOut,
+      observingSymbolIdsOut = observingSymbolIdsOut,
+      condRootStartersOut = condRootStartersOut,
+    )
   }
 
   private fun resolveGen(genTag: KernelTemplateGen, currGen: Int, midGen: Int, nextGen: Int, grandGen: Int = currGen): Int =
@@ -1228,13 +1325,211 @@ class Mgroup4Parser(
 
   // 파서 인스턴스 수준 전이 캐시 (파스 간 공유 — 설계 §2.5; 프로토타입 단일 스레드 가정).
   // 키 = State 시그니처 (입력 shape 들의 gen-정규화 구조 멀티셋 문자열). 정확 키 (충돌 없음).
-  private val mergeTransitionCache = HashMap<String, TransitionEntry>()
+  // G-b3: 파스 간 공유 (resetMg4Stats 가 안 지움). LRU 예산 가드는 evictIfOverBudget().
+  private val mergeTransitionCache = LinkedHashMap<String, TransitionEntry>()
 
   // G-b1 카운터 (mg4 stats 확장) — 파스 출력 무영향.
   var mg4CacheHits: Long = 0
   var mg4CacheMisses: Long = 0
   var mg4CacheMissNanos: Long = 0    // 미스 self-time (재파티션 비용 — 상각 신호)
+  var mg4CacheHitNanos: Long = 0     // 히트 self-time (verdict 재확인 포함 — G-b4 준비)
   var mg4LazyVerifyChecks: Long = 0  // 병렬 검증 대조 횟수
+
+  // === mgroup4 Phase G-b2 — 경계 reduce (T3/T5) 전이 캐시 (설계 §4 G-b2) ===
+  //
+  // 대상 (설계 §2.2 축 2, §2.4 경계 reduce 전이 캐시): reduce 가 window 안 **group 노드**에
+  // 도달할 때의 멤버별 edge 조회 (memberSingletonsForEdge + tipEdge/midEdge 조회). group 노드가
+  // K 멤버면 K 개 singleton 을 물질화하고 K 번 edge 조회 (Pair 할당 + HashMap). 이 중 다수는
+  // edge action 이 없어(?: continue) 물질화한 singleton 이 버려진다. 캐시는 **어느 멤버가 edge
+  // action 을 갖고 그것이 무엇인지**를 (정렬 멤버 템플릿, reduce 타깃) 키로 저장 — edge 조회·
+  // 버려질 singleton 물질화를 스킵. 히트 시 그 멤버에 대해서만 singleton 을 만들어 applyEdgeAction.
+  //
+  // ★ 함정 (G-b1 원칙 준수 — gen 완전 제외): 키/값은 **gen-무관 템플릿**뿐이다. tipEdge 조회는
+  //   이미 (kernelTemplate=(symbolId,pointer), replaceMgroupId) 로 gen-free 키잉 (Mgroup4Parser
+  //   .kt:384). midEdge 는 ((symbolId,pointer), (symbolId,pointer)) — 역시 gen-free. 그래서 조회
+  //   결과(EdgeActionPlain 참조)는 gen 무관 → 캐시가 정확. applyEdgeAction 은 히트에서도 멤버별
+  //   런타임 gen 으로 재실행 (조건/보고 방출은 캐시 안 함) → byte-parity 자명하게 불변.
+  //
+  // ★ 함정 (지문 금지 — 정확 키): 키는 정렬 멤버 템플릿의 **정확 리스트** + 타깃 int. 지문으로
+  //   축약하면 서로 다른 group 이 같은 edge 결정으로 접혀 오답 (G-b0 CanonKey 계약과 동형).
+  //
+  // ★ 함정 (n=1 제로코스트): group 노드가 없으면(memberSingletonsForEdge 가 singleton 1개) 이
+  //   캐시는 조회조차 안 한다 — 아래 두 진입점이 members.size>=2 (group) 일 때만 캐시 경로.
+  //   singleton 경로는 현행 그대로 (조회 1회) — n=1 은 group 이 없어 항상 singleton.
+
+  // 경계 edge 캐시 키 — (정렬 멤버 템플릿 리스트, reduce 타깃). tip: 타깃=replaceMgroupId,
+  // isTip=true. mid: 타깃=tip 템플릿을 packTemplate 로 packed (Long — 충돌 없는 20비트 pointer),
+  // isTip=false. 멤버 템플릿은 (symbolId, pointer) 를 packed Long 리스트로 (정렬 — group 멤버는
+  // 이미 정렬돼 있어 그대로; 방어적 정렬). 정확 키 (지문 아님) — 구조적 equals/hashCode.
+  // ★ 함정 (타깃 packing 충돌 금지): tip 타깃(replaceMgroupId)과 mid 타깃(packed 템플릿)은
+  //   isTip 이 갈라 절대 안 섞인다. mid packed 는 packTemplate(20비트 pointer) 로 pointer<4096
+  //   가정 없이 안전 (초기 오구현의 12비트 pointer 는 충돌 위험이었음).
+  private class BoundaryKey(
+    val memberTemplates: List<Long>,  // packed (symbolId<<20 | pointer), 정렬
+    val target: Long,                 // tip: replaceMgroupId, mid: packTemplate(tip)
+    val isTip: Boolean,
+  ) {
+    private val _hash: Int = run {
+      var h = if (isTip) 1 else 2
+      for (t in memberTemplates) h = 31 * h + t.hashCode()
+      h = 31 * h + target.hashCode()
+      h
+    }
+    override fun hashCode(): Int = _hash
+    override fun equals(other: Any?): Boolean {
+      if (this === other) return true
+      if (other !is BoundaryKey) return false
+      return isTip == other.isTip && target == other.target && memberTemplates == other.memberTemplates
+    }
+  }
+
+  // 경계 edge 캐시 엔트리 — group 멤버 중 edge action 을 가진 (멤버 index, edge action) 만.
+  // 히트 시 이 리스트만 순회해 그 멤버 singleton 을 만들고 applyEdgeAction (조회·버려질 물질화 스킵).
+  private class BoundaryEntry(
+    val memberEdges: List<Pair<Int, EdgeActionPlain>>,  // (group 멤버 index, edge action)
+  )
+
+  // 파서 인스턴스 수준 경계 전이 캐시 (파스 간 공유 — G-b3). 정확 키.
+  private val boundaryTransitionCache = LinkedHashMap<BoundaryKey, BoundaryEntry>()
+
+  // G-b3: 인스턴스별 LRU 예산 (env 기본값 위에 테스트가 작은 예산으로 오버라이드해 축출 정확성을
+  // 증명). 0 이하 = 무제한. env 값이 기본; setCacheBudgets 로 인스턴스 오버라이드.
+  private var mergeCacheBudget: Int = mg4MergeCacheBudget
+  private var boundaryCacheBudget: Int = mg4BoundaryCacheBudget
+  fun setCacheBudgets(merge: Int, boundary: Int): Mgroup4Parser {
+    mergeCacheBudget = merge; boundaryCacheBudget = boundary; return this
+  }
+
+  // G-b2 카운터 (파스 출력 무영향).
+  var mg4BoundaryCacheHits: Long = 0
+  var mg4BoundaryCacheMisses: Long = 0
+  var mg4BoundaryEvictions: Long = 0
+  var mg4MergeEvictions: Long = 0
+
+  // 멤버 템플릿을 packed Long 으로 (symbolId<<20 | pointer). pointer 는 문법상 유계라 20비트로 충분.
+  private fun packTemplate(symbolId: Int, pointer: Int): Long =
+    (symbolId.toLong() shl 20) or (pointer.toLong() and 0xFFFFFL)
+
+  // group 노드의 멤버 템플릿 packed 리스트 (정렬). group 멤버는 fold 시 canonical 정렬됐지만
+  // (symbolId, pointer, gen) 순이라 gen 제외 후 재정렬 (같은 (sym,ptr) 다른 gen 은 여기서 동일 키).
+  private fun memberTemplateKey(members: List<Kernel>): List<Long> {
+    val out = ArrayList<Long>(members.size)
+    for (m in members) out.add(packTemplate(m.symbolId, m.pointer))
+    out.sort()
+    return out
+  }
+
+  // 경계 edge 조회 (tip). group 노드 → (멤버 index, tipEdgeAction) 리스트. 캐시 미스면 조회 후 저장.
+  // ★ 조회 결과(EdgeActionPlain)는 gen-free 템플릿 키잉이라 gen 무관 — 캐시 정확.
+  private fun tipEdgeMemberLookup(members: List<Kernel>, replaceMgroupId: Int): BoundaryEntry {
+    if (!mg4LazyCacheEnabled) return computeTipEdgeMemberEdges(members, replaceMgroupId)
+    val key = BoundaryKey(memberTemplateKey(members), replaceMgroupId.toLong(), isTip = true)
+    val cached = boundaryTransitionCache[key]
+    if (cached != null) {
+      mg4BoundaryCacheHits++
+      // G-b2 병렬 검증 (R1 확장): 캐시 히트 결과가 직접 조회와 동일한지 대조.
+      if (mg4LazyVerifyEnabled) verifyBoundaryEntry(cached, computeTipEdgeMemberEdges(members, replaceMgroupId), "tip", replaceMgroupId.toLong())
+      return cached
+    }
+    mg4BoundaryCacheMisses++
+    val entry = computeTipEdgeMemberEdges(members, replaceMgroupId)
+    boundaryTransitionCache[key] = entry
+    evictBoundaryIfOverBudget()
+    return entry
+  }
+
+  // 경계 edge 조회 (mid). grandParent group 노드 → (멤버 index, midEdgeAction). tip 템플릿이 타깃.
+  private fun midEdgeMemberLookup(members: List<Kernel>, tipTemplate: KernelTemplatePair): BoundaryEntry {
+    if (!mg4LazyCacheEnabled) return computeMidEdgeMemberEdges(members, tipTemplate)
+    val packedTip = packTemplate(tipTemplate.symbolId, tipTemplate.pointer)
+    val key = BoundaryKey(memberTemplateKey(members), packedTip, isTip = false)
+    val cached = boundaryTransitionCache[key]
+    if (cached != null) {
+      mg4BoundaryCacheHits++
+      if (mg4LazyVerifyEnabled) verifyBoundaryEntry(cached, computeMidEdgeMemberEdges(members, tipTemplate), "mid", packedTip)
+      return cached
+    }
+    mg4BoundaryCacheMisses++
+    val entry = computeMidEdgeMemberEdges(members, tipTemplate)
+    boundaryTransitionCache[key] = entry
+    evictBoundaryIfOverBudget()
+    return entry
+  }
+
+  // G-b2 병렬 검증 — 캐시 히트 엔트리가 직접 재조회와 (멤버 index + edge action 참조) 동일한지.
+  // 불일치 시 즉시 실패. edge action 은 gen-free 템플릿 키잉이라 참조 동등 (===) 이 정확한 대조.
+  private fun verifyBoundaryEntry(cached: BoundaryEntry, fresh: BoundaryEntry, kind: String, target: Long) {
+    var ok = cached.memberEdges.size == fresh.memberEdges.size
+    if (ok) {
+      for (i in cached.memberEdges.indices) {
+        val c = cached.memberEdges[i]; val f = fresh.memberEdges[i]
+        if (c.first != f.first || c.second !== f.second) { ok = false; break }
+      }
+    }
+    if (!ok) {
+      System.err.println("=== MG4_LAZY_VERIFY boundary mismatch ($kind, target=$target) ===")
+      System.err.println("cached: ${cached.memberEdges.map { it.first }}")
+      System.err.println("fresh : ${fresh.memberEdges.map { it.first }}")
+      throw IllegalStateException("MG4_LAZY_VERIFY: boundary cache diverges from direct lookup ($kind target=$target).")
+    }
+  }
+
+  // 실제 tipEdge 조회 (캐시 미스 / 캐시 비활성 / 병렬 검증 기준). 각 멤버 템플릿을 tipEdgeActionsMap
+  // 에서 조회 — edge action 이 있는 멤버만 (index, action) 으로. 순서는 group 멤버 배열 순.
+  private fun computeTipEdgeMemberEdges(members: List<Kernel>, replaceMgroupId: Int): BoundaryEntry {
+    val out = ArrayList<Pair<Int, EdgeActionPlain>>(members.size)
+    for (i in members.indices) {
+      val ea = tipEdgeActionsMap[Pair(members[i].kernelTemplate, replaceMgroupId)] ?: continue
+      out.add(Pair(i, ea))
+    }
+    return BoundaryEntry(out)
+  }
+
+  private fun computeMidEdgeMemberEdges(members: List<Kernel>, tipTemplate: KernelTemplatePair): BoundaryEntry {
+    val out = ArrayList<Pair<Int, EdgeActionPlain>>(members.size)
+    for (i in members.indices) {
+      val ea = midEdgeActionsMap[Pair(members[i].kernelTemplate, tipTemplate)] ?: continue
+      out.add(Pair(i, ea))
+    }
+    return BoundaryEntry(out)
+  }
+
+  // === mgroup4 Phase G-b3 — LRU 예산 가드 (설계 §2.5) ===
+  //
+  // 캐시 엔트리 수가 예산 초과 시 가장 오래전 삽입된(=recency 최하) 엔트리부터 축출한다.
+  // LinkedHashMap 은 삽입 순서를 유지하므로 iterator 의 첫 원소가 가장 오래된 것. 진정한 LRU
+  // (access-order)는 히트마다 재삽입이 필요해 hot path 비용이 크므로, 프로토타입은 **insertion-
+  // order FIFO 근사** 를 쓴다 (regex lazy-DFA 의 "가득 차면 통째로 비우기"보다 부드러운 정책).
+  //
+  // ★ 정확성 계약: 축출은 **정확성에 무영향** — 축출된 State/전이는 다음 조우 시 재구성될 뿐이다
+  //   (미스로 되돌아가 computeXxx / mergeBucketWithPlanCapture 를 재실행). parity 게이트가
+  //   작은 예산으로 이를 증명한다 (multiParseCacheSharing 테스트의 tinyBudget 경로).
+  //
+  // ★ 함정 (예산 0 = 무제한): 실코퍼스는 수천 엔트리(cacheSize≈3-5k)라 상한이 불필요하고,
+  //   상한을 걸면 재구성 미스가 히트율을 떨어뜨린다. 기본 0(무제한) — 상한은 명시적 opt-in.
+  private fun evictBoundaryIfOverBudget() {
+    if (boundaryCacheBudget <= 0) return
+    while (boundaryTransitionCache.size > boundaryCacheBudget) {
+      val oldest = boundaryTransitionCache.keys.iterator().next()
+      boundaryTransitionCache.remove(oldest)
+      mg4BoundaryEvictions++
+    }
+  }
+
+  private fun evictMergeIfOverBudget() {
+    if (mergeCacheBudget <= 0) return
+    while (mergeTransitionCache.size > mergeCacheBudget) {
+      val oldest = mergeTransitionCache.keys.iterator().next()
+      mergeTransitionCache.remove(oldest)
+      mg4MergeEvictions++
+    }
+  }
+
+  // G-b3: 파스 간 공유 캐시 수동 클리어 (축출 정확성 테스트용 — 클리어 후 재파스도 identical).
+  fun clearLazyCaches() {
+    mergeTransitionCache.clear()
+    boundaryTransitionCache.clear()
+  }
 
   // 한 shape 의 **stateSig** (캐시 버킷 키용) — window 노드도 gen **완전 제외** (G-b0 브리지
   // 변형 A 와 동일). node-local 템플릿 (symbolId.pointer[.group][obs]) + tipGroupId + 조건
@@ -1369,10 +1664,14 @@ class Mgroup4Parser(
         mg4CacheMisses++
         mg4CacheMissNanos += System.nanoTime() - t0
         mergeTransitionCache[bucketKey] = entry
+        evictMergeIfOverBudget()
         bucketMerged = bm
       } else {
         mg4CacheHits++
+        // G-b3: 히트 self-time (verdict 재확인 포함) 을 미스와 분리 측정 (opt-in) — G-b4 준비.
+        val h0 = if (mg4HitTimingEnabled) System.nanoTime() else 0L
         bucketMerged = applyTransitionEntry(rows, cached, curGen)
+        if (mg4HitTimingEnabled) mg4CacheHitNanos += System.nanoTime() - h0
       }
       for ((shape, cond) in bucketMerged) {
         val existing = merged[shape]
@@ -1789,22 +2088,25 @@ class Mgroup4Parser(
     val members = node.groupMembers ?: return listOf(node)
     val reportGens = node.groupMemberReportGens
     val out = ArrayList<MilestonePath>(members.size)
-    for (i in members.indices) {
-      out.add(
-        MilestonePath(
-          gen = node.gen,
-          milestone = members[i],
-          parent = node.parent,
-          observingCondSymbolIds = node.observingCondSymbolIds,
-          reportGen = node.reportGen,
-          milestoneReportGen = reportGens?.get(i) ?: node.milestoneReportGen,
-          groupMembers = null,
-          groupMemberReportGens = null,
-        )
-      )
-    }
+    for (i in members.indices) out.add(memberSingletonAt(node, i, members, reportGens))
     return out
   }
+
+  // group 노드의 특정 멤버 index 에 대한 singleton MilestonePath 하나만 만든다 (G-b2 캐시-히트
+  // 경로용 — edge action 이 있는 멤버만 물질화). memberSingletonsForEdge 의 per-member 구성과
+  // **byte-동일** (같은 gen/parent/observing/reportGen, 멤버별 milestone/milestoneReportGen).
+  private fun memberSingletonAt(
+    node: MilestonePath, i: Int, members: List<Kernel>, reportGens: IntArray?,
+  ): MilestonePath = MilestonePath(
+    gen = node.gen,
+    milestone = members[i],
+    parent = node.parent,
+    observingCondSymbolIds = node.observingCondSymbolIds,
+    reportGen = node.reportGen,
+    milestoneReportGen = reportGens?.get(i) ?: node.milestoneReportGen,
+    groupMembers = null,
+    groupMemberReportGens = null,
+  )
 
   // A3 window-exit 완전 분열 (spec item 3, 전체 shape 재구성) — 한 group shape 를 멤버별
   // singleton shape 로 편다. group 노드 자리를 멤버 singleton 으로 바꾸고, 그 위(tip-side)
@@ -1868,8 +2170,9 @@ class Mgroup4Parser(
     mg4CreationMergeable = 0; mg4LateConvergence = 0
     mg4ReduceSplits = 0; mg4WindowExitSplits = 0
     for (i in mg4MergesAtDepth.indices) mg4MergesAtDepth[i] = 0
-    // G-b1 캐시 카운터 (통계만 리셋 — 전이 캐시 자체는 파스 간 공유라 클리어 안 함).
-    mg4CacheHits = 0; mg4CacheMisses = 0; mg4CacheMissNanos = 0; mg4LazyVerifyChecks = 0
+    // G-b1/G-b2/G-b3 캐시 카운터 (통계만 리셋 — 전이 캐시 자체는 파스 간 공유라 클리어 안 함).
+    mg4CacheHits = 0; mg4CacheMisses = 0; mg4CacheMissNanos = 0; mg4CacheHitNanos = 0; mg4LazyVerifyChecks = 0
+    mg4BoundaryCacheHits = 0; mg4BoundaryCacheMisses = 0; mg4BoundaryEvictions = 0; mg4MergeEvictions = 0
   }
   fun reportMg4Stats(): String {
     val meanMerged = if (mg4Gens > 0) mg4MergedShapeSum.toDouble() / mg4Gens else 0.0
@@ -1879,9 +2182,13 @@ class Mgroup4Parser(
     val cacheTotal = mg4CacheHits + mg4CacheMisses
     val hitRate = if (cacheTotal > 0) 100.0 * mg4CacheHits / cacheTotal else 0.0
     val missMs = mg4CacheMissNanos / 1_000_000.0
+    val hitMs = mg4CacheHitNanos / 1_000_000.0
+    val bTotal = mg4BoundaryCacheHits + mg4BoundaryCacheMisses
+    val bHitRate = if (bTotal > 0) 100.0 * mg4BoundaryCacheHits / bTotal else 0.0
     return ("mg4 n=$interiorGroupMaxDepth: gens=$mg4Gens meanBase=%.2f meanMerged=%.2f ratio=%.3f rejectCondDiff=$mg4RejectCondDiff rejectGenObsDiff=$mg4RejectGenObsDiff rejectReportCoordDiff=$mg4RejectReportCoordDiff skipExistingGroup=$mg4SkipExistingGroup creationMergeable=$mg4CreationMergeable lateConvergence=$mg4LateConvergence reduceSplits=$mg4ReduceSplits windowExitSplits=$mg4WindowExitSplits mergesByDepth=[$byDepth] " +
-      "cache[hits=$mg4CacheHits misses=$mg4CacheMisses hitRate=%.1f%% missSelfTime=%.1fms cacheSize=${mergeTransitionCache.size} verifyChecks=$mg4LazyVerifyChecks]")
-      .format(meanBase, meanMerged, ratio, hitRate, missMs)
+      "cache[hits=$mg4CacheHits misses=$mg4CacheMisses hitRate=%.1f%% missSelfTime=%.1fms hitSelfTime=%.1fms cacheSize=${mergeTransitionCache.size} evict=$mg4MergeEvictions verifyChecks=$mg4LazyVerifyChecks] " +
+      "boundaryCache[hits=$mg4BoundaryCacheHits misses=$mg4BoundaryCacheMisses hitRate=%.1f%% cacheSize=${boundaryTransitionCache.size} evict=$mg4BoundaryEvictions]")
+      .format(meanBase, meanMerged, ratio, hitRate, missMs, hitMs, bHitRate)
   }
 
   // 병합 후 main shape 수와 가상 base(멤버 총수)를 누적. group 노드의 members.size 합이 base.

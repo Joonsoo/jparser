@@ -5,6 +5,7 @@ import com.giyeok.jparser.mgroup3.Mgroup3Parser
 import com.giyeok.jparser.mgroup3.gen.Mgroup3ParserGenerator
 import com.giyeok.jparser.mgroup3.proto.Mgroup3ParserData
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
 import java.io.File
@@ -259,6 +260,122 @@ class Mgroup4DifferentialTest {
     println("[MG4-DIFF] cacheBackedMergeMatchesRepartition OK — miss/hit/verdict-recheck all match re-partition")
   }
 
+  // === Phase G-b3 — 파스 간 캐시 공유 정확성 게이트 ===
+
+  // 한 파서 인스턴스로 여러 입력을 연속 파스했을 때, 각 파스 결과(kernelsHistory)가 fresh
+  // 파서 단일-파스와 byte-identical 인지 (공유 캐시가 오염 안 냄). asdl 4입력 연속 + n∈{2,4,6}.
+  // ★ 이 게이트가 G-b3 의 핵심 계약: 캐시가 파스 간 이월되지만 각 파스는 독립적 결과.
+  @Test
+  fun multiParseCacheSharingByteIdentical() {
+    val analysis = `MetaLanguage3$`.`MODULE$`.analyzeGrammar(asdlGrammar, "Defs")
+    val data = Mgroup3ParserGenerator(analysis.ngrammar()).generate()
+    val inputs = listOf(
+      "module M { foo = Bar(int x) | Baz }",
+      "module M { a = (x y) }",
+      "module Mod { foo = Bar(int x, str y) | Baz | Qux\n  attributes (int z) }",
+      "module M {\n  -- comment here\n  foo = Bar(int x)\n}",
+    )
+    for (n in ns) {
+      // 공유 파서 (캐시 이월) — 4입력 연속.
+      val shared = Mgroup4Parser(data, interiorGroupMaxDepth = n)
+      // 두 번 돌려 워밍업/재조우도 검증 (1회차 미스+2회차 히트 이월).
+      repeat(2) { round ->
+        for ((i, inp) in inputs.withIndex()) {
+          val sharedHist = shared.kernelsHistory(shared.parse(inp))
+          // fresh 파서 단일-파스 (캐시 콜드) 기준.
+          val fresh = Mgroup4Parser(data, interiorGroupMaxDepth = n)
+          val freshHist = fresh.kernelsHistory(fresh.parse(inp))
+          assertEquals(freshHist.size, sharedHist.size) {
+            "n=$n round=$round input[$i]: shared-parser history size differs from fresh"
+          }
+          var firstDiff = -1
+          for (g in freshHist.indices) if (freshHist[g].kernels != sharedHist[g].kernels) { firstDiff = g; break }
+          assertEquals(-1, firstDiff) {
+            "n=$n round=$round input[$i]: shared-cache parse diverges from fresh at gen $firstDiff"
+          }
+        }
+      }
+    }
+    println("[MG4-DIFF] multiParseCacheSharingByteIdentical OK — shared cache never contaminates (asdl 4 inputs x 2 rounds, n=$ns)")
+  }
+
+  // 캐시 클리어 후 재파스가 identical 인지 (수동 클리어 = 축출 극한) + 인위적으로 작은 LRU 예산
+  // 파서도 무제한 캐시 파서와 byte-identical (축출돼도 재구성만 되므로 정확성 불변).
+  //  (a) tinyBudget 파서: 예산 1 (거의 항상 축출) — 진짜 LRU 축출 경로 강제.
+  //  (b) cleared 파서: 매 파스 전 clearLazyCaches — "가득 찬 캐시가 매번 통째 축출" 극한.
+  // 둘 다 fresh 파서 단일-파스와 byte-identical 이어야 (재구성 정확성).
+  @Test
+  fun cacheClearAndEvictionByteIdentical() {
+    val analysis = `MetaLanguage3$`.`MODULE$`.analyzeGrammar(asdlGrammar, "Defs")
+    val data = Mgroup3ParserGenerator(analysis.ngrammar()).generate()
+    val inputs = listOf(
+      "module Mod { foo = Bar(int x, str y) | Baz | Qux\n  attributes (int z) }",
+      "module M { a = (x y) }",
+    )
+    for (n in ns) {
+      // tinyBudget: 예산 1 — 매 미스마다 이전 엔트리 축출 (LRU 경로 실제 발화).
+      val tiny = Mgroup4Parser(data, interiorGroupMaxDepth = n).setCacheBudgets(merge = 1, boundary = 1)
+      val cleared = Mgroup4Parser(data, interiorGroupMaxDepth = n)
+      for (inp in inputs) {
+        // 기준: fresh 파서 단일-파스 (콜드).
+        val fresh = Mgroup4Parser(data, interiorGroupMaxDepth = n)
+        val freshHist = fresh.kernelsHistory(fresh.parse(inp))
+
+        if (mg4ShapeStatsEnabled) tiny.resetMg4Stats()
+        val tinyHist = tiny.kernelsHistory(tiny.parse(inp))
+        assertEquals(freshHist.size, tinyHist.size) { "n=$n: tiny-budget history size differs" }
+        var d1 = -1
+        for (g in freshHist.indices) if (freshHist[g].kernels != tinyHist[g].kernels) { d1 = g; break }
+        assertEquals(-1, d1) { "n=$n: tiny-budget LRU-evicted parse diverges at gen $d1" }
+
+        cleared.clearLazyCaches()
+        val clearedHist = cleared.kernelsHistory(cleared.parse(inp))
+        var d2 = -1
+        for (g in freshHist.indices) if (freshHist[g].kernels != clearedHist[g].kernels) { d2 = g; break }
+        assertEquals(-1, d2) { "n=$n: cache-clear reconstruction diverges at gen $d2" }
+      }
+      if (mg4ShapeStatsEnabled) println("[MG4-DIFF] tinyBudget n=$n evictions: ${tiny.reportMg4Stats()}")
+    }
+    println("[MG4-DIFF] cacheClearAndEvictionByteIdentical OK — clear/LRU-evict reconstruction is byte-exact (n=$ns)")
+  }
+
+  // G-b3 축출 정확성 (강한 형태) — 실코퍼스(mulang, group 노드·merge 활발)에서 작은 예산으로
+  // LRU 축출을 **실제 발화**시키고 (evict>0 강제), 무제한 캐시 파서와 byte-identical 확인.
+  // 축출은 재구성만 유발하므로 정확성 불변임을 실코퍼스 규모에서 증명. MG4_DIFF 게이트.
+  @EnabledIfEnvironmentVariable(named = "MG4_DIFF", matches = "1")
+  @Test
+  fun lruEvictionRealCorpusByteIdentical() {
+    // 캐시 카운터(mg4MergeEvictions 등)는 MG4_SHAPE_STATS 무관 항상 추적 — 별도 게이트 불요.
+    val pb = File("mgroup3-native/tests/fixtures/parser_generated/mulang/data.pb")
+    check(pb.exists()) { "mulang parserdata not found: ${pb.absolutePath}" }
+    val data = Mgroup3ParserData.parseFrom(pb.readBytes())
+    val inputPath = listOf("../mulang/examples/chain_boundaries.mu", "../../mulang/examples/chain_boundaries.mu")
+      .firstOrNull { Path(it).exists() }
+    check(inputPath != null) { "chain_boundaries.mu not found" }
+    val input = Path(inputPath).readText()
+    for (n in ns) {
+      // 무제한 기준.
+      val unbounded = Mgroup4Parser(data, interiorGroupMaxDepth = n)
+      val refHist = unbounded.kernelsHistory(unbounded.parse(input))
+      // 작은 예산 (merge 64, boundary 8) — 실코퍼스 수천 State 라 축출 다발.
+      val bounded = Mgroup4Parser(data, interiorGroupMaxDepth = n).setCacheBudgets(merge = 64, boundary = 8)
+      bounded.resetMg4Stats()
+      val boundedHist = bounded.kernelsHistory(bounded.parse(input))
+      assertEquals(refHist.size, boundedHist.size) { "mulang n=$n: bounded history size differs" }
+      var firstDiff = -1
+      for (g in refHist.indices) if (refHist[g].kernels != boundedHist[g].kernels) { firstDiff = g; break }
+      assertEquals(-1, firstDiff) { "mulang n=$n: LRU-bounded parse diverges from unbounded at gen $firstDiff" }
+      // 축출이 실제 발화했는지 (게이트의 "인위적 작은 예산 축출" 증명). 단, 캐시 전역 비활성
+      // (MG4_LAZY_CACHE=0) 면 캐시 미접촉이라 축출도 0 — 그 경우는 byte-identical 만 검증 (축출
+      // 경로가 없으니 assert 스킵). 캐시 활성 정상 경로에서는 축출이 반드시 발화해야 한다.
+      if (mg4LazyCacheEnabled) {
+        assertTrue(bounded.mg4MergeEvictions > 0) { "mulang n=$n: expected merge evictions with budget=64, got ${bounded.mg4MergeEvictions}" }
+      }
+      println("[MG4-DIFF] lruEviction mulang n=$n: mergeEvict=${bounded.mg4MergeEvictions} boundaryEvict=${bounded.mg4BoundaryEvictions} lazyCache=$mg4LazyCacheEnabled — byte-identical to unbounded")
+    }
+    println("[MG4-DIFF] lruEvictionRealCorpusByteIdentical OK — real-corpus LRU eviction is byte-exact")
+  }
+
   @EnabledIfEnvironmentVariable(named = "MG4_DIFF", matches = "1")
   @Test
   fun mulangChainBoundariesDifferential() {
@@ -286,6 +403,50 @@ class Mgroup4DifferentialTest {
     val input = File("es5-corpus/json2.js")
     check(input.exists()) { "json2.js not found: ${input.absolutePath}" }
     assertHistoryInvariant("es5/json2", data, input.readText())
+  }
+
+  // G-b3 (iii) — 파스 간 공유가 히트율을 얼마나 올리는가 (G-b1 미결 질문: mulang 낮은 히트율).
+  // 같은 파서 인스턴스로 2회 연속 파스하며 1회차/2회차 히트율을 분리 측정. 2회차는 1회차가
+  // 채운 캐시를 이월받아 (같은 문법·같은 입력) 히트율이 크게 오른다 — 워처 다중 파스 상각의 신호.
+  // 측정 전용 (MG4_DIFF 게이트) — 파스 출력 무영향, byte-parity 는 위 게이트들이 별도 검증.
+  @EnabledIfEnvironmentVariable(named = "MG4_DIFF", matches = "1")
+  @Test
+  fun crossParseHitRateLift() {
+    // 캐시 히트/미스 카운터는 MG4_SHAPE_STATS 무관 항상 추적 — 측정만 하므로 게이트 불요.
+    data class Corpus(val label: String, val pb: File, val input: String)
+    val es5Pb = File(
+      "/private/tmp/claude-501/-Users-joonsoo-Documents-workspace-jparser/" +
+        "24b37725-2f65-49f2-9454-d72679e67d3f/scratchpad/mgroup4-phase0/es5-mg3.pb"
+    )
+    val mulangPb = File("mgroup3-native/tests/fixtures/parser_generated/mulang/data.pb")
+    val mulangInput = listOf("../mulang/examples/chain_boundaries.mu", "../../mulang/examples/chain_boundaries.mu")
+      .firstOrNull { Path(it).exists() }
+    val corpora = buildList {
+      if (es5Pb.exists() && File("es5-corpus/json2.js").exists())
+        add(Corpus("es5/json2", es5Pb, File("es5-corpus/json2.js").readText()))
+      if (mulangPb.exists() && mulangInput != null)
+        add(Corpus("mulang/chain_boundaries", mulangPb, Path(mulangInput).readText()))
+    }
+    fun hitRate(h: Long, m: Long): Double = if (h + m > 0) 100.0 * h / (h + m) else 0.0
+    for (corpus in corpora) {
+      val data = Mgroup3ParserData.parseFrom(corpus.pb.readBytes())
+      for (n in ns) {
+        val p = Mgroup4Parser(data, interiorGroupMaxDepth = n)
+        // 1회차 (콜드 캐시).
+        p.resetMg4Stats(); p.parse(corpus.input)
+        val m1Hit = p.mg4CacheHits; val m1Miss = p.mg4CacheMisses
+        val b1Hit = p.mg4BoundaryCacheHits; val b1Miss = p.mg4BoundaryCacheMisses
+        // 2회차 (1회차가 채운 캐시 이월 — resetMg4Stats 는 카운터만 리셋, 캐시 유지).
+        p.resetMg4Stats(); p.parse(corpus.input)
+        val m2Hit = p.mg4CacheHits; val m2Miss = p.mg4CacheMisses
+        val b2Hit = p.mg4BoundaryCacheHits; val b2Miss = p.mg4BoundaryCacheMisses
+        println(
+          "[MG4-XPARSE] ${corpus.label} n=$n merge[1st=%.1f%% (h=$m1Hit m=$m1Miss) 2nd=%.1f%% (h=$m2Hit m=$m2Miss)] boundary[1st=%.1f%% (h=$b1Hit m=$b1Miss) 2nd=%.1f%% (h=$b2Hit m=$b2Miss)]"
+            .format(hitRate(m1Hit, m1Miss), hitRate(m2Hit, m2Miss), hitRate(b1Hit, b1Miss), hitRate(b2Hit, b2Miss))
+        )
+      }
+    }
+    println("[MG4-DIFF] crossParseHitRateLift OK — 1st/2nd-parse hit rates reported")
   }
 
   // A2/A3 거친 wall-clock 신호 (정식 A4 측정 전 신호용) — MG4_WALLCLOCK=1 게이트.

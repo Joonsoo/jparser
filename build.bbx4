@@ -875,12 +875,25 @@ def runMgroup4DiffTest() {
 // mgroup4 Phase G-b1: lazy 병합 전이 캐시 병렬 검증 모드 (R1). 캐시 히트 경로가 만든
 // merged 결과를 현행 재파티션과 나란히 계산해 equals 대조 (MG4_LAZY_VERIFY=1). 게이트는
 // 이 모드를 켠 채로도 byte-parity 전부 그린이어야 한다. MG4_SHAPE_STATS 로 히트율도 출력.
+// G-b2 확장: 경계 edge 캐시 경로도 (캐시 조회 vs 직접 조회) 대조.
 @action
 def runMgroup4LazyVerify() {
   runJUnitTestSuiteWithEnv(
     mgroup4.test,
     .some("com.giyeok.jparser.mgroup4.Mgroup4DifferentialTest"),
     {"MG4_DIFF": "1", "MG4_SHAPE_STATS": "1", "MG4_LAZY_VERIFY": "1"},
+  )
+}
+
+// mgroup4 Phase G-b2/G-b3: 캐시 OFF 로 byte-parity (게이트 (i) 캐시 on/off 양쪽). merge 캐시와
+// 경계 edge 캐시를 모두 비활성(MG4_LAZY_CACHE=0)한 채 n∈{1,2,4,6} kernelsHistory 동일성 확인 —
+// 캐시 코드가 파스 결과에 영향 없음을 캐시-없는 경로로 독립 검증한다.
+@action
+def runMgroup4DiffTestCacheOff() {
+  runJUnitTestSuiteWithEnv(
+    mgroup4.test,
+    .some("com.giyeok.jparser.mgroup4.Mgroup4DifferentialTest"),
+    {"MG4_DIFF": "1", "MG4_SHAPE_STATS": "1", "MG4_LAZY_CACHE": "0"},
   )
 }
 
