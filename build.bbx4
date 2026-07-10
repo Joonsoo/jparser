@@ -872,6 +872,18 @@ def runMgroup4DiffTest() {
   )
 }
 
+// mgroup4 Phase G-b1: lazy 병합 전이 캐시 병렬 검증 모드 (R1). 캐시 히트 경로가 만든
+// merged 결과를 현행 재파티션과 나란히 계산해 equals 대조 (MG4_LAZY_VERIFY=1). 게이트는
+// 이 모드를 켠 채로도 byte-parity 전부 그린이어야 한다. MG4_SHAPE_STATS 로 히트율도 출력.
+@action
+def runMgroup4LazyVerify() {
+  runJUnitTestSuiteWithEnv(
+    mgroup4.test,
+    .some("com.giyeok.jparser.mgroup4.Mgroup4DifferentialTest"),
+    {"MG4_DIFF": "1", "MG4_SHAPE_STATS": "1", "MG4_LAZY_VERIFY": "1"},
+  )
+}
+
 // mgroup4 거친 wall-clock 신호 (A4 정식 측정 전 신호용) — json2 n=1 vs n=6.
 @action
 def runMgroup4WallClock() {
@@ -893,6 +905,19 @@ def runMgroup4G0Probe() {
     // 상태 수집이 수십만 규모라 기본 힙으론 OOM — es5Corpus 액션과 동일하게 힙 상향.
     // MG4_G0_N1=1 이면 n=1 (방법론 검증 baseline) 도 포함.
     {"MG4_G0_STATS": "1", "MG4_G0_N1": "1", "JAVA_TOOL_OPTIONS": "-Xmx12g"},
+  )
+}
+
+// mgroup4 Phase G-b0: State 캐노니컬라이즈 → 정확 키 id 브리지 검증
+// (mgroup4/docs/phase_g_design.md §4 G-b0). (i) gen 불변성 (구조·조건), (ii) n=1
+// State↔tipGroup 함수성, (iii) G0 대비 State 수 정합 보고. 계측 전용 — 파스 무영향.
+// MG4_G0_STATS=1 이면 대형 코퍼스(es5) 브리지 보고도 포함.
+@action
+def runMgroup4StateBridgeTest() {
+  runJUnitTestSuiteWithEnv(
+    mgroup4.test,
+    .some("com.giyeok.jparser.mgroup4.G0StateBridgeTest"),
+    {"MG4_G0_STATS": "1", "JAVA_TOOL_OPTIONS": "-Xmx12g"},
   )
 }
 

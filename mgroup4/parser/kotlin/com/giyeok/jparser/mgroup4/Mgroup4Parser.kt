@@ -30,6 +30,18 @@ val mg4G0StatsEnabled: Boolean =
 val mg4MergeProfileEnabled: Boolean =
   System.getenv("MG4_MERGE_PROFILE") != null || System.getProperty("mg4.mergeProfile") != null
 
+// mgroup4 Phase G-b1 — lazy 병합 전이 캐시 opt-in (설계 §2.4, §4 G-b1). 기본 활성
+// (env MG4_LAZY_CACHE=0 으로 강제 비활성 가능 — baseline 대조용). n=1 은 병합 패스
+// 자체가 미실행이라 캐시 코드도 미실행 (제로코스트 유지).
+val mg4LazyCacheEnabled: Boolean =
+  (System.getenv("MG4_LAZY_CACHE") ?: System.getProperty("mg4.lazyCache")) != "0"
+
+// mgroup4 Phase G-b1 — 병렬 검증 모드 (R1). env MG4_LAZY_VERIFY=1 이면 캐시 히트 경로가
+// 만든 merged 결과를 현행 재파티션 결과와 나란히 계산해 equals 대조, 불일치 시 즉시 실패
+// + 최소 재현 덤프. 게이트 실행은 이 모드를 켠 채로도 전부 그린이어야 한다.
+val mg4LazyVerifyEnabled: Boolean =
+  System.getenv("MG4_LAZY_VERIFY") != null || System.getProperty("mg4.lazyVerify") != null
+
 class Mgroup4Parser(
   val data: Mgroup3ParserData,
   // mgroup4: interior milestone group 의 window 크기 n (tip 쪽 마지막 n 개 노드까지
@@ -880,7 +892,11 @@ class Mgroup4Parser(
     if (interiorGroupMaxDepth >= 2) {
       val mainEvolved = pathsEvolved[ctx.mainRoot]
       if (mainEvolved != null && mainEvolved.size >= 2) {
-        pathsEvolved[ctx.mainRoot] = mergeInteriorGroups(mainEvolved, interiorGroupMaxDepth, gen)
+        // Phase G-b1: 캐시 활성 시 캐시-백드 병합 (미스=현행 재파티션 1회, 히트=파티션
+        // 결정 재사용). 비활성이면 현행 재파티션 그대로.
+        pathsEvolved[ctx.mainRoot] =
+          if (mg4LazyCacheEnabled) mergeInteriorGroupsCached(mainEvolved, interiorGroupMaxDepth, gen)
+          else mergeInteriorGroups(mainEvolved, interiorGroupMaxDepth, gen)
       }
     }
 
@@ -892,6 +908,9 @@ class Mgroup4Parser(
     // Phase G0: main root live shape (post-merge, pre-filter) 를 관찰. group 은
     // G0SuffixSetStats 가 멤버로 펼쳐 반영 → 병합 여부와 무관하게 같은 live path 집합.
     if (mg4G0StatsEnabled) g0Stats?.observe(mainPathsEvolved, gen)
+    // Phase G-b0: State 캐노니컬라이즈 → 정확 키 id 브리지 (계측 전용, 파스 무영향).
+    // g0Stats 와 같은 관찰 지점 (post-merge, pre-filter) — 병합 여부 무관 같은 live path 집합.
+    stateBridge?.observe(mainPathsEvolved, gen)
 
     tPhase = phaseMark(5, tPhase)
 
@@ -1181,6 +1200,428 @@ class Mgroup4Parser(
     return merged
   }
 
+  // === mgroup4 Phase G-b1 — lazy 병합 전이 캐시 (설계 §2.4, §4 G-b1) ===
+  //
+  // 대상 (설계 §2.7): mergeInteriorGroups 의 **per-gen 재파티션**을 State 전이 캐시로.
+  // 캐시 미스 = 첫 조우: 현행 재파티션(버킷팅+verdict+fold)을 1회 수행하고 **파티션 결정**
+  // (어떤 입력 shape 들이 어느 depth 에서 group 으로 접히는가)을 gen-정규화 시그니처로 캐시.
+  // 캐시 히트: 버킷팅·verdict 순회를 건너뛰고 캐시된 파티션 결정대로 fold 만 재수행해
+  // merged 맵을 직접 구성.
+  //
+  // ★ 함정 (템플릿-바인딩 경계 — 캐시 정확성의 핵심): 캐시 키/값은 **gen-정규화 시그니처**
+  //   (curGen 앵커 상대 오프셋) 로만 표현하고, 실제 MilestonePath 인스턴스(gen 포함) 는
+  //   히트 시점의 입력 shape 에서 가져온다. fold 는 항상 실제 인스턴스로 수행 (foldGroup)
+  //   → realized R·byte-parity 불변 (같은 병합을 verdict 재계산 없이 쌀 뿐).
+  //
+  // ★ 함정 (파티션 결정의 순서 독립성): 캐시된 결정은 입력 shape 의 iteration 순서가 아니라
+  //   **gen-정규화 시그니처**로 그룹을 지정한다. 히트 시 입력 shape 를 시그니처로 매칭해
+  //   같은 그룹을 재구성 — 순서가 달라도 같은 파티션. verdict 가 gen(절대) 에 의존하지만
+  //   같은 State(같은 캐시 키) 안에서 gen 관계가 동일하므로 정규화 시그니처가 결정을 못박는다.
+
+  // 전이 캐시 엔트리: 한 State(입력 시그니처 멀티셋) 의 병합 파티션 결정.
+  // groups: 각 원소 = (depth d, 그 group 을 이루는 멤버 시그니처들의 정렬 리스트).
+  //   히트 시 입력 shape 를 시그니처로 버킷팅해 각 group 을 foldGroup.
+  // 파티션에 안 든 시그니처는 singleton 통과 (groups 에 없는 입력은 그대로).
+  private class TransitionEntry(
+    val groups: List<Pair<Int, List<String>>>,  // (depth, 멤버 시그니처 정렬 리스트)
+  )
+
+  // 파서 인스턴스 수준 전이 캐시 (파스 간 공유 — 설계 §2.5; 프로토타입 단일 스레드 가정).
+  // 키 = State 시그니처 (입력 shape 들의 gen-정규화 구조 멀티셋 문자열). 정확 키 (충돌 없음).
+  private val mergeTransitionCache = HashMap<String, TransitionEntry>()
+
+  // G-b1 카운터 (mg4 stats 확장) — 파스 출력 무영향.
+  var mg4CacheHits: Long = 0
+  var mg4CacheMisses: Long = 0
+  var mg4CacheMissNanos: Long = 0    // 미스 self-time (재파티션 비용 — 상각 신호)
+  var mg4LazyVerifyChecks: Long = 0  // 병렬 검증 대조 횟수
+
+  // 한 shape 의 **stateSig** (캐시 버킷 키용) — window 노드도 gen **완전 제외** (G-b0 브리지
+  // 변형 A 와 동일). node-local 템플릿 (symbolId.pointer[.group][obs]) + tipGroupId + 조건
+  // 템플릿. 같은 stateSig = 같은 State → 캐시 재사용의 단위 (gen-무관이라 ~96 gen 재사용).
+  // reportGen 제외 (equals 계약과 정합).
+  //
+  // ★ 함정 (발산 꼬리 — G0SuffixSetStats.kt:20-25 v1 실수 방지): chain 전체 gen 오프셋을 담으면
+  //   prefix 노드 오프셋이 curGen 증가에 비례해 발산 (히트 0%). gen 을 완전 제외해 발산 꼬리
+  //   없음 — gen 의존 병합 결정은 히트 시 mergeVerdictAtDepth 재확인이 담당 (applyTransitionEntry).
+  //
+  // ★ 함정 (State 재사용 실현): 캐시 버킷 키에 window gen 을 넣으면 (초기 오구현) cacheSize 가
+  //   G-b0 State 수의 ~12배로 부풀어 히트가 안 난다. gen 은 stateSig 에서 완전 제외 — verdict
+  //   재확인이 gen 축을 정확히 처리하므로 캐시 키는 gen-무관으로 최대한 굵게.
+  private fun stateSignature(shape: PathShape, cond: AcceptCondition, @Suppress("UNUSED_PARAMETER") curGen: Int): String {
+    val base = StringBuilder()
+    base.append("tg").append(shape.tipGroupId)
+    val chain = ArrayList<MilestonePath>()
+    var cur = shape.milestonePath
+    while (cur != null) { chain.add(cur); cur = cur.parent }
+    chain.reverse()
+    for (node in chain) {
+      base.append('|')
+      val g = node.groupMembers
+      if (g != null) {
+        base.append('G')
+        for (m in g) base.append(m.symbolId).append('.').append(m.pointer).append(',')
+      } else {
+        base.append(node.milestone.symbolId).append('.').append(node.milestone.pointer)
+      }
+      if (node.observingCondSymbolIds.isNotEmpty()) {
+        base.append('o').append(node.observingCondSymbolIds.joinToString("_"))
+      }
+    }
+    base.append('#').append(condSignature(cond, curGen))
+    return base.toString()
+  }
+
+  // 조건 시그니처 — G0StateBridge.condTemplate 와 같은 규칙 (curGen 앵커 상대 오프셋).
+  private fun condSignature(cond: AcceptCondition, anchor: Int): String = when (cond) {
+    Always -> "T"
+    Never -> "F"
+    is And -> {
+      val parts = ArrayList<String>(cond.size)
+      cond.forEach { parts.add(condSignature(it, anchor)) }
+      parts.sort()
+      "&(${parts.joinToString(",")})"
+    }
+    is Or -> {
+      val parts = ArrayList<String>(cond.size)
+      cond.forEach { parts.add(condSignature(it, anchor)) }
+      parts.sort()
+      "|(${parts.joinToString(",")})"
+    }
+    is NoLongerMatch -> "NLM${cond.symbolId}@${anchor - cond.startGen}:${anchor - cond.minEndGen}"
+    is NeedLongerMatch -> "NDLM${cond.symbolId}@${anchor - cond.startGen}:${anchor - cond.minEndGen}"
+    is Exists -> "EX${cond.symbolId}@${anchor - cond.startGen}"
+    is NotExists -> "NEX${cond.symbolId}@${anchor - cond.startGen}"
+    is Unless -> "UN${cond.symbolId}@${anchor - cond.startGen}:${anchor - cond.endGen}"
+    is OnlyIf -> "OI${cond.symbolId}@${anchor - cond.startGen}:${anchor - cond.endGen}"
+  }
+
+  // 한 shape 의 window 밖 마지막 노드 (= 공유 prefix 인스턴스, State 버킷 키). window =
+  // tip-most (n-1) 노드. window 가 전체 chain 을 덮으면(짧은 체인) null. G-b0 브리지의
+  // 버킷팅과 동일 축 — 병합은 공유 prefix 안에서만 일어나므로 (재파티션 버킷 키가 이미
+  // prefixHash 를 담음) prefix 로 top-level 그룹핑해도 병합 결과 불변.
+  private fun windowPrefixNode(shape: PathShape): MilestonePath? {
+    val L = shape.milestonePath?.chainDepthCached() ?: 0
+    val windowNodes = (interiorGroupMaxDepth - 1).coerceAtMost(L)
+    val prefixEnd = L - windowNodes // prefix 노드 수
+    if (prefixEnd <= 0) return null
+    // tip 에서 windowNodes 칸 위 = prefix 의 마지막 노드.
+    var node = shape.milestonePath
+    var up = windowNodes
+    while (up > 0 && node != null) { node = node.parent; up-- }
+    return node
+  }
+
+  // State 버킷 키 = (window-prefix 인스턴스, tipGroupId, 조건 템플릿). G-b0 브리지의 State
+  // 정의(§1.2 SuffixSetState = WindowSlots + tipGroupId + condClass)와 동일 축. 병합은 이
+  // 3중이 동일한 shape 들 사이에서만 일어나므로(재파티션 버킷 키가 tipGroupId 를 담고
+  // verdict 가 REJECT_COND 로 조건을 나눔), 이 3중으로 top-level 그룹핑해도 병합 결과 불변.
+  // ★ 함정: prefix 만으로 버킷팅하면 한 prefix 아래 여러 (tip, cond) 조합이 멀티셋 키에
+  //   섞여 gen 마다 유니크해진다 (실측 히트 <5%). tip·cond 를 버킷 축으로 올려야 State
+  //   재사용(~96 gen)이 실현된다.
+  private data class StateBucketKey(
+    val prefix: MilestonePath?,
+    val tipGroupId: Int,
+    val condTemplate: String,
+  )
+
+  // 캐시-백드 병합 (설계 §2.4, §4 G-b1). main path map 을 State 버킷으로 나누고,
+  // 각 버킷을 **State 단위**로 캐싱한다 — 이것이 State 재사용률(~96 gen)을 실현하는 핵심.
+  // 미스: 그 버킷만 재파티션 + 파티션 결정 캡처 → 캐시. 히트: 결정 재사용 (verdict 스킵).
+  // 병렬 검증 모드면 전체 결과를 현행 재파티션과 equals 대조.
+  fun mergeInteriorGroupsCached(
+    mainPathMap: Map<PathShape, AcceptCondition>,
+    n: Int,
+    curGen: Int,
+  ): Map<PathShape, AcceptCondition> {
+    val merged = LinkedHashMap<PathShape, AcceptCondition>()
+    // State 버킷팅 (prefix, tipGroupId, condTemplate) — group 노드 이미 있는 shape 는 병합
+    // 후보 아님, 즉시 통과.
+    val stateBuckets = LinkedHashMap<StateBucketKey, ArrayList<Pair<PathShape, AcceptCondition>>>()
+    for ((shape, cond) in mainPathMap) {
+      if (shapeHasGroup(shape)) {
+        if (mg4ShapeStatsEnabled) mg4SkipExistingGroup++
+        val existing = merged[shape]
+        merged[shape] = if (existing == null) cond else Or.from(existing, cond)
+        continue
+      }
+      val bk = StateBucketKey(windowPrefixNode(shape), shape.tipGroupId, condSignature(cond, curGen))
+      stateBuckets.getOrPut(bk) { ArrayList() }.add(Pair(shape, cond))
+    }
+
+    for ((_, rows) in stateBuckets) {
+      if (rows.size < 2) {
+        // 단독 버킷은 병합 불가 — 캐시 불필요, 그대로 통과.
+        for ((shape, cond) in rows) {
+          val existing = merged[shape]
+          merged[shape] = if (existing == null) cond else Or.from(existing, cond)
+        }
+        continue
+      }
+      // 버킷 State 키 = 버킷 안 shape 들의 gen-정규화 시그니처 멀티셋. tipGroupId·조건이
+      // 시그니처에 포함되므로 같은 prefix 라도 다른 tip/조건은 다른 State 로 갈린다.
+      val bucketKey = bucketStateKey(rows, curGen)
+      val cached = mergeTransitionCache[bucketKey]
+      val bucketMerged: Map<PathShape, AcceptCondition>
+      if (cached == null) {
+        val t0 = System.nanoTime()
+        val (bm, entry) = mergeBucketWithPlanCapture(rows, n, curGen)
+        mg4CacheMisses++
+        mg4CacheMissNanos += System.nanoTime() - t0
+        mergeTransitionCache[bucketKey] = entry
+        bucketMerged = bm
+      } else {
+        mg4CacheHits++
+        bucketMerged = applyTransitionEntry(rows, cached, curGen)
+      }
+      for ((shape, cond) in bucketMerged) {
+        val existing = merged[shape]
+        merged[shape] = if (existing == null) cond else Or.from(existing, cond)
+      }
+    }
+
+    if (mg4LazyVerifyEnabled) {
+      mg4LazyVerifyChecks++
+      val reference = mergeInteriorGroups(mainPathMap, n, curGen)
+      if (!mergedEquals(merged, reference)) {
+        dumpLazyVerifyMismatch(mainPathMap, merged, reference, "gen$curGen", curGen)
+        throw IllegalStateException(
+          "MG4_LAZY_VERIFY: cache-backed merge diverges from re-partition at gen=$curGen. See stderr dump."
+        )
+      }
+    }
+    return merged
+  }
+
+  // 버킷 State 키 = 버킷 안 shape 들의 gen-무관 stateSig 멀티셋 (정렬). 같은 State 는 같은 키
+  // (~96 gen 재사용). gen 은 stateSig 에서 제외 — planSig 로만 fold 매칭 시 확인.
+  private fun bucketStateKey(rows: List<Pair<PathShape, AcceptCondition>>, curGen: Int): String {
+    val sigs = ArrayList<String>(rows.size)
+    for ((shape, cond) in rows) sigs.add(stateSignature(shape, cond, curGen))
+    sigs.sort()
+    return sigs.joinToString("\n")
+  }
+
+  // 한 prefix 버킷을 재파티션하며 파티션 결정을 시그니처로 캡처. mergeInteriorGroups 의
+  // depth-루프 구조를 그대로 따르되 입력이 버킷(한 State)으로 국한. fold 되는 group 마다
+  // (depth, 멤버 **stateSig** 정렬 리스트) 를 기록.
+  // ★ plan 은 gen-무관 stateSig 로 group 후보를 지목한다 (planSig 아님) — 히트 시 그 후보들을
+  //   mergeVerdictAtDepth 로 **재확인**해 실제 gen/cond/report 일치 시에만 fold 한다. 이것이
+  //   realized R 을 정확히 보존하는 핵심: 같은 State(gen 무관)라도 gen 패턴이 다르면 병합
+  //   여부가 다를 수 있는데, verdict 재확인이 그 차이를 정확히 반영한다 (재파티션과 동일 결정).
+  //   캐시가 스킵하는 것은 depth 별 롤링해시 버킷팅 + O(bucket²) 후보 탐색 — plan 이 직접
+  //   group 후보를 지목하므로 verdict 재확인은 group 크기(작음)에만 비례.
+  private fun mergeBucketWithPlanCapture(
+    rows: List<Pair<PathShape, AcceptCondition>>,
+    n: Int,
+    curGen: Int,
+  ): Pair<Map<PathShape, AcceptCondition>, TransitionEntry> {
+    val remaining = LinkedHashMap<PathShape, MergeCandidate>()
+    val merged = LinkedHashMap<PathShape, AcceptCondition>()
+    val sigOf = HashMap<PathShape, String>()
+    fun sig(shape: PathShape, cond: AcceptCondition): String =
+      sigOf.getOrPut(shape) { stateSignature(shape, cond, curGen) }
+
+    for ((shape, cond) in rows) {
+      val tip = shape.milestonePath
+      val len = tip?.chainDepthCached() ?: 0
+      remaining[shape] = MergeCandidate(shape, cond, tip, len)
+    }
+
+    val planGroups = ArrayList<Pair<Int, List<String>>>()
+    var d = 2
+    while (d <= n) {
+      val buckets = HashMap<Long, ArrayList<MergeCandidate>>()
+      for (cand in remaining.values) {
+        val L = cand.length
+        if (d > L) continue
+        val idx = L - (d - 1)
+        if (idx < 0) continue
+        var diffNode = cand.tip
+        var stepsUp = d - 2
+        val suffixNodes = if (stepsUp > 0) ArrayList<MilestonePath>(stepsUp) else null
+        while (stepsUp > 0 && diffNode != null) {
+          suffixNodes!!.add(diffNode); diffNode = diffNode.parent; stepsUp--
+        }
+        if (diffNode == null) continue
+        if (diffNode.groupMembers != null) continue
+        val prefixNode = diffNode.parent
+        var h = 1L
+        h = 31 * h + L
+        h = 31 * h + cand.shape.tipGroupId
+        h = 31 * h + idx
+        val prefixRolling = prefixNode?.prefixHashCached() ?: 1
+        h = 31 * h + prefixRolling
+        if (suffixNodes != null) {
+          for (si in suffixNodes.indices.reversed()) h = 31 * h + suffixNodes[si].nodeLocalHashCached()
+        }
+        buckets.getOrPut(h) { ArrayList() }.add(cand)
+      }
+
+      for (bucket in buckets.values) {
+        if (bucket.size < 2) continue
+        val used = BooleanArray(bucket.size)
+        for (i in bucket.indices) {
+          if (used[i]) continue
+          used[i] = true
+          var group: ArrayList<MergeCandidate>? = null
+          for (k in i + 1 until bucket.size) {
+            if (used[k]) continue
+            when (mergeVerdictAtDepth(bucket[i], bucket[k], d)) {
+              MergeVerdict.MERGE -> {
+                if (group == null) { group = ArrayList(); group.add(bucket[i]) }
+                group.add(bucket[k]); used[k] = true
+              }
+              MergeVerdict.REJECT_COND -> if (mg4ShapeStatsEnabled) mg4RejectCondDiff++
+              MergeVerdict.REJECT_GEN_OBS -> if (mg4ShapeStatsEnabled) mg4RejectGenObsDiff++
+              MergeVerdict.REJECT_REPORT_COORD -> if (mg4ShapeStatsEnabled) mg4RejectReportCoordDiff++
+              MergeVerdict.NOT_CANDIDATE -> {}
+            }
+          }
+          if (group != null && group.size >= 2) {
+            val (foldedShape, foldedCond) = foldGroup(group, d)
+            val memberSigs = ArrayList<String>(group.size)
+            for (m in group) memberSigs.add(sig(m.shape, m.cond))
+            memberSigs.sort()
+            planGroups.add(Pair(d, memberSigs))
+            for (m in group) remaining.remove(m.shape)
+            val existing = merged[foldedShape]
+            merged[foldedShape] = if (existing == null) foldedCond else Or.from(existing, foldedCond)
+            if (mg4ShapeStatsEnabled) {
+              if (d < mg4MergesAtDepth.size) mg4MergesAtDepth[d] += (group.size - 1).toLong()
+              classifyMergeOrigin(group, d, curGen)
+            }
+          }
+        }
+      }
+      d++
+    }
+    for ((shape, cand) in remaining) {
+      val existing = merged[shape]
+      merged[shape] = if (existing == null) cand.cond else Or.from(existing, cand.cond)
+    }
+    return Pair(merged, TransitionEntry(planGroups))
+  }
+
+  // 캐시된 파티션 결정을 버킷 입력에 적용 — depth 롤링해시 버킷팅·O(bucket²) 후보 탐색을
+  // 스킵하고 plan 이 지목한 stateSig group 후보만 **verdict 재확인** 후 fold.
+  //
+  // ★ realized R 보존 (핵심): plan 은 gen-무관 stateSig 로 후보를 지목하지만, 같은 State 라도
+  //   이번 gen 의 gen 패턴이 다르면 병합 여부가 다를 수 있다. 그래서 후보 group 을
+  //   mergeVerdictAtDepth 로 재확인해 MERGE 인 쌍만 실제 fold — 재파티션과 **동일한 병합
+  //   결정**을 낸다 (realized R 불변). REJECT 면 그 후보는 singleton 통과.
+  //
+  // ★ 순서 계약: plan group 은 재파티션의 depth 오름차순 + 버킷 내 iteration 순으로 기록됐다.
+  //   적용도 같은 순서로 consume 하되, greedy 병합(첫 멤버 대비 나머지 verdict)을 재현한다.
+  private fun applyTransitionEntry(
+    rows: List<Pair<PathShape, AcceptCondition>>,
+    entry: TransitionEntry,
+    curGen: Int,
+  ): Map<PathShape, AcceptCondition> {
+    val merged = LinkedHashMap<PathShape, AcceptCondition>()
+    // stateSig → 이 시그니처를 가진 (아직 안 쓰인) 후보들. 같은 stateSig 다수(multiplicity)면
+    // 큐로 소비 (재파티션도 같은 구조 다수를 각각 접으므로 개수 보존).
+    val bySig = HashMap<String, ArrayDeque<MergeCandidate>>()
+    for ((shape, cond) in rows) {
+      val tip = shape.milestonePath
+      val len = tip?.chainDepthCached() ?: 0
+      val cand = MergeCandidate(shape, cond, tip, len)
+      bySig.getOrPut(stateSignature(shape, cond, curGen)) { ArrayDeque() }.addLast(cand)
+    }
+    // 계획 group 순서대로 (depth 오름차순 기록) — 각 group 후보를 stateSig 로 모아 verdict
+    // 재확인 후 fold. plan 이 지목한 후보라도 이번 gen 에 병합 불가면(verdict REJECT/NOT)
+    // singleton 통과 → realized R 정확.
+    for ((d, memberSigs) in entry.groups) {
+      // 후보 수집 (stateSig 큐에서 pop). 부족하면 plan 불일치 — 소비분 되돌리고 skip.
+      val cands = ArrayList<MergeCandidate>(memberSigs.size)
+      var enough = true
+      for (ms in memberSigs) {
+        val q = bySig[ms]
+        if (q == null || q.isEmpty()) { enough = false; break }
+        cands.add(q.removeFirst())
+      }
+      if (!enough) {
+        for (c in cands) bySig.getOrPut(stateSignature(c.shape, c.cond, curGen)) { ArrayDeque() }.addFirst(c)
+        continue
+      }
+      // greedy 병합 재현: cands[0] 을 대표로, 나머지를 verdict 재확인해 MERGE 인 것만 group.
+      // REJECT/NOT 인 후보는 되돌려 이후 group 또는 singleton 통과 (재파티션과 동일 판정).
+      val group = ArrayList<MergeCandidate>(cands.size)
+      group.add(cands[0])
+      for (k in 1 until cands.size) {
+        when (mergeVerdictAtDepth(cands[0], cands[k], d)) {
+          MergeVerdict.MERGE -> group.add(cands[k])
+          MergeVerdict.REJECT_COND -> { if (mg4ShapeStatsEnabled) mg4RejectCondDiff++; bySig.getOrPut(stateSignature(cands[k].shape, cands[k].cond, curGen)) { ArrayDeque() }.addFirst(cands[k]) }
+          MergeVerdict.REJECT_GEN_OBS -> { if (mg4ShapeStatsEnabled) mg4RejectGenObsDiff++; bySig.getOrPut(stateSignature(cands[k].shape, cands[k].cond, curGen)) { ArrayDeque() }.addFirst(cands[k]) }
+          MergeVerdict.REJECT_REPORT_COORD -> { if (mg4ShapeStatsEnabled) mg4RejectReportCoordDiff++; bySig.getOrPut(stateSignature(cands[k].shape, cands[k].cond, curGen)) { ArrayDeque() }.addFirst(cands[k]) }
+          MergeVerdict.NOT_CANDIDATE -> bySig.getOrPut(stateSignature(cands[k].shape, cands[k].cond, curGen)) { ArrayDeque() }.addFirst(cands[k])
+        }
+      }
+      if (group.size < 2) {
+        // 대표만 남음 — singleton 통과 (되돌림).
+        bySig.getOrPut(stateSignature(group[0].shape, group[0].cond, curGen)) { ArrayDeque() }.addFirst(group[0])
+        continue
+      }
+      val (foldedShape, foldedCond) = foldGroup(group, d)
+      val existing = merged[foldedShape]
+      merged[foldedShape] = if (existing == null) foldedCond else Or.from(existing, foldedCond)
+      if (mg4ShapeStatsEnabled) {
+        if (d < mg4MergesAtDepth.size) mg4MergesAtDepth[d] += (group.size - 1).toLong()
+        classifyMergeOrigin(group, d, curGen)
+      }
+    }
+    // 안 접힌 나머지 (계획에 안 든 stateSig 또는 verdict REJECT 로 되돌아온 후보) 는 그대로.
+    for ((_, q) in bySig) {
+      for (cand in q) {
+        val existing = merged[cand.shape]
+        merged[cand.shape] = if (existing == null) cand.cond else Or.from(existing, cand.cond)
+      }
+    }
+    return merged
+  }
+
+  // 두 merged 맵의 equals (병렬 검증용). key=PathShape (milestonePath equals + tipGroupId),
+  // value=AcceptCondition. reportGen 은 equals 제외라 이 비교는 파스 상태 동등만 본다 —
+  // byte-parity 게이트는 kernelsHistory 로 별도 검증되므로 여기선 shape+cond 동등이 충분.
+  private fun mergedEquals(
+    a: Map<PathShape, AcceptCondition>,
+    b: Map<PathShape, AcceptCondition>,
+  ): Boolean {
+    if (a.size != b.size) return false
+    for ((shape, cond) in a) {
+      val bc = b[shape] ?: return false
+      if (bc != cond) return false
+    }
+    return true
+  }
+
+  // 병렬 검증 불일치 최소 재현 덤프 (stderr).
+  private fun dumpLazyVerifyMismatch(
+    input: Map<PathShape, AcceptCondition>,
+    hit: Map<PathShape, AcceptCondition>,
+    ref: Map<PathShape, AcceptCondition>,
+    key: String,
+    curGen: Int,
+  ) {
+    System.err.println("=== MG4_LAZY_VERIFY mismatch at gen=$curGen ===")
+    System.err.println("stateKey:\n$key")
+    System.err.println("input shapes (${input.size}):")
+    for ((s, c) in input) System.err.println("  $s  => ${c.toString().take(200)}")
+    val onlyHit = hit.keys.filter { it !in ref.keys }.take(8)
+    val onlyRef = ref.keys.filter { it !in hit.keys }.take(8)
+    System.err.println("only in cache-hit (${onlyHit.size} shown):")
+    for (s in onlyHit) System.err.println("  $s => ${hit[s].toString().take(200)}")
+    System.err.println("only in re-partition (${onlyRef.size} shown):")
+    for (s in onlyRef) System.err.println("  $s => ${ref[s].toString().take(200)}")
+    // 조건만 다른 shape.
+    for ((s, c) in hit) {
+      val rc = ref[s]
+      if (rc != null && rc != c) {
+        System.err.println("cond differs @ $s:\n  hit=${c.toString().take(200)}\n  ref=${rc.toString().take(200)}")
+      }
+    }
+  }
+
   // A2 spec item 7 — 병합 기원 분류 (Phase B 설계 데이터). diff 노드의 런타임 anchor gen
   // (MilestonePath.gen) 이 현재 gen 이거나 직전 gen 이면 "creation-mergeable" (fork 가
   // 이번/직전 gen 에 일어나 parserdata 사전 그룹핑으로 잡을 수 있음), 더 과거면
@@ -1395,6 +1836,11 @@ class Mgroup4Parser(
   var g0Stats: G0SuffixSetStats? = null
   fun setG0Stats(stats: G0SuffixSetStats): Mgroup4Parser { g0Stats = stats; return this }
 
+  // === mgroup4 Phase G-b0 State id 브리지 (opt-in) — 파스 출력 무영향 ===
+  // 파서 생성 후 setStateBridge() 로 주입. observe() 는 매 gen parseStep 이 호출.
+  var stateBridge: G0StateBridge? = null
+  fun setStateBridge(bridge: G0StateBridge): Mgroup4Parser { stateBridge = bridge; return this }
+
   // === mgroup4 측정 카운터 (§5.1) — 파스 출력 무영향, opt-in ===
   var mg4MergedShapeSum: Long = 0L    // 병합 후 main shape 수 누적
   var mg4BaseShapeSum: Long = 0L      // 병합 안 했을 때 (멤버 총수) 누적
@@ -1422,14 +1868,20 @@ class Mgroup4Parser(
     mg4CreationMergeable = 0; mg4LateConvergence = 0
     mg4ReduceSplits = 0; mg4WindowExitSplits = 0
     for (i in mg4MergesAtDepth.indices) mg4MergesAtDepth[i] = 0
+    // G-b1 캐시 카운터 (통계만 리셋 — 전이 캐시 자체는 파스 간 공유라 클리어 안 함).
+    mg4CacheHits = 0; mg4CacheMisses = 0; mg4CacheMissNanos = 0; mg4LazyVerifyChecks = 0
   }
   fun reportMg4Stats(): String {
     val meanMerged = if (mg4Gens > 0) mg4MergedShapeSum.toDouble() / mg4Gens else 0.0
     val meanBase = if (mg4Gens > 0) mg4BaseShapeSum.toDouble() / mg4Gens else 0.0
     val ratio = if (meanMerged > 0) meanBase / meanMerged else 1.0
     val byDepth = mg4MergesAtDepth.withIndex().filter { it.value > 0 }.joinToString(",") { "d${it.index}=${it.value}" }
-    return "mg4 n=$interiorGroupMaxDepth: gens=$mg4Gens meanBase=%.2f meanMerged=%.2f ratio=%.3f rejectCondDiff=$mg4RejectCondDiff rejectGenObsDiff=$mg4RejectGenObsDiff rejectReportCoordDiff=$mg4RejectReportCoordDiff skipExistingGroup=$mg4SkipExistingGroup creationMergeable=$mg4CreationMergeable lateConvergence=$mg4LateConvergence reduceSplits=$mg4ReduceSplits windowExitSplits=$mg4WindowExitSplits mergesByDepth=[$byDepth]"
-      .format(meanBase, meanMerged, ratio)
+    val cacheTotal = mg4CacheHits + mg4CacheMisses
+    val hitRate = if (cacheTotal > 0) 100.0 * mg4CacheHits / cacheTotal else 0.0
+    val missMs = mg4CacheMissNanos / 1_000_000.0
+    return ("mg4 n=$interiorGroupMaxDepth: gens=$mg4Gens meanBase=%.2f meanMerged=%.2f ratio=%.3f rejectCondDiff=$mg4RejectCondDiff rejectGenObsDiff=$mg4RejectGenObsDiff rejectReportCoordDiff=$mg4RejectReportCoordDiff skipExistingGroup=$mg4SkipExistingGroup creationMergeable=$mg4CreationMergeable lateConvergence=$mg4LateConvergence reduceSplits=$mg4ReduceSplits windowExitSplits=$mg4WindowExitSplits mergesByDepth=[$byDepth] " +
+      "cache[hits=$mg4CacheHits misses=$mg4CacheMisses hitRate=%.1f%% missSelfTime=%.1fms cacheSize=${mergeTransitionCache.size} verifyChecks=$mg4LazyVerifyChecks]")
+      .format(meanBase, meanMerged, ratio, hitRate, missMs)
   }
 
   // 병합 후 main shape 수와 가상 base(멤버 총수)를 누적. group 노드의 members.size 합이 base.

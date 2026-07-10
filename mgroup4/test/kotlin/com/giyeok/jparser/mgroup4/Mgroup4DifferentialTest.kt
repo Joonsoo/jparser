@@ -209,6 +209,56 @@ class Mgroup4DifferentialTest {
     println("[MG4-DIFF] depth3MergeAndExplodeRoundTrip OK")
   }
 
+  // G-b1 캐시 정확성 유닛 검증 — 캐시-백드 병합(mergeInteriorGroupsCached)이 재파티션
+  // (mergeInteriorGroups)과 동일한 파티션을 내는지 결정론적으로 못박는다. 미스(첫 조우) →
+  // 히트(재사용) → gen 패턴이 다른 재조우(verdict 재확인) 세 경로를 합성 chain 으로 확인.
+  @Test
+  fun cacheBackedMergeMatchesRepartition() {
+    val analysis = `MetaLanguage3$`.`MODULE$`.analyzeGrammar(asdlGrammar, "Defs")
+    val parser = Mgroup4Parser(Mgroup3ParserGenerator(analysis.ngrammar()).generate(), interiorGroupMaxDepth = 4)
+    val obs = emptyList<Int>()
+    // depth 2 에서만 상이한 두 shape (같은 tip 없음 — depth 2 = tip milestone 이 diff).
+    // window n=4 → window = tip-most 3 노드. prefix = 그 아래.
+    fun mkShape(prefixGen: Int, diffKernel: Kernel, diffGen: Int, tip: Int): PathShape {
+      val prefix = MilestonePath(gen = prefixGen, milestone = Kernel(10, 0, prefixGen - 1), parent = null,
+        observingCondSymbolIds = obs, reportGen = prefixGen, milestoneReportGen = prefixGen)
+      val diff = MilestonePath(gen = diffGen, milestone = diffKernel, parent = prefix,
+        observingCondSymbolIds = obs, reportGen = diffGen, milestoneReportGen = diffGen)
+      return PathShape(diff, tip)
+    }
+    // curGen=5. 두 shape 가 depth 2(tip milestone) 에서만 상이, 같은 gen — 병합돼야.
+    fun bucket(curGen: Int, diffGen: Int): Map<PathShape, AcceptCondition> = linkedMapOf(
+      mkShape(1, Kernel(20, 1, diffGen), diffGen, 99) to Always,
+      mkShape(1, Kernel(21, 1, diffGen), diffGen, 99) to Always,
+    )
+
+    // (1) 미스: 첫 조우 — 캐시-백드 == 재파티션.
+    val in1 = bucket(5, 4)
+    val refMiss = parser.mergeInteriorGroups(in1, 4)
+    val cacheMiss = parser.mergeInteriorGroupsCached(in1, 4, 5)
+    assertEquals(refMiss.keys, cacheMiss.keys) { "cache miss: keys differ from re-partition" }
+    assertEquals(1, cacheMiss.size) { "expected merge to single group (miss)" }
+
+    // (2) 히트: 같은 State 재조우 (다른 gen 평행이동, 같은 상대 패턴) — 캐시 재사용, 동일 결과.
+    val in2 = bucket(9, 8)
+    val refHit = parser.mergeInteriorGroups(in2, 4)
+    val cacheHit = parser.mergeInteriorGroupsCached(in2, 4, 9)
+    assertEquals(refHit.keys, cacheHit.keys) { "cache hit: keys differ from re-partition" }
+    assertEquals(1, cacheHit.size) { "expected merge to single group (hit)" }
+
+    // (3) verdict 재확인: 같은 stateSig(구조·조건 동일)인데 gen 이 두 shape 간 다름 → 병합 불가.
+    //   재파티션은 REJECT_GEN_OBS 로 안 접고 2개 유지, 캐시 히트도 verdict 재확인으로 2개 유지.
+    val in3 = linkedMapOf<PathShape, AcceptCondition>(
+      mkShape(1, Kernel(20, 1, 4), 4, 99) to Always,
+      mkShape(1, Kernel(21, 1, 3), 3, 99) to Always, // 다른 gen!
+    )
+    val refRecheck = parser.mergeInteriorGroups(in3, 4)
+    val cacheRecheck = parser.mergeInteriorGroupsCached(in3, 4, 5)
+    assertEquals(refRecheck.keys, cacheRecheck.keys) { "verdict recheck: keys differ (gen mismatch must not merge)" }
+    assertEquals(2, cacheRecheck.size) { "gen-mismatched shapes must NOT merge (2 kept)" }
+    println("[MG4-DIFF] cacheBackedMergeMatchesRepartition OK — miss/hit/verdict-recheck all match re-partition")
+  }
+
   @EnabledIfEnvironmentVariable(named = "MG4_DIFF", matches = "1")
   @Test
   fun mulangChainBoundariesDifferential() {
