@@ -225,6 +225,13 @@ object Stage4RustEmit {
     |//     (re-exported from mgroup3-native)
     |//   - mgroup3_gen_parse_ast: parse + generated AST walk + encode to the
     |//     per-grammar ast.proto `ParseResult` bytes.
+    |//   - mgroup3_gen_session_*: the INCREMENTAL variant of the above — a document
+    |//     session (mgroup3-native `ParseSession`) that reuses a checkpoint ring /
+    |//     splice across edits, emitting the SAME per-grammar ast.proto `ParseResult`
+    |//     bytes after each `parse_full`/`edit`. This is what an editor/LSP consumes
+    |//     per keystroke (mulang). Result bytes are byte-identical to
+    |//     `mgroup3_gen_parse_ast` on the same final text (the session's
+    |//     kernels_history is byte-identical to a full re-parse's — design §3.1).
     |//   - mgroup3_free_buffer (from mgroup3-native) to release the buffer.
     |
     |use std::panic::{catch_unwind, AssertUnwindSafe};
@@ -233,6 +240,7 @@ object Stage4RustEmit {
     |use prost::Message;
     |
     |use mgroup3_native::parser::Mgroup3Parser;
+    |use mgroup3_native::session::ParseSession;
     |
     |use crate::ast::Ctx;
     |use crate::encode;
@@ -315,6 +323,202 @@ object Stage4RustEmit {
     |        Ok(Err(code)) => write_empty(code),
     |        Err(_) => write_empty(MGROUP3_GEN_ERR_PANIC),
     |    }
+    |}
+    |
+    |// ---------------------------------------------------------------------------
+    |// Incremental session variant (Phase I3) — ADDITIVE. Same AST-proto output as
+    |// mgroup3_gen_parse_ast, but over a mgroup3-native `ParseSession` that reuses a
+    |// checkpoint ring / splice across edits. This is the per-keystroke consumer
+    |// surface for an editor/LSP.
+    |//
+    |// Lifetime / threading (same as mgroup3-native's session FFI):
+    |// - The session BORROWS the parser handle: one parser backs many document
+    |//   sessions. The parser MUST outlive every session; destroy sessions before
+    |//   `mgroup3_parser_free`.
+    |// - A session is single-document: do not call session functions concurrently on
+    |//   the SAME session handle. Distinct sessions are independent.
+    |// - `pos_char`/`old_len_char` are CHAR (code point) offsets — the host converts
+    |//   LSP UTF-16 positions to code points.
+    |
+    |/// Encode `session`'s current outcome as the per-grammar ast.proto `ParseResult`
+    |/// bytes: kernels_history -> generated AST walk -> encode. Mirrors the body of
+    |/// `mgroup3_gen_parse_ast`, driven from the session's stored outcome + document.
+    |fn gen_session_emit(
+    |    session: &ParseSession,
+    |    out_ptr: *mut *mut u8,
+    |    out_len: *mut usize,
+    |) -> Result<(), i32> {
+    |    // A parse error (session parsed to an error) maps to PARSE; a clean parse
+    |    // that isn't accepted maps to REJECTED — same code contract as the one-shot
+    |    // `mgroup3_gen_parse_ast`.
+    |    if session.error().is_some() {
+    |        return Err(MGROUP3_GEN_ERR_PARSE);
+    |    }
+    |    if !session.is_accepted() {
+    |        return Err(MGROUP3_GEN_ERR_REJECTED);
+    |    }
+    |    // `kernels_history()` returns `Vec<FxHashSet<KtlibKernel>>` = `Vec<KernelSet>`
+    |    // in a feature build — feed it to the walk directly (no rebuild/downgrade).
+    |    let history = session.kernels_history().ok_or(MGROUP3_GEN_ERR_REJECTED)?;
+    |    let chars = session.document();
+    |    let mut walk_ctx = Ctx::new(chars, &history);
+    |    let ast = walk_ctx.match_start();
+    |    let bytes = encode::encode(&ast).encode_to_vec();
+    |    let boxed = bytes.into_boxed_slice();
+    |    let len = boxed.len();
+    |    let raw = Box::into_raw(boxed) as *mut u8;
+    |    unsafe {
+    |        *out_ptr = raw;
+    |        *out_len = len;
+    |    }
+    |    Ok(())
+    |}
+    |
+    |fn gen_session_finish(
+    |    result: Result<Result<(), i32>, Box<dyn std::any::Any + Send>>,
+    |    out_ptr: *mut *mut u8,
+    |    out_len: *mut usize,
+    |) -> i32 {
+    |    let clear = || {
+    |        if !out_ptr.is_null() {
+    |            unsafe { *out_ptr = ptr::null_mut() };
+    |        }
+    |        if !out_len.is_null() {
+    |            unsafe { *out_len = 0 };
+    |        }
+    |    };
+    |    match result {
+    |        Ok(Ok(())) => MGROUP3_GEN_OK,
+    |        Ok(Err(code)) => {
+    |            clear();
+    |            code
+    |        }
+    |        Err(_) => {
+    |            clear();
+    |            MGROUP3_GEN_ERR_PANIC
+    |        }
+    |    }
+    |}
+    |
+    |/// Create a session over an existing parser handle (BORROWED — see lifetime
+    |/// note above). Returns a non-null session handle + writes MGROUP3_GEN_OK to
+    |/// `*err` on success; null + nonzero on null-arg/panic. Free with
+    |/// `mgroup3_gen_session_destroy`.
+    |#[unsafe(no_mangle)]
+    |pub extern "C" fn mgroup3_gen_session_new(
+    |    parser: *mut Mgroup3Parser,
+    |    err: *mut i32,
+    |) -> *mut ParseSession {
+    |    let result = catch_unwind(AssertUnwindSafe(|| {
+    |        if parser.is_null() {
+    |            return Err(MGROUP3_GEN_ERR_NULL_ARG);
+    |        }
+    |        // SAFETY: non-null here; caller upholds parser-outlives-session.
+    |        let session = unsafe {
+    |            ParseSession::from_raw_parser(
+    |                parser as *const Mgroup3Parser,
+    |                mgroup3_native::session::DEFAULT_CHECKPOINT_INTERVAL,
+    |            )
+    |        };
+    |        Ok(session)
+    |    }));
+    |    match result {
+    |        Ok(Ok(session)) => {
+    |            if !err.is_null() {
+    |                unsafe { *err = MGROUP3_GEN_OK };
+    |            }
+    |            Box::into_raw(Box::new(session))
+    |        }
+    |        Ok(Err(code)) => {
+    |            if !err.is_null() {
+    |                unsafe { *err = code };
+    |            }
+    |            ptr::null_mut()
+    |        }
+    |        Err(_) => {
+    |            if !err.is_null() {
+    |                unsafe { *err = MGROUP3_GEN_ERR_PANIC };
+    |            }
+    |            ptr::null_mut()
+    |        }
+    |    }
+    |}
+    |
+    |/// Full (re)parse of `input_bytes` (UTF-8) from gen 0, then emit the AST proto
+    |/// bytes. Same result as `mgroup3_gen_parse_ast` on the same text. Error codes:
+    |/// 6=PARSE (rejected mid-parse), 7=REJECTED (parsed but not accepted), 4=UTF8,
+    |/// 5=PANIC, 1=NULL_ARG.
+    |#[unsafe(no_mangle)]
+    |pub extern "C" fn mgroup3_gen_session_parse_full(
+    |    session: *mut ParseSession,
+    |    input_bytes: *const u8,
+    |    input_len: usize,
+    |    out_ptr: *mut *mut u8,
+    |    out_len: *mut usize,
+    |) -> i32 {
+    |    let result = catch_unwind(AssertUnwindSafe(|| {
+    |        if session.is_null() || out_ptr.is_null() || out_len.is_null() {
+    |            return Err(MGROUP3_GEN_ERR_NULL_ARG);
+    |        }
+    |        let slice = if input_len == 0 {
+    |            &[][..]
+    |        } else {
+    |            if input_bytes.is_null() {
+    |                return Err(MGROUP3_GEN_ERR_NULL_ARG);
+    |            }
+    |            unsafe { std::slice::from_raw_parts(input_bytes, input_len) }
+    |        };
+    |        let text = std::str::from_utf8(slice).map_err(|_| MGROUP3_GEN_ERR_UTF8)?;
+    |        let session_ref = unsafe { &mut *session };
+    |        session_ref.parse_full(text);
+    |        gen_session_emit(session_ref, out_ptr, out_len)
+    |    }));
+    |    gen_session_finish(result, out_ptr, out_len)
+    |}
+    |
+    |/// Apply an edit and re-parse incrementally, then emit the AST proto bytes.
+    |/// `pos_char`/`old_len_char` are CHAR offsets; `new_bytes` (UTF-8) is the
+    |/// replacement. Result is byte-identical to a full re-parse of the edited text.
+    |/// On a parse error the session stays usable (the next edit re-parses safely).
+    |#[unsafe(no_mangle)]
+    |pub extern "C" fn mgroup3_gen_session_edit(
+    |    session: *mut ParseSession,
+    |    pos_char: usize,
+    |    old_len_char: usize,
+    |    new_bytes: *const u8,
+    |    new_len: usize,
+    |    out_ptr: *mut *mut u8,
+    |    out_len: *mut usize,
+    |) -> i32 {
+    |    let result = catch_unwind(AssertUnwindSafe(|| {
+    |        if session.is_null() || out_ptr.is_null() || out_len.is_null() {
+    |            return Err(MGROUP3_GEN_ERR_NULL_ARG);
+    |        }
+    |        let slice = if new_len == 0 {
+    |            &[][..]
+    |        } else {
+    |            if new_bytes.is_null() {
+    |                return Err(MGROUP3_GEN_ERR_NULL_ARG);
+    |            }
+    |            unsafe { std::slice::from_raw_parts(new_bytes, new_len) }
+    |        };
+    |        let new_text = std::str::from_utf8(slice).map_err(|_| MGROUP3_GEN_ERR_UTF8)?;
+    |        let session_ref = unsafe { &mut *session };
+    |        session_ref.edit(pos_char, old_len_char, new_text);
+    |        gen_session_emit(session_ref, out_ptr, out_len)
+    |    }));
+    |    gen_session_finish(result, out_ptr, out_len)
+    |}
+    |
+    |/// Drop a session handle. Does NOT free the borrowed parser.
+    |#[unsafe(no_mangle)]
+    |pub extern "C" fn mgroup3_gen_session_destroy(session: *mut ParseSession) {
+    |    if session.is_null() {
+    |        return;
+    |    }
+    |    let _ = catch_unwind(AssertUnwindSafe(|| unsafe {
+    |        drop(Box::from_raw(session));
+    |    }));
     |}
     |""".trimMargin()
 

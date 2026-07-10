@@ -39,7 +39,10 @@
 //! differential oracle proves it.
 //!
 //! Threading: a session is a single-document, single-owner object. The parser
-//! handle is shared as `Arc<Mgroup3Parser>`.
+//! handle is shared read-only across sessions — either co-owned as
+//! `Arc<Mgroup3Parser>` (Rust-native constructors) or borrowed as a raw pointer
+//! the FFI caller owns (see `SessionParser`); one parser backs many document
+//! sessions, none of which mutate it.
 
 use std::rc::Rc;
 use std::sync::Arc;
@@ -155,8 +158,41 @@ pub struct SessionTotals {
     pub splice_rebase_nanos: u64,
 }
 
+/// How a session references its parser. The parser is read-only and shared
+/// (`Send + Sync`, `core.rs:55`); a session never mutates it and never clones the
+/// reference, so it only needs a `&Mgroup3Parser` that outlives the session.
+///
+/// - `Owned` — an `Arc` the session co-owns (the Rust-native constructors). The
+///   parser lives at least as long as the session; sharing across sessions is via
+///   `Arc::clone` by the caller.
+/// - `Borrowed` — a raw pointer to a parser the FFI caller owns elsewhere (the box
+///   from `mgroup3_parser_new*`). ONE parser handle can back MANY document
+///   sessions this way (the mulang LSP shares a single handle across all open
+///   documents). SAFETY CONTRACT: the borrowed parser MUST outlive every session
+///   created from it — `mgroup3_session_destroy` all sessions before
+///   `mgroup3_parser_free`. The FFI boundary (`ffi.rs`) upholds and documents this.
+///   A borrowed parser is only dereferenced while a session method runs; the
+///   session never stores a derived reference.
+enum SessionParser {
+    Owned(Arc<Mgroup3Parser>),
+    Borrowed(*const Mgroup3Parser),
+}
+
+impl SessionParser {
+    #[inline]
+    fn get(&self) -> &Mgroup3Parser {
+        match self {
+            SessionParser::Owned(a) => a,
+            // SAFETY: upheld by the `Borrowed` contract above — the pointee
+            // outlives the session and is never mutated (parser is read-only,
+            // Send + Sync). Non-null is guaranteed by the FFI constructor.
+            SessionParser::Borrowed(p) => unsafe { &**p },
+        }
+    }
+}
+
 pub struct ParseSession {
-    parser: Arc<Mgroup3Parser>,
+    parser: SessionParser,
     /// Current document text.
     doc: Vec<char>,
     /// Previous document text (the parse the next edit compares against). Empty
@@ -195,6 +231,23 @@ impl ParseSession {
     }
 
     pub fn with_interval(parser: Arc<Mgroup3Parser>, interval: usize) -> Self {
+        Self::from_parser(SessionParser::Owned(parser), interval)
+    }
+
+    /// FFI constructor: build a session over a BORROWED parser (a raw pointer the
+    /// caller owns elsewhere — see `SessionParser::Borrowed` for the lifetime
+    /// contract). Many sessions may share one borrowed parser. `parser` must be
+    /// non-null and point to a live `Mgroup3Parser` for the session's whole life.
+    ///
+    /// # Safety
+    /// The caller guarantees `parser` is non-null, valid, and outlives the
+    /// returned session (and every value derived from it). The FFI layer
+    /// (`mgroup3_session_new`/`mgroup3_session_destroy`) enforces the ordering.
+    pub unsafe fn from_raw_parser(parser: *const Mgroup3Parser, interval: usize) -> Self {
+        Self::from_parser(SessionParser::Borrowed(parser), interval)
+    }
+
+    fn from_parser(parser: SessionParser, interval: usize) -> Self {
         let interval = interval.max(1);
         let verify = std::env::var("MG3_SESSION_VERIFY").map(|v| v == "1").unwrap_or(false);
         Self {
@@ -261,14 +314,14 @@ impl ParseSession {
 
     pub fn is_accepted(&self) -> bool {
         match &self.outcome {
-            Some(ParseOutcome::Ok(ctx)) => self.parser.is_accepted(ctx),
+            Some(ParseOutcome::Ok(ctx)) => self.parser.get().is_accepted(ctx),
             _ => false,
         }
     }
 
     pub fn kernels_history(&self) -> Option<Vec<HashSet<KtlibKernel>>> {
         match &self.outcome {
-            Some(ParseOutcome::Ok(ctx)) => Some(self.parser.kernels_history(ctx)),
+            Some(ParseOutcome::Ok(ctx)) => Some(self.parser.get().kernels_history(ctx)),
             _ => None,
         }
     }
@@ -278,6 +331,28 @@ impl ParseSession {
             Some(ParseOutcome::Err(e)) => Some(e),
             _ => None,
         }
+    }
+
+    /// The session's parser (borrowed or co-owned). Lets consumers (the FFI layer,
+    /// generated-crate session entry points) run the same result-encoding /
+    /// AST-walk pipeline over `outcome()` that `mgroup3_parser_parse` runs over a
+    /// one-shot parse.
+    pub fn parser(&self) -> &Mgroup3Parser {
+        self.parser.get()
+    }
+
+    /// Encode the last parse outcome as `Mgroup3ParseResult` proto bytes — exactly
+    /// what `mgroup3_parser_parse` returns for the same final text (accept +
+    /// kernels_history, or a typed parse error). The session guarantees this is
+    /// byte-identical to a full re-parse's encoding (design §3.1). Returns `None`
+    /// only before any parse has run.
+    pub fn encode_result(&self) -> Option<Vec<u8>> {
+        let outcome = self.outcome.as_ref()?;
+        let arg: Result<&ParsingCtx, &ParsingError> = match outcome {
+            ParseOutcome::Ok(ctx) => Ok(ctx),
+            ParseOutcome::Err(e) => Err(e),
+        };
+        Some(crate::parser::encode_parse_result(self.parser.get(), arg))
     }
 
     /// Current document text (chars).
@@ -432,12 +507,12 @@ impl ParseSession {
         self.checkpoints.clear();
         self.canonical_history.clear();
         let total = self.doc.len();
-        let mut ctx = self.parser.init_ctx();
+        let mut ctx = self.parser.get().init_ctx();
         self.checkpoints.push(Self::snapshot(&ctx, 0));
         self.stats.last_resume_gen = 0;
         let mut reparsed = 0usize;
         for (idx, &c) in self.doc.iter().enumerate() {
-            match self.parser.parse_step(ctx, c, idx + 1 == total) {
+            match self.parser.get().parse_step(ctx, c, idx + 1 == total) {
                 Ok(next) => {
                     ctx = next;
                     reparsed += 1;
@@ -472,7 +547,7 @@ impl ParseSession {
         }
         match chosen {
             Some(c) => c.clone(),
-            None => Checkpoint { at_gen: 0, ctx: self.parser.init_ctx() },
+            None => Checkpoint { at_gen: 0, ctx: self.parser.get().init_ctx() },
         }
     }
 
@@ -540,7 +615,7 @@ impl ParseSession {
         let mut spliced_at: Option<usize> = None; // new-gen q* where we spliced
         for idx in resume_gen..total {
             let c = self.doc[idx];
-            match self.parser.parse_step(ctx, c, idx + 1 == total) {
+            match self.parser.get().parse_step(ctx, c, idx + 1 == total) {
                 Ok(next) => {
                     ctx = next;
                     reparsed += 1;
@@ -696,11 +771,11 @@ impl ParseSession {
     /// errors, the returned vec ends at the last OK gen.
     fn fingerprint_trace(&self, chars: &[char], anchor: i32) -> Vec<Fp> {
         let total = chars.len();
-        let mut ctx = self.parser.init_ctx();
+        let mut ctx = self.parser.get().init_ctx();
         let mut out: Vec<Fp> = Vec::with_capacity(total + 1);
         out.push(fp_state(&ctx, anchor, ctx.gen_idx, Variant::Strict));
         for (idx, &c) in chars.iter().enumerate() {
-            match self.parser.parse_step(ctx, c, idx + 1 == total) {
+            match self.parser.get().parse_step(ctx, c, idx + 1 == total) {
                 Ok(next) => {
                     ctx = next;
                     out.push(fp_state(&ctx, anchor, ctx.gen_idx, Variant::Strict));
@@ -723,12 +798,12 @@ impl ParseSession {
         if target_old_gen > total {
             return None;
         }
-        let mut ctx = self.parser.init_ctx();
+        let mut ctx = self.parser.get().init_ctx();
         if target_old_gen == 0 {
             return Some(ctx);
         }
         for (idx, &c) in old_doc.iter().enumerate().take(target_old_gen) {
-            match self.parser.parse_step(ctx, c, idx + 1 == total) {
+            match self.parser.get().parse_step(ctx, c, idx + 1 == total) {
                 Ok(next) => {
                     ctx = next;
                     if ctx.gen_idx as usize == target_old_gen {
@@ -745,9 +820,9 @@ impl ParseSession {
     /// byte-compare of accept + kernels_history. Panics with a dump on mismatch.
     fn verify_against_full_reparse(&self) {
         let text: String = self.doc.iter().collect();
-        let full = self.parser.parse(&text);
+        let full = self.parser.get().parse(&text);
         let (full_accept, full_hist) = match full {
-            Ok(ctx) => (self.parser.is_accepted(&ctx), Some(self.parser.kernels_history(&ctx))),
+            Ok(ctx) => (self.parser.get().is_accepted(&ctx), Some(self.parser.get().kernels_history(&ctx))),
             Err(_) => (false, None),
         };
         let sess_accept = self.is_accepted();

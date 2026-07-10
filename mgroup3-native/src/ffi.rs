@@ -29,6 +29,7 @@ use prost::Message;
 use crate::parser::{encode_parse_result, Mgroup3Parser};
 use crate::parser_cache;
 use crate::proto::com::giyeok::jparser::mgroup3::proto::Mgroup3ParserData;
+use crate::session::ParseSession;
 
 // Error codes written to `*err` parameters or returned by `parser_parse`.
 pub const MGROUP3_OK: i32 = 0;
@@ -276,4 +277,196 @@ pub extern "C" fn mgroup3_parser_free(parser: *mut Mgroup3Parser) {
 pub extern "C" fn mgroup3_native_version() -> *const c_char {
     static VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), "\0");
     VERSION.as_ptr() as *const c_char
+}
+
+// ---------------------------------------------------------------------------
+// Incremental parse session (Phase I3) — ADDITIVE. The symbols above are
+// unchanged. A session keeps one document + a checkpoint ring so an edit can
+// resume/splice instead of re-parsing from scratch (see `session.rs`). Its
+// result is byte-identical to `mgroup3_parser_parse` on the same final text.
+//
+// Threading / lifetime:
+// - A session is a SINGLE-DOCUMENT object. Do not call session functions
+//   concurrently on the SAME session handle. Different sessions are independent
+//   (each carries its own document + checkpoints), so per-document sessions on
+//   separate threads are fine — they only ever READ the shared parser.
+// - The session BORROWS the parser handle (it does not take ownership): ONE
+//   parser handle may back MANY sessions (the LSP shares a single handle across
+//   all open documents). LIFETIME CONTRACT: the parser handle passed to
+//   `mgroup3_session_new` MUST outlive every session created from it. Destroy all
+//   sessions (`mgroup3_session_destroy`) BEFORE freeing the parser
+//   (`mgroup3_parser_free`). Violating this dereferences a freed parser.
+
+/// Create a session over an existing parser handle. The parser is BORROWED — it
+/// must outlive the session (see the lifetime contract above). Returns a non-null
+/// session handle and writes `MGROUP3_OK` to `*err` on success; returns null and a
+/// nonzero code on null-arg / panic. Free the session with
+/// `mgroup3_session_destroy`.
+#[unsafe(no_mangle)]
+pub extern "C" fn mgroup3_session_new(
+    parser: *mut Mgroup3Parser,
+    err: *mut i32,
+) -> *mut ParseSession {
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        if parser.is_null() {
+            return Err(MGROUP3_ERR_NULL_ARG);
+        }
+        // SAFETY: `parser` is non-null here; the caller upholds the lifetime
+        // contract that it stays valid for the session's whole life. The default
+        // checkpoint interval matches the Rust-native `ParseSession::new`.
+        let session = unsafe {
+            ParseSession::from_raw_parser(
+                parser as *const Mgroup3Parser,
+                crate::session::DEFAULT_CHECKPOINT_INTERVAL,
+            )
+        };
+        Ok(session)
+    }));
+    match result {
+        Ok(Ok(session)) => {
+            write_err(err, MGROUP3_OK);
+            Box::into_raw(Box::new(session))
+        }
+        Ok(Err(code)) => {
+            write_err(err, code);
+            ptr::null_mut()
+        }
+        Err(_) => {
+            write_err(err, MGROUP3_ERR_PANIC);
+            ptr::null_mut()
+        }
+    }
+}
+
+/// Emit the session's current outcome as `Mgroup3ParseResult` proto bytes via
+/// `(*out_ptr, *out_len)` (release with `mgroup3_free_buffer`). Shared tail of
+/// `parse_full`/`edit`. Assumes a parse has run (the session sets an outcome on
+/// every `parse_full`/`edit`).
+fn write_session_result(
+    session: &ParseSession,
+    out_ptr: *mut *mut u8,
+    out_len: *mut usize,
+) -> Result<(), i32> {
+    // A parse always leaves an outcome; `None` only before the first parse, which
+    // the entry points below never expose (they parse first).
+    let bytes = session.encode_result().ok_or(MGROUP3_ERR_PANIC)?;
+    let boxed = bytes.into_boxed_slice();
+    let len = boxed.len();
+    let raw = Box::into_raw(boxed) as *mut u8;
+    unsafe {
+        *out_ptr = raw;
+        *out_len = len;
+    }
+    Ok(())
+}
+
+fn finish_session_call(
+    result: Result<Result<(), i32>, Box<dyn std::any::Any + Send>>,
+    out_ptr: *mut *mut u8,
+    out_len: *mut usize,
+) -> i32 {
+    let clear = || {
+        if !out_ptr.is_null() {
+            unsafe { *out_ptr = ptr::null_mut() };
+        }
+        if !out_len.is_null() {
+            unsafe { *out_len = 0 };
+        }
+    };
+    match result {
+        Ok(Ok(())) => MGROUP3_OK,
+        Ok(Err(code)) => {
+            clear();
+            code
+        }
+        Err(_) => {
+            clear();
+            MGROUP3_ERR_PANIC
+        }
+    }
+}
+
+/// Full (re)parse of the whole document `input_bytes` (UTF-8) from gen 0. Resets
+/// the session's checkpoint ring + baseline. Encodes the result exactly like
+/// `mgroup3_parser_parse`. `MGROUP3_OK` on success (parse rejection is encoded
+/// inside the result proto); nonzero on null-arg / bad UTF-8 / panic.
+#[unsafe(no_mangle)]
+pub extern "C" fn mgroup3_session_parse_full(
+    session: *mut ParseSession,
+    input_bytes: *const u8,
+    input_len: usize,
+    out_ptr: *mut *mut u8,
+    out_len: *mut usize,
+) -> i32 {
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        if session.is_null() || out_ptr.is_null() || out_len.is_null() {
+            return Err(MGROUP3_ERR_NULL_ARG);
+        }
+        let slice = if input_len == 0 {
+            &[][..]
+        } else {
+            if input_bytes.is_null() {
+                return Err(MGROUP3_ERR_NULL_ARG);
+            }
+            unsafe { std::slice::from_raw_parts(input_bytes, input_len) }
+        };
+        let text = std::str::from_utf8(slice).map_err(|_| MGROUP3_ERR_UTF8)?;
+        let session_ref = unsafe { &mut *session };
+        session_ref.parse_full(text);
+        write_session_result(session_ref, out_ptr, out_len)
+    }));
+    finish_session_call(result, out_ptr, out_len)
+}
+
+/// Apply an edit and re-parse incrementally. `pos_char`/`old_len_char` are CHAR
+/// (Unicode code point) offsets into the current document — NOT UTF-16 code units
+/// and NOT bytes. The host is responsible for converting LSP UTF-16 positions to
+/// code-point offsets (see `incremental_parsing.md` §LSP). `new_bytes` (UTF-8) is
+/// the replacement text. Encodes the result exactly like `mgroup3_parser_parse`;
+/// the result is byte-identical to a full re-parse of the edited text.
+///
+/// On a parse error the session's outcome becomes that error (encoded in the
+/// result) and the NEXT edit safely re-parses from scratch (no stale baseline) —
+/// the session stays usable.
+#[unsafe(no_mangle)]
+pub extern "C" fn mgroup3_session_edit(
+    session: *mut ParseSession,
+    pos_char: usize,
+    old_len_char: usize,
+    new_bytes: *const u8,
+    new_len: usize,
+    out_ptr: *mut *mut u8,
+    out_len: *mut usize,
+) -> i32 {
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        if session.is_null() || out_ptr.is_null() || out_len.is_null() {
+            return Err(MGROUP3_ERR_NULL_ARG);
+        }
+        let slice = if new_len == 0 {
+            &[][..]
+        } else {
+            if new_bytes.is_null() {
+                return Err(MGROUP3_ERR_NULL_ARG);
+            }
+            unsafe { std::slice::from_raw_parts(new_bytes, new_len) }
+        };
+        let new_text = std::str::from_utf8(slice).map_err(|_| MGROUP3_ERR_UTF8)?;
+        let session_ref = unsafe { &mut *session };
+        session_ref.edit(pos_char, old_len_char, new_text);
+        write_session_result(session_ref, out_ptr, out_len)
+    }));
+    finish_session_call(result, out_ptr, out_len)
+}
+
+/// Drop a session handle previously returned by `mgroup3_session_new`. Does NOT
+/// free the borrowed parser — free that separately with `mgroup3_parser_free`
+/// AFTER all its sessions are destroyed.
+#[unsafe(no_mangle)]
+pub extern "C" fn mgroup3_session_destroy(session: *mut ParseSession) {
+    if session.is_null() {
+        return;
+    }
+    let _ = catch_unwind(AssertUnwindSafe(|| unsafe {
+        drop(Box::from_raw(session));
+    }));
 }
