@@ -50,6 +50,17 @@ fn mg4_env_interior_max_depth() -> Option<i32> {
     std::env::var("MG4_INTERIOR_N").ok().and_then(|s| s.parse().ok())
 }
 
+// peak-gated packing 실험 (mgroup4 Phase B 후속): main root 의 evolve 직후 live shape
+// 수가 이 임계값 미만이면 그 gen 의 병합 패스를 아예 건너뛴다 (형성 게이트 — 이미 살아있는
+// group 의 유지/분열 로직과는 무관, 출력 불변). 기본 0 = 게이트 없음 = 기존 동작과 동일.
+// env `MG4_MERGE_MIN_SHAPES` 로 전역 오버라이드 (MG4_INTERIOR_N 과 동일 규약).
+fn mg4_env_merge_min_shapes() -> i32 {
+    std::env::var("MG4_MERGE_MIN_SHAPES")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0)
+}
+
 // mgroup4 mean-shape 카운터 opt-in (§5.1) — 파스 출력 무영향, 진단 전용.
 fn mg4_shape_stats_enabled() -> bool {
     std::env::var_os("MG4_SHAPE_STATS").is_some()
@@ -151,6 +162,9 @@ pub struct Mgroup4Parser {
     /// 허용). n=1 ≡ mgroup3 (병합 패스 미실행). env `MG4_INTERIOR_N` 가 생성자 인자보다
     /// 우선 (Kotlin interiorGroupMaxDepth 와 동일 규약).
     interior_group_max_depth: i32,
+    /// peak-gated packing 실험: main root live shape 수가 이 값 미만이면 그 gen 의
+    /// 병합 패스 형성을 건너뛴다. 기본 0 (게이트 없음). env `MG4_MERGE_MIN_SHAPES`.
+    merge_min_shapes: i32,
     /// opt-in shape stats (`MG4_SHAPE_STATS`). Atomic → 파서 Send+Sync 유지.
     stats_enabled: bool,
     /// opt-in merge-pass self-time profile (`MG4_MERGE_PROFILE`).
@@ -228,6 +242,7 @@ impl Mgroup4Parser {
             tip_edge_actions,
             mid_edge_actions,
             interior_group_max_depth,
+            merge_min_shapes: mg4_env_merge_min_shapes(),
             stats_enabled: mg4_shape_stats_enabled(),
             merge_profile: mg4_merge_profile_enabled(),
             stats: Mg4Stats::default(),
@@ -837,7 +852,11 @@ impl Mgroup4Parser {
         // 시에만 분열 → 출력 불변 (parser_diff 오라클). Kotlin Mgroup4Parser.kt 참조.
         if self.interior_group_max_depth >= 2 {
             if let Some(main_evolved) = paths_evolved.get(&ctx.main_root) {
-                if main_evolved.len() >= 2 {
+                // peak-gated packing: live shape 수가 임계값 미만이면 이 gen 은 병합
+                // 패스 자체를 실행하지 않는다 (형성만 스킵 — 이미 있는 group 의
+                // 유지/분열은 이 게이트와 무관하므로 출력은 불변). 기본 0 은 게이트
+                // 없음 = 기존 동작.
+                if main_evolved.len() >= 2 && main_evolved.len() >= self.merge_min_shapes as usize {
                     let re =
                         self.merge_interior_groups(main_evolved, self.interior_group_max_depth, next_gen);
                     // 병합 전 map 은 pool 로 회수 (capacity 재사용).

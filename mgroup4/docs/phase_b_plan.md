@@ -131,3 +131,60 @@ generator/parserdata 포맷 변경 (없음), mgroup3(-native) 수정 (없음), �
 B1a (crate 스캐폴드 + n=1 parity — fixture 전부) → B1b (group 기계 + n>1 게이트 +
 Kotlin 교차) → B3 (실측·기본값) → 보고. B5 는 B3 통과 후. 각 단계 게이트 그린으로
 종료, 메인 세션 리뷰.
+
+## 5. Phase B 실행 결과 (2026-07-10) — **Rust 채택 기각**
+
+### 5.1 정확성 (B1a/B1b): 완승
+
+`mgroup4-native` crate (커밋 45ffe8bc, mgroup3-native 통째 포크 + group 기계 이식,
+rkyv magic 분리 `MG4RKYV2`, FFI `mgroup4_parser_*`). parser_diff 14케이스/72입력이
+n∈{1,2,4,6} 전부 Kotlin golden byte-identical, 11파일 corpus fingerprint 가
+mgroup3-native 와 일치, **Kotlin 교차 검증 정확 일치** (json2 n6 ratio 1.743 / n4
+1.682 / chain n4 1.444, creation/late-convergence 카운터 16,838/160,903 동일).
+두 독립 구현의 완전 상호 검증.
+
+### 5.2 시간 (B3): 채택 기준 대폭 미달 — 순 회귀 (유휴 재측정으로 확정)
+
+1차 측정이 동시 작업 (mulang 테스트 워처) 과 겹쳐 오염 의심 → **유휴 상태 재측정**
+(경쟁 프로세스 부재 확인, 셀당 9~12회, 2라운드 인터리브; sd 0.1~0.7%, 라운드 드리프트
+±0.7%). 12셀 중 11셀이 1차와 ±1% 재현 — 유일한 보정은 jquery n=6 (5640→5182ms,
+1차가 +8% 부풀려짐). **방향 불변.** 아래는 재측정 median:
+
+| 파일 | m3 n=1 | m4 n=1 | m4 n=6 | n=6 vs m3 / vs m4 n=1 |
+|---|--:|--:|--:|--:|
+| json2.js | 267 | 284 (+6%) | 427 | **0.63× / 0.67×** (느려짐) |
+| jquery.js | 4279 | 4412 (+3%) | 5182 | **0.83× / 0.85×** |
+| ccgen.mu | 1012 | 1050 (+4%) | 1179 | 0.86× / 0.89× |
+
+(json2 는 n=4/6/8 전부 0.62~0.64× 대역, jquery 는 n=4 0.72× / n=8 0.88×.) 채택 기준
+(es5 heavies n=6 ≥1.5×, mulang 비회귀) 전부 미달. n=1 자체도 노드 struct 비대화
+(group 2필드 + OnceCell 캐시 3개) 로 3~6% 회귀.
+
+**원인 (Phase A §7.3 예측의 정정)**: Kotlin 의 2.1~2.2× 는 대부분 live-set 축소의
+**GC/할당 복리**였다. 최적화된 Rust 엔진 (mimalloc·scratch 재사용·step6 visited-set)
+에는 그 복리가 없고, mean live-set 이 23~43 shape 로 작아 per-gen 고정비가 지배 —
+shape 1.74× 축소의 절감폭이 작은 반면 병합 패스 자기시간 (25~42%, Kotlin 은 3.9~14%)
+은 그대로 남는다. "Rust 는 shape ratio 로 수렴" 예측은 오판.
+
+### 5.3 peak-gated packing 실험 (판정 확정)
+
+`MG4_MERGE_MIN_SHAPES` (live main shapes ≥ 임계값인 gen 만 병합 형성; 기본 0 = 무게이트,
+출력 불변 — parser_diff 재확인): 임계값을 올릴수록 회귀가 단조 회복되나 **es5 n=6 에서
+n=1 을 끝내 못 넘는다** (유휴 재측정: json2 n6@256 = 337ms → m4 n=1 대비 0.84×,
+jquery n6@256 = 4609ms → 0.96×). 유일한 순이익은 jquery n=8@128 = 4325ms — m4 n=1
+대비 1.02× (2% 빠름) 이나 **m3 대비는 0.99× 로 여전히 미달**이고, ratio 를 1.85→1.39
+로 깎은 대가라 무의미. 임계값은 병합 비용과 병합 이득을 거의 1:1 로 맞바꾼다 →
+**회귀는 저부하 gen 낭비가 아니라 병합 패스의 per-gen 비용 구조에 본질적.**
+
+### 5.4 판정과 잔여 가치
+
+- **mgroup4-native 프로덕션 채택 기각.** bibix4/mulang 은 mgroup3-native 유지.
+  B5 (FFI 배선) 중단, Phase C 의 Rust 트랙 중단.
+- 유지되는 가치: (i) **JVM 엔진에선 실증된 2.1~2.2×** (mgroup4 Kotlin 모듈 — JVM
+  파서를 쓰는 소비자가 생기면 유효), (ii) **논문 재료** — 알고리즘 + late-convergence
+  90.5% + "interior packing 은 할당-지배 런타임에서 이득, 값-타입 최적화 런타임에선
+  역효과"라는 런타임 의존성 결과 자체, (iii) 차등 게이트·계측 인프라와 mgroup4-native
+  (재현 가능한 부정적 결과의 측정 자산).
+- **재방문 트리거**: ① Rust 엔진의 per-shape 비용이 커지는 변화 (예: 조건 평가
+  고비용화), ② mean live-set 이 수백 shape 대역인 문법/워크로드 등장, ③ 재파티션을
+  대체하는 저비용 병합 감지 아이디어 (예: fork-시점 형제 집합 추적을 gen 간 유지).

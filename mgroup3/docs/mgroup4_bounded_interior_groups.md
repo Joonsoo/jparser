@@ -395,6 +395,19 @@ Phase A (A0~A4) 완료. 구현은 별도 모듈 `mgroup4/` (mgroup3 무변경), 
   그룹핑이 아니라 **런타임 packing (재파티션 + 캐시 해시)** 이 주 기제. P4 테이블은
   reduce 판정 가속 보조. 잔여 스코프: 워처 일반화, 2중 group, Rust 미러.
 
+### 6.9 Phase B 결과 (2026-07-10) — Rust 채택 기각 (확정)
+
+mgroup4-native (Rust 미러, 커밋 45ffe8bc) 는 정확성 게이트 전승 (fixture 14케이스/
+72입력 n∈{1,2,4,6} byte-identical, Kotlin 교차 ratio·카운터 정확 일치) 했으나 시간은
+순 회귀: es5 heavies n=6 이 mgroup3-native 대비 **0.63~0.83×** (느려짐), mulang
+0.86×, n=1 자체 3~6% 회귀 (struct 비대화). peak-gated packing (`MG4_MERGE_MIN_SHAPES`)
+으로도 반전 불가. 동시 작업 오염 의심으로 **유휴 재측정까지 수행해 확정** (11/12셀
+±1% 재현). 원인: Kotlin 의 2.1~2.2× 는 live-set 축소의 GC/할당 복리가 원천 —
+값-타입 최적화 런타임 (mean live-set 23~43) 에선 per-gen 고정비가 지배해 병합 패스
+비용이 이득을 초과한다. **프로덕션 (bibix4/mulang) 은 mgroup3-native 유지.** 상세
+분석·재방문 트리거: `mgroup4/docs/phase_b_plan.md` §5. 유지 가치: JVM 엔진 2.1~2.2×
+(Kotlin 모듈), 논문 재료 (late-convergence 90.5% + packing 이득의 런타임 의존성).
+
 ## 7. 참고
 
 - `kernels_history_optimization.md` — 엔진 트랙 측정 방법론, Phase B 잔여 분석 (fork 목록)
