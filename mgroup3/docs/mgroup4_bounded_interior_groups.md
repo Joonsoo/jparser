@@ -408,6 +408,17 @@ mgroup4-native (Rust 미러, 커밋 45ffe8bc) 는 정확성 게이트 전승 (fi
 분석·재방문 트리거: `mgroup4/docs/phase_b_plan.md` §5. 유지 가치: JVM 엔진 2.1~2.2×
 (Kotlin 모듈), 논문 재료 (late-convergence 90.5% + packing 이득의 런타임 의존성).
 
+### 6.10 Phase G 결과 (2026-07-10) — generator-native 도 기각, 트랙 완결
+
+사용자 원안 (parserdata 를 mgroup→mgroup 곱 상태로 결정화 + 신규 생성기) 의 정적
+타당성 프로브 (G0) 에서 **suffix-set 상태 공간이 입력 의존적으로 발산** — jquery
+기준 n=1 은 790 상태로 포화 (정적 열거 성립 = 현행 mgroup3), n=2 는 169k+ (현행
+group 의 92.9×, 하한) 로 무포화 발산. 킬 게이트 (10×) 9~46× 초과로 G1 이후 미착수
+종료. **결론: n=1 (tip group) 이 정적 열거 가능한 grouping 깊이의 실측 경계** —
+mgroup3 설계점의 사후 정당화. interior 공유의 세 아키텍처 (런타임 packing §6.8~6.9
+/ 정적 결정화 / lazy 하이브리드) 가 전부 측정으로 닫힘: JVM 에서만 런타임 packing
+이 이득 (2.1~2.2×). 상세: `mgroup4/docs/phase_g_plan.md` §5.
+
 ## 7. 참고
 
 - `kernels_history_optimization.md` — 엔진 트랙 측정 방법론, Phase B 잔여 분석 (fork 목록)

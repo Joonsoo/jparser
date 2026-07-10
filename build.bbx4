@@ -882,6 +882,20 @@ def runMgroup4WallClock() {
   )
 }
 
+// mgroup4 Phase G0: suffix-set 상태 공간 동적 하한 프로브 (phase_g_plan.md §2 G0).
+// asdl(항상) + mulang/es5(대형 pb 존재 시) 를 n∈{2,3,4} 로 파싱하며 distinct suffix-set
+// 상태 수를 잰다. 계측 전용 (MG4_G0_STATS 게이트) — 파스 출력 무영향.
+@action
+def runMgroup4G0Probe() {
+  runJUnitTestSuiteWithEnv(
+    mgroup4.test,
+    .some("com.giyeok.jparser.mgroup4.G0StaticProbe"),
+    // 상태 수집이 수십만 규모라 기본 힙으론 OOM — es5Corpus 액션과 동일하게 힙 상향.
+    // MG4_G0_N1=1 이면 n=1 (방법론 검증 baseline) 도 포함.
+    {"MG4_G0_STATS": "1", "MG4_G0_N1": "1", "JAVA_TOOL_OPTIONS": "-Xmx12g"},
+  )
+}
+
 // mgroup4 A4: mgroup4.test 의 runtime classpath 를 파일(build/mg4-classpath.txt)로
 // 덤프한다. A4 정식 측정은 n 설정별 **별도 JVM 프로세스**로 돌려야 JIT 순서 편향을
 // 없앨 수 있는데, bibix action 은 런타임 인자를 못 받으므로 classpath 만 내보내고

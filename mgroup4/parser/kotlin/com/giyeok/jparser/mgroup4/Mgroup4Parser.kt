@@ -17,6 +17,12 @@ const val mg4DefaultInteriorMaxDepth: Int = 1
 val mg4ShapeStatsEnabled: Boolean =
   System.getenv("MG4_SHAPE_STATS") != null || System.getProperty("mg4.shapeStats") != null
 
+// mgroup4 Phase G0 — suffix-set 상태 공간 동적 하한 수집 opt-in. 파스 출력 무영향
+// (계측 전용). 매 gen main root live shape 를 G0SuffixSetStats 로 캐노니컬라이즈해
+// distinct suffix-set 상태 수를 잰다. G0SuffixSetStats.kt 참고.
+val mg4G0StatsEnabled: Boolean =
+  System.getenv("MG4_G0_STATS") != null || System.getProperty("mg4.g0Stats") != null
+
 // A4 병합-패스 내부 프로파일 opt-in. 매 gen mergeInteriorGroups 안의 세부 단계
 // (chainToList / bucket hashing / verdict / fold) 시간을 나노초로 분해. 기본 false
 // 라 hot path 에 System.nanoTime() 이 안 들어감 (phaseTiming 과 동일한 branch-predict
@@ -38,6 +44,9 @@ class Mgroup4Parser(
   // protobuf data 를 hot path 에서 한 번씩만 변환된 plain Kotlin record 로 wrap.
   // 모든 hot-path lookup 은 plain.* 사용.
   private val plain = ParserDataPlain(data)
+
+  // Phase G0: 현행 milestone group 총수 (suffix-set 상태 수 대비 배수 계산용).
+  val milestoneGroupCount: Int get() = plain.milestoneGroups.size
   private var verbose = false
   // 특정 step (= 이 gen 으로 진행되는 parseStep) 에서 trace 출력.
   // null 이면 trace 안 함. setTrace(gen) 으로 활성.
@@ -880,6 +889,9 @@ class Mgroup4Parser(
       println("  after evolve: mainPathsEvolved.size=${mainPathsEvolved.size}")
     }
     if (mg4ShapeStatsEnabled) recordShapeStats(pathsEvolved, ctx.mainRoot)
+    // Phase G0: main root live shape (post-merge, pre-filter) 를 관찰. group 은
+    // G0SuffixSetStats 가 멤버로 펼쳐 반영 → 병합 여부와 무관하게 같은 live path 집합.
+    if (mg4G0StatsEnabled) g0Stats?.observe(mainPathsEvolved, gen)
 
     tPhase = phaseMark(5, tPhase)
 
@@ -1377,6 +1389,11 @@ class Mgroup4Parser(
     }
     return out
   }
+
+  // === mgroup4 Phase G0 suffix-set 상태 수집기 (opt-in) — 파스 출력 무영향 ===
+  // 파서 생성 후 setG0Stats(n) 로 주입. observe() 는 매 gen parseStep 이 호출.
+  var g0Stats: G0SuffixSetStats? = null
+  fun setG0Stats(stats: G0SuffixSetStats): Mgroup4Parser { g0Stats = stats; return this }
 
   // === mgroup4 측정 카운터 (§5.1) — 파스 출력 무영향, opt-in ===
   var mg4MergedShapeSum: Long = 0L    // 병합 후 main shape 수 누적
