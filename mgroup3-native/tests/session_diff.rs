@@ -297,6 +297,12 @@ fn session_matches_full_reparse_under_fuzzing() {
             t.sum_convergence_distance, t.sum_would_splice_tail,
             session.checkpoint_count(), session.approx_checkpoint_bytes(),
         );
+        eprintln!(
+            "[session_diff] {}: I2 spliced={} sum_spliced_gens={} declined_lastgen={} \
+             declined_structural={} splice_rebase_us={}",
+            short, t.spliced, t.sum_spliced_gens, t.splice_declined_last_gen,
+            t.splice_declined_structural, t.splice_rebase_nanos / 1000,
+        );
     }
 
     eprintln!(
@@ -415,6 +421,115 @@ fn session_matches_full_reparse_under_fuzzing() {
         );
     }
     let _ = total_converged;
+}
+
+/// I2 splice-over-splice oracle: 30+ CONSECUTIVE parse-preserving structural
+/// edits on ONE file. Each edit's baseline is the prior (spliced) result, so this
+/// is the chained-edit correctness gate the design (§4 counter #4) requires. Every
+/// edit is byte-checked against a full re-parse, and we assert splices actually
+/// fire across the chain (the field-unit split mapping must stay coherent when
+/// spliced history is re-spliced).
+#[test]
+fn chained_structural_edits_splice_over_splice() {
+    let Some(pd_bytes) = read_parserdata_bytes() else {
+        eprintln!("note: chained_structural_edits skipped — no mulang mg3 parserdata found.");
+        return;
+    };
+    let data = Mgroup3ParserData::decode(pd_bytes.as_slice()).expect("decode mulang parserdata");
+    let parser = Arc::new(Mgroup3Parser::new(data));
+
+    const CHAIN_LEN: usize = 40; // >= 30 (gate requirement)
+    let mut checked_files = 0usize;
+    let mut total_spliced = 0usize;
+    let mut total_converged = 0usize;
+    for file in &corpus_files() {
+        let content = std::fs::read_to_string(file).expect("read corpus file");
+        let short = file.file_name().unwrap().to_string_lossy().into_owned();
+        let n = content.chars().count();
+        // Bound the O(doc)-per-edit full-reparse differential to the smaller files
+        // (unless MG3_SESSION_HEAVY=1). The chain still gives >= 30 edits.
+        let heavy = std::env::var("MG3_SESSION_HEAVY").map(|v| v == "1").unwrap_or(false);
+        if n > 8_000 && !heavy {
+            eprintln!("[session_diff] CHAIN: {} skipped (>8000 chars; set MG3_SESSION_HEAVY=1)", short);
+            continue;
+        }
+
+        let mut session = ParseSession::new(Arc::clone(&parser));
+        session.parse_full(&content);
+        if !matches!(session.outcome(), Some(ParseOutcome::Ok(ctx)) if parser.is_accepted(ctx)) {
+            eprintln!("[session_diff] CHAIN: {} skipped (clean parse not accepted)", short);
+            continue;
+        }
+        checked_files += 1;
+
+        let mut doc: Vec<char> = content.chars().collect();
+        // A rotating set of interior anchor fractions so successive edits land in
+        // different regions (exercises prefix-anchored vs post-edit gens in the
+        // split mapping, and repeatedly re-splices already-spliced history).
+        let fracs = [
+            (1usize, 3usize), (1, 2), (2, 3), (1, 4), (3, 4), (2, 5), (3, 5), (1, 5),
+        ];
+        let mut spliced = 0usize;
+        let mut converged = 0usize;
+        for i in 0..CHAIN_LEN {
+            let n = doc.len();
+            let (num, den) = fracs[i % fracs.len()];
+            let approx = n * num / den;
+            let Some((s, e)) = find_ident_span(&doc, approx) else { continue };
+            let old: String = doc[s..e].iter().collect();
+            let repl = format!("q{}9", old); // fresh, still a valid identifier
+            let old_len = e - s;
+            apply(&mut doc, s, old_len, &repl);
+            session.edit(s, old_len, &repl);
+
+            let want = full_reparse(&parser, &doc);
+            let got = serialize_session(&session);
+            assert_eq!(
+                got, want,
+                "{} CHAIN edit#{} (pos={}, old_len={}, new={:?}) diverged from full reparse\n  doc_len={}",
+                short, i, s, old_len, repl, doc.len()
+            );
+            if session.stats().last_convergence_distance.is_some() {
+                converged += 1;
+            }
+            if session.stats().last_spliced {
+                spliced += 1;
+            }
+            assert!(
+                !session.stats().last_rediverged,
+                "{} CHAIN edit#{} rediverged after convergence",
+                short, i
+            );
+        }
+        let t = session.totals();
+        eprintln!(
+            "[session_diff] CHAIN {}: {} edits, converged={} spliced={} sum_spliced_gens={} \
+             declined_structural={} splice_rebase_us={}",
+            short, CHAIN_LEN, converged, spliced, t.sum_spliced_gens,
+            t.splice_declined_structural, t.splice_rebase_nanos / 1000,
+        );
+        total_spliced += spliced;
+        total_converged += converged;
+        // Per file: whenever a genuine convergence occurs it MUST splice (these are
+        // true shift-equivalent states — the structural guard must never reject
+        // one; a rejection means a missing rebase field). Files that legitimately
+        // never converge (e.g. long-range-dependent grammars like ccgen.mu) splice
+        // 0 times and that's fine — the aggregate assert below still guards wiring.
+        assert_eq!(spliced, converged, "{} CHAIN: {} convergences but {} splices — the structural guard rejected a genuine convergence (rebase field bug?)", short, converged, spliced);
+        assert_eq!(
+            t.splice_declined_structural, 0,
+            "{} CHAIN: structural guard declined a genuine convergence (rebase field bug?)",
+            short
+        );
+    }
+    assert!(checked_files >= 1, "no corpus file usable for the chained-edit gate");
+    // Across the corpus, splices MUST fire (else the whole I2 path is dead). Some
+    // individual files may never converge, but not all.
+    assert!(
+        total_spliced > 0,
+        "no splice fired across {} files ({} convergences) — I2 wiring likely broken",
+        checked_files, total_converged
+    );
 }
 
 /// Is char c part of an identifier?

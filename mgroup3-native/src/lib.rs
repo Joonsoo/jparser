@@ -24,6 +24,7 @@ pub mod parser_cache;
 pub mod parser_data;
 pub mod parsing_ctx;
 pub mod path_root;
+pub mod rebase;
 pub mod session;
 pub mod term_group;
 

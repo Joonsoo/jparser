@@ -14,21 +14,40 @@
 //!
 //! I1 adds per-gen STRICT fingerprints (`fingerprint.rs`) and convergence
 //! detection: each `edit` re-parse is compared, gen by gen, to the previous
-//! parse's fingerprint sequence to find the convergence gen q* — WITHOUT splicing
-//! (Phase I2). The counters (`SessionStats`) measure the reuse headroom
-//! (would-splice tail) a future splice would realize. Fingerprints of BOTH the
-//! old and new document are computed under the SAME edit anchor `p` (== the edit
-//! char index), exactly as the probe does, so the session's convergence numbers
-//! reproduce the probe's band.
+//! parse's fingerprint sequence to find the convergence gen q*. The counters
+//! (`SessionStats`) measure the reuse headroom (would-splice tail). Fingerprints
+//! of BOTH the old and new document are computed under the SAME edit anchor `p`
+//! (== the edit char index), exactly as the probe does, so the session's
+//! convergence numbers reproduce the probe's band.
+//!
+//! I2 turns that reuse headroom into a SPLICE (design §2). When convergence is
+//! detected at gen q* with q* < the last gen (eager-EOF-fold safe, §2.4), the
+//! session:
+//!   1. Verifies a one-shot STRUCTURAL full match (not just the fingerprint —
+//!      collision guard, §2.1/§2.5): the OLD parse's live state at q*-delta,
+//!      rebased into the new gen space via the split mapping (`rebase.rs`), must
+//!      equal the freshly-parsed NEW state at q* exactly. On mismatch it abandons
+//!      the splice and keeps parsing (correctness preserved, counter bumped).
+//!   2. STOPS re-parsing the remaining gens. The final ctx and the spliced
+//!      history are reconstructed once by rebasing the OLD parse's suffix
+//!      (`GenRebase`, O(state) + O(history) once per edit) and gluing it onto the
+//!      freshly-parsed prefix `[0..=q*]`.
+//! The spliced result is stored exactly like a normal parse (outcome +
+//! canonical_history + final ctx), so the consumer path (is_accepted /
+//! kernels_history) is UNCHANGED and the NEXT edit naturally treats this spliced
+//! result as its baseline — chained edits (splice-over-splice) just work, and the
+//! differential oracle proves it.
 //!
 //! Threading: a session is a single-document, single-owner object. The parser
 //! handle is shared as `Arc<Mgroup3Parser>`.
 
+use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::fingerprint::{fp_state, Fp, Variant};
 use crate::parser::{Mgroup3Parser, ParsingError};
-use crate::parsing_ctx::{KtlibKernel, ParsingCtx};
+use crate::parsing_ctx::{HistoryEntry, KtlibKernel, ParsingCtx};
+use crate::rebase::{paths_match_after_rebase, GenRebase};
 use rustc_hash::FxHashSet as HashSet;
 
 /// Default checkpoint interval (gens). See design §1.2 — K/2 rewind ≈ the p90
@@ -88,6 +107,28 @@ pub struct SessionStats {
     pub last_rediverged: bool,
     /// `true` if there was a previous successful parse to compare against.
     pub last_had_baseline: bool,
+    /// I2: `true` if this edit spliced (reused the old suffix instead of parsing
+    /// it). Implies `last_convergence_gen.is_some()` and the structural guard
+    /// passed.
+    pub last_spliced: bool,
+    /// I2: gens the splice avoided re-parsing (== would-splice tail when spliced).
+    pub last_spliced_gens: usize,
+    /// I2: `true` if convergence was detected but the splice was declined
+    /// (structural guard failed, or q* == last gen so eager-EOF-fold safety
+    /// blocked it). Each maps to a distinct decline reason (see `SpliceDecline`).
+    pub last_splice_declined: Option<SpliceDecline>,
+}
+
+/// Why a detected convergence did NOT splice (design §2.4/§2.5 fallbacks).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SpliceDecline {
+    /// q* == the last gen: splicing would reuse the eager-EOF-folded final gen,
+    /// whose fold decision depends on `is_last_input`. Design §2.4 restricts
+    /// splice to q* < last gen; the tail here is empty anyway (no reuse lost).
+    LastGen,
+    /// The one-shot structural full match failed (fingerprint collision, or an
+    /// unexpected state mismatch). Extremely rare; the parse continues.
+    StructuralMismatch,
 }
 
 /// Aggregate counters over the session lifetime (for bench/reporting).
@@ -102,6 +143,16 @@ pub struct SessionTotals {
     pub sum_convergence_distance: u64,
     pub sum_would_splice_tail: u64,
     pub sum_reparsed_gens: u64,
+    /// I2 splice counters.
+    pub spliced: u64,
+    /// Gens the splices avoided re-parsing (sum of `last_spliced_gens`).
+    pub sum_spliced_gens: u64,
+    /// Convergences that declined to splice because q* == last gen (§2.4).
+    pub splice_declined_last_gen: u64,
+    /// Convergences that declined to splice because the structural guard failed.
+    pub splice_declined_structural: u64,
+    /// Total nanoseconds spent rebasing final ctx + materializing spliced history.
+    pub splice_rebase_nanos: u64,
 }
 
 pub struct ParseSession {
@@ -121,6 +172,12 @@ pub struct ParseSession {
     /// checkpoint's history prefix on resume (see `Checkpoint`). Empty if the last
     /// parse errored.
     canonical_history: Vec<crate::parsing_ctx::HistoryEntry>,
+    /// I2 splice source: the FINAL ctx of the last successful parse (the old
+    /// parse whose suffix a splice reuses). `None` until the first success / after
+    /// an error. Held as `Rc` so cloning it into `prev_*` is cheap (the heavy
+    /// `paths` chains are `Rc`-shared, ref-counted only). Its `history` matches
+    /// `canonical_history`.
+    prev_final_ctx: Option<Rc<ParsingCtx>>,
     /// Checkpoint interval in gens.
     interval: usize,
     /// Final outcome of the last parse.
@@ -147,6 +204,7 @@ impl ParseSession {
             have_baseline: false,
             checkpoints: Vec::new(),
             canonical_history: Vec::new(),
+            prev_final_ctx: None,
             interval,
             outcome: None,
             stats: SessionStats::default(),
@@ -273,7 +331,14 @@ impl ParseSession {
             None
         };
 
-        let ok = self.reparse_incremental(pos, anchor, delta, edit_end, baseline_fp.as_deref());
+        let ok = self.reparse_incremental(
+            pos,
+            anchor,
+            delta,
+            edit_end,
+            baseline_fp.as_deref(),
+            &baseline_doc,
+        );
         self.finish_parse(ok);
 
         self.totals.edits += 1;
@@ -293,6 +358,17 @@ impl ParseSession {
             if self.stats.last_rediverged {
                 self.totals.rediverged += 1;
             }
+            if self.stats.last_spliced {
+                self.totals.spliced += 1;
+                self.totals.sum_spliced_gens += self.stats.last_spliced_gens as u64;
+            }
+            match self.stats.last_splice_declined {
+                Some(SpliceDecline::LastGen) => self.totals.splice_declined_last_gen += 1,
+                Some(SpliceDecline::StructuralMismatch) => {
+                    self.totals.splice_declined_structural += 1
+                }
+                None => {}
+            }
         }
 
         if self.verify {
@@ -305,14 +381,20 @@ impl ParseSession {
     // -- internals -----------------------------------------------------------
 
     /// After a parse, record the current document as the next baseline iff the
-    /// parse succeeded.
+    /// parse succeeded. Also retains the final ctx as the next edit's splice
+    /// source (I2). Its `history` equals `canonical_history` (both set by the
+    /// reparse routines), so a splice can reuse either.
     fn finish_parse(&mut self, ok: bool) {
         if ok {
             self.prev_doc = self.doc.clone();
             self.have_baseline = true;
+            if let Some(ParseOutcome::Ok(ctx)) = &self.outcome {
+                self.prev_final_ctx = Some(Rc::new(ctx.clone()));
+            }
         } else {
             self.prev_doc.clear();
             self.have_baseline = false;
+            self.prev_final_ctx = None;
         }
     }
 
@@ -397,6 +479,9 @@ impl ParseSession {
     /// Re-parse from the resume checkpoint to end of the (edited) document,
     /// rebuilding the checkpoint ring beyond the resume point and detecting
     /// convergence against `baseline_fp` (A's per-gen strict fps under `anchor`).
+    /// On convergence at q* < last gen, SPLICE (I2): verify the structural full
+    /// match then stop parsing and reuse the old suffix. `old_doc` is the previous
+    /// document (splice source), re-parsed to q*-delta on demand for the guard.
     /// Returns true on success.
     fn reparse_incremental(
         &mut self,
@@ -405,6 +490,7 @@ impl ParseSession {
         delta: i32,
         edit_end: usize,
         baseline_fp: Option<&[Fp]>,
+        old_doc: &[char],
     ) -> bool {
         let resume = self.resume_checkpoint(pos);
         let resume_gen = resume.at_gen;
@@ -428,17 +514,30 @@ impl ParseSession {
         let mut convergence_gen: Option<usize> = None;
         let mut rediverged = false;
 
-        // B's strict fp at gen q, compared to A's fp at gen q-delta.
-        let baseline_at = |q: usize| -> Option<Fp> {
-            let bf = baseline_fp?;
+        // The gen-rebase mapping from OLD gen space to NEW: `g<=p → g`, `g>p → g+delta`.
+        let rebase = GenRebase::new(anchor, delta);
+
+        // Splicing needs the old parse's full history + final ctx. They are the
+        // retained `canonical_history` / `prev_final_ctx` (still the OLD parse's at
+        // this point — overwritten only after this returns).
+        let can_splice = baseline_fp.is_some() && self.prev_final_ctx.is_some();
+
+        // B's strict fp at gen q, compared to A's fp at gen q-delta (== old gen).
+        let old_gen_of = |q: usize| -> Option<usize> {
             let pi = q as i64 - delta as i64;
             if pi < 0 {
-                return None;
+                None
+            } else {
+                Some(pi as usize)
             }
-            bf.get(pi as usize).copied()
+        };
+        let baseline_at = |q: usize| -> Option<Fp> {
+            let bf = baseline_fp?;
+            bf.get(old_gen_of(q)?).copied()
         };
 
         let mut reparsed = 0usize;
+        let mut spliced_at: Option<usize> = None; // new-gen q* where we spliced
         for idx in resume_gen..total {
             let c = self.doc[idx];
             match self.parser.parse_step(ctx, c, idx + 1 == total) {
@@ -453,10 +552,38 @@ impl ParseSession {
                                 let bf = fp_state(&ctx, anchor, ctx.gen_idx, Variant::Strict);
                                 if bf == af {
                                     convergence_gen = Some(g);
+                                    // I2: attempt a splice. Eager-EOF-fold safety
+                                    // (§2.4): only splice when q* < last gen, so the
+                                    // reused suffix's `is_last_input` folds match.
+                                    // `g == total` is the last gen (idx == total-1).
+                                    if can_splice && g < total {
+                                        let og = old_gen_of(g).expect("old gen for q*");
+                                        // Structural full-match guard (§2.1): the OLD
+                                        // live state at og, rebased, must equal the
+                                        // NEW live state at g. Blocks hash collisions.
+                                        // The old state is recovered by a targeted
+                                        // re-parse of the old doc to og (O(og), once).
+                                        let old_state = self.old_live_state_at(old_doc, og);
+                                        let guard_ok = old_state
+                                            .as_ref()
+                                            .map(|os| paths_match_after_rebase(&rebase, os, &ctx))
+                                            .unwrap_or(false);
+                                        if guard_ok {
+                                            spliced_at = Some(g);
+                                            break;
+                                        } else {
+                                            self.stats.last_splice_declined =
+                                                Some(SpliceDecline::StructuralMismatch);
+                                        }
+                                    } else if can_splice && g >= total {
+                                        self.stats.last_splice_declined =
+                                            Some(SpliceDecline::LastGen);
+                                    }
                                 }
                             }
                         } else if let Some(cg) = convergence_gen {
                             // stability: after q*, later gens should keep matching.
+                            // (Only reached when a splice was NOT taken at q*.)
                             if g > cg && !rediverged {
                                 if let Some(af) = baseline_at(g) {
                                     let bf = fp_state(&ctx, anchor, ctx.gen_idx, Variant::Strict);
@@ -486,11 +613,81 @@ impl ParseSession {
         self.stats.last_convergence_distance = convergence_gen.map(|q| q - edit_end);
         self.stats.last_would_splice_tail = convergence_gen.map(|q| gens_ok.saturating_sub(q));
         self.stats.last_rediverged = rediverged;
-        // Retain the full history as the canonical source for the next edit's
-        // checkpoint restore.
-        self.canonical_history = ctx.history.clone();
-        self.outcome = Some(ParseOutcome::Ok(ctx));
+
+        if let Some(qstar) = spliced_at {
+            // I2 SPLICE: reuse the old suffix instead of parsing gens (qstar, total].
+            self.finish_splice(qstar, delta, &rebase, ctx);
+        } else {
+            // No splice — the freshly-parsed ctx is the whole result.
+            self.canonical_history = ctx.history.clone();
+            self.outcome = Some(ParseOutcome::Ok(ctx));
+        }
         true
+    }
+
+    /// Materialize a spliced parse result at convergence gen `qstar` (new gen
+    /// space). `new_ctx` is the freshly-parsed ctx AT `qstar` (its `history` is
+    /// `[0..=qstar]`, new gen space). The old parse's suffix
+    /// `canonical_history[qstar_old+1 ..]` (old gen space) is rebased via the split
+    /// mapping and glued on; the OLD final ctx (`prev_final_ctx`) is rebased into
+    /// the final live state. Design §2.2 (a)+(b): one O(state)+O(history) pass.
+    fn finish_splice(
+        &mut self,
+        qstar: usize,
+        delta: i32,
+        rebase: &GenRebase,
+        new_ctx: ParsingCtx,
+    ) {
+        let t0 = std::time::Instant::now();
+        let qstar_old = (qstar as i32 - delta) as usize;
+
+        // Segment A+B: the freshly-parsed history [0..=qstar] (new gen space).
+        // new_ctx.history has exactly qstar+1 entries (gens 0..=qstar). Move it out
+        // (no clone) — new_ctx is owned and only its history is reused here.
+        debug_assert_eq!(new_ctx.history.len(), qstar + 1, "new_ctx history len at q*");
+        let mut spliced: Vec<HistoryEntry> = new_ctx.history;
+
+        // Segment C: old history (qstar_old, ..] rebased into the new gen space.
+        // The convergence gen itself (old qstar_old ≡ new qstar) is already covered
+        // by segment B, so segment C starts at qstar_old + 1. Field-unit split
+        // mapping (see rebase.rs) — prefix anchors (g<=p) stay, post-edit gens
+        // (g>p) shift, WITHIN each rebased entry.
+        let old_len = self.canonical_history.len();
+        let seg_c_start = (qstar_old + 1).min(old_len);
+        spliced.reserve(old_len - seg_c_start);
+        for i in seg_c_start..old_len {
+            spliced.push(rebase.entry(&self.canonical_history[i]));
+        }
+        // Full history length invariant: (qstar+1) + (old_len - (qstar_old+1))
+        //   = delta + old_len = new_total + 1 (gens 0..=new_total). See finish_splice.
+        debug_assert_eq!(
+            spliced.len() as i32,
+            old_len as i32 + delta,
+            "spliced history length != old_len + delta"
+        );
+
+        // Retain the spliced history as the next edit's canonical source BEFORE it
+        // is moved into the final ctx (avoids a second full clone).
+        self.canonical_history = spliced.clone();
+
+        // Final live state: rebase the OLD final ctx into the new gen space and
+        // attach the spliced history. (`prev_final_ctx` is the OLD parse's final
+        // ctx; still valid here — overwritten by finish_parse after we return.)
+        let old_final = self.prev_final_ctx.as_ref().expect("prev_final_ctx for splice");
+        let final_ctx = rebase.ctx(old_final, spliced);
+        debug_assert_eq!(
+            final_ctx.gen_idx,
+            final_ctx.history.len() as i32 - 1,
+            "final ctx gen_idx must be last history gen"
+        );
+
+        let spliced_gens = old_len.saturating_sub(qstar_old + 1);
+        self.stats.last_spliced = true;
+        self.stats.last_spliced_gens = spliced_gens;
+        self.stats.last_splice_declined = None;
+        self.totals.splice_rebase_nanos += t0.elapsed().as_nanos() as u64;
+
+        self.outcome = Some(ParseOutcome::Ok(final_ctx));
     }
 
     /// Fingerprint every gen of `chars` under `anchor` (STRICT variant). Drives a
@@ -512,6 +709,36 @@ impl ParseSession {
             }
         }
         out
+    }
+
+    /// I2 splice guard support: the OLD parse's LIVE state (paths) at gen
+    /// `target_old_gen`. Re-parses the OLD document from `init_ctx` up to that gen
+    /// only (O(target_old_gen), once per splicing edit) and returns the ctx there.
+    /// This deterministic re-parse reproduces the old parse's gen-`target_old_gen`
+    /// state exactly, so it is the correct comparand for the structural full-match
+    /// guard. Returns `None` if the target is out of range or the parse errors.
+    /// Only the `paths` field is used by the guard; `history` is left as produced.
+    fn old_live_state_at(&self, old_doc: &[char], target_old_gen: usize) -> Option<ParsingCtx> {
+        let total = old_doc.len();
+        if target_old_gen > total {
+            return None;
+        }
+        let mut ctx = self.parser.init_ctx();
+        if target_old_gen == 0 {
+            return Some(ctx);
+        }
+        for (idx, &c) in old_doc.iter().enumerate().take(target_old_gen) {
+            match self.parser.parse_step(ctx, c, idx + 1 == total) {
+                Ok(next) => {
+                    ctx = next;
+                    if ctx.gen_idx as usize == target_old_gen {
+                        return Some(ctx);
+                    }
+                }
+                Err(_) => return None,
+            }
+        }
+        None
     }
 
     /// Debug self-check (design §2.5): full re-parse of the current document and a
@@ -713,5 +940,48 @@ mod tests {
             s.stats()
         );
         assert_eq!(sess_str(&parser, &s), full(&parser, "ababababababab"));
+    }
+
+    #[test]
+    fn splice_fires_and_is_correct() {
+        // Insert "ab" mid-document (not at the end) so q* < last gen and a splice
+        // actually fires. Output must byte-match a full re-parse.
+        let parser = nested_repeat_parser();
+        let mut s = ParseSession::with_interval(Arc::clone(&parser), 4);
+        s.parse_full("abababababababab"); // 16 chars, valid
+        s.edit(4, 0, "ab"); // -> 18 chars, still valid; suffix reused
+        let st = s.stats();
+        assert!(st.last_spliced, "expected splice to fire; stats={st:?}");
+        assert!(st.last_spliced_gens > 0, "splice should reuse >0 gens; stats={st:?}");
+        assert_eq!(st.last_splice_declined, None);
+        assert_eq!(sess_str(&parser, &s), full(&parser, "ababababababababab"));
+    }
+
+    #[test]
+    fn chained_splices_stay_correct() {
+        // Splice-over-splice: many consecutive mid-document inserts. Each edit must
+        // byte-match a full re-parse (the next edit's baseline is the prior splice).
+        let parser = nested_repeat_parser();
+        let mut s = ParseSession::with_interval(Arc::clone(&parser), 4);
+        let mut doc: Vec<char> = "abababababababababab".chars().collect(); // 20
+        s.parse_full(&doc.iter().collect::<String>());
+        let mut splices = 0usize;
+        for i in 0..12 {
+            // Alternate insert positions in the interior (always even -> valid).
+            let pos = 2 + (i % 6) * 2;
+            let pos = pos.min(doc.len());
+            doc.splice(pos..pos, "ab".chars());
+            s.edit(pos, 0, "ab");
+            let text: String = doc.iter().collect();
+            assert_eq!(
+                sess_str(&parser, &s),
+                full(&parser, &text),
+                "chained edit#{i} pos={pos} diverged"
+            );
+            if s.stats().last_spliced {
+                splices += 1;
+            }
+        }
+        assert!(splices > 0, "expected some splices across the chain");
     }
 }
