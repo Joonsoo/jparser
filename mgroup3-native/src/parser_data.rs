@@ -52,6 +52,17 @@ pub struct ParserDataPlain {
     pub transitive_initial_cond_symbols: HashMap<i32, HashSet<i32>>,
     /// lookahead 가 감시하는 심볼들 — step 3 시동 flavor 판별 (구 규약: same-input).
     pub lookahead_cond_symbols: HashSet<i32>,
+    /// "anychar 1글자" cond symbol (EOF = `!.` 의 부정 본문). 이 심볼 S 의 watcher
+    /// S@g 는 "gen g 에 글자가 하나라도 있는가"와 동치이므로, NotExists(S@g) 는
+    /// 입력 길이만의 함수다 — parse_step 이 조건 생성 시점에 즉시 Never/Always 로
+    /// 확정한다 (eager EOF resolution; 줄주석 내부 유령 경계 shape 차단 —
+    /// mulang docs/parser_phantom_block_comment.md). 탐지 기준은
+    /// `compute_eof_cond_symbols` 참고 (보수적 — 미탐지는 최적화 미적용일 뿐).
+    ///
+    /// **Derived** from `path_roots`+`term_actions` — `transitive_initial_cond_symbols`
+    /// 와 같은 이유로 not archived; 캐시 복원 시 `recompute_derived` 가 재계산.
+    #[rkyv(with = Skip)]
+    pub eof_cond_symbols: HashSet<i32>,
 }
 
 impl ParserDataPlain {
@@ -98,6 +109,7 @@ impl ParserDataPlain {
         let transitive_initial_cond_symbols = compute_transitive_initial_cond_symbols(&path_roots);
         let lookahead_cond_symbols: HashSet<i32> =
             proto.lookahead_cond_symbol_ids.iter().copied().collect();
+        let eof_cond_symbols = compute_eof_cond_symbols(&path_roots, &term_actions);
 
         Self {
             start_symbol_id,
@@ -108,6 +120,7 @@ impl ParserDataPlain {
             mid_edge_actions,
             transitive_initial_cond_symbols,
             lookahead_cond_symbols,
+            eof_cond_symbols,
         }
     }
 
@@ -119,7 +132,59 @@ impl ParserDataPlain {
     pub fn recompute_derived(&mut self) {
         self.transitive_initial_cond_symbols =
             compute_transitive_initial_cond_symbols(&self.path_roots);
+        self.eof_cond_symbols = compute_eof_cond_symbols(&self.path_roots, &self.term_actions);
     }
+}
+
+/// "anychar 1글자" cond symbol 판별: root S 의 starter group 이
+///   - term action 이 정확히 하나이고 그 term group 이 전체 문자를 커버
+///     (AllCharsExcluding + 빈 제외 집합)
+///   - replace_and_appends 없음 (경로가 깊어지지 않음 — 정확히 1글자)
+///   - replace_and_progresses 만 있고 조건이 전부 Always (무조건 root 완성)
+///   - self-finish 없음 (빈 매치 불가)
+/// 이면 S@g 의 완성은 "gen g 에 글자 존재"와 동치. 기준은 의도적으로 보수적 —
+/// 놓친 심볼은 기존 watcher 경로로 처리될 뿐 (정확도 손실 없음).
+fn compute_eof_cond_symbols(
+    path_roots: &HashMap<i32, Arc<PathRootInfoPlain>>,
+    term_actions: &HashMap<i32, Vec<Arc<TermGroupActionPlain>>>,
+) -> HashSet<i32> {
+    use crate::proto::com::giyeok::jparser::mgroup3::proto::accept_condition_template::Condition;
+    use crate::proto::com::giyeok::jparser::proto::term_group::TermGroup as TermGroupOneof;
+
+    let mut out: HashSet<i32> = HashSet::default();
+    for (sym, info) in path_roots {
+        if info.self_finish_accept_condition.is_some() {
+            continue;
+        }
+        let Some(actions) = term_actions.get(&info.milestone_group_id) else { continue };
+        if actions.len() != 1 {
+            continue;
+        }
+        let tga = &actions[0];
+        let all_chars = match tga.term_group.term_group.as_ref() {
+            Some(TermGroupOneof::AllCharsExcluding(ace)) => match ace.excluding.as_ref() {
+                None => true,
+                Some(cg) => cg.unicode_categories.is_empty() && cg.chars.is_empty(),
+            },
+            _ => false,
+        };
+        if !all_chars {
+            continue;
+        }
+        let ta = &tga.term_action;
+        if !ta.replace_and_appends.is_empty() || ta.replace_and_progresses.is_empty() {
+            continue;
+        }
+        let all_always = ta
+            .replace_and_progresses
+            .iter()
+            .all(|rap| matches!(rap.accept_condition.condition, Some(Condition::Always(_))));
+        if !all_always {
+            continue;
+        }
+        out.insert(*sym);
+    }
+    out
 }
 
 /// DFS with explicit stack-set for cycle detection. Mirrors

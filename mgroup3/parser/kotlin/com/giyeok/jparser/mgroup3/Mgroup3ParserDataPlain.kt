@@ -39,6 +39,34 @@ class ParserDataPlain(val proto: Mgroup3ParserData) {
       k to v.actionsList.map { TermGroupActionPlain(it) }
     }
 
+  // "anychar 1글자" cond symbol (EOF = `!.` 의 부정 본문). 이 심볼 S 의 watcher S@g 는
+  // "gen g 에 글자가 하나라도 있는가"와 동치이므로 NotExists(S@g) 는 입력 길이만의
+  // 함수다 — parseStep 이 조건 생성 시점에 즉시 Never/Always 로 확정한다
+  // (eager EOF resolution; 줄주석 내부 유령 경계 shape 차단 —
+  // mulang docs/parser_phantom_block_comment.md). 판별 기준 (보수적 — 미탐지는
+  // 최적화 미적용일 뿐):
+  //   - starter group 의 term action 이 정확히 하나이고 term group 이 전체 문자 커버
+  //   - replaceAndAppends 없음 (정확히 1글자에서 종결)
+  //   - replaceAndProgresses 조건이 전부 Always (무조건 root 완성)
+  //   - self-finish 없음 (빈 매치 불가)
+  val eofCondSymbols: Set<Int> = run {
+    val out = HashSet<Int>()
+    for ((sym, info) in pathRoots) {
+      if (info.selfFinishAcceptCondition != null) continue
+      val actions = termActions[info.milestoneGroupId] ?: continue
+      if (actions.size != 1) continue
+      val tga = actions[0]
+      if (!tga.termGroup.hasAllCharsExcluding()) continue
+      val excluding = tga.termGroup.allCharsExcluding.excluding
+      if (excluding.unicodeCategoriesCount != 0 || excluding.chars.isNotEmpty()) continue
+      val ta = tga.termAction
+      if (ta.replaceAndAppends.isNotEmpty() || ta.replaceAndProgresses.isEmpty()) continue
+      if (!ta.replaceAndProgresses.all { it.acceptCondition.hasAlways() }) continue
+      out.add(sym)
+    }
+    out
+  }
+
   val tipEdgeActions: List<TipEdgeActionPair> =
     proto.tipEdgeActionsList.map { TipEdgeActionPair(it.parent, it.tipGroupId, EdgeActionPlain(it.edgeAction)) }
 
