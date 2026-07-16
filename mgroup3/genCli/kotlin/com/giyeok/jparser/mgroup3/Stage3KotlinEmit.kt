@@ -65,6 +65,7 @@ object Stage3KotlinEmit {
     // proto 클래스들은 alias 로 — typed AST 의 nested 클래스명과 충돌 방지.
     sb.append("import ${schema.packageName}.NodeEntry as PNodeEntry\n")
     sb.append("import ${schema.packageName}.ParseResult as PParseResult\n")
+    sb.append("import ${schema.packageName}.ParseDelta as PParseDelta\n")
     for (m in concretes.sortedBy { it.name }) {
       sb.append("import ${schema.packageName}.${m.name} as P${m.name}\n")
     }
@@ -89,21 +90,27 @@ object Stage3KotlinEmit {
       |
       |    fun node(id: Int): $className.AstNode = memo.getOrPut(id) {
       |      val entry = byId[id] ?: error("ParseResult: missing node id=${'$'}id")
-      |      when (entry.nodeCase) {
+      |      decodeEntry(id, entry) { node(it) }
+      |    }
+      |  }
       |
       """.trimMargin()
     )
+    // Shared oneof dispatch + per-message decoders. `child` maps a referenced node
+    // id to its typed node; full decode passes recursive `node()`, the delta path
+    // passes a held-map lookup, so one field mapping serves both.
+    sb.append("  private fun decodeEntry(id: Int, entry: PNodeEntry, child: (Int) -> $className.AstNode): $className.AstNode =\n")
+    sb.append("    when (entry.nodeCase) {\n")
     for (m in concretes.sortedBy { it.name }) {
-      sb.append("        PNodeEntry.NodeCase.${screamingSnake(m.name)} -> decode${m.name}(id, entry.${ktId(lowerCamel(m.name))})\n")
+      sb.append("      PNodeEntry.NodeCase.${screamingSnake(m.name)} -> decode${m.name}(id, entry.${ktId(lowerCamel(m.name))}, child)\n")
     }
-    sb.append("        else -> error(\"ParseResult: node id=\$id has empty oneof\")\n")
-    sb.append("      }\n    }\n\n")
+    sb.append("      else -> error(\"ParseResult: node id=\$id has empty oneof\")\n")
+    sb.append("    }\n\n")
 
     for (m in concretes) {
       sb.append(decodeFn(className, m, kotlinNames))
       sb.append("\n")
     }
-    sb.append("  }\n\n")
 
     // ---- encode ----
     sb.append(
@@ -135,24 +142,129 @@ object Stage3KotlinEmit {
       }
       sb.append("    }\n\n")
     }
-    sb.append("  }\n")
+    sb.append("  }\n\n")
+
+    sb.append(deltaSession(className, root))
+
     sb.append("}\n")
     return sb.toString()
+  }
+
+  // --- incremental delta session (Stage 3a) ------------------------------
+
+  /**
+   * Emits `DeltaSession`, the JVM consumer of `mgroup3_gen_session_edit_delta`.
+   * It holds the current full id -> typed-node table and patches it per edit,
+   * mirroring the Rust session's `reconstruct` (delta.rs) so the held tree stays
+   * structurally + span identical to a full re-parse.
+   */
+  private fun deltaSession(className: String, root: String): String {
+    val rootType = "$className.$root"
+    return """
+      |  /**
+      |   * Stateful consumer of `mgroup3_gen_session_edit_delta` (design
+      |   * lsp_result_boundary.md §3-A/§6). Holds the current full node table
+      |   * (id -> typed node) so a `ParseDelta` patches it in place instead of
+      |   * rebuilding the whole tree per edit; mirrors the Rust session's
+      |   * `reconstruct` exactly, keeping the held tree byte-identical (structure +
+      |   * spans) to a full re-parse of the edited text.
+      |   *
+      |   * NOT thread-safe, and `applyDelta` mutates retained nodes' spans in place
+      |   * (see the AstNode span-mutation contract). Drive it from one document
+      |   * session under the lock that serializes edits.
+      |   *
+      |   * Version handshake: [version] starts at 0 and advances by exactly 1 per FFI
+      |   * result, mirroring the Rust delta session counter. Feed every parse_full
+      |   * result and every fallback (kind=0) edit result to [initFromFull], and every
+      |   * delta (kind=1) edit result to [applyDelta]. A base_version mismatch means a
+      |   * result was dropped/reordered — recover by requesting a full parse.
+      |   */
+      |  class DeltaSession {
+      |    private val nodesById = HashMap<Int, $className.AstNode>()
+      |    private var currentRoot: $rootType? = null
+      |
+      |    /** Monotone version of the held result (mirrors the Rust session counter). */
+      |    var version: Int = 0
+      |      private set
+      |
+      |    /** The current root node; throws if no result has been installed yet. */
+      |    val root: $rootType
+      |      get() = currentRoot ?: error("DeltaSession: no result installed yet")
+      |
+      |    private fun resolve(id: Int): $className.AstNode =
+      |      nodesById[id] ?: error("DeltaSession: dangling child id=${'$'}id")
+      |
+      |    /**
+      |     * Install a full `ParseResult` as the new baseline (initial parse_full or a
+      |     * fallback edit result). Rebuilds the id -> node table and advances [version].
+      |     */
+      |    fun initFromFull(result: PParseResult): $rootType {
+      |      nodesById.clear()
+      |      // Ascending id = children before parents (the encoder allocates a parent
+      |      // after its children), so every child resolves from the map in one pass.
+      |      for (entry in result.nodesList.sortedBy { it.id }) {
+      |        nodesById[entry.id] = decodeEntry(entry.id, entry) { resolve(it) }
+      |      }
+      |      currentRoot = nodesById[result.rootId] as? $rootType
+      |        ?: error("DeltaSession: root id=${'$'}{result.rootId} missing or wrong type")
+      |      version += 1
+      |      return root
+      |    }
+      |
+      |    /**
+      |     * Apply a `ParseDelta` to the held table (mirrors Rust `reconstruct`): verify
+      |     * base_version, drop freed subtrees, shift retained spans, splice in patched
+      |     * nodes, swap the root. Throws on a version mismatch (request a full parse).
+      |     */
+      |    fun applyDelta(delta: PParseDelta): $rootType {
+      |      check(delta.baseVersion == version) {
+      |        "DeltaSession: base_version=${'$'}{delta.baseVersion} but held version=${'$'}version" +
+      |          " — result dropped/reordered; request a full parse"
+      |      }
+      |      // (b) drop freed ids (old dirty subtree + spine).
+      |      for (freedId in delta.freedIdsList) {
+      |        nodesById.remove(freedId)
+      |      }
+      |      // (c) shift retained spans in place, BEFORE decoding patched (Rust order):
+      |      //     each coordinate strictly greater than shift_pivot moves by shift_delta.
+      |      val pivot = delta.shiftPivot
+      |      val shift = delta.shiftDelta
+      |      if (shift != 0) {
+      |        for (node in nodesById.values) {
+      |          if (node.start > pivot) node.start += shift
+      |          if (node.end > pivot) node.end += shift
+      |        }
+      |      }
+      |      // (d) build patched nodes in ascending id order. The Stage 2 walk allocates
+      |      //     a node id after its children, so a patched node's patched children have
+      |      //     smaller ids and are already in the map; non-patched children were
+      |      //     retained (and span-shifted) above. One pass resolves everything.
+      |      for (entry in delta.patchedList.sortedBy { it.id }) {
+      |        nodesById[entry.id] = decodeEntry(entry.id, entry) { resolve(it) }
+      |      }
+      |      // (e) swap root + advance version.
+      |      currentRoot = nodesById[delta.rootId] as? $rootType
+      |        ?: error("DeltaSession: delta root id=${'$'}{delta.rootId} missing or wrong type")
+      |      version = delta.newVersion
+      |      return root
+      |    }
+      |  }
+      |""".trimMargin()
   }
 
   // --- decode fn for one concrete message --------------------------------
 
   private fun decodeFn(className: String, m: MessageDef, kotlinNames: Map<String, String>): String {
     val sb = StringBuilder()
-    sb.append("    private fun decode${m.name}(id: Int, m: P${m.name}): $className.${m.kotlinName} =\n")
-    sb.append("      $className.${m.kotlinName}(\n")
+    sb.append("  private fun decode${m.name}(id: Int, m: P${m.name}, child: (Int) -> $className.AstNode): $className.${m.kotlinName} =\n")
+    sb.append("    $className.${m.kotlinName}(\n")
     for (f in m.fields) {
-      sb.append("        ${ktId(f.name)} = ${decodeExpr(className, f.name, f.type, kotlinNames)},\n")
+      sb.append("      ${ktId(f.name)} = ${decodeExpr(className, f.name, f.type, kotlinNames)},\n")
     }
-    sb.append("        nodeId = id,\n")
-    sb.append("        start = m.start,\n")
-    sb.append("        end = m.end,\n")
-    sb.append("      )\n")
+    sb.append("      nodeId = id,\n")
+    sb.append("      start = m.start,\n")
+    sb.append("      end = m.end,\n")
+    sb.append("    )\n")
     return sb.toString()
   }
 
@@ -166,13 +278,13 @@ object Stage3KotlinEmit {
       SchemaType.NodeBytes ->
         error("NodeBytes 는 Kotlin binding 에서 아직 미지원 (field $name)")
       is SchemaType.Enm -> "$className.${kn[t.name] ?: t.name}.valueOf(${stripEnumPrefix(t.name, "m.$name.name")})"
-      is SchemaType.Msg -> "node(m.$name) as $className.${kn[t.name] ?: t.name}"
+      is SchemaType.Msg -> "child(m.$name) as $className.${kn[t.name] ?: t.name}"
       is SchemaType.Arr -> decodeArrExpr(className, name0, t.of, kn)
       is SchemaType.Opt -> when (val inner = t.of) {
         is SchemaType.Arr ->
           "if (m.${name0}Present) ${decodeArrExpr(className, name0, inner.of, kn)} else null"
         is SchemaType.Msg ->
-          "if (m.${name0}Present) node(m.$name) as $className.${kn[inner.name] ?: inner.name} else null"
+          "if (m.${name0}Present) child(m.$name) as $className.${kn[inner.name] ?: inner.name} else null"
         is SchemaType.Enm ->
           "if (m.${name0}Present) $className.${kn[inner.name] ?: inner.name}.valueOf(${stripEnumPrefix(inner.name, "m.$name.name")}) else null"
         SchemaType.Bool, SchemaType.Int32, SchemaType.Str ->
@@ -187,7 +299,7 @@ object Stage3KotlinEmit {
   private fun decodeArrExpr(className: String, name0: String, elem: SchemaType, kn: Map<String, String>): String {
     val listGetter = "m.${ktId(name0 + "List")}"
     return when (elem) {
-      is SchemaType.Msg -> "$listGetter.map { node(it) as $className.${kn[elem.name] ?: elem.name} }"
+      is SchemaType.Msg -> "$listGetter.map { child(it) as $className.${kn[elem.name] ?: elem.name} }"
       is SchemaType.Enm -> "$listGetter.map { $className.${kn[elem.name] ?: elem.name}.valueOf(${stripEnumPrefix(elem.name, "it.name")}) }"
       SchemaType.Bool -> "$listGetter.toList()"
       SchemaType.Int32 -> "$listGetter.map { it.toInt() }"

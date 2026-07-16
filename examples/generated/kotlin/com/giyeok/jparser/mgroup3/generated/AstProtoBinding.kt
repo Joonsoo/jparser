@@ -5,6 +5,7 @@ package com.giyeok.jparser.mgroup3.generated
 
 import com.giyeok.jparser.mgroup3.generated.ast.NodeEntry as PNodeEntry
 import com.giyeok.jparser.mgroup3.generated.ast.ParseResult as PParseResult
+import com.giyeok.jparser.mgroup3.generated.ast.ParseDelta as PParseDelta
 import com.giyeok.jparser.mgroup3.generated.ast.Attributes as PAttributes
 import com.giyeok.jparser.mgroup3.generated.ast.ModuleDef as PModuleDef
 import com.giyeok.jparser.mgroup3.generated.ast.Param as PParam
@@ -27,81 +28,82 @@ object AstProtoBinding {
 
     fun node(id: Int): Ast.AstNode = memo.getOrPut(id) {
       val entry = byId[id] ?: error("ParseResult: missing node id=$id")
-      when (entry.nodeCase) {
-        PNodeEntry.NodeCase.ATTRIBUTES -> decodeAttributes(id, entry.attributes)
-        PNodeEntry.NodeCase.MODULE_DEF -> decodeModuleDef(id, entry.moduleDef)
-        PNodeEntry.NodeCase.PARAM -> decodeParam(id, entry.param)
-        PNodeEntry.NodeCase.SEALED_CLASS_DEFS -> decodeSealedClassDefs(id, entry.sealedClassDefs)
-        PNodeEntry.NodeCase.SUB_CLASS_DEF -> decodeSubClassDef(id, entry.subClassDef)
-        PNodeEntry.NodeCase.SUPER_CLASS_DEF -> decodeSuperClassDef(id, entry.superClassDef)
-        PNodeEntry.NodeCase.TUPLE_DEF -> decodeTupleDef(id, entry.tupleDef)
-        else -> error("ParseResult: node id=$id has empty oneof")
-      }
+      decodeEntry(id, entry) { node(it) }
+    }
+  }
+  private fun decodeEntry(id: Int, entry: PNodeEntry, child: (Int) -> Ast.AstNode): Ast.AstNode =
+    when (entry.nodeCase) {
+      PNodeEntry.NodeCase.ATTRIBUTES -> decodeAttributes(id, entry.attributes, child)
+      PNodeEntry.NodeCase.MODULE_DEF -> decodeModuleDef(id, entry.moduleDef, child)
+      PNodeEntry.NodeCase.PARAM -> decodeParam(id, entry.param, child)
+      PNodeEntry.NodeCase.SEALED_CLASS_DEFS -> decodeSealedClassDefs(id, entry.sealedClassDefs, child)
+      PNodeEntry.NodeCase.SUB_CLASS_DEF -> decodeSubClassDef(id, entry.subClassDef, child)
+      PNodeEntry.NodeCase.SUPER_CLASS_DEF -> decodeSuperClassDef(id, entry.superClassDef, child)
+      PNodeEntry.NodeCase.TUPLE_DEF -> decodeTupleDef(id, entry.tupleDef, child)
+      else -> error("ParseResult: node id=$id has empty oneof")
     }
 
-    private fun decodeAttributes(id: Int, m: PAttributes): Ast.Attributes =
-      Ast.Attributes(
-        attrs = m.attrsList.map { node(it) as Ast.Param },
-        nodeId = id,
-        start = m.start,
-        end = m.end,
-      )
+  private fun decodeAttributes(id: Int, m: PAttributes, child: (Int) -> Ast.AstNode): Ast.Attributes =
+    Ast.Attributes(
+      attrs = m.attrsList.map { child(it) as Ast.Param },
+      nodeId = id,
+      start = m.start,
+      end = m.end,
+    )
 
-    private fun decodeModuleDef(id: Int, m: PModuleDef): Ast.ModuleDef =
-      Ast.ModuleDef(
-        name = m.name,
-        defs = m.defsList.map { node(it) as Ast.SuperClassDef },
-        nodeId = id,
-        start = m.start,
-        end = m.end,
-      )
+  private fun decodeModuleDef(id: Int, m: PModuleDef, child: (Int) -> Ast.AstNode): Ast.ModuleDef =
+    Ast.ModuleDef(
+      name = m.name,
+      defs = m.defsList.map { child(it) as Ast.SuperClassDef },
+      nodeId = id,
+      start = m.start,
+      end = m.end,
+    )
 
-    private fun decodeParam(id: Int, m: PParam): Ast.Param =
-      Ast.Param(
-        typeName = m.typeName,
-        typeAttr = Ast.TypeAttr.valueOf(m.typeAttr.name.removePrefix("TYPE_ATTR_")),
-        name = m.name,
-        nodeId = id,
-        start = m.start,
-        end = m.end,
-      )
+  private fun decodeParam(id: Int, m: PParam, child: (Int) -> Ast.AstNode): Ast.Param =
+    Ast.Param(
+      typeName = m.typeName,
+      typeAttr = Ast.TypeAttr.valueOf(m.typeAttr.name.removePrefix("TYPE_ATTR_")),
+      name = m.name,
+      nodeId = id,
+      start = m.start,
+      end = m.end,
+    )
 
-    private fun decodeSealedClassDefs(id: Int, m: PSealedClassDefs): Ast.SealedClassDefs =
-      Ast.SealedClassDefs(
-        subs = m.subsList.map { node(it) as Ast.SubClassDef },
-        nodeId = id,
-        start = m.start,
-        end = m.end,
-      )
+  private fun decodeSealedClassDefs(id: Int, m: PSealedClassDefs, child: (Int) -> Ast.AstNode): Ast.SealedClassDefs =
+    Ast.SealedClassDefs(
+      subs = m.subsList.map { child(it) as Ast.SubClassDef },
+      nodeId = id,
+      start = m.start,
+      end = m.end,
+    )
 
-    private fun decodeSubClassDef(id: Int, m: PSubClassDef): Ast.SubClassDef =
-      Ast.SubClassDef(
-        name = m.name,
-        params = if (m.paramsPresent) m.paramsList.map { node(it) as Ast.Param } else null,
-        nodeId = id,
-        start = m.start,
-        end = m.end,
-      )
+  private fun decodeSubClassDef(id: Int, m: PSubClassDef, child: (Int) -> Ast.AstNode): Ast.SubClassDef =
+    Ast.SubClassDef(
+      name = m.name,
+      params = if (m.paramsPresent) m.paramsList.map { child(it) as Ast.Param } else null,
+      nodeId = id,
+      start = m.start,
+      end = m.end,
+    )
 
-    private fun decodeSuperClassDef(id: Int, m: PSuperClassDef): Ast.SuperClassDef =
-      Ast.SuperClassDef(
-        name = m.name,
-        body = node(m.body) as Ast.SuperClassDefBody,
-        attrs = if (m.attrsPresent) node(m.attrs) as Ast.Attributes else null,
-        nodeId = id,
-        start = m.start,
-        end = m.end,
-      )
+  private fun decodeSuperClassDef(id: Int, m: PSuperClassDef, child: (Int) -> Ast.AstNode): Ast.SuperClassDef =
+    Ast.SuperClassDef(
+      name = m.name,
+      body = child(m.body) as Ast.SuperClassDefBody,
+      attrs = if (m.attrsPresent) child(m.attrs) as Ast.Attributes else null,
+      nodeId = id,
+      start = m.start,
+      end = m.end,
+    )
 
-    private fun decodeTupleDef(id: Int, m: PTupleDef): Ast.TupleDef =
-      Ast.TupleDef(
-        body = m.bodyList.map { node(it) as Ast.Param },
-        nodeId = id,
-        start = m.start,
-        end = m.end,
-      )
-
-  }
+  private fun decodeTupleDef(id: Int, m: PTupleDef, child: (Int) -> Ast.AstNode): Ast.TupleDef =
+    Ast.TupleDef(
+      body = m.bodyList.map { child(it) as Ast.Param },
+      nodeId = id,
+      start = m.start,
+      end = m.end,
+    )
 
   fun toProtoBytes(root: Ast.ModuleDef): ByteArray = toProto(root).toByteArray()
 
@@ -234,5 +236,94 @@ object AstProtoBinding {
       is Ast.TupleDef -> encodeTupleDef(node)
     }
 
+  }
+
+  /**
+   * Stateful consumer of `mgroup3_gen_session_edit_delta` (design
+   * lsp_result_boundary.md §3-A/§6). Holds the current full node table
+   * (id -> typed node) so a `ParseDelta` patches it in place instead of
+   * rebuilding the whole tree per edit; mirrors the Rust session's
+   * `reconstruct` exactly, keeping the held tree byte-identical (structure +
+   * spans) to a full re-parse of the edited text.
+   *
+   * NOT thread-safe, and `applyDelta` mutates retained nodes' spans in place
+   * (see the AstNode span-mutation contract). Drive it from one document
+   * session under the lock that serializes edits.
+   *
+   * Version handshake: [version] starts at 0 and advances by exactly 1 per FFI
+   * result, mirroring the Rust delta session counter. Feed every parse_full
+   * result and every fallback (kind=0) edit result to [initFromFull], and every
+   * delta (kind=1) edit result to [applyDelta]. A base_version mismatch means a
+   * result was dropped/reordered — recover by requesting a full parse.
+   */
+  class DeltaSession {
+    private val nodesById = HashMap<Int, Ast.AstNode>()
+    private var currentRoot: Ast.ModuleDef? = null
+
+    /** Monotone version of the held result (mirrors the Rust session counter). */
+    var version: Int = 0
+      private set
+
+    /** The current root node; throws if no result has been installed yet. */
+    val root: Ast.ModuleDef
+      get() = currentRoot ?: error("DeltaSession: no result installed yet")
+
+    private fun resolve(id: Int): Ast.AstNode =
+      nodesById[id] ?: error("DeltaSession: dangling child id=$id")
+
+    /**
+     * Install a full `ParseResult` as the new baseline (initial parse_full or a
+     * fallback edit result). Rebuilds the id -> node table and advances [version].
+     */
+    fun initFromFull(result: PParseResult): Ast.ModuleDef {
+      nodesById.clear()
+      // Ascending id = children before parents (the encoder allocates a parent
+      // after its children), so every child resolves from the map in one pass.
+      for (entry in result.nodesList.sortedBy { it.id }) {
+        nodesById[entry.id] = decodeEntry(entry.id, entry) { resolve(it) }
+      }
+      currentRoot = nodesById[result.rootId] as? Ast.ModuleDef
+        ?: error("DeltaSession: root id=${result.rootId} missing or wrong type")
+      version += 1
+      return root
+    }
+
+    /**
+     * Apply a `ParseDelta` to the held table (mirrors Rust `reconstruct`): verify
+     * base_version, drop freed subtrees, shift retained spans, splice in patched
+     * nodes, swap the root. Throws on a version mismatch (request a full parse).
+     */
+    fun applyDelta(delta: PParseDelta): Ast.ModuleDef {
+      check(delta.baseVersion == version) {
+        "DeltaSession: base_version=${delta.baseVersion} but held version=$version" +
+          " — result dropped/reordered; request a full parse"
+      }
+      // (b) drop freed ids (old dirty subtree + spine).
+      for (freedId in delta.freedIdsList) {
+        nodesById.remove(freedId)
+      }
+      // (c) shift retained spans in place, BEFORE decoding patched (Rust order):
+      //     each coordinate strictly greater than shift_pivot moves by shift_delta.
+      val pivot = delta.shiftPivot
+      val shift = delta.shiftDelta
+      if (shift != 0) {
+        for (node in nodesById.values) {
+          if (node.start > pivot) node.start += shift
+          if (node.end > pivot) node.end += shift
+        }
+      }
+      // (d) build patched nodes in ascending id order. The Stage 2 walk allocates
+      //     a node id after its children, so a patched node's patched children have
+      //     smaller ids and are already in the map; non-patched children were
+      //     retained (and span-shifted) above. One pass resolves everything.
+      for (entry in delta.patchedList.sortedBy { it.id }) {
+        nodesById[entry.id] = decodeEntry(entry.id, entry) { resolve(it) }
+      }
+      // (e) swap root + advance version.
+      currentRoot = nodesById[delta.rootId] as? Ast.ModuleDef
+        ?: error("DeltaSession: delta root id=${delta.rootId} missing or wrong type")
+      version = delta.newVersion
+      return root
+    }
   }
 }

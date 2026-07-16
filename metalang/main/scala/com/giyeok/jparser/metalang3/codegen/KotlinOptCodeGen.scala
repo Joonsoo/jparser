@@ -125,12 +125,18 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
         s"${param._1}=$${${toShortStringExpr(param._1, param._2)}}"
       }
       val toShortStringBody = s"\"${cls.className}(${contentFields.mkString(", ")})\""
+      // start/end are `var` (see the AstNode interface note) so a delta consumer
+      // can shift a retained node's span in place. Because these are data-class
+      // constructor properties, they remain part of equals()/hashCode(): mutating a
+      // shared node's span is only sound under the consumption contract documented
+      // on AstNode (span writes happen during delta application, never concurrently
+      // with reads). nodeId stays a `val` (immutable identity).
       CodeBlob(
         s"""data class ${cls.className}(
            |${params.map(_.code + ",").mkString("\n")}
            |  override val nodeId: Int,
-           |  override val start: Int,
-           |  override val end: Int,
+           |  override var start: Int,
+           |  override var end: Int,
            |): $supers {
            |  override fun toShortString(): String = $toShortStringBody
            |}
@@ -513,10 +519,17 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
 
     writer.write("  private fun nextId(): Int = idIssuer.nextId()\n\n")
     writer.write(
-      """  sealed interface AstNode {
+      """  // start/end are `var` so an incremental delta consumer
+        |  // (AstProtoBinding.DeltaSession) can shift a retained node's span in place
+        |  // when an edit shifts text after the dirty window. CONSUMPTION CONTRACT:
+        |  // a shared node's span is mutated only while a delta is applied (during a
+        |  // recompile), never concurrently with a read — the LSP session manager's
+        |  // per-document lock guarantees edits and reads never overlap. nodeId is an
+        |  // immutable `val` identity that survives across edits (reused nodes keep it).
+        |  sealed interface AstNode {
         |    val nodeId: Int
-        |    val start: Int
-        |    val end: Int
+        |    var start: Int
+        |    var end: Int
         |    fun toShortString(): String
         |  }
         |""".stripMargin)

@@ -105,6 +105,54 @@ class GeneratedAstNativeBridge(libPath: Path) : AutoCloseable {
     FunctionDescriptor.ofVoid(ValueLayout.ADDRESS),
   )
 
+  // ---------------------------------------------------------------------------
+  // Incremental AST-delta session (Stage 3) — ADDITIVE. A separate session type
+  // (`GenDeltaSession`) that keeps the previous full result + a monotone version,
+  // so an edit returns a `ParseDelta` (patched nodes + freed ids + span shift) when
+  // the edit spliced and a baseline is held, else a full `ParseResult` fallback.
+  // The return `kind` out-param disambiguates: 1 = delta, 0 = full. Same lifetime /
+  // threading contract as the non-delta session (borrows the parser; single
+  // document; char offsets). Consume with the generated `AstProtoBinding.DeltaSession`
+  // (delta -> applyDelta, full -> initFromFull). See lsp_result_boundary.md §6.
+
+  private val genDeltaSessionNew: MethodHandle = downcall(
+    "mgroup3_gen_delta_session_new",
+    FunctionDescriptor.of(
+      ValueLayout.ADDRESS, // *mut GenDeltaSession (핸들)
+      ValueLayout.ADDRESS, // parser
+      ValueLayout.ADDRESS, // err *i32 (out)
+    ),
+  )
+  private val genDeltaSessionParseFull: MethodHandle = downcall(
+    "mgroup3_gen_delta_session_parse_full",
+    FunctionDescriptor.of(
+      ValueLayout.JAVA_INT, // i32 status
+      ValueLayout.ADDRESS, // session
+      ValueLayout.ADDRESS, // input_bytes
+      ValueLayout.JAVA_LONG, // input_len
+      ValueLayout.ADDRESS, // out_ptr **u8
+      ValueLayout.ADDRESS, // out_len *usize
+    ),
+  )
+  private val genSessionEditDelta: MethodHandle = downcall(
+    "mgroup3_gen_session_edit_delta",
+    FunctionDescriptor.of(
+      ValueLayout.JAVA_INT, // i32 status
+      ValueLayout.ADDRESS, // session
+      ValueLayout.JAVA_LONG, // pos_char (코드포인트 오프셋)
+      ValueLayout.JAVA_LONG, // old_len_char (코드포인트)
+      ValueLayout.ADDRESS, // new_bytes
+      ValueLayout.JAVA_LONG, // new_len
+      ValueLayout.ADDRESS, // out_ptr **u8
+      ValueLayout.ADDRESS, // out_len *usize
+      ValueLayout.ADDRESS, // kind *i32 (out): 1=delta, 0=full
+    ),
+  )
+  private val genDeltaSessionDestroy: MethodHandle = downcall(
+    "mgroup3_gen_delta_session_destroy",
+    FunctionDescriptor.ofVoid(ValueLayout.ADDRESS),
+  )
+
   /** parserdata 파일에서 파서 핸들 생성. 실패 시 throw. */
   fun newParserFromFile(parserDataPath: Path): MemorySegment =
     newParserFromFileVia(parserNewFromFile, "mgroup3_parser_new_from_file", parserDataPath)
@@ -245,6 +293,92 @@ class GeneratedAstNativeBridge(libPath: Path) : AutoCloseable {
     genSessionDestroy.invokeExact(session)
   }
 
+  /**
+   * 파서 핸들 위에 증분 **델타** 세션을 연다 (직전 결과 + version 을 보유). [sessionNew]
+   * 와 별개의 세션 타입 (`GenDeltaSession`) 이며, 파서를 **빌린다** (수명 계약 동일:
+   * 모든 세션 [sessionDeltaDestroy] 후에만 [freeParser]). 실패 시
+   * [GeneratedAstParseException].
+   */
+  fun sessionDeltaNew(parser: MemorySegment): MemorySegment = withConfinedArena { arena ->
+    val errSeg = arena.allocate(ValueLayout.JAVA_INT)
+    val session = genDeltaSessionNew.invokeExact(parser, errSeg) as MemorySegment
+    val err = errSeg.get(ValueLayout.JAVA_INT, 0)
+    if (err != 0 || session.address() == 0L) {
+      throw GeneratedAstParseException(if (err != 0) err else 5, "<delta_session_new>")
+    }
+    session
+  }
+
+  /**
+   * 델타 세션에 전문 재파스를 먹이고 baseline 을 (재)수립한다. 결과 바이트는
+   * ast.proto [PParseResult][parseAst] (델타 아님) — 소비측은
+   * `AstProtoBinding.DeltaSession.initFromFull` 로 흡수. 입력 거부 시
+   * [GeneratedAstParseException] (code 6/7).
+   */
+  fun sessionDeltaParseFull(session: MemorySegment, input: String): ByteArray =
+    withConfinedArena { arena ->
+      val inputBytes = input.toByteArray(StandardCharsets.UTF_8)
+      val inputSeg = allocInputBytes(arena, inputBytes)
+      val outPtrSeg = arena.allocate(ValueLayout.ADDRESS)
+      val outLenSeg = arena.allocate(ValueLayout.JAVA_LONG)
+      val code = genDeltaSessionParseFull.invokeExact(
+        session,
+        inputSeg,
+        inputBytes.size.toLong(),
+        outPtrSeg,
+        outLenSeg,
+      ) as Int
+      if (code != 0) {
+        throw GeneratedAstParseException(code, input)
+      }
+      readAndFreeOutBuffer(outPtrSeg, outLenSeg)
+    }
+
+  /**
+   * 델타 세션에 단일 치환 편집을 먹인다. 반환은 [SessionDeltaResult]:
+   *   - [SessionDeltaResult.isDelta] `true`  → bytes 는 ast.proto `ParseDelta`
+   *     (splice + baseline 있음) — 소비측은 `applyDelta` 로 흡수.
+   *   - `false` → bytes 는 ast.proto `ParseResult` 폴백 (미splice/첫 편집) —
+   *     소비측은 `initFromFull` 로 흡수.
+   * [posChar]/[oldLenChar] 는 **코드포인트 오프셋**. 파스 실패 (code 6/7) 시
+   * [GeneratedAstParseException] 을 던지되 세션은 파괴하지 않는다 (다음 edit 안전).
+   * 이 경우 Rust 세션 내부 문서는 편집이 반영됐지만 baseline/version 은 불변이다 —
+   * 호출측은 tracked 텍스트를 갱신하되 소비 세션(applyDelta/initFromFull)은 건드리지
+   * 않아 Rust version 과 동기를 유지한다.
+   */
+  fun sessionEditDelta(
+    session: MemorySegment,
+    posChar: Long,
+    oldLenChar: Long,
+    newText: String,
+  ): SessionDeltaResult = withConfinedArena { arena ->
+    val newBytes = newText.toByteArray(StandardCharsets.UTF_8)
+    val newSeg = allocInputBytes(arena, newBytes)
+    val outPtrSeg = arena.allocate(ValueLayout.ADDRESS)
+    val outLenSeg = arena.allocate(ValueLayout.JAVA_LONG)
+    val kindSeg = arena.allocate(ValueLayout.JAVA_INT)
+    val code = genSessionEditDelta.invokeExact(
+      session,
+      posChar,
+      oldLenChar,
+      newSeg,
+      newBytes.size.toLong(),
+      outPtrSeg,
+      outLenSeg,
+      kindSeg,
+    ) as Int
+    if (code != 0) {
+      throw GeneratedAstParseException(code, newText)
+    }
+    val kind = kindSeg.get(ValueLayout.JAVA_INT, 0)
+    SessionDeltaResult(isDelta = kind == 1, bytes = readAndFreeOutBuffer(outPtrSeg, outLenSeg))
+  }
+
+  /** 델타 세션 핸들 해제. 빌린 파서는 해제하지 않는다. */
+  fun sessionDeltaDestroy(session: MemorySegment) {
+    genDeltaSessionDestroy.invokeExact(session)
+  }
+
   private fun allocInputBytes(arena: Arena, bytes: ByteArray): MemorySegment =
     if (bytes.isEmpty()) {
       MemorySegment.NULL
@@ -284,6 +418,21 @@ class GeneratedAstNativeBridge(libPath: Path) : AutoCloseable {
     }
     return linker.downcallHandle(addr, descriptor)
   }
+}
+
+/**
+ * [GeneratedAstNativeBridge.sessionEditDelta] 결과. [isDelta] 가 true 면 [bytes] 는
+ * ast.proto `ParseDelta`, false 면 `ParseResult` 폴백 (§ mgroup3_gen_session_edit_delta
+ * 의 kind 아웃파람).
+ */
+data class SessionDeltaResult(val isDelta: Boolean, val bytes: ByteArray) {
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (other !is SessionDeltaResult) return false
+    return isDelta == other.isDelta && bytes.contentEquals(other.bytes)
+  }
+
+  override fun hashCode(): Int = 31 * isDelta.hashCode() + bytes.contentHashCode()
 }
 
 class GeneratedAstParseException(val code: Int, val input: String) : Exception(

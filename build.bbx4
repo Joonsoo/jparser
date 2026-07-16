@@ -822,6 +822,18 @@ def runMgroup3GenAstFfiTest() {
   )
 }
 
+// AST-delta 차등 게이트 (Stage 3a): 델타 세션 FFI (mgroup3_gen_session_edit_delta) 로
+// 퍼징 편집을 흘려 AstProtoBinding.DeltaSession (applyDelta/initFromFull) 누적 결과가
+// 매 편집 full 파스와 구조+스팬까지 동일한지 검증 (델타/폴백 경로 모두). cargo 필요.
+@action
+def runMgroup3GenDeltaTest() {
+  runJUnitTestSuiteWithEnv(
+    mgroup3.test,
+    .some("com.giyeok.jparser.mgroup3.Mgroup3GenDeltaFfiTest"),
+    {"MGROUP3_GEN_FFI": "1"},
+  )
+}
+
 // mgroup3 Kotlin vs mgroup3-native (FFM) wall-clock benchmark across the
 // mulang corpus. Mulang fixtures must be present (run
 // `runMgroup3FixtureGen` once first).

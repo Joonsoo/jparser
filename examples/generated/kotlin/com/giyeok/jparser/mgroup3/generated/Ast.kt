@@ -9,10 +9,17 @@ class Ast(
 ) {
   private fun nextId(): Int = idIssuer.nextId()
 
+  // start/end are `var` so an incremental delta consumer
+  // (AstProtoBinding.DeltaSession) can shift a retained node's span in place
+  // when an edit shifts text after the dirty window. CONSUMPTION CONTRACT:
+  // a shared node's span is mutated only while a delta is applied (during a
+  // recompile), never concurrently with a read — the LSP session manager's
+  // per-document lock guarantees edits and reads never overlap. nodeId is an
+  // immutable `val` identity that survives across edits (reused nodes keep it).
   sealed interface AstNode {
     val nodeId: Int
-    val start: Int
-    val end: Int
+    var start: Int
+    var end: Int
     fun toShortString(): String
   }
 
@@ -20,8 +27,8 @@ data class ModuleDef(
   val name: String,
   val defs: List<SuperClassDef>,
   override val nodeId: Int,
-  override val start: Int,
-  override val end: Int,
+  override var start: Int,
+  override var end: Int,
 ): AstNode {
   override fun toShortString(): String = "ModuleDef(name=${name}, defs=${"[${defs.joinToString { it.toShortString() }}]"})"
 }
@@ -29,8 +36,8 @@ data class ModuleDef(
 data class Attributes(
   val attrs: List<Param>,
   override val nodeId: Int,
-  override val start: Int,
-  override val end: Int,
+  override var start: Int,
+  override var end: Int,
 ): AstNode {
   override fun toShortString(): String = "Attributes(attrs=${"[${attrs.joinToString { it.toShortString() }}]"})"
 }
@@ -40,8 +47,8 @@ data class Param(
   val typeAttr: TypeAttr,
   val name: String,
   override val nodeId: Int,
-  override val start: Int,
-  override val end: Int,
+  override var start: Int,
+  override var end: Int,
 ): AstNode {
   override fun toShortString(): String = "Param(typeName=${typeName}, typeAttr=${typeAttr}, name=${name})"
 }
@@ -50,8 +57,8 @@ data class SubClassDef(
   val name: String,
   val params: List<Param>?,
   override val nodeId: Int,
-  override val start: Int,
-  override val end: Int,
+  override var start: Int,
+  override var end: Int,
 ): AstNode {
   override fun toShortString(): String = "SubClassDef(name=${name}, params=${params})"
 }
@@ -59,8 +66,8 @@ data class SubClassDef(
 data class SealedClassDefs(
   val subs: List<SubClassDef>,
   override val nodeId: Int,
-  override val start: Int,
-  override val end: Int,
+  override var start: Int,
+  override var end: Int,
 ): SuperClassDefBody, AstNode {
   override fun toShortString(): String = "SealedClassDefs(subs=${"[${subs.joinToString { it.toShortString() }}]"})"
 }
@@ -72,8 +79,8 @@ data class SuperClassDef(
   val body: SuperClassDefBody,
   val attrs: Attributes?,
   override val nodeId: Int,
-  override val start: Int,
-  override val end: Int,
+  override var start: Int,
+  override var end: Int,
 ): AstNode {
   override fun toShortString(): String = "SuperClassDef(name=${name}, body=${body.toShortString()}, attrs=${attrs?.toShortString()})"
 }
@@ -81,8 +88,8 @@ data class SuperClassDef(
 data class TupleDef(
   val body: List<Param>,
   override val nodeId: Int,
-  override val start: Int,
-  override val end: Int,
+  override var start: Int,
+  override var end: Int,
 ): SuperClassDefBody, AstNode {
   override fun toShortString(): String = "TupleDef(body=${"[${body.joinToString { it.toShortString() }}]"})"
 }

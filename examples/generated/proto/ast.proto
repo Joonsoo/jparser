@@ -81,3 +81,13 @@ message ParseResult {
   int32 root_id = 1;
   repeated NodeEntry nodes = 2;
 }
+
+message ParseDelta {
+  int32 base_version = 1;
+  int32 new_version = 2;
+  int32 root_id = 3;
+  int32 shift_pivot = 4;
+  int32 shift_delta = 5;
+  repeated NodeEntry patched = 6;
+  repeated int32 freed_ids = 7;
+}
