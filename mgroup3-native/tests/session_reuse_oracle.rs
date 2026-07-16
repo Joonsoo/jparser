@@ -62,6 +62,21 @@ fn nested_repeat_parser() -> Arc<Mgroup3Parser> {
     Arc::new(Mgroup3Parser::new(data))
 }
 
+/// asdl parserdata (GenCli-generated), committed as a fixture. asdl is the
+/// grammar that surfaced the interval-less dangerous root (fin-only cond path),
+/// so this exercises `compute_dirty_lo`'s `start_gen` substitute with debug
+/// assertions ON. Gracefully skipped when the fixture is absent.
+fn asdl_parser() -> Option<Arc<Mgroup3Parser>> {
+    // Standalone parserdata (GenCli-generated), kept OUT of `tests/fixtures/parser`
+    // so the golden-file parser fixtures (cache_equivalence / parser_diff) don't
+    // require an `inputs/*/golden.txt` layout for it.
+    let p = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/reuse_oracle/asdl-parserdata.pb");
+    let bytes = std::fs::read(&p).ok()?;
+    let data = Mgroup3ParserData::decode(bytes.as_slice()).ok()?;
+    Some(Arc::new(Mgroup3Parser::new(data)))
+}
+
 fn read_parserdata_bytes() -> Option<Vec<u8>> {
     let path = resolve_parserdata_path()?;
     let raw = std::fs::read(&path).ok()?;
@@ -430,6 +445,102 @@ fn reuse_oracle_nested_repeat() {
         agg.spliced > 0,
         "nested_repeat: no splice fired — the oracle exercised no reuse (check the edit script)"
     );
+}
+
+// ---------------------------------------------------------------------------
+// Grammar 3 — asdl: the grammar whose fin-only (interval-less) dangerous root
+// surfaced the `compute_dirty_lo` `start_gen` substitute. Runs with debug
+// assertions ON (default `cargo test`); a violation of the verbatim / shift
+// reuse contract (i.e. an unsound `dirty_lo`) STOPS with a full dump.
+// ---------------------------------------------------------------------------
+#[test]
+fn reuse_oracle_asdl() {
+    let Some(parser) = asdl_parser() else {
+        eprintln!("note: reuse_oracle_asdl skipped — no asdl fixture (tests/fixtures/parser/asdl/data.pb)");
+        return;
+    };
+    let mut agg = Aggregate::default();
+
+    // A valid asdl document (Name = letters/underscore only; keywords `module`,
+    // `attributes` are literal). Interior comment-text inserts (splice, max reuse)
+    // + letter-only ident substitutions (splice) + occasional letter insert.
+    let base = "module Big {\n\
+        \x20 -- comment alpha\n\
+        \x20 defa = Subaa(int xa, str ya) | Subab | Subac(int za)\n\
+        \x20   attributes (int wa)\n\
+        \x20 defb = (int ab)\n\
+        \x20 -- comment beta\n\
+        \x20 defc = Subca(str p) | Subcb\n\
+        \x20 defd = (str q)\n\
+        }";
+    let mut session = ParseSession::new(Arc::clone(&parser));
+    session.parse_full(base);
+    assert!(session.is_accepted(), "asdl baseline must parse");
+
+    let mut doc: Vec<char> = base.chars().collect();
+    let fracs = [(1usize, 6usize), (1, 3), (1, 2), (2, 3), (5, 6), (1, 4), (3, 4)];
+    let mut rng = Rng::new(0x5EED_A5D1);
+
+    for i in 0..60 {
+        let n = doc.len();
+        // pick a comment-interior position (before the line's newline) sometimes.
+        let comment_pos = || -> Option<usize> {
+            let cs: Vec<char> = doc.clone();
+            for j in 0..cs.len().saturating_sub(1) {
+                if cs[j] == '-' && cs[j + 1] == '-' {
+                    let mut e = j + 2;
+                    while e < cs.len() && cs[e] != '\n' { e += 1; }
+                    return Some(e);
+                }
+            }
+            None
+        };
+        let (pos, old_len, new_text): (usize, usize, String) = match i % 3 {
+            0 => match comment_pos() {
+                Some(p) => (p, 0, "zz".to_string()),
+                None => (n / 2, 0, "z".to_string()),
+            },
+            1 => {
+                // letter insert inside a non-keyword identifier
+                match find_ident_span(&doc, (n * (1 + rng.below(4))) / 5) {
+                    Some((s, e)) => {
+                        let w: String = doc[s..e].iter().collect();
+                        if w == "module" || w == "attributes" {
+                            (n / 2, 0, "z".to_string())
+                        } else {
+                            ((s + 1).min(e), 0, "q".to_string())
+                        }
+                    }
+                    None => (n / 2, 0, "z".to_string()),
+                }
+            }
+            _ => {
+                let (num, den) = fracs[i % fracs.len()];
+                match find_ident_span(&doc, n * num / den) {
+                    Some((s, e)) => {
+                        let w: String = doc[s..e].iter().collect();
+                        if w == "module" || w == "attributes" {
+                            (n / 2, 0, "z".to_string())
+                        } else {
+                            (s, e - s, format!("q{}z", w))
+                        }
+                    }
+                    None => (n / 2, 0, "z".to_string()),
+                }
+            }
+        };
+
+        let old_hist = session.kernels_history();
+        apply(&mut doc, pos, old_len, &new_text);
+        session.edit(pos, old_len, &new_text);
+        let desc = format!("pos={pos} old_len={old_len} new={new_text:?}");
+        if let Some(reuse) = session.edit_reuse() {
+            let stat = check_edit_reuse("asdl", i, &desc, &parser, &session, old_hist.as_ref(), reuse);
+            agg.record(stat);
+        }
+    }
+    agg.report("asdl");
+    assert!(agg.spliced > 0, "asdl: no splice fired — reuse boundary exercised nothing");
 }
 
 // ---------------------------------------------------------------------------

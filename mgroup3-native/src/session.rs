@@ -1097,10 +1097,29 @@ fn hists_equal(a: &[HashSet<KtlibKernel>], b: &[HashSet<KtlibKernel>]) -> bool {
 /// the pivot) always have `first_active > pivot >= resume_gen`, so they only ever
 /// lower `lo` to at most the cap — harmless.
 ///
-/// A dangerous root must have an interval entry (danger requires either activity
-/// — `D0`, in the map — or an outgoing finish edge, which implies the root
-/// finished hence was active). `debug_assert`ed; the release fallback stays sound
-/// by treating a missing interval as "unbounded reference reach" → `dirty_lo = 0`.
+/// INTERVAL-LESS DANGEROUS ROOTS. `first_active` comes from `active_cond_paths`,
+/// but the reference graph draws its edges from the fin channels
+/// (`cond_path_finishes` / `late_cond_path_finishes` / `end_late_fins`). A cond
+/// path can FINISH without ever appearing in `active_cond_paths` — a late fin of
+/// a path that died before it was recorded active — so `dangerous_roots` can
+/// surface a fin-owner root `r` that has no interval entry. For such a root the
+/// bound `first_active(r)` is substituted by `r.start_gen`, which is a sound
+/// lower bound on the earliest gen any prefix record can reference `r`:
+///   1. `r`'s leaf is `(symbol_id, start_gen)`; that leaf cannot appear in any
+///      condition before gen `start_gen`, so `earliest_ref(r) >= r.start_gen`.
+///   2. It matches the evaluator's window semantics for interval-less roots:
+///      `any_absorbed_fin_true` collapses their scan window to
+///      `[from_gen, from_gen]` (record_cond.rs `first_active.get(&root) == None`
+///      branch), so a prefix record reading such a root touches only its own gen
+///      plus what that gen's fins transitively reference — and those transitive
+///      references are the OTHER dangerous roots, each bounded by its own
+///      interval. `start_gen` is exactly the interval-less analog of the
+///      `first_active` lower bound the active case uses.
+/// Using `start_gen` (rather than the pre-fix `dirty_lo = 0`) recovers the
+/// verbatim prefix that the missing interval would otherwise forfeit while
+/// staying sound. `debug_assert`ed off (the interval-less case is expected on
+/// some grammars, e.g. asdl); a still-missing `start_gen` is impossible (every
+/// `PathRoot` carries one), and the final `max(0)` is the last-resort clamp.
 fn compute_dirty_lo(
     resume_gen: usize,
     old_iv: &HashMap<PathRoot, (i32, i32)>,
@@ -1112,16 +1131,14 @@ fn compute_dirty_lo(
     let mut lo = r;
     let fold = |d: &HashSet<PathRoot>, iv: &HashMap<PathRoot, (i32, i32)>, lo: &mut i32| {
         for root in d {
-            match iv.get(root) {
-                Some(&(first_active, _last_active)) => *lo = (*lo).min(first_active),
-                None => {
-                    debug_assert!(
-                        false,
-                        "dangerous root {root:?} has no active interval — closure invariant broken"
-                    );
-                    *lo = 0; // conservative: cannot bound its reference reach
-                }
-            }
+            let bound = match iv.get(root) {
+                Some(&(first_active, _last_active)) => first_active,
+                // Interval-less dangerous root (fin-only path): its leaf cannot be
+                // referenced before it starts, so `start_gen` is a sound
+                // `first_active` substitute (see the doc comment).
+                None => root.start_gen,
+            };
+            *lo = (*lo).min(bound);
         }
     };
     fold(old_d, old_iv, &mut lo);
