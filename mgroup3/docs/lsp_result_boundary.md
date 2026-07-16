@@ -155,3 +155,51 @@ cd <scratchpad>/gen_session_probe && cargo build --release
 ```
 
 (세션 자체 대조: mgroup3-native `quadratic_probe` 를 같은 parserdata 로.)
+
+## 6. Stage 2 설계 — 델타 walk (Rust 측, 확정 계약)
+
+Stage 1 (`EditReuse`/`KernelsQuery`, 74ada6c7) 위에서 생성 crate 가 편집당
+전체 walk+encode 대신 델타를 산출한다.
+
+### 재사용 판정 (AST 노드 단위)
+노드 스팬 [b,e] (new gen 좌표):
+- `e < dirty_lo` → **VERBATIM** 재사용 — old node id 그대로, 스팬 불변.
+- `b > dirty_hi` → **SHIFT** 재사용 — old node id 그대로 (old 좌표 =
+  (b−delta, e−delta)), 스팬은 소비자가 pivot/delta 규칙으로 시프트.
+- 그 외 (dirty 창과 교차 — 스파인 + 창 내부) → 재구축.
+근거: walk 가 [b,e] 노드에서 수행하는 모든 kernels 조회는 [b,e] 안의 gen 에
+국한되고, Stage 1 계약이 그 구간의 kernel 동일성(그대로/시프트)을 보증하므로
+old 서브트리와 동형이다.
+
+### lockstep 대응 (old node id 획득)
+스파인 노드 재구축 시 자식 좌표는 **정상 walk 조회** (`KernelsQuery.at`) 로
+도출하고, safe 자식의 old id 는 old 스파인 counterpart NodeEntry 의 해당
+필드에서 취한다: 스칼라 자식 필드 = 그대로 대응, repeated = 앞쪽(끝<dirty_lo)
+은 앞에서부터, 뒤쪽(시작>dirty_hi, old 좌표로 환산) 은 뒤에서부터 인덱스
+대응, 중간은 재귀 재구축. old counterpart 는 루트에서 스파인을 따라 내려가며
+유지한다. 대응이 성립하지 않는 예외 상황 발견 시 그 노드는 통째 재구축
+(정확성 우선 — 오라클이 심판).
+
+### ID / 세대 관리 (생성 crate 세션 상태)
+직전 결과 보유: `Vec<NodeEntry>`(prost) + id→index 맵 + root id + max_id +
+version 카운터. 재구축 노드 id = max_id+1.. (세션 수명 동안 단조).
+freed = old 스파인 노드 id + 드롭된 중간 서브트리의 전이 id (old 테이블을
+자식 id 로 DFS — O(창) 크기).
+
+### ParseDelta (생성 ast.proto — Stage2ProtoEmit)
+`base_version, new_version, root_id, shift_pivot, shift_delta,
+repeated NodeEntry patched, repeated int32 freed_ids`.
+
+### FFI (생성 crate — Stage4RustEmit)
+`mgroup3_gen_session_edit_delta`: splice + 직전 결과 있으면 ParseDelta,
+아니면 full `ParseResult` 폴백 (상태코드로 구분). 기존
+`mgroup3_gen_session_edit` 는 무변경 (소비자 opt-in).
+
+### 오라클 (필수 게이트)
+"델타 적용 재구성 (old 테이블 + patched + 스팬 시프트 + freed 제거) == 같은
+편집의 full walk+encode" — proto 수준 전수 비교, Stage 1 오라클과 같은 퍼징
+코퍼스, 문법 asdl + mulang. 폴백 경로 (미splice/에러/버전 불일치) 포함.
+
+### Stage 3 (별도)
+Kotlin 바인딩 applyDelta + 생성 Kotlin AST 스팬 var 화 (Stage3KotlinEmit /
+KotlinOptCodeGen) — 소비자 배선과 함께.
