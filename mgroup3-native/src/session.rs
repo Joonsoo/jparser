@@ -44,15 +44,18 @@
 //! the FFI caller owns (see `SessionParser`); one parser backs many document
 //! sessions, none of which mutate it.
 
+use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::fingerprint::{fp_state, Fp, Variant};
 use crate::history::History;
+use crate::parser::record_cond::{active_intervals, dangerous_roots};
 use crate::parser::{Mgroup3Parser, ParsingError};
 use crate::parsing_ctx::{KtlibKernel, ParsingCtx};
+use crate::path_root::PathRoot;
 use crate::rebase::{paths_match_after_rebase, GenRebase};
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 /// Default checkpoint interval (gens). See design §1.2 — K/2 rewind ≈ the p90
 /// convergence distance, so the rewind cost is on par with the convergence tail.
@@ -135,6 +138,71 @@ pub enum SpliceDecline {
     /// The one-shot structural full match failed (fingerprint collision, or an
     /// unexpected state mismatch). Extremely rare; the parse continues.
     StructuralMismatch,
+}
+
+/// Per-edit AST-reuse boundary (Stage 1 of the AST delta protocol — design
+/// `mgroup3/docs/lsp_result_boundary.md` §2). After a SPLICE edit the session
+/// guarantees which gens of the new `kernels_history` are the previous parse's
+/// (verbatim, or shift-adjusted) so a consumer can avoid re-walking/-encoding
+/// them. The contract, in the new gen space, with the previous parse's
+/// `kernels_history` as `old` and the current one as `new`:
+///
+///   - `g < dirty_lo` → `new[g] == old[g]` (VERBATIM prefix reuse).
+///   - `g > dirty_hi` → `new[g] == shift(old[g - delta], pivot, delta)` where
+///     `shift` maps every kernel gen `k > pivot` to `k + delta` (SUFFIX reuse,
+///     the same split rebase `rebase.rs` applies to the spliced history).
+///   - `[dirty_lo, dirty_hi]` must be recomputed (the dirty window).
+///
+/// When `spliced == false` (no splice this edit — parse errored, convergence
+/// declined, or no baseline) there is no reuse: `dirty_lo = 0` and `dirty_hi`
+/// covers the last gen, so neither reuse rule applies to any gen.
+///
+/// `dirty_hi == qstar` (the convergence gen). `dirty_lo` is the safe prefix
+/// boundary (§2, and the derivation on `compute_dirty_lo`): below it, every
+/// prefix record's forward condition replay is trapped in the identical,
+/// unshifted prefix, so its gated kernels match the old parse's exactly.
+#[derive(Clone, Copy, Debug)]
+pub struct EditReuse {
+    /// Whether the last edit spliced (reused the old suffix). Reuse rules below
+    /// hold only when true.
+    pub spliced: bool,
+    /// Edit anchor `p` — the edit's starting char index (== the gen-rebase pivot).
+    pub pivot: i32,
+    /// `delta = new_len - old_len` in chars (gens).
+    pub delta: i32,
+    /// Gen the incremental re-parse resumed from (rewind target; `<= pivot`).
+    pub resume_gen: usize,
+    /// Convergence gen `q*` in the NEW gen space (`Some` iff `spliced`).
+    pub qstar: Option<usize>,
+    /// Inclusive-exclusive lower dirty bound: gens `[0, dirty_lo)` are VERBATIM
+    /// reusable from the old parse.
+    pub dirty_lo: usize,
+    /// Inclusive upper dirty bound (`== qstar` when spliced): gens
+    /// `(dirty_hi, new_len)` are SHIFT-reusable from the old parse.
+    pub dirty_hi: usize,
+}
+
+/// Raw per-edit reuse inputs captured during `edit()`; the `EditReuse` (its
+/// `dirty_lo` needs the old + new active-interval maps — O(n)) is derived from
+/// these LAZILY by `edit_reuse()` and cached, so an edit that the consumer never
+/// queries pays nothing beyond the cheap `prev_history` Rc-bump.
+struct LastEdit {
+    spliced: bool,
+    pivot: i32,
+    delta: i32,
+    resume_gen: usize,
+    qstar: Option<usize>,
+    /// The PREVIOUS parse's full history (the splice baseline), retained as a
+    /// structure-sharing `History` clone (Rc bump — its prefix chunks are shared
+    /// with the new `canonical_history`, so this is O(#chunks), not O(gen)).
+    /// Source of the OLD parse's active-interval map + reference graph for
+    /// `dirty_lo`.
+    prev_history: History,
+    /// The PREVIOUS parse's final ctx (history-less, but carries `paths`), so
+    /// `dirty_lo` can recompute the OLD parse's end-of-input late fins (a source
+    /// of reference-graph edges). `None` when there was no baseline. Cheap `Rc`
+    /// clone captured before `finish_parse` overwrites `prev_final_ctx`.
+    prev_final_ctx: Option<Rc<ParsingCtx>>,
 }
 
 /// Aggregate counters over the session lifetime (for bench/reporting).
@@ -230,6 +298,16 @@ pub struct ParseSession {
     outcome: Option<ParseOutcome>,
     stats: SessionStats,
     totals: SessionTotals,
+    /// Raw reuse inputs from the last `edit()` (Stage 1 AST-delta boundary).
+    /// `None` after `parse_full` (no edit yet) or an errored edit.
+    last_edit: Option<LastEdit>,
+    /// Lazily-derived + cached `EditReuse` for `last_edit`. Invalidated (set
+    /// `None`) at the start of every parse; recomputed on the first `edit_reuse()`.
+    edit_reuse_cache: RefCell<Option<EditReuse>>,
+    /// A/B-comparison only (`dbg_d0_dirty_lo`): the `dirty_lo` the pre-closure
+    /// (Stage 1.0) D0-only formula would have produced for the last spliced edit,
+    /// cached alongside the real (closure) `dirty_lo`. Not part of the contract.
+    dbg_d0_dirty_lo: RefCell<Option<usize>>,
     /// If true, every edit is cross-checked against a full re-parse and any
     /// mismatch aborts loudly (design §2.5). Enabled by `MG3_SESSION_VERIFY=1`.
     verify: bool,
@@ -272,6 +350,9 @@ impl ParseSession {
             outcome: None,
             stats: SessionStats::default(),
             totals: SessionTotals::default(),
+            last_edit: None,
+            edit_reuse_cache: RefCell::new(None),
+            dbg_d0_dirty_lo: RefCell::new(None),
             verify,
         }
     }
@@ -291,6 +372,92 @@ impl ParseSession {
 
     pub fn totals(&self) -> SessionTotals {
         self.totals
+    }
+
+    /// The last edit's AST-reuse boundary (Stage 1 of the AST delta protocol —
+    /// see `EditReuse`). `None` after `parse_full` (no edit yet) or an errored
+    /// edit. Computed LAZILY on first call (it needs the old + new
+    /// active-interval maps, each an O(n) pass) and cached until the next parse,
+    /// so an edit whose reuse boundary the consumer never queries pays nothing.
+    pub fn edit_reuse(&self) -> Option<EditReuse> {
+        if let Some(cached) = *self.edit_reuse_cache.borrow() {
+            return Some(cached);
+        }
+        let le = self.last_edit.as_ref()?;
+        let new_len = self.canonical_history.len();
+        let reuse = if le.spliced {
+            let qstar = le.qstar.expect("a spliced edit records its convergence gen");
+            let resume = le.resume_gen as i32;
+            let parser = self.parser.get();
+            // Active-interval maps + DANGEROUS root sets (reference-graph
+            // transitive closure) of both parses drive the safe prefix boundary.
+            // The dangerous set closes the transitive gap: a prefix record's
+            // forward replay reaches the edit region iff it references (directly
+            // OR through a chain of finish conditions) a root active past resume.
+            let old_iv = active_intervals(&le.prev_history);
+            let new_iv = active_intervals(&self.canonical_history);
+            // End-of-input late fins (extra reference-graph edges), recomputed
+            // from each parse's final ctx `paths` — the same source the evaluator
+            // uses. The NEW parse's final ctx is the current outcome.
+            let new_end_late = match &self.outcome {
+                Some(ParseOutcome::Ok(ctx)) => parser.end_of_input_late_fins(ctx),
+                _ => HashMap::default(),
+            };
+            let old_end_late = le
+                .prev_final_ctx
+                .as_ref()
+                .map(|c| parser.end_of_input_late_fins(c))
+                .unwrap_or_default();
+            let old_d = dangerous_roots(&le.prev_history, &old_end_late, &old_iv, resume);
+            let new_d = dangerous_roots(&self.canonical_history, &new_end_late, &new_iv, resume);
+            let dirty_lo = compute_dirty_lo(le.resume_gen, &old_iv, &new_iv, &old_d, &new_d);
+            // A/B: the pre-closure (Stage 1.0) D0-only boundary — the dangerous
+            // SEED sets alone, no transitive closure — cached for `dbg_d0_dirty_lo`.
+            let d0_of = |iv: &HashMap<PathRoot, (i32, i32)>| -> HashSet<PathRoot> {
+                iv.iter().filter_map(|(&r, &(_, la))| (la >= resume).then_some(r)).collect()
+            };
+            let d0_lo = compute_dirty_lo(
+                le.resume_gen,
+                &old_iv,
+                &new_iv,
+                &d0_of(&old_iv),
+                &d0_of(&new_iv),
+            );
+            *self.dbg_d0_dirty_lo.borrow_mut() = Some(d0_lo);
+            EditReuse {
+                spliced: true,
+                pivot: le.pivot,
+                delta: le.delta,
+                resume_gen: le.resume_gen,
+                qstar: Some(qstar),
+                dirty_lo,
+                dirty_hi: qstar,
+            }
+        } else {
+            // No splice → no reuse: dirty covers the whole history so neither the
+            // verbatim (`g < dirty_lo`) nor the shift (`g > dirty_hi`) rule fires.
+            EditReuse {
+                spliced: false,
+                pivot: le.pivot,
+                delta: le.delta,
+                resume_gen: le.resume_gen,
+                qstar: None,
+                dirty_lo: 0,
+                dirty_hi: new_len.saturating_sub(1),
+            }
+        };
+        *self.edit_reuse_cache.borrow_mut() = Some(reuse);
+        Some(reuse)
+    }
+
+    /// A/B-comparison ONLY: the `dirty_lo` the pre-closure (Stage 1.0) D0-only
+    /// formula would have produced for the last spliced edit. `None` unless the
+    /// last edit spliced AND `edit_reuse()` has been called (which populates it).
+    /// Used by the reuse oracle to quantify how much the transitive closure
+    /// widened the dirty window; NOT part of the reuse contract.
+    #[doc(hidden)]
+    pub fn dbg_d0_dirty_lo(&self) -> Option<usize> {
+        *self.dbg_d0_dirty_lo.borrow()
     }
 
     /// Number of checkpoints currently held (memory probe).
@@ -374,6 +541,11 @@ impl ParseSession {
     pub fn parse_full(&mut self, text: &str) -> &ParseOutcome {
         self.doc = text.chars().collect();
         self.stats = SessionStats::default();
+        // A full parse establishes a new baseline; there is no prior parse to
+        // reuse against, so clear the edit-reuse boundary.
+        self.last_edit = None;
+        *self.edit_reuse_cache.borrow_mut() = None;
+        *self.dbg_d0_dirty_lo.borrow_mut() = None;
         let ok = self.reparse_from_scratch();
         self.finish_parse(ok);
         self.outcome.as_ref().expect("outcome set")
@@ -394,6 +566,20 @@ impl ParseSession {
         // The baseline (old) document to compare against.
         let baseline_doc = std::mem::take(&mut self.prev_doc);
         let had_baseline = self.have_baseline;
+
+        // Retain the PREVIOUS parse's full history (the splice baseline) BEFORE
+        // `reparse_incremental` overwrites `canonical_history`. Structure-sharing
+        // clone → an Rc bump (its chunks are then shared with the new history),
+        // not an O(gen) copy. Feeds the lazy `edit_reuse()` boundary; invalidate
+        // its cache now.
+        let old_canonical = self.canonical_history.clone();
+        // Also snapshot the OLD final ctx (history-less, carries `paths`) for the
+        // OLD parse's end-of-input late fins — a source of reference-graph edges
+        // in `dirty_lo`. Cheap `Rc` clone, captured before `finish_parse`
+        // overwrites `prev_final_ctx` with the NEW parse's ctx.
+        let old_final_ctx = self.prev_final_ctx.clone();
+        *self.edit_reuse_cache.borrow_mut() = None;
+        *self.dbg_d0_dirty_lo.borrow_mut() = None;
 
         // Apply the edit to the document.
         let mut new_doc: Vec<char> =
@@ -422,6 +608,27 @@ impl ParseSession {
             &baseline_doc,
         );
         self.finish_parse(ok);
+
+        // Record the Stage-1 reuse inputs for this edit (derived lazily by
+        // `edit_reuse`). Only meaningful when the edit produced an Ok outcome;
+        // an errored parse has no reusable kernels_history.
+        if matches!(self.outcome, Some(ParseOutcome::Ok(_))) {
+            self.last_edit = Some(LastEdit {
+                spliced: self.stats.last_spliced,
+                pivot: anchor,
+                delta,
+                resume_gen: self.stats.last_resume_gen,
+                qstar: if self.stats.last_spliced {
+                    self.stats.last_convergence_gen
+                } else {
+                    None
+                },
+                prev_history: old_canonical,
+                prev_final_ctx: old_final_ctx,
+            });
+        } else {
+            self.last_edit = None;
+        }
 
         self.totals.edits += 1;
         self.totals.sum_reparsed_gens += self.stats.last_reparsed_gens as u64;
@@ -863,6 +1070,63 @@ impl ParseSession {
 
 fn hists_equal(a: &[HashSet<KtlibKernel>], b: &[HashSet<KtlibKernel>]) -> bool {
     a.len() == b.len() && a.iter().zip(b.iter()).all(|(x, y)| x == y)
+}
+
+/// Safe verbatim-prefix boundary `dirty_lo` for `EditReuse` (design §2 + the
+/// Stage-1.1 transitive-closure fix). Returns the smallest gen from which a
+/// prefix record's forward condition replay could reach `resume_gen` or beyond
+/// (into the edited / re-parsed region) and thus produce different gated kernels
+/// than the old parse; every gen below it is verbatim-reusable.
+///
+/// SOUNDNESS. A record's replay for a referenced root `r` scans finishes only
+/// within `[from_gen, last_active(r)+1]` (record_cond.rs `any_absorbed_fin_true`)
+/// and RECURSES into the finish conditions it meets, which may reference further
+/// roots. A record's replay is trapped in the identical prefix `[0, resume_gen)`
+/// (entries there are byte-identical — unchanged chars) iff NONE of the roots it
+/// transitively touches is active at/after `resume_gen`. `dangerous_roots`
+/// computes exactly that transitive-closure set `D` (seed = roots with
+/// `last_active >= resume_gen`, propagated backward along finish-condition
+/// reference edges). A prefix record at gen `g` references some `r ∈ D` only at
+/// gens `g >= first_active(r)` (the reference-birth invariant, verified by the
+/// oracle's birth probe — `birth_probe_*`), so the earliest possibly-unsafe gen
+/// is `min first_active(r)` over `r ∈ D_old ∪ D_new`. Capped at `resume_gen`
+/// (gens at/after it are re-parsed → already inside the dirty window).
+///
+/// Both parses' sets matter for the asymmetric case (a root whose replay crossed
+/// into the old suffix but not the new, or vice versa). Suffix roots (born after
+/// the pivot) always have `first_active > pivot >= resume_gen`, so they only ever
+/// lower `lo` to at most the cap — harmless.
+///
+/// A dangerous root must have an interval entry (danger requires either activity
+/// — `D0`, in the map — or an outgoing finish edge, which implies the root
+/// finished hence was active). `debug_assert`ed; the release fallback stays sound
+/// by treating a missing interval as "unbounded reference reach" → `dirty_lo = 0`.
+fn compute_dirty_lo(
+    resume_gen: usize,
+    old_iv: &HashMap<PathRoot, (i32, i32)>,
+    new_iv: &HashMap<PathRoot, (i32, i32)>,
+    old_d: &HashSet<PathRoot>,
+    new_d: &HashSet<PathRoot>,
+) -> usize {
+    let r = resume_gen as i32;
+    let mut lo = r;
+    let fold = |d: &HashSet<PathRoot>, iv: &HashMap<PathRoot, (i32, i32)>, lo: &mut i32| {
+        for root in d {
+            match iv.get(root) {
+                Some(&(first_active, _last_active)) => *lo = (*lo).min(first_active),
+                None => {
+                    debug_assert!(
+                        false,
+                        "dangerous root {root:?} has no active interval — closure invariant broken"
+                    );
+                    *lo = 0; // conservative: cannot bound its reference reach
+                }
+            }
+        }
+    };
+    fold(old_d, old_iv, &mut lo);
+    fold(new_d, new_iv, &mut lo);
+    lo.max(0) as usize
 }
 
 /// Lazy producer of the OLD document's per-gen STRICT fingerprints (Phase I1/I2

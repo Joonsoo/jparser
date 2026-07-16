@@ -32,9 +32,10 @@
 //! bibix4 FFI; a shared cache measured 40s of lock contention before).
 
 use std::cell::RefCell;
+use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 use std::sync::OnceLock;
 
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::accept_condition::AcceptCondition;
 use crate::history::History;
@@ -49,9 +50,165 @@ fn diff_check_enabled() -> bool {
     *FLAG.get_or_init(|| std::env::var_os("MG3_RECORD_COND_DIFF").is_some())
 }
 
+/// Per-root contiguous active interval `[first_active, last_active]` (gen units),
+/// extracted from a parse's per-gen `active_cond_paths`. This is exactly the
+/// `first_active`/`last_active` computation `RecordConditionEvaluator::new`
+/// performs (kept in sync with it), exposed standalone so the incremental
+/// session can compute its reuse boundary (`EditReuse`) without building a full
+/// evaluator. A root's activity is contiguous (the `ever_seen_cond_roots` rule
+/// forbids restart), so a single first/last pair per root is exact.
+pub fn active_intervals(history: &History) -> HashMap<PathRoot, (i32, i32)> {
+    let mut intervals: HashMap<PathRoot, (i32, i32)> = HashMap::default();
+    for (g, entry) in history.iter().enumerate() {
+        let g = g as i32;
+        for root in &entry.active_cond_paths {
+            intervals.entry(*root).and_modify(|iv| iv.1 = g).or_insert((g, g));
+        }
+    }
+    intervals
+}
+
+/// The `PathRoot` a single accept-condition LEAF observes, or `None` for
+/// `Always`/`Never`/composites. THE canonical leaf→root mapping: `compute`
+/// (the evaluator) and `collect_referenced_roots` (the reuse-graph builder)
+/// BOTH go through this so the graph can never interpret a leaf differently
+/// from the evaluator (a drift there would make the transitive-closure
+/// dirty-boundary unsound). Every leaf variant observes
+/// `PathRoot::new(symbol_id, start_gen)`.
+#[inline]
+pub fn leaf_root(cond: &AcceptCondition) -> Option<PathRoot> {
+    match cond {
+        AcceptCondition::NoLongerMatch { symbol_id, start_gen, .. }
+        | AcceptCondition::NeedLongerMatch { symbol_id, start_gen, .. }
+        | AcceptCondition::NotExists { symbol_id, start_gen }
+        | AcceptCondition::Exists { symbol_id, start_gen }
+        | AcceptCondition::Unless { symbol_id, start_gen, .. }
+        | AcceptCondition::OnlyIf { symbol_id, start_gen, .. } => {
+            Some(PathRoot::new(*symbol_id, *start_gen))
+        }
+        AcceptCondition::Always
+        | AcceptCondition::Never
+        | AcceptCondition::And { .. }
+        | AcceptCondition::Or { .. } => None,
+    }
+}
+
+/// All roots the condition tree references (union over its leaves), via
+/// `leaf_root` — exactly the roots the evaluator's `eval_cond` would resolve and
+/// scan when evaluating `cond`. Feeds the reuse reference graph.
+pub fn collect_referenced_roots(cond: &AcceptCondition, out: &mut HashSet<PathRoot>) {
+    match cond {
+        AcceptCondition::And { items } | AcceptCondition::Or { items } => {
+            for c in items {
+                collect_referenced_roots(c, out);
+            }
+        }
+        _ => {
+            if let Some(r) = leaf_root(cond) {
+                out.insert(r);
+            }
+        }
+    }
+}
+
+/// The set of roots whose record-condition replay could reach gen `resume_gen`
+/// or beyond (into the edited / re-parsed region) — the DANGEROUS set `D` for
+/// the Stage-1 reuse boundary (§2 + `compute_dirty_lo`). This is the transitive
+/// closure that closes the direct-reference gap: a prefix record referencing a
+/// "safe" root whose finish condition in turn references a dangerous root would
+/// otherwise be mis-classified reusable.
+///
+/// Edges: `r → r'` iff root `r`'s finish condition (in `cond_path_finishes` /
+/// `late_cond_path_finishes` per gen, and the end-of-input `end_late_fins` — the
+/// SAME fin sources the evaluator follows) references `r'` (via
+/// `collect_referenced_roots`). A root is dangerous if its own activity reaches
+/// `resume_gen` (`D0 = { r : last_active(r) >= resume_gen }`) OR it can reach a
+/// `D0` root along edges. Since danger propagates from `r'` back to `r`, we build
+/// REVERSE adjacency (`referenced_by[r'] = { r }`) and BFS out from `D0`.
+pub fn dangerous_roots(
+    history: &History,
+    end_late_fins: &HashMap<PathRoot, AcceptCondition>,
+    intervals: &HashMap<PathRoot, (i32, i32)>,
+    resume_gen: i32,
+) -> HashSet<PathRoot> {
+    // referenced_by[r'] = roots whose fin condition references r'.
+    let mut referenced_by: HashMap<PathRoot, Vec<PathRoot>> = HashMap::default();
+    let mut scratch: HashSet<PathRoot> = HashSet::default();
+    let add_fin_edges = |r: PathRoot,
+                         cond: &AcceptCondition,
+                         referenced_by: &mut HashMap<PathRoot, Vec<PathRoot>>,
+                         scratch: &mut HashSet<PathRoot>| {
+        scratch.clear();
+        collect_referenced_roots(cond, scratch);
+        for &rp in scratch.iter() {
+            referenced_by.entry(rp).or_default().push(r);
+        }
+    };
+    for entry in history.iter() {
+        for (r, cond) in &entry.cond_path_finishes {
+            add_fin_edges(*r, cond, &mut referenced_by, &mut scratch);
+        }
+        for (r, cond) in &entry.late_cond_path_finishes {
+            add_fin_edges(*r, cond, &mut referenced_by, &mut scratch);
+        }
+    }
+    for (r, cond) in end_late_fins {
+        add_fin_edges(*r, cond, &mut referenced_by, &mut scratch);
+    }
+
+    // Seed D0 (roots active at/after resume) and BFS backward over the edges.
+    let mut d: HashSet<PathRoot> = HashSet::default();
+    let mut work: Vec<PathRoot> = Vec::new();
+    for (&r, &(_fa, la)) in intervals {
+        if la >= resume_gen && d.insert(r) {
+            work.push(r);
+        }
+    }
+    while let Some(r) = work.pop() {
+        if let Some(preds) = referenced_by.get(&r) {
+            for &p in preds {
+                if d.insert(p) {
+                    work.push(p);
+                }
+            }
+        }
+    }
+    d
+}
+
+// -- reference-birth invariant probe (debug/verification only) --------------
+//
+// `compute_dirty_lo` bounds "the earliest gen a record could reference a
+// dangerous root r" by `first_active(r)`, i.e. it assumes a record's condition
+// only references roots ALREADY born by the record's gen (no forward / lookahead
+// reference to an unborn root). This probe measures that assumption over real
+// parses: when enabled, every top-level `evaluate(cond, record_gen)` records
+// `max(first_active(referenced_root) - record_gen)` (a positive value would be a
+// violation — a record referencing a root born LATER than itself). The oracle
+// asserts the max skew is <= 0 (invariant holds, no dirty_lo margin needed).
+static BIRTH_PROBE_ON: AtomicBool = AtomicBool::new(false);
+static BIRTH_MAX_SKEW: AtomicI32 = AtomicI32::new(i32::MIN);
+
+/// Enable the reference-birth probe and reset its running max. Test-only.
+pub fn birth_probe_enable() {
+    BIRTH_MAX_SKEW.store(i32::MIN, Ordering::SeqCst);
+    BIRTH_PROBE_ON.store(true, Ordering::SeqCst);
+}
+/// Disable the probe. Test-only.
+pub fn birth_probe_disable() {
+    BIRTH_PROBE_ON.store(false, Ordering::SeqCst);
+}
+/// Max observed `first_active(referenced_root) - record_gen` since the last
+/// `birth_probe_enable` (`i32::MIN` if the probe saw no checkable reference).
+pub fn birth_probe_max_skew() -> i32 {
+    BIRTH_MAX_SKEW.load(Ordering::SeqCst)
+}
+
 pub struct RecordConditionEvaluator<'a> {
     history: &'a History,
-    end_late_fins: &'a HashMap<PathRoot, AcceptCondition>,
+    /// Owned so a `KernelsQuery` can hold an evaluator without a self-referential
+    /// borrow of the caller-local `end_late` map (see `Mgroup3Parser::kernels_query`).
+    end_late_fins: HashMap<PathRoot, AcceptCondition>,
     history_size: i32,
     /// Inverted index: root → gens that have a fin for it (ascending — built
     /// in history order).
@@ -69,7 +226,7 @@ pub struct RecordConditionEvaluator<'a> {
 impl<'a> RecordConditionEvaluator<'a> {
     pub fn new(
         history: &'a History,
-        end_late_fins: &'a HashMap<PathRoot, AcceptCondition>,
+        end_late_fins: HashMap<PathRoot, AcceptCondition>,
     ) -> Self {
         let mut eager_fin_gens: HashMap<PathRoot, Vec<i32>> = HashMap::default();
         let mut late_fin_gens: HashMap<PathRoot, Vec<i32>> = HashMap::default();
@@ -101,16 +258,34 @@ impl<'a> RecordConditionEvaluator<'a> {
     }
 
     pub fn evaluate(&self, cond: &AcceptCondition, record_gen: i32) -> bool {
+        if BIRTH_PROBE_ON.load(Ordering::Relaxed) {
+            self.probe_reference_birth(cond, record_gen);
+        }
         let result = self.eval_cond(cond, record_gen, &[]);
         if diff_check_enabled() {
             let replayed =
-                evaluate_record_condition(cond, self.history, record_gen, self.end_late_fins);
+                evaluate_record_condition(cond, self.history, record_gen, &self.end_late_fins);
             assert_eq!(
                 result, replayed,
                 "RecordConditionEvaluator mismatch: record_gen={record_gen} cond={cond}"
             );
         }
         result
+    }
+
+    /// Reference-birth probe (see the `BIRTH_PROBE_*` statics): record the max
+    /// `first_active(referenced_root) - record_gen` for this top-level record. A
+    /// root the record references but that never became active has no
+    /// `first_active` — it is unconditionally safe (never in the dangerous set,
+    /// since danger requires activity or a fin edge) so it is skipped.
+    fn probe_reference_birth(&self, cond: &AcceptCondition, record_gen: i32) {
+        let mut refs: HashSet<PathRoot> = HashSet::default();
+        collect_referenced_roots(cond, &mut refs);
+        for r in &refs {
+            if let Some(&fa) = self.first_active.get(r) {
+                BIRTH_MAX_SKEW.fetch_max(fa - record_gen, Ordering::Relaxed);
+            }
+        }
     }
 
     fn eval_cond(&self, cond: &AcceptCondition, from_gen: i32, visiting: &[PathRoot]) -> bool {
@@ -152,9 +327,9 @@ impl<'a> RecordConditionEvaluator<'a> {
                     g.min(*end_gen + 2)
                 }
             }
-            AcceptCondition::NoLongerMatch { symbol_id, start_gen, min_end_gen }
-            | AcceptCondition::NeedLongerMatch { symbol_id, start_gen, min_end_gen } => {
-                let root = PathRoot::new(*symbol_id, *start_gen);
+            AcceptCondition::NoLongerMatch { min_end_gen, .. }
+            | AcceptCondition::NeedLongerMatch { min_end_gen, .. } => {
+                let root = leaf_root(cond).expect("NLM/NeedLM is a leaf");
                 let Some(&fa) = self.first_active.get(&root) else { return g };
                 let la = self.last_active[&root];
                 if g < fa || g > la {
@@ -180,8 +355,8 @@ impl<'a> RecordConditionEvaluator<'a> {
                 items.iter().any(|c| self.eval_cond(c, from_gen, visiting))
             }
 
-            AcceptCondition::NoLongerMatch { symbol_id, start_gen, min_end_gen } => {
-                let root = PathRoot::new(*symbol_id, *start_gen);
+            AcceptCondition::NoLongerMatch { min_end_gen, .. } => {
+                let root = leaf_root(cond).expect("NoLongerMatch is a leaf");
                 // evolve: reaching one's own root while visiting makes both
                 // NLM and NeedLM Always.
                 if visiting.contains(&root) {
@@ -196,8 +371,8 @@ impl<'a> RecordConditionEvaluator<'a> {
                     )
                 }
             }
-            AcceptCondition::NeedLongerMatch { symbol_id, start_gen, min_end_gen } => {
-                let root = PathRoot::new(*symbol_id, *start_gen);
+            AcceptCondition::NeedLongerMatch { min_end_gen, .. } => {
+                let root = leaf_root(cond).expect("NeedLongerMatch is a leaf");
                 if visiting.contains(&root) {
                     true
                 } else {
@@ -210,16 +385,16 @@ impl<'a> RecordConditionEvaluator<'a> {
                     )
                 }
             }
-            AcceptCondition::NotExists { symbol_id, start_gen } => {
-                let root = PathRoot::new(*symbol_id, *start_gen);
+            AcceptCondition::NotExists { .. } => {
+                let root = leaf_root(cond).expect("NotExists is a leaf");
                 if visiting.contains(&root) {
                     self.eval_cond(cond, from_gen + 1, &[])
                 } else {
                     !self.any_absorbed_fin_true(root, from_gen, i32::MIN, i32::MIN, visiting)
                 }
             }
-            AcceptCondition::Exists { symbol_id, start_gen } => {
-                let root = PathRoot::new(*symbol_id, *start_gen);
+            AcceptCondition::Exists { .. } => {
+                let root = leaf_root(cond).expect("Exists is a leaf");
                 if visiting.contains(&root) {
                     self.eval_cond(cond, from_gen + 1, &[])
                 } else {
@@ -227,8 +402,8 @@ impl<'a> RecordConditionEvaluator<'a> {
                 }
             }
 
-            AcceptCondition::Unless { symbol_id, start_gen, end_gen } => {
-                let root = PathRoot::new(*symbol_id, *start_gen);
+            AcceptCondition::Unless { end_gen, .. } => {
+                let root = leaf_root(cond).expect("Unless is a leaf");
                 if visiting.contains(&root) {
                     self.eval_cond(cond, from_gen + 1, &[])
                 } else {
@@ -242,8 +417,8 @@ impl<'a> RecordConditionEvaluator<'a> {
                     }
                 }
             }
-            AcceptCondition::OnlyIf { symbol_id, start_gen, end_gen } => {
-                let root = PathRoot::new(*symbol_id, *start_gen);
+            AcceptCondition::OnlyIf { end_gen, .. } => {
+                let root = leaf_root(cond).expect("OnlyIf is a leaf");
                 if visiting.contains(&root) {
                     self.eval_cond(cond, from_gen + 1, &[])
                 } else {
@@ -274,7 +449,7 @@ impl<'a> RecordConditionEvaluator<'a> {
         root: PathRoot,
         from_gen: i32,
         end_gen: i32,
-    ) -> Option<(&'a AcceptCondition, i32)> {
+    ) -> Option<(&AcceptCondition, i32)> {
         if from_gen > end_gen + 1 {
             return None;
         }
@@ -294,7 +469,7 @@ impl<'a> RecordConditionEvaluator<'a> {
         self.late_fin_at(root, end_gen + 1)
     }
 
-    fn late_fin_at(&self, root: PathRoot, g: i32) -> Option<(&'a AcceptCondition, i32)> {
+    fn late_fin_at(&self, root: PathRoot, g: i32) -> Option<(&AcceptCondition, i32)> {
         let fin = if g < self.history_size {
             self.history.get(g as usize).unwrap().late_cond_path_finishes.get(&root)
         } else if g == self.history_size {
@@ -382,5 +557,161 @@ fn fin_visiting(obs_gen: i32, from_gen: i32, visiting: &[PathRoot], root: PathRo
         v
     } else {
         vec![root]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parsing_ctx::HistoryEntry;
+
+    fn root(sym: i32, sg: i32) -> PathRoot {
+        PathRoot::new(sym, sg)
+    }
+    /// A leaf condition that references `r` (any leaf variant works; the graph
+    /// uses `leaf_root`, which maps all leaves to `(symbol_id, start_gen)`).
+    fn refs(r: PathRoot) -> AcceptCondition {
+        AcceptCondition::Exists { symbol_id: r.symbol_id, start_gen: r.start_gen }
+    }
+    fn entry(active: &[PathRoot], fins: &[(PathRoot, AcceptCondition)]) -> HistoryEntry {
+        let mut e = HistoryEntry::default();
+        e.active_cond_paths = active.iter().copied().collect();
+        for (r, c) in fins {
+            e.cond_path_finishes.insert(*r, c.clone());
+        }
+        e
+    }
+    fn history(entries: Vec<HistoryEntry>) -> History {
+        let mut h = History::new();
+        for e in entries {
+            h.push(e);
+        }
+        h
+    }
+    fn d_set(h: &History, resume: i32) -> HashSet<PathRoot> {
+        let iv = active_intervals(h);
+        let empty = HashMap::default();
+        dangerous_roots(h, &empty, &iv, resume)
+    }
+    fn set(items: &[PathRoot]) -> HashSet<PathRoot> {
+        items.iter().copied().collect()
+    }
+
+    #[test]
+    fn leaf_root_maps_every_leaf() {
+        let r = root(3, 7);
+        for c in [
+            AcceptCondition::NoLongerMatch { symbol_id: 3, start_gen: 7, min_end_gen: 9 },
+            AcceptCondition::NeedLongerMatch { symbol_id: 3, start_gen: 7, min_end_gen: 9 },
+            AcceptCondition::NotExists { symbol_id: 3, start_gen: 7 },
+            AcceptCondition::Exists { symbol_id: 3, start_gen: 7 },
+            AcceptCondition::Unless { symbol_id: 3, start_gen: 7, end_gen: 9 },
+            AcceptCondition::OnlyIf { symbol_id: 3, start_gen: 7, end_gen: 9 },
+        ] {
+            assert_eq!(leaf_root(&c), Some(r), "leaf {c:?}");
+        }
+        assert_eq!(leaf_root(&AcceptCondition::Always), None);
+        assert_eq!(leaf_root(&AcceptCondition::Never), None);
+        // Composite: no leaf root itself, but collect_referenced_roots unions.
+        let comp = AcceptCondition::and_from([refs(root(1, 0)), refs(root(2, 0))]);
+        assert_eq!(leaf_root(&comp), None);
+        let mut refs_out = HashSet::default();
+        collect_referenced_roots(&comp, &mut refs_out);
+        assert_eq!(refs_out, set(&[root(1, 0), root(2, 0)]));
+    }
+
+    #[test]
+    fn dangerous_direct_seed_only() {
+        // r_d active past resume; nothing references anything → D = {r_d}.
+        let r_d = root(9, 0);
+        let r_safe = root(1, 0); // active only early, no edges
+        let h = history(vec![
+            entry(&[], &[]),
+            entry(&[r_safe], &[]),
+            entry(&[], &[]),
+            entry(&[r_d], &[]),
+        ]);
+        assert_eq!(d_set(&h, 3), set(&[r_d]));
+    }
+
+    #[test]
+    fn dangerous_one_step_reference() {
+        // r_safe finishes referencing r_d (dangerous) → both dangerous.
+        let r_d = root(9, 0);
+        let r_safe = root(1, 0);
+        let h = history(vec![
+            entry(&[], &[]),
+            entry(&[r_safe], &[(r_safe, refs(r_d))]),
+            entry(&[], &[]),
+            entry(&[r_d], &[]),
+        ]);
+        assert_eq!(d_set(&h, 3), set(&[r_safe, r_d]));
+    }
+
+    #[test]
+    fn dangerous_two_step_chain() {
+        // r_a → r_b → r_c, r_c dangerous. All three in D.
+        let (r_a, r_b, r_c) = (root(1, 0), root(2, 0), root(9, 0));
+        let h = history(vec![
+            entry(&[], &[]),
+            entry(&[r_a, r_b], &[(r_a, refs(r_b)), (r_b, refs(r_c))]),
+            entry(&[], &[]),
+            entry(&[r_c], &[]),
+        ]);
+        assert_eq!(d_set(&h, 3), set(&[r_a, r_b, r_c]));
+    }
+
+    #[test]
+    fn dangerous_safe_chain_excluded() {
+        // r_a → r_b, neither reaches a dangerous root → D empty.
+        let (r_a, r_b) = (root(1, 0), root(2, 0));
+        let h = history(vec![
+            entry(&[], &[]),
+            entry(&[r_a, r_b], &[(r_a, refs(r_b))]),
+            entry(&[], &[]),
+            entry(&[], &[]),
+        ]);
+        assert!(d_set(&h, 3).is_empty());
+    }
+
+    #[test]
+    fn dangerous_cycle_no_d0_is_empty() {
+        // r_x ⇄ r_y cycle, neither active past resume, no D0 → terminates empty.
+        let (r_x, r_y) = (root(1, 0), root(2, 0));
+        let h = history(vec![
+            entry(&[], &[]),
+            entry(&[r_x, r_y], &[(r_x, refs(r_y)), (r_y, refs(r_x))]),
+            entry(&[], &[]),
+            entry(&[], &[]),
+        ]);
+        assert!(d_set(&h, 3).is_empty());
+    }
+
+    #[test]
+    fn dangerous_cycle_reaching_d0() {
+        // r_x ⇄ r_y cycle; r_y also → r_z (dangerous). Cycle must terminate and
+        // pull in the whole cycle plus r_z.
+        let (r_x, r_y, r_z) = (root(1, 0), root(2, 0), root(9, 0));
+        let h = history(vec![
+            entry(&[], &[]),
+            entry(&[r_x, r_y], &[(r_x, refs(r_y)), (r_y, refs(r_x))]),
+            entry(&[r_x, r_y], &[(r_y, refs(r_z))]),
+            entry(&[], &[]),
+            entry(&[r_z], &[]),
+        ]);
+        assert_eq!(d_set(&h, 4), set(&[r_x, r_y, r_z]));
+    }
+
+    #[test]
+    fn dangerous_end_late_edges_followed() {
+        // An edge that exists ONLY in end_late_fins (a root alive at input end):
+        // r_e → r_d via the end-of-input late sweep. r_d dangerous → r_e too.
+        let (r_e, r_d) = (root(1, 0), root(9, 0));
+        let h = history(vec![entry(&[], &[]), entry(&[], &[]), entry(&[r_d], &[])]);
+        let iv = active_intervals(&h);
+        let mut end_late: HashMap<PathRoot, AcceptCondition> = HashMap::default();
+        end_late.insert(r_e, refs(r_d));
+        let d = dangerous_roots(&h, &end_late, &iv, 2);
+        assert_eq!(d, set(&[r_e, r_d]));
     }
 }

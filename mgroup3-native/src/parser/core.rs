@@ -1072,7 +1072,7 @@ impl Mgroup3Parser {
         let Some(last_entry) = ctx.history.last() else { return false };
         let Some(cond) = &last_entry.main_root_finish else { return false };
         let end_late = self.end_of_input_late_fins(ctx);
-        let evaluator = super::record_cond::RecordConditionEvaluator::new(&ctx.history, &end_late);
+        let evaluator = super::record_cond::RecordConditionEvaluator::new(&ctx.history, end_late);
         evaluator.evaluate(cond, ctx.history.len() as i32 - 1)
     }
 
@@ -1080,7 +1080,7 @@ impl Mgroup3Parser {
     /// 죽음이 더는 step 으로 관찰되지 않으므로 마지막 gen 에 끝나는 finish 들을
     /// 한 번 쓸어 모아 최종 평가의 가상 late step 으로 쓴다. Kotlin
     /// `endOfInputLateFins` 대응.
-    fn end_of_input_late_fins(&self, ctx: &ParsingCtx) -> HashMap<PathRoot, AcceptCondition> {
+    pub fn end_of_input_late_fins(&self, ctx: &ParsingCtx) -> HashMap<PathRoot, AcceptCondition> {
         let mut result: HashMap<PathRoot, AcceptCondition> = HashMap::default();
         for (root, path_map) in &ctx.paths {
             if *root == ctx.main_root {
@@ -1128,123 +1128,31 @@ impl Mgroup3Parser {
         let end_late = self.end_of_input_late_fins(ctx);
         // record 조건 평가는 replay 재생 대신 leaf-직접 조회 + 메모 (record_cond).
         // evaluator 의 인덱스/메모는 이 호출 로컬 — 파서 인스턴스는 Send+Sync 유지.
-        let evaluator = super::record_cond::RecordConditionEvaluator::new(&ctx.history, &end_late);
+        let evaluator = super::record_cond::RecordConditionEvaluator::new(&ctx.history, end_late);
         let mut out = Vec::with_capacity(ctx.history.len());
-        // Per-gen ActionApplication dedup. The same (actions template, gen
-        // bindings, condition) recurs many times within a gen (up to 11x on
-        // jar.bbx); each redundant app rebuilds+re-evaluates+re-emits the same
-        // kernels into the same set. Skipping duplicates is output-invariant:
-        // the kernel coordinates are a pure function of the app's fields (which
-        // are equal for a duplicate) and every emit is a set `insert`, which is
-        // idempotent — so a dropped duplicate would only re-insert kernels
-        // already present. Bucket on a cheap integer key (`AppKey`) and
-        // disambiguate the rare differing-condition case inside the bucket by
-        // value (`SmallCondSet`), so composite condition trees are never hashed.
-        // The map is allocated once and cleared per gen.
+        // Per-gen ActionApplication dedup buffer, allocated once and cleared per
+        // gen inside `kernels_at_gen_into` (see there for why dedup is
+        // output-invariant). Reused across gens to avoid a per-gen allocation.
         let mut seen: HashMap<AppKey, SmallCondSet> = HashMap::default();
         for (gen_idx, entry) in ctx.history.iter().enumerate() {
-            let gen_idx = gen_idx as i32;
             let mut kernels: HashSet<KtlibKernel> = HashSet::default();
-            seen.clear();
-            for app in &entry.action_applications {
-                let key = AppKey {
-                    actions: Arc::as_ptr(&app.actions) as usize,
-                    rt_curr: app.rt_curr,
-                    rt_mid: app.rt_mid,
-                    next: app.next,
-                    rt_grand: app.rt_grand,
-                    rep_curr: app.rep_curr,
-                    rep_mid: app.rep_mid,
-                    rep_grand: app.rep_grand,
-                };
-                let bucket = seen.entry(key).or_default();
-                if bucket.contains(&app.condition) {
-                    continue; // identical app already materialized this gen
-                }
-                bucket.push(app.condition.clone());
-                // edge action 은 구동 조건으로 전체 게이팅.
-                if !matches!(app.condition, AcceptCondition::Always)
-                    && !evaluator.evaluate(&app.condition, gen_idx)
-                {
-                    continue;
-                }
-                let pa = &app.actions;
-                for finished in &pa.finished {
-                    let cond_tpl = finished
-                        .finish_condition
-                        .as_ref()
-                        .expect("FinishedKernelTemplate.finish_condition missing");
-                    let cond =
-                        build_condition(cond_tpl, app.rt_curr, app.rt_mid, app.next, app.rt_grand);
-                    if evaluator.evaluate(&cond, gen_idx) {
-                        let begin = resolve_gen_i32(
-                            finished.start_gen,
-                            app.rep_curr,
-                            app.rep_mid,
-                            app.next,
-                            app.rep_grand,
-                        );
-                        kernels.insert(KtlibKernel {
-                            symbol_id: finished.symbol_id,
-                            pointer: finished.pointer,
-                            begin_gen: begin,
-                            end_gen: gen_idx,
-                        });
-                    }
-                }
-                // pa.progressed 는 방출하지 않는다 — added 가 동일 kernel 을 조건과 함께 커버.
-                for added in &pa.added {
-                    let cond_tpl = added
-                        .accept_condition
-                        .as_ref()
-                        .expect("AddedKernelTemplate.accept_condition missing");
-                    let cond =
-                        build_condition(cond_tpl, app.rt_curr, app.rt_mid, app.next, app.rt_grand);
-                    if evaluator.evaluate(&cond, gen_idx) {
-                        kernels.insert(KtlibKernel {
-                            symbol_id: added.symbol_id,
-                            pointer: added.pointer,
-                            begin_gen: resolve_gen_i32(
-                                added.start_gen,
-                                app.rep_curr,
-                                app.rep_mid,
-                                app.next,
-                                app.rep_grand,
-                            ),
-                            end_gen: resolve_gen_i32(
-                                added.end_gen,
-                                app.rep_curr,
-                                app.rep_mid,
-                                app.next,
-                                app.rep_grand,
-                            ),
-                        });
-                    }
-                }
-            }
-            for rec in &entry.finished_kernels {
-                if evaluator.evaluate(&rec.condition, gen_idx) {
-                    kernels.insert(KtlibKernel {
-                        symbol_id: rec.kernel.symbol_id,
-                        pointer: rec.kernel.pointer,
-                        begin_gen: rec.kernel.gen_idx,
-                        end_gen: gen_idx,
-                    });
-                }
-            }
-            for rec in &entry.added_kernels {
-                if evaluator.evaluate(&rec.condition, gen_idx) {
-                    kernels.insert(KtlibKernel {
-                        symbol_id: rec.symbol_id,
-                        pointer: rec.pointer,
-                        begin_gen: rec.begin_gen,
-                        end_gen: rec.end_gen,
-                    });
-                }
-            }
+            kernels_at_gen_into(&evaluator, entry, gen_idx as i32, &mut seen, &mut kernels);
             out.push(kernels);
         }
         out
+    }
+
+    /// A reusable single-gen kernel query: builds the record-condition evaluator
+    /// (and its end-of-input late-fin closure) ONCE and answers `at(gen)` on
+    /// demand. `query.at(g)` is byte-identical to `kernels_history(ctx)[g]` for
+    /// every gen (both go through `kernels_at_gen_into`), but skips materializing
+    /// the whole history — the O(gen) work the incremental delta protocol wants
+    /// to avoid re-doing per edit. The evaluator borrows `ctx.history`; the query
+    /// must not outlive `ctx`.
+    pub fn kernels_query<'a>(&self, ctx: &'a ParsingCtx) -> KernelsQuery<'a> {
+        let end_late = self.end_of_input_late_fins(ctx);
+        let evaluator = super::record_cond::RecordConditionEvaluator::new(&ctx.history, end_late);
+        KernelsQuery { history: &ctx.history, evaluator }
     }
 
     /// Apply one `TermAction` to a single (shape, cond) pair, accumulating
@@ -1696,6 +1604,152 @@ impl SmallCondSet {
     #[inline]
     fn push(&mut self, c: AcceptCondition) {
         self.items.push(c);
+    }
+}
+
+/// Materialize the `KtlibKernel` set for ONE gen into `kernels` (cleared-and-
+/// filled `seen` dedup buffer supplied by the caller so the whole-history loop
+/// can reuse one allocation). Extracted verbatim from `kernels_history`'s per-gen
+/// body so `kernels_history` and `KernelsQuery::at` share EXACTLY one
+/// implementation — the byte-identity contract between them is structural, not a
+/// hand-kept copy.
+///
+/// Per-gen ActionApplication dedup: the same (actions template, gen bindings,
+/// condition) recurs many times within a gen (up to 11x on jar.bbx); each
+/// redundant app rebuilds+re-evaluates+re-emits the same kernels into the same
+/// set. Skipping duplicates is output-invariant — the kernel coordinates are a
+/// pure function of the app's fields (equal for a duplicate) and every emit is an
+/// idempotent set `insert`. Bucket on a cheap integer key (`AppKey`) and
+/// disambiguate the rare differing-condition case inside the bucket by value
+/// (`SmallCondSet`), so composite condition trees are never hashed.
+fn kernels_at_gen_into(
+    evaluator: &super::record_cond::RecordConditionEvaluator,
+    entry: &HistoryEntry,
+    gen_idx: i32,
+    seen: &mut HashMap<AppKey, SmallCondSet>,
+    kernels: &mut HashSet<KtlibKernel>,
+) {
+    seen.clear();
+    for app in &entry.action_applications {
+        let key = AppKey {
+            actions: Arc::as_ptr(&app.actions) as usize,
+            rt_curr: app.rt_curr,
+            rt_mid: app.rt_mid,
+            next: app.next,
+            rt_grand: app.rt_grand,
+            rep_curr: app.rep_curr,
+            rep_mid: app.rep_mid,
+            rep_grand: app.rep_grand,
+        };
+        let bucket = seen.entry(key).or_default();
+        if bucket.contains(&app.condition) {
+            continue; // identical app already materialized this gen
+        }
+        bucket.push(app.condition.clone());
+        // edge action 은 구동 조건으로 전체 게이팅.
+        if !matches!(app.condition, AcceptCondition::Always)
+            && !evaluator.evaluate(&app.condition, gen_idx)
+        {
+            continue;
+        }
+        let pa = &app.actions;
+        for finished in &pa.finished {
+            let cond_tpl = finished
+                .finish_condition
+                .as_ref()
+                .expect("FinishedKernelTemplate.finish_condition missing");
+            let cond = build_condition(cond_tpl, app.rt_curr, app.rt_mid, app.next, app.rt_grand);
+            if evaluator.evaluate(&cond, gen_idx) {
+                let begin = resolve_gen_i32(
+                    finished.start_gen,
+                    app.rep_curr,
+                    app.rep_mid,
+                    app.next,
+                    app.rep_grand,
+                );
+                kernels.insert(KtlibKernel {
+                    symbol_id: finished.symbol_id,
+                    pointer: finished.pointer,
+                    begin_gen: begin,
+                    end_gen: gen_idx,
+                });
+            }
+        }
+        // pa.progressed 는 방출하지 않는다 — added 가 동일 kernel 을 조건과 함께 커버.
+        for added in &pa.added {
+            let cond_tpl = added
+                .accept_condition
+                .as_ref()
+                .expect("AddedKernelTemplate.accept_condition missing");
+            let cond = build_condition(cond_tpl, app.rt_curr, app.rt_mid, app.next, app.rt_grand);
+            if evaluator.evaluate(&cond, gen_idx) {
+                kernels.insert(KtlibKernel {
+                    symbol_id: added.symbol_id,
+                    pointer: added.pointer,
+                    begin_gen: resolve_gen_i32(
+                        added.start_gen,
+                        app.rep_curr,
+                        app.rep_mid,
+                        app.next,
+                        app.rep_grand,
+                    ),
+                    end_gen: resolve_gen_i32(
+                        added.end_gen,
+                        app.rep_curr,
+                        app.rep_mid,
+                        app.next,
+                        app.rep_grand,
+                    ),
+                });
+            }
+        }
+    }
+    for rec in &entry.finished_kernels {
+        if evaluator.evaluate(&rec.condition, gen_idx) {
+            kernels.insert(KtlibKernel {
+                symbol_id: rec.kernel.symbol_id,
+                pointer: rec.kernel.pointer,
+                begin_gen: rec.kernel.gen_idx,
+                end_gen: gen_idx,
+            });
+        }
+    }
+    for rec in &entry.added_kernels {
+        if evaluator.evaluate(&rec.condition, gen_idx) {
+            kernels.insert(KtlibKernel {
+                symbol_id: rec.symbol_id,
+                pointer: rec.pointer,
+                begin_gen: rec.begin_gen,
+                end_gen: rec.end_gen,
+            });
+        }
+    }
+}
+
+/// A single-gen kernel query holding a pre-built record-condition evaluator (see
+/// `Mgroup3Parser::kernels_query`). `at(g)` equals `kernels_history(ctx)[g]`
+/// byte-for-byte for every gen.
+pub struct KernelsQuery<'a> {
+    history: &'a History,
+    evaluator: super::record_cond::RecordConditionEvaluator<'a>,
+}
+
+impl KernelsQuery<'_> {
+    /// The `KtlibKernel` set at `gen` (== `kernels_history(ctx)[gen]`). An
+    /// out-of-range gen yields the empty set (mirrors indexing past the vec end).
+    pub fn at(&self, gen_idx: usize) -> HashSet<KtlibKernel> {
+        let mut kernels: HashSet<KtlibKernel> = HashSet::default();
+        let Some(entry) = self.history.get(gen_idx) else {
+            return kernels;
+        };
+        let mut seen: HashMap<AppKey, SmallCondSet> = HashMap::default();
+        kernels_at_gen_into(&self.evaluator, entry, gen_idx as i32, &mut seen, &mut kernels);
+        kernels
+    }
+
+    /// Number of gens (== `kernels_history(ctx).len()` == history length).
+    pub fn num_gens(&self) -> usize {
+        self.history.len()
     }
 }
 

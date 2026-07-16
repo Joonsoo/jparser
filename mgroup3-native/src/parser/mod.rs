@@ -6,7 +6,7 @@ pub mod record_cond;
 pub mod result;
 pub mod template;
 
-pub use core::Mgroup3Parser;
+pub use core::{KernelsQuery, Mgroup3Parser};
 pub use result::{build_result, encode_parse_result};
 pub use template::{build_condition, resolve_gen};
 
