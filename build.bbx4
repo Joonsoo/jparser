@@ -379,10 +379,6 @@ mgroup3(basePath="mgroup3") {
 
   def genRustParser(
     cdgFile: path,
-    // 생성 crate 의 mgroup3-native path dependency 위치 (jparser 리포의 mgroup3-native).
-    // 외부 프로젝트에서 호출 시 명시적으로 넘길 것 — external def 내부의 string→path
-    // coercion 은 현재 caller 의 basePath 로 붙는 문제가 있어 default 를 둘 수 없다.
-    mgroup3NativeDir: path,
     // 생성될 Kotlin AST 클래스의 FQCN — 마지막 컴포넌트가 클래스명, 앞이 패키지.
     // proto 패키지는 "<패키지>.ast", 바인딩 클래스는 "<클래스명>ProtoBinding".
     astifierClassName: string = "com.giyeok.jparser.mgroup3.generated.Ast",
@@ -399,7 +395,12 @@ mgroup3(basePath="mgroup3") {
     let protoFile = outDir / "proto" / astProtoFileName
     let rust = outDir / "rust"
     let kotlin = outDir / "kotlin"
-    let nativeRoot = mgroup3NativeDir
+    // 생성 crate 의 mgroup3-native path dependency 위치. context.definitionDir() 는
+    // 호출자의 basePath 와 무관하게 **이 build.bbx4 가 있는 디렉토리** (jparser 리포
+    // 루트) 기준이므로, 외부 프로젝트가 호출해도 항상 이 리포의 crate 를 가리킨다.
+    // (bibix4 >= caa1b908 필요. 반드시 body 안에서 호출 — param default 에서 부르면
+    // caller 파일이 잡힌다.)
+    let nativeRoot = context.definitionDir() / "mgroup3-native"
 
     let rustArtifact = artifact.build(rust) {
       file.createDirectory(outDir / "data")
