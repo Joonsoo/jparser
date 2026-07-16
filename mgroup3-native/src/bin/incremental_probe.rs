@@ -848,12 +848,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if files.is_empty() {
-        files = vec![
+        let default_candidates: Vec<String> = vec![
             "/Users/joonsoo/Documents/workspace/mulang/bibix4/main/bibix4-stdlib/jar.bbx".into(),
             "/Users/joonsoo/Documents/workspace/mulang/bibix4/main/bibix4-stdlib/cc.bbx".into(),
             "/Users/joonsoo/Documents/workspace/mulang/examples/ccgen.mu".into(),
             "/Users/joonsoo/Documents/workspace/mulang/examples/chain_boundaries.mu".into(),
         ];
+        files = default_candidates
+            .into_iter()
+            .filter(|f| std::path::Path::new(f).exists())
+            .collect();
+        if files.is_empty() {
+            eprintln!(
+                "[error] no default corpus files found on this machine; pass --file PATH \
+                 (one or more) to specify the corpus explicitly."
+            );
+            std::process::exit(2);
+        }
     }
 
     eprintln!("[load] decoding parser data: {}", data_path);

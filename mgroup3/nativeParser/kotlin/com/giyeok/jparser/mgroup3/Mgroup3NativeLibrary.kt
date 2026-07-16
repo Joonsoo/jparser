@@ -12,13 +12,14 @@ import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Loads `libmgroup3_native.{dylib,so,dll}` once per JVM and exposes cached
- * [MethodHandle]s for the C ABI declared in `mgroup3-native/src/ffi.rs`.
+ * Loads `libmgroup3_native.{dylib,so}` / `mgroup3_native.dll` once per JVM and
+ * exposes cached [MethodHandle]s for the C ABI declared in
+ * `mgroup3-native/src/ffi.rs`.
  *
  * Resolution order (first hit wins):
  *  1. `System.getenv("MGROUP3_NATIVE_LIB")` — absolute path to the dylib.
  *  2. Walk up from `System.getProperty("user.dir")` until a `mgroup3-native/`
- *     directory is found; try `target/release/libmgroup3_native.{ext}`, then
+ *     directory is found; try `target/release/<platform file name>`, then
  *     `target/debug/...`. Same shape `Mgroup3NativeResultBridgeTest` already
  *     uses for the dump_result binary.
  *  3. Throw [UnsatisfiedLinkError] with a clear message.
@@ -114,8 +115,7 @@ internal object Mgroup3NativeLibrary {
       if (Files.exists(p)) return p
       throw UnsatisfiedLinkError("MGROUP3_NATIVE_LIB=$env but the file does not exist")
     }
-    val ext = libExtension()
-    val libFile = "libmgroup3_native.$ext"
+    val libFile = libFileName()
     var dir: Path? = Path.of(System.getProperty("user.dir")).toAbsolutePath()
     while (dir != null) {
       val candidate = dir.resolve("mgroup3-native")
@@ -137,12 +137,13 @@ internal object Mgroup3NativeLibrary {
     )
   }
 
-  private fun libExtension(): String {
+  /** Platform-exact file name — Windows cdylibs have no `lib` prefix. */
+  private fun libFileName(): String {
     val osName = System.getProperty("os.name").lowercase()
     return when {
-      osName.contains("mac") || osName.contains("darwin") -> "dylib"
-      osName.contains("win") -> "dll"
-      else -> "so"
+      osName.contains("mac") || osName.contains("darwin") -> "libmgroup3_native.dylib"
+      osName.contains("win") -> "mgroup3_native.dll"
+      else -> "libmgroup3_native.so"
     }
   }
 }

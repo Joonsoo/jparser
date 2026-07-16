@@ -1,5 +1,7 @@
-//! Smoke test for the C ABI in `src/ffi.rs`. Loads `libmgroup3_native.dylib`
-//! via `libloading` and exercises the full lifecycle on a tiny fixture so we
+//! Smoke test for the C ABI in `src/ffi.rs`. Loads the platform's
+//! `mgroup3_native` cdylib (e.g. `libmgroup3_native.dylib`/`.so` or
+//! `mgroup3_native.dll`) via `libloading` and exercises the full lifecycle on
+//! a tiny fixture so we
 //! catch ABI mistakes (signature drift, missing free, panic propagation)
 //! without bringing a JVM into the picture.
 //!
@@ -50,8 +52,13 @@ type SessionDestroy = unsafe extern "C" fn(session: *mut u8);
 
 fn dylib_path() -> PathBuf {
     let crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let release = crate_dir.join("target/release/libmgroup3_native.dylib");
-    let debug = crate_dir.join("target/debug/libmgroup3_native.dylib");
+    let file_name = format!(
+        "{}mgroup3_native{}",
+        std::env::consts::DLL_PREFIX,
+        std::env::consts::DLL_SUFFIX
+    );
+    let release = crate_dir.join("target/release").join(&file_name);
+    let debug = crate_dir.join("target/debug").join(&file_name);
     if release.exists() {
         release
     } else if debug.exists() {
