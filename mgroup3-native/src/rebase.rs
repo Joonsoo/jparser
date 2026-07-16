@@ -87,6 +87,7 @@ use std::rc::Rc;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::accept_condition::AcceptCondition;
+use crate::history::History;
 use crate::parsing_ctx::{
     ActionApplication, AddedKernelRecord, FinishedKernelRecord, HistoryEntry, Kernel,
     MilestonePath, ParsingCtx, PathMap, PathShape,
@@ -287,7 +288,7 @@ impl GenRebase {
     /// reconstruction at the splice point. `history` is REPLACED by the caller
     /// with the materialized spliced history; `term_action_cache`/`step_scratch`
     /// are reset (parse-local, rebuilt on demand, never read by the consumers).
-    pub fn ctx(&self, ctx: &ParsingCtx, spliced_history: Vec<HistoryEntry>) -> ParsingCtx {
+    pub fn ctx(&self, ctx: &ParsingCtx, spliced_history: History) -> ParsingCtx {
         let mut memo: HashMap<usize, Rc<MilestonePath>> = HashMap::default();
         let mut paths: HashMap<PathRoot, PathMap> = HashMap::default();
         for (root, pm) in ctx.paths.iter() {

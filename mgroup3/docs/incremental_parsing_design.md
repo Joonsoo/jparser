@@ -107,16 +107,29 @@ ParseSession::new(parser: Arc<Mgroup3Parser>) -> ParseSession
 | 필드 | 타입 | Clone 비용 |
 |---|---|---|
 | `paths` | `HashMap<PathRoot, PathMap>` | 맵 골격 복제 (엔트리 수 × 소량). 내부 `PathShape`/`MilestonePath` 는 `Rc` — **참조만 증가**, 체인 미복제. 조건은 값 복제 (대개 얕음). |
-| `history` | `Vec<HistoryEntry>` | **깊은 복제** — gen 수에 비례. 체크포인트 비용의 지배항. |
+| `history` | `History` (구조 공유) | **구현 반영**: 원래 `Vec<HistoryEntry>` 라 clone 이 gen 수에 비례한 깊은 복제 = 체크포인트/보관 비용의 지배항이었다. 지금은 `History` (구조 공유 chunked 컨테이너, `history.rs`) — seal 후 clone 은 청크 `Rc` bump 만 (O(#chunks)), 체크포인트는 아예 `clone_without_history` 로 안 든다. |
 | `step_scratch` | `StepScratch` | 순수 scratch — 체크포인트는 **비운 것**을 들면 됨 (`Default`). 복제 불요. |
 | `ever_seen_cond_roots`, `root_report_gens`, `term_action_cache` | 맵 | 골격 복제 (소~중). term_action_cache 는 재구성 가능 — 체크포인트는 비워도 됨. |
 
 **결론**: Rc 공유부 (paths 의 체인) 는 프로브 전제대로 참조만 유지 — 싸다. **history
-가 유일한 무거운 항**. 그래서 §1.2 의 "history 세그먼트 로그 분리" 가 체크포인트를
-진짜 싸게 만드는 열쇠다. Phase I0 는 정확성 게이트를 먼저 그린으로 만들기 위해
-`history[..marker].to_vec()` 로 시작하되, **체크포인트는 history 를 안 들고 marker
-(usize) 만 들고** 재개 시 원본 세션 history 를 marker 로 잘라 쓰는 방식이면
-I0 에서도 history clone 을 회피할 수 있다 (단일 append-only 로그 위의 인덱스).
+가 유일한 무거운 항** 이었다. 그래서 §1.2 의 "history 세그먼트 로그 분리" 가
+체크포인트를 진짜 싸게 만드는 열쇠다. **체크포인트는 history 를 안 들고 marker
+(usize=`at_gen`) 만 들고** (`snapshot` = `clone_without_history`) 재개 시 세션이
+보관한 canonical history 를 marker 로 잘라 쓴다.
+
+**구현 반영 (구조 공유 History)**: 초안은 재개 시 `history[..marker].to_vec()` 였는데,
+이 잘라내기가 편집당 O(marker) 딥카피 (resume_gen ≈ n 인 END 편집에서 편집당 O(n))
+였고, canonical history 보관도 `Vec` clone 이라 편집당·full parse 체크포인트당 O(n)
+= full parse O(n²/K) 였다. 지금은 history 가 구조 공유 `History` (chunked, `Rc<Vec<..>>`
+청크 + tail, `history.rs`):
+- **canonical 보관**: 파스 끝에서 `seal()` 후 `clone()` = 청크 `Rc` bump 만 (O(#chunks)).
+- **재개 (restore_ctx)**: `canonical.prefix(at+1)` — marker 이하 청크는 통째 `Rc`
+  공유, 경계 청크만 앞부분 (≤ CHUNK) 딥카피. O(#chunks + CHUNK), marker 무관.
+- **splice source (prev_final_ctx)**: `clone_without_history` — history 미보관 (소비처
+  `GenRebase::ctx` 가 history 를 안 읽음, §2.2-a).
+
+이로써 full parse 는 O(n²/K) → O(n) (실측 32k자 3985ms → 190ms), END 편집 per-edit 은
+n 정비례 → 평탄 (32k 36.8ms → 0.87ms) 이 됐다.
 
 ### 1.4 스레딩
 
@@ -248,9 +261,12 @@ byte-identical 임을 오라클로 강제한다.
   파스의 전체 history 를 `Arc<[HistoryEntry]>` 로 보관 (구 suffix 소스). splice 시
   "활성 history[..q_edit] + 구 history[q\*_old..] (분할 매핑 적용 — §2.2 리뷰 정정)" 를 lazy 물질화 (§2.2
   rope-후보-2).
-- **구 history 보관 비용**: 직전 파스 history 1벌을 `Arc` 로 유지 (편집당 갱신).
-  메모리 오버헤드 = history 1벌 (파일 크기 규모) — 수용 가능. 체크포인트 예산과
-  별도 회계.
+- **구 history 보관 비용**: 직전 파스 history 1벌을 세션의 `canonical_history` 로
+  유지 (편집당 갱신). 메모리 오버헤드 = history 1벌 (파일 크기 규모) — 수용 가능.
+  체크포인트 예산과 별도 회계. **구현 반영**: 이 보관·갱신은 구조 공유 `History`
+  (§1.3) 라 seal 후 `Rc` bump (O(#chunks)) — 편집당 O(n) 딥카피가 아니다. splice
+  물질화 (세그먼트 C 의 `rebase.entry` 루프) 자체는 **BY DESIGN O(suffix)** 로 유지
+  (rope-후보-2). splice 후 canonical 재보관도 `seal()` + `Rc` bump.
 
 ### 2.4 eager EOF fold 와의 상호작용
 

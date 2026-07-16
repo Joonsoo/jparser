@@ -9,6 +9,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::accept_condition::AcceptCondition;
+use crate::history::History;
 use crate::parser::template::{build_condition, resolve_gen_i32};
 use crate::parser_data::{EdgeActionPlain, ParserDataPlain, ParsingActionsPlain, TermActionPlain};
 use crate::parsing_ctx::{
@@ -216,7 +217,7 @@ impl Mgroup3Parser {
             col: 0,
             main_root,
             paths: all_paths,
-            history: vec![initial_entry],
+            history: History::from_entry(initial_entry),
             ever_seen_cond_roots: Default::default(),
             root_report_gens: Default::default(),
             term_action_cache: Default::default(),
@@ -1704,7 +1705,7 @@ impl SmallCondSet {
 /// mgroup2 kernelsHistory 의 `isEventuallyAccepted`.
 pub fn evaluate_record_condition(
     cond: &AcceptCondition,
-    history: &[HistoryEntry],
+    history: &History,
     record_gen: i32,
     end_late_fins: &HashMap<PathRoot, AcceptCondition>,
 ) -> bool {
@@ -1718,7 +1719,7 @@ pub fn evaluate_record_condition(
         if matches!(c, AcceptCondition::Never) {
             return false;
         }
-        let entry = &history[g as usize];
+        let entry = history.get(g as usize).expect("history entry in range");
         c = evolve_accept_condition(
             &c,
             &entry.cond_path_finishes,

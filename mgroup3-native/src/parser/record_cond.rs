@@ -37,7 +37,7 @@ use std::sync::OnceLock;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::accept_condition::AcceptCondition;
-use crate::parsing_ctx::HistoryEntry;
+use crate::history::History;
 use crate::path_root::PathRoot;
 
 use super::core::evaluate_record_condition;
@@ -50,7 +50,7 @@ fn diff_check_enabled() -> bool {
 }
 
 pub struct RecordConditionEvaluator<'a> {
-    history: &'a [HistoryEntry],
+    history: &'a History,
     end_late_fins: &'a HashMap<PathRoot, AcceptCondition>,
     history_size: i32,
     /// Inverted index: root → gens that have a fin for it (ascending — built
@@ -68,7 +68,7 @@ pub struct RecordConditionEvaluator<'a> {
 
 impl<'a> RecordConditionEvaluator<'a> {
     pub fn new(
-        history: &'a [HistoryEntry],
+        history: &'a History,
         end_late_fins: &'a HashMap<PathRoot, AcceptCondition>,
     ) -> Self {
         let mut eager_fin_gens: HashMap<PathRoot, Vec<i32>> = HashMap::default();
@@ -284,7 +284,7 @@ impl<'a> RecordConditionEvaluator<'a> {
         if end_gen >= self.history_size {
             return None;
         }
-        let entry = &self.history[end_gen as usize];
+        let entry = self.history.get(end_gen as usize).expect("history entry in range");
         if let Some(fin) = entry.cond_path_finishes.get(&root) {
             return Some((fin, end_gen));
         }
@@ -296,7 +296,7 @@ impl<'a> RecordConditionEvaluator<'a> {
 
     fn late_fin_at(&self, root: PathRoot, g: i32) -> Option<(&'a AcceptCondition, i32)> {
         let fin = if g < self.history_size {
-            self.history[g as usize].late_cond_path_finishes.get(&root)
+            self.history.get(g as usize).unwrap().late_cond_path_finishes.get(&root)
         } else if g == self.history_size {
             self.end_late_fins.get(&root)
         } else {
@@ -339,7 +339,7 @@ impl<'a> RecordConditionEvaluator<'a> {
                 if g > real_end {
                     break;
                 }
-                let fin = &self.history[g as usize].cond_path_finishes[&root];
+                let fin = &self.history.get(g as usize).unwrap().cond_path_finishes[&root];
                 if self.eval_cond(fin, g, &fin_visiting(g, from_gen, visiting, root)) {
                     return true;
                 }
@@ -351,7 +351,7 @@ impl<'a> RecordConditionEvaluator<'a> {
                 if g > real_end {
                     break;
                 }
-                let fin = &self.history[g as usize].late_cond_path_finishes[&root];
+                let fin = &self.history.get(g as usize).unwrap().late_cond_path_finishes[&root];
                 if self.eval_cond(fin, g, &fin_visiting(g, from_gen, visiting, root)) {
                     return true;
                 }

@@ -19,6 +19,7 @@ static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 pub mod accept_condition;
 pub mod ffi;
 pub mod fingerprint;
+pub mod history;
 pub mod parser;
 pub mod parser_cache;
 pub mod parser_data;

@@ -9,6 +9,7 @@ use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
 use crate::accept_condition::AcceptCondition;
+use crate::history::History;
 use crate::path_root::PathRoot;
 
 /// A parse-time kernel (symbol + pointer at a given gen).
@@ -403,7 +404,11 @@ pub struct ParsingCtx {
     pub main_root: PathRoot,
     /// All live paths — main path plus every active cond root.
     pub paths: HashMap<PathRoot, PathMap>,
-    pub history: Vec<HistoryEntry>,
+    /// Per-gen recorded actions. Structure-sharing container (see `history.rs`):
+    /// the incremental session snapshots / prefixes / retains this without O(gen)
+    /// deep copies. Sequential `push`/`iter`/`last` on the parse hot path stay
+    /// O(1) amortized; the parser output is byte-identical to a flat `Vec`.
+    pub history: History,
     /// Union of every `active_cond_paths` seen so far. Carried forward so
     /// `parseStep` can skip re-registering dead cond roots.
     pub ever_seen_cond_roots: HashSet<PathRoot>,
@@ -431,6 +436,27 @@ impl ParsingCtx {
     pub fn cond_paths(&self) -> impl Iterator<Item = (&PathRoot, &PathMap)> {
         let main = self.main_root;
         self.paths.iter().filter(move |(r, _)| **r != main)
+    }
+
+    /// Clone this ctx but drop its `history` (the heavy field), leaving an empty
+    /// `History`. EVERY other field — including the parse-local `term_action_cache`
+    /// / `step_scratch` — is cloned exactly as `.clone()` would, so this is
+    /// behavior-identical to `.clone()` for consumers that never read history (the
+    /// session's checkpoint snapshot and splice source, whose history is
+    /// reconstructed separately). See `session.rs` §1.3.
+    pub fn clone_without_history(&self) -> ParsingCtx {
+        ParsingCtx {
+            gen_idx: self.gen_idx,
+            line: self.line,
+            col: self.col,
+            main_root: self.main_root,
+            paths: self.paths.clone(),
+            history: History::new(),
+            ever_seen_cond_roots: self.ever_seen_cond_roots.clone(),
+            root_report_gens: self.root_report_gens.clone(),
+            term_action_cache: self.term_action_cache.clone(),
+            step_scratch: self.step_scratch.clone(),
+        }
     }
 }
 
@@ -589,7 +615,7 @@ mod tests {
             col: 0,
             main_root,
             paths,
-            history: vec![],
+            history: History::new(),
             ever_seen_cond_roots: HashSet::default(),
             root_report_gens: HashMap::default(),
             term_action_cache: Default::default(),

@@ -48,8 +48,9 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::fingerprint::{fp_state, Fp, Variant};
+use crate::history::History;
 use crate::parser::{Mgroup3Parser, ParsingError};
-use crate::parsing_ctx::{HistoryEntry, KtlibKernel, ParsingCtx};
+use crate::parsing_ctx::{KtlibKernel, ParsingCtx};
 use crate::rebase::{paths_match_after_rebase, GenRebase};
 use rustc_hash::FxHashSet as HashSet;
 
@@ -62,13 +63,15 @@ pub const DEFAULT_CHECKPOINT_INTERVAL: usize = 64;
 /// to resume from while those chars are unchanged.
 ///
 /// HISTORY-MARKER optimization (design §1.3): the stored `ctx` has its `history`
-/// EMPTIED. Cloning the full `history: Vec<HistoryEntry>` into every checkpoint
-/// would be O(N) per checkpoint → O(N²/K) for a full parse (the dominant cost, and
-/// severe on real LSP-sized files). Instead the checkpoint keeps only the gen
-/// marker (`at_gen`); on resume the session reconstructs the required history
-/// prefix `[0..=at_gen]` from its retained `canonical_history` (one O(at_gen) clone
-/// per edit, not per checkpoint). The `Rc`/`Arc`-shared path structure in `ctx`
-/// is only ref-counted, so a history-less checkpoint clone is cheap.
+/// EMPTIED (`clone_without_history`). Deep-copying the full history into every
+/// checkpoint would be O(N) per checkpoint → O(N²/K) for a full parse (the
+/// dominant cost, and severe on real LSP-sized files). Instead the checkpoint
+/// keeps only the gen marker (`at_gen`); on resume the session reconstructs the
+/// required history prefix `[0..=at_gen]` from its retained `canonical_history`
+/// via `History::prefix` (structure-sharing — Rc-bumps the unchanged chunks plus
+/// a bounded straddle copy, not an O(at_gen) deep copy). The `Rc`/`Arc`-shared
+/// path structure in `ctx` is only ref-counted, so a history-less checkpoint
+/// clone is cheap.
 #[derive(Clone)]
 struct Checkpoint {
     at_gen: usize,
@@ -206,12 +209,19 @@ pub struct ParseSession {
     checkpoints: Vec<Checkpoint>,
     /// Full history of the last successful parse — the source for reconstructing a
     /// checkpoint's history prefix on resume (see `Checkpoint`). Empty if the last
-    /// parse errored.
-    canonical_history: Vec<crate::parsing_ctx::HistoryEntry>,
+    /// parse errored. Held as a structure-sharing `History` (see `history.rs`):
+    /// retaining it after a parse is an `Rc` bump (O(#chunks)), and `restore_ctx`'s
+    /// `prefix` shares the unchanged chunks instead of deep-copying — so neither a
+    /// full parse nor an edit pays the old O(gen) canonical-history copy.
+    canonical_history: History,
     /// I2 splice source: the FINAL ctx of the last successful parse (the old
     /// parse whose suffix a splice reuses). `None` until the first success / after
     /// an error. Held as `Rc` so cloning it into `prev_*` is cheap (the heavy
-    /// `paths` chains are `Rc`-shared, ref-counted only). Its `history` matches
+    /// `paths` chains are `Rc`-shared, ref-counted only). Stored with an EMPTY
+    /// `history` (via `clone_without_history`): its sole consumer, `finish_splice`
+    /// → `GenRebase::ctx`, replaces the history with the freshly materialized
+    /// spliced one and never reads this ctx's history — so retaining a copy would
+    /// be pure O(gen) waste. The canonical suffix a splice reuses lives in
     /// `canonical_history`.
     prev_final_ctx: Option<Rc<ParsingCtx>>,
     /// Checkpoint interval in gens.
@@ -256,7 +266,7 @@ impl ParseSession {
             prev_doc: Vec::new(),
             have_baseline: false,
             checkpoints: Vec::new(),
-            canonical_history: Vec::new(),
+            canonical_history: History::new(),
             prev_final_ctx: None,
             interval,
             outcome: None,
@@ -461,7 +471,10 @@ impl ParseSession {
             self.prev_doc = self.doc.clone();
             self.have_baseline = true;
             if let Some(ParseOutcome::Ok(ctx)) = &self.outcome {
-                self.prev_final_ctx = Some(Rc::new(ctx.clone()));
+                // history-less clone: the splice source's history is never read
+                // (see the field doc); the canonical suffix lives in
+                // `canonical_history`. Avoids an O(gen) deep copy every edit.
+                self.prev_final_ctx = Some(Rc::new(ctx.clone_without_history()));
             }
         } else {
             self.prev_doc.clear();
@@ -475,9 +488,9 @@ impl ParseSession {
     /// ref-counted, so this is cheap. History is refilled from `canonical_history`
     /// on resume.
     fn snapshot(ctx: &ParsingCtx, at_gen: usize) -> Checkpoint {
-        let mut c = ctx.clone();
-        c.history = Vec::new();
-        Checkpoint { at_gen, ctx: c }
+        // history-less clone (no O(gen) history deep copy — the checkpoint's
+        // history is refilled from `canonical_history` on resume).
+        Checkpoint { at_gen, ctx: ctx.clone_without_history() }
     }
 
     /// Restore a resumable ctx from a checkpoint: refill its `history` prefix
@@ -493,7 +506,10 @@ impl ParseSession {
         // (empty) history — gen 0's init ctx already carries its single entry via
         // init_ctx below.
         if at < self.canonical_history.len() {
-            cp.ctx.history = self.canonical_history[0..=at].to_vec();
+            // `prefix(at + 1)` shares the unchanged chunks by Rc bump and copies
+            // only the (≤ CHUNK) straddling remainder — O(#chunks + CHUNK), not
+            // the old O(at) deep copy.
+            cp.ctx.history = self.canonical_history.prefix(at + 1);
         }
         cp.ctx
     }
@@ -502,7 +518,7 @@ impl ParseSession {
     /// Returns true on success.
     fn reparse_from_scratch(&mut self) -> bool {
         self.checkpoints.clear();
-        self.canonical_history.clear();
+        self.canonical_history = History::new();
         let total = self.doc.len();
         let mut ctx = self.parser.get().init_ctx();
         self.checkpoints.push(Self::snapshot(&ctx, 0));
@@ -527,6 +543,8 @@ impl ParseSession {
         }
         self.stats.last_reparsed_gens = reparsed;
         // Retain the full history as the canonical source for checkpoint restore.
+        // Seal first so the clone is a pure Rc bump (no tail deep copy).
+        ctx.history.seal();
         self.canonical_history = ctx.history.clone();
         self.outcome = Some(ParseOutcome::Ok(ctx));
         true
@@ -731,7 +749,9 @@ impl ParseSession {
             // I2 SPLICE: reuse the old suffix instead of parsing gens (qstar, total].
             self.finish_splice(qstar, delta, &rebase, ctx);
         } else {
-            // No splice — the freshly-parsed ctx is the whole result.
+            // No splice — the freshly-parsed ctx is the whole result. Seal first
+            // so retaining the canonical history is a pure Rc bump.
+            ctx.history.seal();
             self.canonical_history = ctx.history.clone();
             self.outcome = Some(ParseOutcome::Ok(ctx));
         }
@@ -758,18 +778,20 @@ impl ParseSession {
         // new_ctx.history has exactly qstar+1 entries (gens 0..=qstar). Move it out
         // (no clone) — new_ctx is owned and only its history is reused here.
         debug_assert_eq!(new_ctx.history.len(), qstar + 1, "new_ctx history len at q*");
-        let mut spliced: Vec<HistoryEntry> = new_ctx.history;
+        let mut spliced: History = new_ctx.history;
 
         // Segment C: old history (qstar_old, ..] rebased into the new gen space.
         // The convergence gen itself (old qstar_old ≡ new qstar) is already covered
         // by segment B, so segment C starts at qstar_old + 1. Field-unit split
         // mapping (see rebase.rs) — prefix anchors (g<=p) stay, post-edit gens
-        // (g>p) shift, WITHIN each rebased entry.
+        // (g>p) shift, WITHIN each rebased entry. BY DESIGN O(suffix): one
+        // `rebase.entry` per suffix gen (the reused tail), appended onto the
+        // freshly-parsed prefix's unsealed tail.
         let old_len = self.canonical_history.len();
         let seg_c_start = (qstar_old + 1).min(old_len);
-        spliced.reserve(old_len - seg_c_start);
         for i in seg_c_start..old_len {
-            spliced.push(rebase.entry(&self.canonical_history[i]));
+            let e = self.canonical_history.get(i).expect("canonical history entry in splice range");
+            spliced.push(rebase.entry(e));
         }
         // Full history length invariant: (qstar+1) + (old_len - (qstar_old+1))
         //   = delta + old_len = new_total + 1 (gens 0..=new_total). See finish_splice.
@@ -780,7 +802,8 @@ impl ParseSession {
         );
 
         // Retain the spliced history as the next edit's canonical source BEFORE it
-        // is moved into the final ctx (avoids a second full clone).
+        // is moved into the final ctx. Seal first so this clone is a pure Rc bump.
+        spliced.seal();
         self.canonical_history = spliced.clone();
 
         // Final live state: rebase the OLD final ctx into the new gen space and
@@ -1194,7 +1217,7 @@ mod tests {
             for (idx, &c) in doc.iter().enumerate().take(resume_gen) {
                 ctx = parser.parse_step(ctx, c, idx + 1 == doc.len()).expect("step");
             }
-            ctx.history = Vec::new();
+            ctx.history = History::new();
             let cp = Checkpoint { at_gen: resume_gen, ctx };
 
             let mut w = BaselineWalker::new(&parser, &doc, anchor, cp);
