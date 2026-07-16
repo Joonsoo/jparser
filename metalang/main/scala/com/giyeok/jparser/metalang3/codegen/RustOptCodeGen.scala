@@ -1023,6 +1023,953 @@ class RustOptCodeGen(val analysis: ProcessedGrammar) {
   }
 
   // ===========================================================================
+  // AST DELTA WALK GENERATOR (Stage 2, design lsp_result_boundary.md §6).
+  //
+  // Emits the grammar-specific half of `delta.rs`: NodeEntry-oneof dispatch
+  // helpers + per-nonterminal delta functions. The grammar-INDEPENDENT runtime
+  // (LazyHistory, DeltaCtx, try_reuse, delta_list, dfs_free, PrevResult,
+  // reconstruct, the delta session + FFI) is the static DELTA_RT_RS emitted by
+  // Stage4RustEmit; the two are concatenated into one `delta.rs` module.
+  //
+  // Mirrors the validated hand prototype:
+  //   - class-producing nonterminal -> `delta_x_(ctx,b,e,old: Option<i32>) -> i32`
+  //       (try_reuse guard; else rebuild children + push a NodeEntry, fresh id).
+  //   - scalar-producing nonterminal -> `delta_x_(ctx,b,e) -> T` (plain walk over
+  //       the lazy history; no node).
+  //   - Arr(class) nonterminal -> `delta_x_coords(ctx,b,e) -> Vec<(i32,i32)>`
+  //       (element coords; the caller wraps with delta_list against the old list).
+  //
+  // Sealed up-casts vanish in delta mode: a class value is an i32 id, and a
+  // sealed-parent field just stores whatever concrete child's id (no enum wrap).
+  //
+  // Must run AFTER generate() (reuses `_requiredNonterms`, the reachable set).
+  // ===========================================================================
+
+  private def deltaConcretesSorted: List[String] =
+    analysis.classRelations.toHierarchy.allTypes.values.toList
+      .filter(_.subclasses.isEmpty).map(_.className).sorted
+
+  private def deltaTag(className: String): String = "TAG_" + camelToSnake(className).toUpperCase
+
+  private def deltaNodePath(className: String): String =
+    s"proto::node_entry::Node::${rustClassName(className)}"
+
+  private def deltaFn(nt: String): String = s"delta_${camelToSnake(nt)}_"
+
+  /** Return type for a scalar delta fn. Same shape as `rustReturnType`, but AST
+   * enum types are qualified `crate::ast::` (delta.rs is a sibling module, so
+   * unqualified enum names are out of scope). */
+  private def deltaReturnType(t: Type): String = reduceType(t) match {
+    case Type.EnumType(name) => s"crate::ast::$name"
+    case Type.UnspecifiedEnumType(uid) => s"crate::ast::${analysis.shortenedEnumTypesMap(uid)}"
+    case Type.OptionalOf(inner) => s"Option<${deltaReturnType(inner)}>"
+    case Type.ArrayOf(inner) => s"Vec<${deltaReturnType(inner)}>"
+    case _ => rustReturnType(t)
+  }
+
+  private def deltaCoordsFn(nt: String): String = s"delta_${camelToSnake(nt)}_coords"
+
+  private sealed trait DKind
+  private case object DScalarK extends DKind
+  private case object DClassK extends DKind
+  private case object DOptClassK extends DKind
+  private case class DArrClassK(elem: String) extends DKind
+
+  private def dKind(t: Type): DKind = reduceType(t) match {
+    case Type.ClassType(_) => DClassK
+    case Type.OptionalOf(inner) if isMsg(reduceType(inner)) => DOptClassK
+    case Type.ArrayOf(inner) => reduceType(inner) match {
+      case Type.ClassType(name) => DArrClassK(name)
+      case _ => DScalarK
+    }
+    case _ => DScalarK
+  }
+
+  def generateDelta(): String = {
+    val sb = new StringBuilder
+    sb.append(deltaDispatch())
+    sb.append("\n")
+    sb.append(deltaCanon())
+    sb.append("\n")
+    sb.append(deltaWalkEntry())
+    sb.append("\n")
+    var visited = Set[String]()
+    while ((_requiredNonterms -- visited).nonEmpty) {
+      val next = (_requiredNonterms -- visited).head
+      sb.append(deltaNonterminalFunc(next))
+      sb.append("\n\n")
+      visited += next
+    }
+    sb.toString
+  }
+
+  // ---- canonical tree form for the differential oracle (grammar-specific) ----
+  // Renders a node table (nodes + id->index) from a root into a string that
+  // captures type / spans / scalar fields / child STRUCTURE but is id-value
+  // independent (Msg children recurse; ids differ between the delta's session-id
+  // space and a fresh full encode). Two tables are tree-equal iff canon matches.
+
+  private def deltaCanon(): String = {
+    val concretes = deltaConcretesSorted
+    val arms = concretes.map { c =>
+      val fields = analysis.classParamTypes.getOrElse(c, List()).map { case (pname, ptype) =>
+        val f = rustFieldName(pname)
+        reduceType(ptype) match {
+          case Type.ClassType(_) =>
+            s"""            out.push_str("$f="); canon_node(nodes, by_id, m.$f, out); out.push(',');"""
+          case Type.OptionalOf(inner) if isMsg(reduceType(inner)) =>
+            s"""            out.push_str("$f="); if m.${f}_present { canon_node(nodes, by_id, m.$f, out); } else { out.push_str("null"); } out.push(',');"""
+          case Type.ArrayOf(elem) if isMsg(reduceType(elem)) =>
+            s"""            out.push_str("$f="); canon_list(nodes, by_id, &m.$f, out); out.push(',');"""
+          case Type.OptionalOf(Type.ArrayOf(elem)) if isMsg(reduceType(elem)) =>
+            s"""            out.push_str("$f="); if m.${f}_present { canon_list(nodes, by_id, &m.$f, out); } else { out.push_str("null"); } out.push(',');"""
+          case _ =>
+            s"""            out.push_str(&format!("$f={:?},", m.$f));"""
+        }
+      }.mkString("\n")
+      s"""        Some(${deltaNodePath(c)}(m)) => {
+         |            out.push_str("${rustClassName(c)}[");
+         |            out.push_str(&m.start.to_string()); out.push(','); out.push_str(&m.end.to_string());
+         |            out.push_str("](");
+         |$fields
+         |            out.push(')');
+         |        }""".stripMargin
+    }.mkString("\n")
+    s"""// ---- canonical tree form for the delta oracle ----------------------------
+       |pub fn canon(nodes: &[proto::NodeEntry], by_id: &FxHashMap<i32, usize>, root: i32) -> String {
+       |    let mut out = String::new();
+       |    canon_node(nodes, by_id, root, &mut out);
+       |    out
+       |}
+       |
+       |fn canon_list(nodes: &[proto::NodeEntry], by_id: &FxHashMap<i32, usize>, ids: &[i32], out: &mut String) {
+       |    out.push('[');
+       |    for (i, &c) in ids.iter().enumerate() {
+       |        if i > 0 { out.push(','); }
+       |        canon_node(nodes, by_id, c, out);
+       |    }
+       |    out.push(']');
+       |}
+       |
+       |fn canon_node(nodes: &[proto::NodeEntry], by_id: &FxHashMap<i32, usize>, id: i32, out: &mut String) {
+       |    let Some(&idx) = by_id.get(&id) else { out.push_str("<DANGLING>"); return; };
+       |    match nodes[idx].node.as_ref() {
+       |$arms
+       |        None => out.push_str("<EMPTY>"),
+       |    }
+       |}
+       |""".stripMargin
+  }
+
+  // ---- NodeEntry-oneof dispatch helpers (grammar-specific) -------------------
+
+  private def deltaDispatch(): String = {
+    val concretes = deltaConcretesSorted
+    val tags = concretes.zipWithIndex.map { case (c, i) =>
+      s"const ${deltaTag(c)}: i32 = $i;"
+    }.mkString("\n")
+    val tagArms = concretes.map { c =>
+      s"        Some(${deltaNodePath(c)}(_)) => ${deltaTag(c)},"
+    }.mkString("\n")
+    val spanArms = concretes.map { c =>
+      s"        Some(${deltaNodePath(c)}(m)) => (m.start, m.end),"
+    }.mkString("\n")
+    val shiftArms = concretes.map { c =>
+      s"        Some(${deltaNodePath(c)}(m)) => set(&mut m.start, &mut m.end),"
+    }.mkString("\n")
+    val childArms = concretes.map { c =>
+      val pushes = analysis.classParamTypes.getOrElse(c, List()).flatMap { case (pname, ptype) =>
+        val f = rustFieldName(pname)
+        reduceType(ptype) match {
+          case Type.ClassType(_) => Some(s"out.push(m.$f);")
+          case Type.OptionalOf(inner) if isMsg(reduceType(inner)) => Some(s"if m.${f}_present { out.push(m.$f); }")
+          case Type.ArrayOf(elem) if isMsg(reduceType(elem)) => Some(s"out.extend_from_slice(&m.$f);")
+          case Type.OptionalOf(Type.ArrayOf(elem)) if isMsg(reduceType(elem)) =>
+            Some(s"if m.${f}_present { out.extend_from_slice(&m.$f); }")
+          case _ => None
+        }
+      }
+      if (pushes.isEmpty) s"        Some(${deltaNodePath(c)}(_)) => {}"
+      else s"        Some(${deltaNodePath(c)}(m)) => { ${pushes.mkString(" ")} }"
+    }.mkString("\n")
+    s"""// ---- NodeEntry oneof dispatch (grammar-specific) --------------------------
+       |$tags
+       |
+       |fn tag_of(entry: &proto::NodeEntry) -> i32 {
+       |    match entry.node.as_ref() {
+       |$tagArms
+       |        None => -1,
+       |    }
+       |}
+       |
+       |fn span_of(entry: &proto::NodeEntry) -> (i32, i32) {
+       |    match entry.node.as_ref() {
+       |$spanArms
+       |        None => (0, 0),
+       |    }
+       |}
+       |
+       |fn shift_span(entry: &mut proto::NodeEntry, pivot: i32, delta: i32) {
+       |    let set = |s: &mut i32, e: &mut i32| {
+       |        if *s > pivot { *s += delta; }
+       |        if *e > pivot { *e += delta; }
+       |    };
+       |    match entry.node.as_mut() {
+       |$shiftArms
+       |        None => {}
+       |    }
+       |}
+       |
+       |fn child_ids_of(entry: &proto::NodeEntry, out: &mut Vec<i32>) {
+       |    match entry.node.as_ref() {
+       |$childArms
+       |        None => {}
+       |    }
+       |}
+       |""".stripMargin
+  }
+
+  private def deltaWalkEntry(): String = {
+    val startSymbol = analysis.ngrammar
+      .symbolOf(analysis.ngrammar.nsymbols(analysis.ngrammar.startSymbol).asInstanceOf[NStart].produce)
+      .asInstanceOf[NNonterminal]
+    val startFn = deltaFn(startSymbol.symbol.name)
+    s"""// ---- delta walk entry ----------------------------------------------------
+       |pub fn walk_delta(
+       |    source_chars: &[char],
+       |    query: KernelsQuery,
+       |    reuse: ReuseInfo,
+       |    old_nodes: &[proto::NodeEntry],
+       |    by_id: &FxHashMap<i32, usize>,
+       |    old_root: i32,
+       |    next_id_start: i32,
+       |) -> DeltaResult {
+       |    let mut ctx = DeltaCtx {
+       |        source_chars,
+       |        hist: LazyHistory::new(query),
+       |        dirty_lo: reuse.dirty_lo,
+       |        dirty_hi: reuse.dirty_hi,
+       |        delta: reuse.delta,
+       |        old_nodes,
+       |        by_id,
+       |        patched: Vec::new(),
+       |        kept: FxHashSet::default(),
+       |        next_id: next_id_start,
+       |    };
+       |    let last_gen = ctx.source_chars.len() as i32;
+       |    let kernel = ctx.hist.at(last_gen as usize).get_single(${startSymbol.id}, 1, 0, last_gen);
+       |    let root_id = $startFn(&mut ctx, kernel.begin_gen, kernel.end_gen, Some(old_root));
+       |    let mut freed = Vec::new();
+       |    dfs_free(old_root, &ctx.kept, by_id, old_nodes, &mut freed);
+       |    DeltaResult {
+       |        patched: ctx.patched,
+       |        freed,
+       |        root_id,
+       |        shift_pivot: reuse.pivot,
+       |        shift_delta: reuse.delta,
+       |    }
+       |}
+       |""".stripMargin
+  }
+
+  // ---- per-nonterminal delta functions ---------------------------------------
+
+  private def deltaNonterminalFunc(nt: String): String = {
+    varId = 0
+    val ve = analysis.nonterminalValuefyExprs(nt)
+    val t = analysis.nonterminalTypes(nt)
+    dKind(t) match {
+      case DClassK =>
+        val body = deltaClassChoices(ve.choices, "begin_gen", "end_gen", "old")
+        val lines = (body.prepares :+ body.result).map("    " + _).mkString("\n")
+        s"""fn ${deltaFn(nt)}(ctx: &mut DeltaCtx, begin_gen: i32, end_gen: i32, old: Option<i32>) -> i32 {
+           |$lines
+           |}""".stripMargin
+      case DScalarK =>
+        val body = deltaScalarChoices(ve.choices, "begin_gen", "end_gen")
+        val ret = deltaReturnType(t)
+        val lines = (body.prepares :+ body.result).map("    " + _).mkString("\n")
+        s"""fn ${deltaFn(nt)}(ctx: &mut DeltaCtx, begin_gen: i32, end_gen: i32) -> $ret {
+           |$lines
+           |}""".stripMargin
+      case DOptClassK =>
+        // Nonterminal whose type is Option<class>: delta fn returns Option<i32>
+        // (the present node's id, or None).
+        val body = deltaOptClassChoices(ve.choices, "begin_gen", "end_gen", "old")
+        val lines = (body.prepares :+ body.result).map("    " + _).mkString("\n")
+        s"""fn ${deltaFn(nt)}(ctx: &mut DeltaCtx, begin_gen: i32, end_gen: i32, old: Option<i32>) -> Option<i32> {
+           |$lines
+           |}""".stripMargin
+      case DArrClassK(_) =>
+        val body = deltaCoordsChoices(ve.choices, "begin_gen", "end_gen")
+        val lines = (body.prepares :+ body.result).map("    " + _).mkString("\n")
+        s"""fn ${deltaCoordsFn(nt)}(ctx: &mut DeltaCtx, begin_gen: i32, end_gen: i32) -> Vec<(i32, i32)> {
+           |$lines
+           |}""".stripMargin
+    }
+  }
+
+  // ---- choice dispatch -------------------------------------------------------
+
+  private def deltaChoiceSelect(
+    choicesMap: Map[Symbols.Symbol, ValuefyExpr],
+    beginGen: String,
+    endGen: String,
+  ): (List[String], List[(String, Symbols.Symbol)]) = {
+    val choiceSymbols = choicesMap.keys.toList.sortBy(analysis.ngrammar.idOf)
+    val choiceVars = choiceSymbols.map(_ => newVar())
+    val tryCodes = choiceVars.zip(choiceSymbols).map { case (v, sym) =>
+      val symbolId = analysis.ngrammar.idOf(sym)
+      val lastPointer = analysis.ngrammar.lastPointerOf(symbolId)
+      s"let $v = ctx.hist.at($endGen as usize).find_by_begin_gen_opt($symbolId, $lastPointer, $beginGen);"
+    }
+    val assertCode = s"assert!(has_single_true(&[${choiceVars.map(_ + ".is_some()").mkString(", ")}]));"
+    (tryCodes :+ assertCode, choiceVars.zip(choiceSymbols))
+  }
+
+  private def deltaIfChain(arms: List[(String, String)]): String =
+    arms.zipWithIndex.map { case ((cond, block), idx) =>
+      if (idx == 0) s"if $cond.is_some() { $block }"
+      else if (cond.nonEmpty) s"else if $cond.is_some() { $block }"
+      else s"else { $block }"
+    }.mkString(" ")
+
+  private def deltaClassChoices(
+    choicesMap: Map[Symbols.Symbol, ValuefyExpr],
+    beginGen: String, endGen: String, oldVar: String,
+  ): ExprBlob = {
+    if (choicesMap.size == 1) {
+      val (sym, expr) = choicesMap.head
+      deltaClassExpr(expr, beginGen, endGen, sym, SequenceVarName(None), oldVar)
+    } else {
+      val (sel, choices) = deltaChoiceSelect(choicesMap, beginGen, endGen)
+      val armExprs = choices.zipWithIndex.map { case ((v, sym), idx) =>
+        val armBlob = deltaClassExpr(choicesMap(sym), beginGen, endGen, sym, SequenceVarName(None), oldVar)
+        ((if (idx == choices.size - 1) "" else v), armBlob.asBlockExpr)
+      }
+      val rv = newVar()
+      ExprBlob(sel :+ s"let $rv = ${deltaIfChain(armExprs)};", rv, Set())
+    }
+  }
+
+  private def deltaScalarChoices(
+    choicesMap: Map[Symbols.Symbol, ValuefyExpr], beginGen: String, endGen: String,
+  ): ExprBlob = {
+    if (choicesMap.size == 1) {
+      val (sym, expr) = choicesMap.head
+      deltaScalarExpr(expr, beginGen, endGen, sym, SequenceVarName(None))
+    } else {
+      // Metalang lowers `X?` to a two-arm choice (empty -> null, present -> X).
+      // In scalar mode the arms must unify to `Option<X>`: wrap each non-null arm
+      // in `Some(..)`. (In the plain generator `coerceBranch` does this.)
+      val hasNull = choicesMap.values.exists(_ == ValuefyExpr.NullLiteral)
+      val (sel, choices) = deltaChoiceSelect(choicesMap, beginGen, endGen)
+      val armExprs = choices.zipWithIndex.map { case ((v, sym), idx) =>
+        val armBlob = deltaScalarExpr(choicesMap(sym), beginGen, endGen, sym, SequenceVarName(None))
+        val armExpr =
+          if (hasNull && choicesMap(sym) != ValuefyExpr.NullLiteral) s"Some(${armBlob.asBlockExpr})"
+          else armBlob.asBlockExpr
+        ((if (idx == choices.size - 1) "" else v), armExpr)
+      }
+      val rv = newVar()
+      ExprBlob(sel :+ s"let $rv = ${deltaIfChain(armExprs)};", rv, Set())
+    }
+  }
+
+  private def deltaCoordsChoices(
+    choicesMap: Map[Symbols.Symbol, ValuefyExpr], beginGen: String, endGen: String,
+  ): ExprBlob = {
+    if (choicesMap.size == 1) {
+      val (sym, expr) = choicesMap.head
+      deltaCoordsExpr(expr, beginGen, endGen, sym, SequenceVarName(None))
+    } else {
+      val (sel, choices) = deltaChoiceSelect(choicesMap, beginGen, endGen)
+      val armExprs = choices.zipWithIndex.map { case ((v, sym), idx) =>
+        val armBlob = deltaCoordsExpr(choicesMap(sym), beginGen, endGen, sym, SequenceVarName(None))
+        ((if (idx == choices.size - 1) "" else v), armBlob.asBlockExpr)
+      }
+      val rv = newVar()
+      ExprBlob(sel :+ s"let $rv = ${deltaIfChain(armExprs)};", rv, Set())
+    }
+  }
+
+  /** Body of an Option<class>-typed nonterminal (result = Option<i32>): the
+   * two-arm empty/present choice, empty -> None, present -> Some(id). */
+  private def deltaOptClassChoices(
+    choicesMap: Map[Symbols.Symbol, ValuefyExpr], beginGen: String, endGen: String, oldVar: String,
+  ): ExprBlob = {
+    if (choicesMap.size == 1) {
+      val (sym, expr) = choicesMap.head
+      if (expr == ValuefyExpr.NullLiteral) ExprBlob.code("None")
+      else {
+        val b = deltaClassExpr(expr, beginGen, endGen, sym, SequenceVarName(None), oldVar)
+        ExprBlob(b.prepares, s"Some(${b.result})", b.required)
+      }
+    } else {
+      val (sel, choices) = deltaChoiceSelect(choicesMap, beginGen, endGen)
+      val nullChoice = choices.find { case (_, s) => choicesMap(s) == ValuefyExpr.NullLiteral }
+        .getOrElse(throw new Exception("Option<class> nonterminal has no null arm"))
+      val valChoice = choices.find { case (_, s) => choicesMap(s) != ValuefyExpr.NullLiteral }
+        .getOrElse(throw new Exception("Option<class> nonterminal has no value arm"))
+      val valBlob = deltaClassExpr(choicesMap(valChoice._2), beginGen, endGen, valChoice._2, SequenceVarName(None), oldVar)
+      val rv = newVar()
+      ExprBlob(sel :+ s"let $rv: Option<i32> = if ${nullChoice._1}.is_some() { None } else { Some(${valBlob.asBlockExpr}) };", rv, Set())
+    }
+  }
+
+  // ---- class-producing expressions (result = i32 node id) --------------------
+
+  private def deltaClassExpr(
+    ve: ValuefyExpr, beginGen: String, endGen: String,
+    symbol: Symbols.Symbol, seqVar: SequenceVarName, oldVar: String,
+  ): ExprBlob = ve match {
+    case ValuefyExpr.MatchNonterminal(name) =>
+      _requiredNonterms += name
+      val v = newVar()
+      ExprBlob(List(s"let $v = ${deltaFn(name)}(ctx, $beginGen, $endGen, $oldVar);"), v, Set())
+    case ValuefyExpr.Unbind(sym, e) => deltaClassExpr(e, beginGen, endGen, sym, seqVar, oldVar)
+    case ValuefyExpr.JoinBody(bp) =>
+      deltaClassExpr(bp, beginGen, endGen, symbol.asInstanceOf[Symbols.Join].sym, SequenceVarName(None), oldVar)
+    case ValuefyExpr.SeqElemAt(index, e) =>
+      val sequenceId = analysis.ngrammar.idOf(symbol)
+      val sequence = analysis.ngrammar.nsequences(sequenceId)
+      seqVar.name match {
+        case Some(sv) =>
+          deltaClassExpr(e, s"$sv[$index].0", s"$sv[$index].1", sequence.symbol.seq(index), seqVar, oldVar)
+        case None =>
+          val sv = newVar()
+          val getSeq = s"let $sv = get_sequence_elems_lazy(&ctx.hist, $sequenceId, &[${sequence.sequence.mkString(", ")}], $beginGen, $endGen);"
+          seqVar.name = Some(sv)
+          val inner = deltaClassExpr(e, s"$sv[$index].0", s"$sv[$index].1", sequence.symbol.seq(index), seqVar, oldVar)
+          ExprBlob(getSeq +: inner.prepares, inner.result, inner.required)
+      }
+    case ValuefyExpr.UnrollChoices(choices) => deltaClassChoices(choices, beginGen, endGen, oldVar)
+    case ValuefyExpr.ConstructCall(className, params) =>
+      deltaConstruct(className, params, beginGen, endGen, symbol, seqVar, oldVar)
+    case ValuefyExpr.TernaryOp(cond, ifTrue, ifFalse) =>
+      val c = deltaScalarExpr(cond, beginGen, endGen, symbol, seqVar)
+      val tb = deltaClassExpr(ifTrue, beginGen, endGen, symbol, seqVar, oldVar)
+      val fb = deltaClassExpr(ifFalse, beginGen, endGen, symbol, seqVar, oldVar)
+      val rv = newVar()
+      ExprBlob(c.prepares :+ s"let $rv = if ${c.result} { ${tb.asBlockExpr} } else { ${fb.asBlockExpr} };", rv, Set())
+    case other =>
+      throw new Exception(s"deltaClassExpr: unsupported ${other.getClass.getSimpleName}")
+  }
+
+  private def deltaConstruct(
+    className: String, params: List[ValuefyExpr],
+    beginGen: String, endGen: String, symbol: Symbols.Symbol, seqVar: SequenceVarName, oldVar: String,
+  ): ExprBlob = {
+    val declParams = analysis.classParamTypes.getOrElse(className, List())
+    check(declParams.size == params.size,
+      s"delta param count mismatch for $className: ${declParams.size} vs ${params.size}")
+    val fieldResults = declParams.zip(params).map { case ((pname, ftype), pe) =>
+      deltaField(className, pname, ftype, pe, beginGen, endGen, symbol, seqVar)
+    }
+    val prepares = fieldResults.flatMap(_._1)
+    val assigns = fieldResults.flatMap(_._2) ++ List(s"start: $beginGen", s"end: $endGen")
+    val rebuild =
+      s"{ ${prepares.mkString(" ")} let id = ctx.alloc(); ctx.patched.push(proto::NodeEntry { id, node: Some(${deltaNodePath(className)}(proto::${rustClassName(className)} { ${assigns.mkString(", ")} })) }); id }"
+    val result =
+      s"{ let node_old = $oldVar; if let Some(reused) = ctx.try_reuse(${deltaTag(className)}, $beginGen, $endGen, node_old) { reused } else $rebuild }"
+    ExprBlob(List(), result, Set())
+  }
+
+  private def oldFieldExtract(className: String, field: String, extractSome: String, none: String, guard: String): String = {
+    val g = if (guard.isEmpty) "" else s" if $guard"
+    s"match ctx.old_entry(node_old).and_then(|e| e.node.as_ref()) { Some(${deltaNodePath(className)}(m))$g => $extractSome, _ => $none }"
+  }
+
+  private def deltaField(
+    className: String, pname: String, ftype: Type, pe: ValuefyExpr,
+    beginGen: String, endGen: String, symbol: Symbols.Symbol, seqVar: SequenceVarName,
+  ): (List[String], List[String]) = {
+    val f = rustFieldName(pname)
+    reduceType(ftype) match {
+      case Type.ClassType(_) =>
+        val oldF = s"let ${f}_old: Option<i32> = ${oldFieldExtract(className, f, s"Some(m.$f)", "None", "")};"
+        val blob = deltaClassExpr(pe, beginGen, endGen, symbol, seqVar, s"${f}_old")
+        (List(oldF) ++ blob.prepares :+ s"let ${f}_id = ${blob.result};", List(s"$f: ${f}_id"))
+      case Type.OptionalOf(inner) if isMsg(reduceType(inner)) =>
+        val oldF = s"let ${f}_old: Option<i32> = ${oldFieldExtract(className, f, s"Some(m.$f)", "None", s"m.${f}_present")};"
+        val (p, presentV, idV) = deltaOptClassField(pe, beginGen, endGen, symbol, seqVar, s"${f}_old")
+        (List(oldF) ++ p, List(s"${f}_present: $presentV", s"$f: $idV"))
+      case Type.ArrayOf(elem) if isMsg(reduceType(elem)) =>
+        val elemClass = classNameOf(elem).get
+        val oldF = s"let ${f}_old: Vec<i32> = ${oldFieldExtract(className, f, s"m.$f.clone()", "Vec::new()", "")};"
+        val coords = deltaCoordsExpr(pe, beginGen, endGen, symbol, seqVar)
+        val rec = elemRecurseArg(pe, symbol, elemClass)
+        (List(oldF) ++ coords.prepares :+ s"let $f = delta_list(ctx, &${coords.result}, &${f}_old, $rec);",
+          List(s"$f: $f"))
+      case Type.OptionalOf(Type.ArrayOf(elem)) if isMsg(reduceType(elem)) =>
+        val elemClass = classNameOf(elem).get
+        val oldF = s"let ${f}_old: Vec<i32> = ${oldFieldExtract(className, f, s"m.$f.clone()", "Vec::new()", s"m.${f}_present")};"
+        val (p, presentV, coordsV) = deltaOptCoordsField(pe, beginGen, endGen, symbol, seqVar)
+        val rec = elemRecurseArg(pe, symbol, elemClass)
+        (List(oldF) ++ p :+ s"let $f: Vec<i32> = if $presentV { delta_list(ctx, &$coordsV, &${f}_old, $rec) } else { Vec::new() };",
+          List(s"${f}_present: $presentV", s"$f: $f"))
+      case _ =>
+        val blob0 = deltaScalarExpr(pe, beginGen, endGen, symbol, seqVar)
+        // Coerce a bare value flowing into an `Opt` field to `Some(..)` (the plain
+        // generator's `coerce(.., FieldOf(Opt(..)))` does this); `scalarProtoField`
+        // then destructures the `Option`.
+        val blob = (reduceType(ftype), reduceType(typeOf(pe))) match {
+          case (Type.OptionalOf(_), Type.OptionalOf(_) | Type.NullType) => blob0
+          case (Type.OptionalOf(_), _) => blob0.copy(result = s"Some(${blob0.result})")
+          case _ => blob0
+        }
+        scalarProtoField(f, ftype, blob)
+    }
+  }
+
+  /** The delta_list recurse argument for a repeated-Msg field of element class
+   * `elemClass`: a plain `delta_x_` fn item when the element is produced by a
+   * same-named nonterminal, else an inline closure rebuilding the element (an
+   * inline ConstructCall / sealed choice that has no standalone delta fn). */
+  private def elemRecurseArg(pe: ValuefyExpr, symbol: Symbols.Symbol, elemClass: String): String =
+    findElemCore(pe, symbol) match {
+      case Some((core, coreSym)) =>
+        // Always a closure over the element's class-producing core (a nonterminal
+        // match, an inline construct, or a sealed choice) — this uses the correct
+        // producing nonterminal, which may differ in name from `elemClass`.
+        val blob = deltaClassExpr(core, "b", "e", coreSym, SequenceVarName(None), "old")
+        s"|ctx: &mut DeltaCtx, b: i32, e: i32, old: Option<i32>| ${blob.asBlockExpr}"
+      case None => deltaFn(elemClass)
+    }
+
+  /** Find the representative element's class-producing "core" expr (an inline
+   * ConstructCall / sealed UnrollChoices) inside a repeated-Msg field expr, or
+   * `None` when the element is produced by a nonterminal match (use `delta_x_`).
+   * Skips `Opt` wrappers (a two-arm choice whose other arm is null) and digs
+   * through sequence / concat / repeat / array structure. */
+  private def findElemCore(e: ValuefyExpr, sym: Symbols.Symbol): Option[(ValuefyExpr, Symbols.Symbol)] = e match {
+    case ValuefyExpr.Unbind(s, inner) => findElemCore(inner, s)
+    case ValuefyExpr.SeqElemAt(idx, inner) =>
+      val seq = analysis.ngrammar.nsequences(analysis.ngrammar.idOf(sym))
+      findElemCore(inner, seq.symbol.seq(idx))
+    case ValuefyExpr.BinOp(ValuefyExpr.BinOpType.ADD, l, r) =>
+      findElemCore(l, sym).orElse(findElemCore(r, sym))
+    case ValuefyExpr.ArrayExpr(elems) =>
+      elems.iterator.flatMap(x => findElemCore(x, sym)).nextOption()
+    case ValuefyExpr.UnrollRepeatFromZero(ep) => elemCoreOfRepeat(sym, ep)
+    case ValuefyExpr.UnrollRepeatFromZeroNoUnbind(_, ep) => elemCoreOfRepeat(sym, ep)
+    case ValuefyExpr.UnrollRepeatFromOne(ep) => elemCoreOfRepeat(sym, ep)
+    case ValuefyExpr.UnrollRepeatFromOneNoUnbind(_, ep) => elemCoreOfRepeat(sym, ep)
+    case ValuefyExpr.UnrollChoices(choices) =>
+      if (choices.values.exists(_ == ValuefyExpr.NullLiteral)) {
+        // Opt wrapper — dig into the non-null value arm.
+        choices.collectFirst { case (s, ve) if ve != ValuefyExpr.NullLiteral => findElemCore(ve, s) }.flatten
+      } else {
+        Some((e, sym)) // genuine sealed inline element (no standalone delta fn)
+      }
+    case ValuefyExpr.ConstructCall(_, _) => Some((e, sym))
+    case ValuefyExpr.MatchNonterminal(nt) =>
+      // A single-class match is the element core (closure over its producing
+      // nonterminal, whose name may differ from `elemClass`). An Arr/Opt/scalar
+      // nonterminal is NOT the element (its elements come from inside it) — fall
+      // back to `delta_<elemClass>_`.
+      dKind(analysis.nonterminalTypes(nt)) match {
+        case DClassK => Some((e, sym))
+        case _ => None
+      }
+    case _ => None
+  }
+
+  private def elemCoreOfRepeat(sym: Symbols.Symbol, ep: ValuefyExpr): Option[(ValuefyExpr, Symbols.Symbol)] = {
+    val repeat = analysis.ngrammar.symbolOf(analysis.ngrammar.idOf(sym)).asInstanceOf[NRepeat]
+    findElemCore(ep, repeat.symbol.sym)
+  }
+
+  /** Strip `Unbind`/`SeqElemAt` (relocating begin/end via `seqVar`) down to the
+   * opt "core" — a `MatchNonterminal` (nt is itself `Option<..>`-typed) or an
+   * empty/present `UnrollChoices`. Returns (core, coreSym, resolvedBegin,
+   * resolvedEnd, prepares). */
+  private def resolveOptCore(
+    pe: ValuefyExpr, beginGen: String, endGen: String, symbol: Symbols.Symbol, seqVar: SequenceVarName,
+  ): (ValuefyExpr, Symbols.Symbol, String, String, List[String]) = pe match {
+    case ValuefyExpr.Unbind(s, inner) => resolveOptCore(inner, beginGen, endGen, s, seqVar)
+    case ValuefyExpr.SeqElemAt(idx, inner) =>
+      val sequenceId = analysis.ngrammar.idOf(symbol)
+      val sequence = analysis.ngrammar.nsequences(sequenceId)
+      seqVar.name match {
+        case Some(sv) =>
+          resolveOptCore(inner, s"$sv[$idx].0", s"$sv[$idx].1", sequence.symbol.seq(idx), SequenceVarName(None))
+        case None =>
+          val sv = newVar()
+          val getSeq = s"let $sv = get_sequence_elems_lazy(&ctx.hist, $sequenceId, &[${sequence.sequence.mkString(", ")}], $beginGen, $endGen);"
+          seqVar.name = Some(sv)
+          val (c, cs, rbg, reg, sel) = resolveOptCore(inner, s"$sv[$idx].0", s"$sv[$idx].1", sequence.symbol.seq(idx), SequenceVarName(None))
+          (c, cs, rbg, reg, getSeq +: sel)
+      }
+    case _ => (pe, symbol, beginGen, endGen, List())
+  }
+
+  private def deltaOptClassField(
+    pe: ValuefyExpr, beginGen: String, endGen: String, symbol: Symbols.Symbol,
+    seqVar: SequenceVarName, oldVar: String,
+  ): (List[String], String, String) = {
+    val (core, coreSym, rbg, reg, sel) = resolveOptCore(pe, beginGen, endGen, symbol, seqVar)
+    val tuple = optTuple(core, coreSym, rbg, reg, oldVar)
+    val presentV = newVar()
+    val idV = newVar()
+    (sel ++ tuple.prepares :+ s"let (${presentV}, ${idV}): (bool, i32) = ${tuple.result};", presentV, idV)
+  }
+
+  /** A `(bool, i32)` (present, id) tuple expr for an Option<class> field value's
+   * (SeqElemAt-resolved) core. Handles null, a direct class/opt-class nonterminal
+   * match, an empty/present choice, and a ternary. */
+  private def optTuple(
+    core: ValuefyExpr, coreSym: Symbols.Symbol, rbg: String, reg: String, oldVar: String,
+  ): ExprBlob = core match {
+    case ValuefyExpr.NullLiteral => ExprBlob.code("(false, 0i32)")
+    case ValuefyExpr.Unbind(s, inner) => optTuple(inner, s, rbg, reg, oldVar)
+    case ValuefyExpr.MatchNonterminal(nt) =>
+      _requiredNonterms += nt
+      dKind(analysis.nonterminalTypes(nt)) match {
+        case DOptClassK =>
+          val v = newVar()
+          ExprBlob(List(s"let $v = ${deltaFn(nt)}(ctx, $rbg, $reg, $oldVar);"),
+            s"match $v { Some(x) => (true, x), None => (false, 0i32) }", Set())
+        case DClassK =>
+          val v = newVar()
+          ExprBlob(List(s"let $v = ${deltaFn(nt)}(ctx, $rbg, $reg, $oldVar);"), s"(true, $v)", Set())
+        case k => throw new Exception(s"optTuple MatchNonterminal $nt has kind $k")
+      }
+    case ValuefyExpr.UnrollChoices(choices) =>
+      val (sel, choiceList) = deltaChoiceSelect(choices, rbg, reg)
+      val nullChoice = choiceList.find { case (_, s) => choices(s) == ValuefyExpr.NullLiteral }
+        .getOrElse(throw new Exception("optional element has no null arm"))
+      val valChoice = choiceList.find { case (_, s) => choices(s) != ValuefyExpr.NullLiteral }
+        .getOrElse(throw new Exception("optional element has no value arm"))
+      val valBlob = deltaClassExpr(choices(valChoice._2), rbg, reg, valChoice._2, SequenceVarName(None), oldVar)
+      ExprBlob(sel, s"if ${nullChoice._1}.is_some() { (false, 0i32) } else { (true, ${valBlob.asBlockExpr}) }", Set())
+    case ValuefyExpr.TernaryOp(cond, ifTrue, ifFalse) =>
+      val c = deltaScalarExpr(cond, rbg, reg, coreSym, SequenceVarName(None))
+      def branch(e: ValuefyExpr): String = {
+        val (bc, bs, bbg, beg, bsel) = resolveOptCore(e, rbg, reg, coreSym, SequenceVarName(None))
+        val bt = optTuple(bc, bs, bbg, beg, oldVar)
+        s"{ ${(bsel ++ bt.prepares).mkString(" ")} ${bt.result} }"
+      }
+      ExprBlob(c.prepares, s"if ${c.result} { ${branch(ifTrue)} } else { ${branch(ifFalse)} }", Set())
+    case other => throw new Exception(s"optTuple: unsupported core ${other.getClass.getSimpleName}")
+  }
+
+  private def deltaOptCoordsField(
+    pe: ValuefyExpr, beginGen: String, endGen: String, symbol: Symbols.Symbol, seqVar: SequenceVarName,
+  ): (List[String], String, String) = {
+    val a = optArms(pe, beginGen, endGen, symbol, seqVar)
+    val presentV = newVar()
+    val coordsV = newVar()
+    val valBlob = deltaCoordsExpr(a.valExpr, a.rbg, a.reg, a.valSym, SequenceVarName(None))
+    val body =
+      s"let (${presentV}, ${coordsV}): (bool, Vec<(i32, i32)>) = if ${a.nullVar}.is_some() { (false, Vec::new()) } else { (true, ${valBlob.asBlockExpr}) };"
+    (a.sel :+ body, presentV, coordsV)
+  }
+
+  /** Decomposed optional element: the null-arm choice var, the value-arm
+   * symbol+expr, the RESOLVED begin/end (after any SeqElemAt relocation) the
+   * value arm evaluates at, and the selection prepares. */
+  private case class OptArms(
+    nullVar: String,
+    valSym: Symbols.Symbol,
+    valExpr: ValuefyExpr,
+    rbg: String,
+    reg: String,
+    sel: List[String],
+  )
+
+  private def optArms(
+    pe: ValuefyExpr, beginGen: String, endGen: String, symbol: Symbols.Symbol, seqVar: SequenceVarName,
+  ): OptArms = pe match {
+    case ValuefyExpr.Unbind(sym, inner) => optArms(inner, beginGen, endGen, sym, seqVar)
+    case ValuefyExpr.SeqElemAt(index, inner) =>
+      val sequenceId = analysis.ngrammar.idOf(symbol)
+      val sequence = analysis.ngrammar.nsequences(sequenceId)
+      seqVar.name match {
+        case Some(sv) =>
+          optArms(inner, s"$sv[$index].0", s"$sv[$index].1", sequence.symbol.seq(index), SequenceVarName(None))
+        case None =>
+          val sv = newVar()
+          val getSeq = s"let $sv = get_sequence_elems_lazy(&ctx.hist, $sequenceId, &[${sequence.sequence.mkString(", ")}], $beginGen, $endGen);"
+          seqVar.name = Some(sv)
+          val a = optArms(inner, s"$sv[$index].0", s"$sv[$index].1", sequence.symbol.seq(index), SequenceVarName(None))
+          a.copy(sel = getSeq +: a.sel)
+      }
+    case ValuefyExpr.UnrollChoices(choices) =>
+      val (sel, choiceList) = deltaChoiceSelect(choices, beginGen, endGen)
+      val nullChoice = choiceList.find { case (_, sym) => choices(sym) == ValuefyExpr.NullLiteral }
+        .getOrElse(throw new Exception("optional element has no null arm"))
+      val valChoice = choiceList.find { case (_, sym) => choices(sym) != ValuefyExpr.NullLiteral }
+        .getOrElse(throw new Exception("optional element has no value arm"))
+      OptArms(nullChoice._1, valChoice._2, choices(valChoice._2), beginGen, endGen, sel)
+    case other => throw new Exception(s"optArms: unsupported ${other.getClass.getSimpleName}")
+  }
+
+  // ---- coords-producing expressions (result = Vec<(i32,i32)>) ----------------
+
+  private def deltaCoordsExpr(
+    ve: ValuefyExpr, beginGen: String, endGen: String, symbol: Symbols.Symbol, seqVar: SequenceVarName,
+  ): ExprBlob = ve match {
+    case ValuefyExpr.Unbind(sym, e) => deltaCoordsExpr(e, beginGen, endGen, sym, seqVar)
+    case ValuefyExpr.MatchNonterminal(name) =>
+      _requiredNonterms += name
+      val v = newVar()
+      ExprBlob(List(s"let $v = ${deltaCoordsFn(name)}(ctx, $beginGen, $endGen);"), v, Set())
+    case ValuefyExpr.SeqElemAt(index, e) =>
+      val sequenceId = analysis.ngrammar.idOf(symbol)
+      val sequence = analysis.ngrammar.nsequences(sequenceId)
+      seqVar.name match {
+        case Some(sv) => deltaCoordsExpr(e, s"$sv[$index].0", s"$sv[$index].1", sequence.symbol.seq(index), seqVar)
+        case None =>
+          val sv = newVar()
+          val getSeq = s"let $sv = get_sequence_elems_lazy(&ctx.hist, $sequenceId, &[${sequence.sequence.mkString(", ")}], $beginGen, $endGen);"
+          seqVar.name = Some(sv)
+          val inner = deltaCoordsExpr(e, s"$sv[$index].0", s"$sv[$index].1", sequence.symbol.seq(index), seqVar)
+          ExprBlob(getSeq +: inner.prepares, inner.result, inner.required)
+      }
+    case ValuefyExpr.BinOp(ValuefyExpr.BinOpType.ADD, lhs, rhs) =>
+      val l = deltaCoordsExpr(lhs, beginGen, endGen, symbol, seqVar)
+      val r = deltaCoordsExpr(rhs, beginGen, endGen, symbol, seqVar)
+      val rv = newVar()
+      ExprBlob(l.prepares ++ r.prepares :+ s"let mut $rv = ${l.result}; $rv.extend(${r.result});", rv, Set())
+    case ValuefyExpr.ArrayExpr(elems) =>
+      val rv = newVar()
+      val elemExprs = elems.map(e => deltaElemCoord(e, beginGen, endGen, symbol, seqVar))
+      ExprBlob(elemExprs.flatMap(_.prepares) :+ s"let $rv: Vec<(i32, i32)> = vec![${elemExprs.map(_.result).mkString(", ")}];", rv, Set())
+    case ValuefyExpr.UnrollRepeatFromZero(ep) => deltaUnrollCoords("unroll_repeat0_lazy", ep, beginGen, endGen, symbol)
+    case ValuefyExpr.UnrollRepeatFromZeroNoUnbind(_, ep) => deltaUnrollCoords("unroll_repeat0_lazy", ep, beginGen, endGen, symbol)
+    case ValuefyExpr.UnrollRepeatFromOne(ep) => deltaUnrollCoords("unroll_repeat1_lazy", ep, beginGen, endGen, symbol)
+    case ValuefyExpr.UnrollRepeatFromOneNoUnbind(_, ep) => deltaUnrollCoords("unroll_repeat1_lazy", ep, beginGen, endGen, symbol)
+    case ValuefyExpr.UnrollChoices(choices) => deltaCoordsChoices(choices, beginGen, endGen)
+    case ValuefyExpr.NullLiteral => ExprBlob.code("Vec::<(i32, i32)>::new()")
+    case ValuefyExpr.ElvisOp(expr, ifNull) =>
+      // `optArr ?: default` — an optional array with a default (usually `[]`).
+      // Resolve the optional to its present/value arms; absent -> default coords.
+      val a = optArms(expr, beginGen, endGen, symbol, seqVar)
+      val valBlob = deltaCoordsExpr(a.valExpr, a.rbg, a.reg, a.valSym, SequenceVarName(None))
+      val ifNullBlob = deltaCoordsExpr(ifNull, beginGen, endGen, symbol, seqVar)
+      val rv = newVar()
+      ExprBlob(a.sel ++ ifNullBlob.prepares :+
+        s"let $rv: Vec<(i32, i32)> = if ${a.nullVar}.is_some() { ${ifNullBlob.result} } else { ${valBlob.asBlockExpr} };", rv, Set())
+    case other => throw new Exception(s"deltaCoordsExpr: unsupported ${other.getClass.getSimpleName}")
+  }
+
+  private def deltaUnrollCoords(
+    helperFn: String, elemProcessor: ValuefyExpr, beginGen: String, endGen: String, symbol: Symbols.Symbol,
+  ): ExprBlob = {
+    val v = newVar()
+    val symbolId = analysis.ngrammar.idOf(symbol)
+    val repeat = analysis.ngrammar.symbolOf(symbolId).asInstanceOf[NRepeat]
+    val itemSymId = analysis.ngrammar.idOf(repeat.symbol.sym)
+    val coord = deltaElemCoord(elemProcessor, "k.0", "k.1", repeat.symbol.sym, SequenceVarName(None))
+    val closureBody = if (coord.prepares.isEmpty) coord.result else s"${coord.prepares.mkString(" ")} ${coord.result}"
+    ExprBlob(
+      List(
+        s"let $v: Vec<(i32, i32)> = $helperFn(&ctx.hist, $symbolId, $itemSymId, ${repeat.baseSeq}, ${repeat.repeatSeq}, $beginGen, $endGen)",
+        s"    .into_iter().map(|k| { $closureBody }).collect();"),
+      v, Set())
+  }
+
+  private def deltaElemCoord(
+    ve: ValuefyExpr, beginGen: String, endGen: String, symbol: Symbols.Symbol, seqVar: SequenceVarName,
+  ): ExprBlob = ve match {
+    // A class element spans exactly (beginGen, endGen) at this point — whether it
+    // is produced by a nonterminal match, an inline construct, or a sealed choice.
+    case ValuefyExpr.MatchNonterminal(_) => ExprBlob(List(), s"($beginGen, $endGen)", Set())
+    case ValuefyExpr.ConstructCall(_, _) => ExprBlob(List(), s"($beginGen, $endGen)", Set())
+    case ValuefyExpr.UnrollChoices(_) => ExprBlob(List(), s"($beginGen, $endGen)", Set())
+    case ValuefyExpr.Unbind(sym, e) => deltaElemCoord(e, beginGen, endGen, sym, seqVar)
+    case ValuefyExpr.SeqElemAt(index, e) =>
+      val sequenceId = analysis.ngrammar.idOf(symbol)
+      val sequence = analysis.ngrammar.nsequences(sequenceId)
+      seqVar.name match {
+        case Some(sv) => deltaElemCoord(e, s"$sv[$index].0", s"$sv[$index].1", sequence.symbol.seq(index), seqVar)
+        case None =>
+          val sv = newVar()
+          val getSeq = s"let $sv = get_sequence_elems_lazy(&ctx.hist, $sequenceId, &[${sequence.sequence.mkString(", ")}], $beginGen, $endGen);"
+          seqVar.name = Some(sv)
+          val inner = deltaElemCoord(e, s"$sv[$index].0", s"$sv[$index].1", sequence.symbol.seq(index), seqVar)
+          ExprBlob(getSeq +: inner.prepares, inner.result, inner.required)
+      }
+    case other => throw new Exception(s"deltaElemCoord: unsupported ${other.getClass.getSimpleName}")
+  }
+
+  // ---- scalar-producing expressions (mirror plain walk over the lazy hist) ---
+
+  private def deltaScalarExpr(
+    ve: ValuefyExpr, beginGen: String, endGen: String, symbol: Symbols.Symbol, seqVar: SequenceVarName,
+  ): ExprBlob = ve match {
+    case ValuefyExpr.MatchNonterminal(name) =>
+      _requiredNonterms += name
+      val v = newVar()
+      ExprBlob(List(s"let $v = ${deltaFn(name)}(ctx, $beginGen, $endGen);"), v, Set())
+    case ValuefyExpr.Unbind(sym, e) => deltaScalarExpr(e, beginGen, endGen, sym, seqVar)
+    case ValuefyExpr.JoinBody(bp) =>
+      deltaScalarExpr(bp, beginGen, endGen, symbol.asInstanceOf[Symbols.Join].sym, SequenceVarName(None))
+    case ValuefyExpr.JoinCond(cp) =>
+      deltaScalarExpr(cp, beginGen, endGen, symbol.asInstanceOf[Symbols.Join].join, SequenceVarName(None))
+    case ValuefyExpr.SeqElemAt(index, e) =>
+      val sequenceId = analysis.ngrammar.idOf(symbol)
+      val sequence = analysis.ngrammar.nsequences(sequenceId)
+      seqVar.name match {
+        case Some(sv) => deltaScalarExpr(e, s"$sv[$index].0", s"$sv[$index].1", sequence.symbol.seq(index), seqVar)
+        case None =>
+          val sv = newVar()
+          val getSeq = s"let $sv = get_sequence_elems_lazy(&ctx.hist, $sequenceId, &[${sequence.sequence.mkString(", ")}], $beginGen, $endGen);"
+          seqVar.name = Some(sv)
+          val inner = deltaScalarExpr(e, s"$sv[$index].0", s"$sv[$index].1", sequence.symbol.seq(index), seqVar)
+          ExprBlob(getSeq +: inner.prepares, inner.result, inner.required)
+      }
+    case ValuefyExpr.UnrollRepeatFromZero(ep) => deltaUnrollScalar("unroll_repeat0_lazy", ep, beginGen, endGen, symbol)
+    case ValuefyExpr.UnrollRepeatFromZeroNoUnbind(_, ep) => deltaUnrollScalar("unroll_repeat0_lazy", ep, beginGen, endGen, symbol)
+    case ValuefyExpr.UnrollRepeatFromOne(ep) => deltaUnrollScalar("unroll_repeat1_lazy", ep, beginGen, endGen, symbol)
+    case ValuefyExpr.UnrollRepeatFromOneNoUnbind(_, ep) => deltaUnrollScalar("unroll_repeat1_lazy", ep, beginGen, endGen, symbol)
+    case ValuefyExpr.UnrollChoices(choices) => deltaScalarChoices(choices, beginGen, endGen)
+    case ValuefyExpr.FuncCall(funcType, params) => deltaFuncCall(funcType, params, beginGen, endGen, symbol, seqVar)
+    case ValuefyExpr.ArrayExpr(elems) =>
+      val elemCodes = elems.map(deltaScalarExpr(_, beginGen, endGen, symbol, seqVar))
+      ExprBlob(elemCodes.flatMap(_.prepares), s"vec![${elemCodes.map(_.result).mkString(", ")}]", Set())
+    case ValuefyExpr.BinOp(op, lhs, rhs) =>
+      val l = deltaScalarExpr(lhs, beginGen, endGen, symbol, seqVar)
+      val r = deltaScalarExpr(rhs, beginGen, endGen, symbol, seqVar)
+      val opExpr = op match {
+        case ValuefyExpr.BinOpType.ADD =>
+          (typeOf(lhs), typeOf(rhs)) match {
+            case (Type.StringType, Type.StringType) => s"""format!("{}{}", ${l.result}, ${r.result})"""
+            case (Type.ArrayOf(_), Type.ArrayOf(_)) => s"{ let mut v = ${l.result}; v.extend(${r.result}); v }"
+          }
+        case ValuefyExpr.BinOpType.EQ => s"(${l.result} == ${r.result})"
+        case ValuefyExpr.BinOpType.NE => s"(${l.result} != ${r.result})"
+        case ValuefyExpr.BinOpType.BOOL_AND => s"(${l.result} && ${r.result})"
+        case ValuefyExpr.BinOpType.BOOL_OR => s"(${l.result} || ${r.result})"
+      }
+      ExprBlob(l.prepares ++ r.prepares, opExpr, Set())
+    case ValuefyExpr.PreOp(ValuefyExpr.PreOpType.NOT, e) =>
+      val ec = deltaScalarExpr(e, beginGen, endGen, symbol, seqVar)
+      val rv = newVar()
+      ExprBlob(ec.prepares :+ s"let $rv = !${ec.result};", rv, Set())
+    case ValuefyExpr.ElvisOp(expr, ifNull) =>
+      val exprVar = newVar()
+      val ec = deltaScalarExpr(expr, beginGen, endGen, symbol, seqVar)
+      val ifn = deltaScalarExpr(ifNull, beginGen, endGen, symbol, seqVar)
+      ExprBlob(ec.prepares :+ s"let $exprVar = ${ec.result};",
+        s"$exprVar.unwrap_or_else(|| ${ifn.asBlockExpr})", Set())
+    case ValuefyExpr.TernaryOp(cond, ifTrue, ifFalse) =>
+      val c = deltaScalarExpr(cond, beginGen, endGen, symbol, seqVar)
+      val tb = deltaScalarExpr(ifTrue, beginGen, endGen, symbol, seqVar)
+      val fb = deltaScalarExpr(ifFalse, beginGen, endGen, symbol, seqVar)
+      val rv = newVar()
+      ExprBlob(c.prepares :+ s"let $rv = if ${c.result} { ${tb.asBlockExpr} } else { ${fb.asBlockExpr} };", rv, Set())
+    case ValuefyExpr.NullLiteral => ExprBlob.code("None")
+    case ValuefyExpr.BoolLiteral(value) => ExprBlob.code(s"$value")
+    case ValuefyExpr.CharLiteral(value) => ExprBlob.code(s"'${escapeChar(value)}'")
+    case ValuefyExpr.CharFromTerminalLiteral => ExprBlob(List(), s"ctx.source_chars[$beginGen as usize]", Set())
+    case ValuefyExpr.StringLiteral(value) => ExprBlob.code("\"" + escapeString(value) + "\".to_string()")
+    case ValuefyExpr.CanonicalEnumValue(enumName, ev) => ExprBlob.code(s"crate::ast::$enumName::$ev")
+    case ValuefyExpr.ShortenedEnumValue(uid, ev) =>
+      ExprBlob.code(s"crate::ast::${analysis.shortenedEnumTypesMap(uid)}::$ev")
+    case other => throw new Exception(s"deltaScalarExpr: unsupported ${other.getClass.getSimpleName}")
+  }
+
+  private def deltaUnrollScalar(
+    helperFn: String, elemProcessor: ValuefyExpr, beginGen: String, endGen: String, symbol: Symbols.Symbol,
+  ): ExprBlob = {
+    val v = newVar()
+    val symbolId = analysis.ngrammar.idOf(symbol)
+    val repeat = analysis.ngrammar.symbolOf(symbolId).asInstanceOf[NRepeat]
+    val itemSymId = analysis.ngrammar.idOf(repeat.symbol.sym)
+    val elemCode = deltaScalarExpr(elemProcessor, "k.0", "k.1", repeat.symbol.sym, SequenceVarName(None))
+    val closureBody = if (elemCode.prepares.isEmpty) elemCode.result else s"${elemCode.prepares.mkString(" ")} ${elemCode.result}"
+    ExprBlob(
+      List(
+        s"let $v: Vec<_> = $helperFn(&ctx.hist, $symbolId, $itemSymId, ${repeat.baseSeq}, ${repeat.repeatSeq}, $beginGen, $endGen)",
+        s"    .into_iter().map(|k| { $closureBody }).collect();"),
+      v, Set())
+  }
+
+  private def deltaFuncCall(
+    funcType: ValuefyExpr.FuncType.Value, params: List[ValuefyExpr],
+    beginGen: String, endGen: String, symbol: Symbols.Symbol, seqVar: SequenceVarName,
+  ): ExprBlob = funcType match {
+    case ValuefyExpr.FuncType.IsPresent =>
+      val param = deltaScalarExpr(params.head, beginGen, endGen, symbol, seqVar)
+      @tailrec def code(t: Type): String = t match {
+        case Type.ArrayOf(_) => s"!${param.result}.is_empty()"
+        case Type.OptionalOf(_) => s"${param.result}.is_some()"
+        case Type.StringType => s"!${param.result}.is_empty()"
+        case u: Type.UnionOf => code(analysis.reduceUnionType(u))
+        case _ => s"${param.result}.is_some()"
+      }
+      ExprBlob(param.prepares, code(typeOf(params.head)), Set())
+    case ValuefyExpr.FuncType.IsEmpty =>
+      val param = deltaScalarExpr(params.head, beginGen, endGen, symbol, seqVar)
+      @tailrec def code(t: Type): String = t match {
+        case Type.ArrayOf(_) => s"${param.result}.is_empty()"
+        case Type.OptionalOf(_) => s"${param.result}.is_none()"
+        case Type.StringType => s"${param.result}.is_empty()"
+        case u: Type.UnionOf => code(analysis.reduceUnionType(u))
+        case _ => s"${param.result}.is_none()"
+      }
+      ExprBlob(param.prepares, code(typeOf(params.head)), Set())
+    case ValuefyExpr.FuncType.Chr =>
+      deltaScalarExpr(params.head, beginGen, endGen, symbol, seqVar)
+    case ValuefyExpr.FuncType.Str =>
+      val paramCodes = params.map(deltaScalarExpr(_, beginGen, endGen, symbol, seqVar))
+      def toStr(input: String, t: Type): String = t match {
+        case Type.ArrayOf(elemType) => s"""$input.into_iter().map(|it| ${toStr("it", elemType)}).collect::<String>()"""
+        case Type.OptionalOf(valueType) => s"""$input.map(|it| ${toStr("it", valueType)}).unwrap_or_default()"""
+        case Type.BoolType => s"$input.to_string()"
+        case Type.CharType => s"$input.to_string()"
+        case Type.StringType => input
+        case u: Type.UnionOf => toStr(input, analysis.reduceUnionType(u))
+      }
+      val pieces = paramCodes.zip(params).map { case (pc, p) => toStr(pc.result, typeOf(p)) }
+      val result = if (pieces.size == 1) pieces.head else s"""[${pieces.map(p => s"($p)").mkString(", ")}].concat()"""
+      ExprBlob(paramCodes.flatMap(_.prepares), result, Set())
+  }
+
+  private def scalarProtoField(f: String, ftype: Type, blob: ExprBlob): (List[String], List[String]) = {
+    reduceType(ftype) match {
+      case Type.OptionalOf(Type.ArrayOf(elemT2)) =>
+        val conv = reduceType(elemT2) match {
+          case Type.CharType => "xs.into_iter().map(|c| c as i32).collect()"
+          case Type.EnumType(_) | Type.UnspecifiedEnumType(_) => "xs.into_iter().map(|e| (e as i32) + 1).collect()"
+          case _ => "xs"
+        }
+        // Bind a typed temp so a `None` literal (absent field) infers its element.
+        (blob.prepares ++ List(
+          s"let ${f}_opt: ${deltaReturnType(ftype)} = ${blob.result};",
+          s"let (${f}_present, $f): (bool, Vec<_>) = match ${f}_opt { Some(xs) => (true, $conv), None => (false, Vec::new()) };"),
+          List(s"${f}_present: ${f}_present", s"$f: $f"))
+      case Type.OptionalOf(inner) =>
+        val (someVal, none) = reduceType(inner) match {
+          case Type.CharType => ("x as i32", "0")
+          case Type.EnumType(_) | Type.UnspecifiedEnumType(_) => ("(x as i32) + 1", "0")
+          case Type.BoolType => ("x", "false")
+          case Type.StringType => ("x", "String::new()")
+          case _ => ("x", "Default::default()")
+        }
+        (blob.prepares ++ List(
+          s"let ${f}_opt: ${deltaReturnType(ftype)} = ${blob.result};",
+          s"let (${f}_present, $f) = match ${f}_opt { Some(x) => (true, $someVal), None => (false, $none) };"),
+          List(s"${f}_present: ${f}_present", s"$f: $f"))
+      case Type.ArrayOf(elemT) =>
+        val conv = reduceType(elemT) match {
+          case Type.CharType => s"${blob.result}.into_iter().map(|c| c as i32).collect()"
+          case Type.EnumType(_) | Type.UnspecifiedEnumType(_) => s"${blob.result}.into_iter().map(|e| (e as i32) + 1).collect()"
+          case _ => blob.result
+        }
+        (blob.prepares, List(s"$f: $conv"))
+      case Type.EnumType(_) | Type.UnspecifiedEnumType(_) =>
+        (blob.prepares, List(s"$f: (${blob.result} as i32) + 1"))
+      case Type.CharType =>
+        (blob.prepares, List(s"$f: ${blob.result} as i32"))
+      case _ =>
+        (blob.prepares, List(s"$f: ${blob.result}"))
+    }
+  }
+
+  // ===========================================================================
   // Proto encoder: typed AST -> ID-based ParseResult (see phase_b_proto_design).
   //
   // Emitted into a separate `encode.rs`. Rules MUST match Stage2ProtoEmit:

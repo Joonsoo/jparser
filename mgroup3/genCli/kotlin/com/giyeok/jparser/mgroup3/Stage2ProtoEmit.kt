@@ -55,6 +55,7 @@ object Stage2ProtoEmit {
 
     emitNodeEntry(sb, concrete)
     emitParseResult(sb)
+    emitParseDelta(sb)
     return sb.toString()
   }
 
@@ -173,6 +174,27 @@ object Stage2ProtoEmit {
     sb.append("message ParseResult {\n")
     sb.append("  int32 root_id = 1;\n")
     sb.append("  repeated NodeEntry nodes = 2;\n")
+    sb.append("}\n\n")
+  }
+
+  /**
+   * Incremental AST-delta payload (design lsp_result_boundary.md §6). Emitted by
+   * `mgroup3_gen_session_edit_delta` when the edit spliced and a previous result
+   * is held; the consumer reconstructs the new full table as
+   *   (old table − freed_ids, each retained node's `start`/`end` shifted by
+   *    `shift_delta` when the coordinate is `> shift_pivot`) ++ patched.
+   * `patched` nodes carry absolute (new-coordinate) spans and fresh ids
+   * (monotonic across the session); `root_id` is the new root.
+   */
+  private fun emitParseDelta(sb: StringBuilder) {
+    sb.append("message ParseDelta {\n")
+    sb.append("  int32 base_version = 1;\n")
+    sb.append("  int32 new_version = 2;\n")
+    sb.append("  int32 root_id = 3;\n")
+    sb.append("  int32 shift_pivot = 4;\n")
+    sb.append("  int32 shift_delta = 5;\n")
+    sb.append("  repeated NodeEntry patched = 6;\n")
+    sb.append("  repeated int32 freed_ids = 7;\n")
     sb.append("}\n")
   }
 
