@@ -1,5 +1,10 @@
 # Rocq Formalization Plan — 목표 B (Match Predicate Mechanization)
 
+> **MOVED (2026-07-20)**: Rocq 개발은 논문 저장소(jparser-paper)의 `proofs/`로
+> 이관됨 — 그쪽이 상위 버전 (FullACP.v/Pruning.v 추가, README 정리 번호 갱신).
+> 이 저장소의 `proofs/`는 삭제됨. 아래 상태 기록의 `proofs/` 경로는
+> jparser-paper 기준으로 읽을 것.
+>
 > **STATUS UPDATE (2026-06-11)**: **목표 B 완료.** Step 1–6의 목표가 `proofs/`에
 > 구현됨 (Rocq 9.1.1, Homebrew). Theorem 3.3 전체가 **Admitted 0, axiom 0으로
 > 기계화 완료**: 층화 구성(EvalN/MatchO/nt_level), 층 안정성, level/witness
