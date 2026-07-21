@@ -1,0 +1,1059 @@
+CompileUnit
+  = WS CompileUnitNamespace (StmtDelim Import)* (StmtDelim TopLevelDef)* WS
+    {CompileUnit(namespace=$1, imports=$2, elems=$3)}
+  | WS Import (StmtDelim Import)* (StmtDelim TopLevelDef)* WS {CompileUnit(null, [$1] + $2, $3)}
+  | WS TopLevelDef (StmtDelim TopLevelDef)* WS {CompileUnit(null, [], [$1] + $2)}
+  | WS {CompileUnit(null, [], [])}
+
+CompileUnitNamespace = "namespace"&Tk WS NamespaceName {CompileUnitNamespace(namespace=$2)}
+NamespaceName = NameTok (WS_NO_NL '.' WS NameTok)* {[$0] + $1}
+Import: Import
+  = "import"&Tk WS NamespaceName WS_NO_NL '.' WS ImportName
+    {ImportOne(namespace=$2, import=$6)}
+  | "import"&Tk WS NamespaceName WS_NO_NL '.' WS '{' WS ImportName (WS ',' WS ImportName)* WS '}'
+    {ImportMulti(namespace=$2, imports=[$8] + $9)}
+  | "import"&Tk WS NamespaceName WS_NO_NL '.' WS "*"
+    {ImportAll(namespace=$2)}
+  | "import"&Tk WS ImportName {ImportRoot(name=$2)}
+ImportName = NameTok (WS_NO_NL "as"&Tk WS NameTok)? {ImportName(name=$0, rename=$1)}
+
+TopLevelDef: TopLevelDef
+  = NamespaceDef
+  | FuncDef
+  | ClassDef
+  | TraitDef
+  | ExtendDef
+  | EnumDef
+  | OneofDef
+  | LetStmt
+  | TypeAliasDef
+  | AnnotationDef
+  // bibix4 only
+  | BuildNamespaceDef
+  | BuildTargetDef
+
+NamespaceDef =
+  "namespace"&Tk WS NamespaceName WS
+  '{' (WS TopLevelDef (StmtDelim TopLevelDef)*)? WS '}'
+  {NamespaceDef(namespace=$2, elems=$5{[$1] + $2} ?: [])}
+
+BuildNamespaceDef =
+  NamespaceName
+  (WS BuildOptionArgs)?
+  WS '{'
+  (WS TopLevelDef (StmtDelim TopLevelDef)*)?
+  WS '}'
+  {BuildNamespaceDef(namespace=$0, nsOptions=$1, elems=$4{[$1] + $2} ?: [])}
+
+BuildOptionArgs = '(' WS ')' {BuildOptionArgs(args=[])}
+  | '(' WS BuildOptionArg (WS ',' WS BuildOptionArg)* (WS ',')? WS ')'
+    {BuildOptionArgs([$2] + $3)}
+
+BuildOptionArg = NameLong WS '=' WS Expr {BuildOptionArg(name=$0, expr=$4)}
+
+BuildTargetDef
+  = NameTokOrUnderscore (WS ':' WS Type)? WS '=' WS Expr
+    {BuildTargetDef(name=$0, retType=$1, body: FuncBody=$5)}
+  | NameTokOrUnderscore WS ':' WS Type WS Block
+    {BuildTargetDef(name=$0, retType=$4, body=$6)}
+
+FuncDef = FuncSig WS FuncBody {FuncDef(sig=$0, body=$2)}
+
+AccessModifier: %AccessModifier = ("private" {%PRIVATE} | "internal" {%INTERNAL})&Tk
+
+FuncModifiers = 
+  ("override"&Tk WS)?
+  ("suspend"&Tk WS)?
+  ("inline"&Tk WS)?
+  ("mut"&Tk WS)?
+  ("operator"&Tk WS)?
+  {FuncModifiers(isOverride=ispresent($0), isSuspend=ispresent($1), isInline=ispresent($2), isMut=ispresent($3), isOperator=ispresent($4))}
+
+// 함수 한정으로 이름에 namespace를 추가할 수 있다.
+// 물론 클래스 메소드에선 사용 불가하고, top level 함수 정의에서만 가능.
+// static 스럽게 사용될 함수를 정의할 때 유용하다
+FuncSig =
+  (Annots WS)?
+  (AccessModifier WS)?
+  FuncModifiers
+  "def"&Tk WS
+  (NamespaceName WS '.' WS)?
+  FuncName
+  (WS GenericParams)? WS
+  FuncParams
+  (WS ':' WS Type)?
+  (WS "where"&Tk WS GenericConstraints)?
+  {FuncSig(annots=$0$0, accessMods=$1$0, mods=$2, ns=$5$0, name=$6, genericParams=$7, params=$9, retType=$10, genericConstraints=$11)}
+
+FuncName: FuncName = NameTok
+  | NameTok "!" {InlineFuncName(name=$0)}
+  | "_" {Underscore()}
+
+FuncParams = '(' WS ')' {FuncParams(params=[], varargParam=null)}
+  | '(' WS FuncParam (WS ',' WS FuncParam)* (WS ',' WS "vararg"&Tk WS FuncParamNoDefaultExpr)? (WS ',')? WS ')'
+    {FuncParams([$2] + $3, $4)}
+  | '(' WS "vararg"&Tk WS FuncParamNoDefaultExpr (WS ',')? WS ')'
+    {FuncParams([], $4)}
+FuncParam
+  = NameTok WS ':' WS Type (WS_NO_NL '=' WS Expr)?
+    {FuncParam(name=$0, typ=$4, defaultValue=$5)}
+FuncParamNoDefaultExpr = NameTok WS ':' WS Type {FuncParam($0, $4, null)}
+
+FuncBody: FuncBody = '=' WS Expr | Block
+
+
+ClassDef = (Annots WS)? ClassDefNoAnnots {ClassDefWithAnnots(annots=$0$0, classDef=$1)}
+
+ClassDefNoAnnots =
+  (AccessModifier WS)?
+  ("value"&Tk WS)?
+  "class"&Tk WS
+  NameTok
+  (WS GenericParams)?
+  (WS ClassExtends)?
+  (WS "where"&Tk WS GenericConstraints)?
+  (WS ClassBody)?
+  {ClassDef(accessMods=$0$0, isValue=ispresent($1), name=$4, genericParams=$5, extends=$6, genericConstraints=$7, body=$8)}
+
+GenericParams = '<' WS GenericParam (WS ',' WS GenericParam)* WS '>' {GenericParams(params=[$2] + $3)}
+// ValueGenericParam는 mlc extension용
+GenericParam: GenericParam = TypeGenericParam | AssocTypeGenericParam | ValueGenericParam | ConstGenericParam
+
+TypeGenericParam =
+  ('+' {%COVARIANT} | '-' {%CONTRAVARIANT})?
+  NameTok
+  (WS ':' WS ClassConstraints)?
+  {TypeGenericParam(variance: %Variance?=$0, name=$1, superClassConstraints=$2)}
+
+AssocTypeGenericParam =
+  "assoc"&Tk WS NameTok (WS ':' WS ClassConstraints)?
+  {AssocTypeGenericParam(name=$2, constraints=$3)}
+
+ValueGenericParam =
+  "value"&Tk WS NameTok WS ':' WS Type (WS '=' WS Expr)?
+  {ValueGenericParam(name=$2, valueGenericType=$6, defaultValue=$7)}
+
+ConstGenericParam =
+  "const"&Tk WS NameTok WS ':' WS Type
+  {ConstGenericParam(name=$2, constGenericType=$6)}
+
+ClassConstraints = ClassConstraint (WS '&' WS ClassConstraint)* {[$0] + $1}
+// TODO T: value Hashable
+ClassConstraint = ClassType
+
+ClassExtends = ':' WS ClassTypeList
+ClassTypeList = ClassType (WS ',' WS ClassType)* {[$0] + $1}
+GenericConstraints = GenericConstraint (WS ',' WS GenericConstraint)* {[$0] + $1}
+// class Hello<T> where T <: Animal, T >: Mammal {}
+GenericConstraint: GenericConstraint = TypeGenericConstraint | ValueGenericConstraint
+TypeGenericConstraint: TypeGenericConstraint
+  = NameTok WS ":" WS ClassConstraint {SubclassConstraint(target=$0, superType=$4)}
+  | NameTok WS ">:" WS ClassConstraint {SuperclassConstraint(target=$0, subType=$4)}
+// mlc only(?)
+// Value constraint를 얼마나 정교하게 줄 수 있어야할까?
+// bare predicate 의 단독 NameTok 제외 (-NameTok): 단독 이름은 boolean predicate 로
+// 의미가 없고 (tensor_shape_design.md §5 의 predicate 는 비교/논리/양화), 허용하면
+// `where m = n { ... }` 이 "등식 m = n + block body" 와 "predicate m + expression
+// body `= n { ... }` (trailing lambda 호출)" 로 진짜 모호해진다.
+ValueGenericConstraint: ValueGenericConstraint
+  = PatternClause WS '=' WS ExprNoLambda
+    {ValueGenericConstraintWithTarget(targetPattern=$0, value=$4)}
+  | ExprNoLambda-NameTok {ValueGenericConstraintExpr(expr=$0)}
+
+ClassType = NameLong (WS_NO_NL GenericArgs)? {ClassType(clsName=$0, genericArgs=$1)}
+
+ClassBody
+  = '{' (WS ClassMember (StmtDelim ClassMember)*)? WS '}'
+    {ClassBody(members=$1{[$1] + $2} ?: [])}
+
+ClassMember: ClassMember
+  = FieldDef
+  | FuncDef
+  | PropDef
+  | ClassCtorDef
+  | "init"&Tk WS Block {ClassInitBlock(body=$2)}
+  | "deinit"&Tk WS Block {ClassDeinitBlock(body=$2)}
+
+FieldDef =
+  (Annots WS)?
+  (AccessModifier WS)?
+  FieldDefBody
+  {FieldDef(annots=$0$0, accessMods=$1$0, body=$2)}
+
+FieldDefBody: FieldDefBody
+  = ("const"&Tk WS)? NameTok WS ':' WS Type
+    {FieldDefNoValue(isConst=ispresent($0), name=$1, typ=$5)}
+  | PatternClause WS '=' WS Expr
+    {FieldDefInitValue(pattern=$0, value=$4)}
+
+PropDef: PropDef
+  = PropSigHeader (WS ':' WS Type)? WS '=' WS Expr
+    {PropExprDef(sigHeader=$0, typ=$1, body=$5)}
+  | PropSig WS Block
+    {PropBlockDef(sig=$0, body=$2)}
+
+PropSig =
+  PropSigHeader
+  WS ':' WS Type
+  {PropSig(header=$0, propType=$4)}
+
+PropSigHeader =
+  (Annots WS)?
+  (AccessModifier WS)?
+  FuncModifiers
+  ("def" {%DEF} | "let" {%LET})&Tk WS
+  NameTokOrUnderscore
+  {PropSigHeader(annots=$0$0, accessMods=$1$0, mods=$2, kind: %PropKind=$3, name=$5)}
+
+ClassCtorDef =
+  (Annots WS)?
+  (AccessModifier WS)?
+  "constructor"&Tk WS
+  CtorParams WS
+  Block
+  {ClassCtorDef(annots=$0$0, accessMods=$1$0, params=$4, body=$6)}
+
+CtorParams = '(' WS ')' {CtorParams(params=[], varargParam=null)}
+  | '(' WS CtorParam (WS ',' WS CtorParam)* (WS ',' WS "vararg"&Tk WS FuncParamNoDefaultExpr)? (WS ',')? WS ')'
+    {CtorParams([$2] + $3, $4)}
+  | '(' WS "vararg"&Tk WS FuncParamNoDefaultExpr WS ')'
+    {CtorParams([], $4)}
+CtorParam: CtorParam = FuncParam
+  | "self"&Tk WS '.' WS NameTok (WS '=' WS Expr)?
+    {CtorFieldParam(fieldName=$4, defaultValue=$5)}
+
+
+TraitDef
+  = (Annots WS)? TraitDefNoAnnots
+    {TraitDefWithAnnots(annots=$0$0, traitDef=$1)}
+
+TraitDefNoAnnots =
+  (AccessModifier WS)?
+  ("sealed"&Tk WS)?
+  ("value"&Tk WS)?
+  "trait"&Tk WS
+  NameTok
+  (WS GenericParams)?
+  (WS ClassExtends)?
+  (WS "where"&Tk WS GenericConstraints)?
+  (WS TraitBody)?
+  {TraitDef(accessMods=$0$0, isSealed=ispresent($1), isValue=ispresent($2), name=$5,
+            genericParams=$6, extends=$7, genericConstraints=$8, body=$9)}
+
+TraitBody
+  = '{' (WS TraitMember (StmtDelim TraitMember)*)? WS '}'
+    {TraitBody(members=$1{[$1] + $2} ?: [])}
+
+TraitMember: TraitMember
+  = FieldDef
+  | FuncDef
+  | FuncSig
+  | PropDef
+  | PropSig
+
+
+ExtendDef
+  = (Annots WS)? ExtendDefNoAnnots
+    {ExtendDefWithAnnots(annots=$0$0, extendDef=$1)}
+
+ExtendDefNoAnnots =
+  "extend"&Tk
+  (WS GenericParams)?
+  WS
+  ClassType
+  (WS "for"&Tk WS ExtendFor (WS ',' WS ExtendFor)* {[$3] + $4})?
+  (WS "where"&Tk WS GenericConstraints)?
+  (WS ExtendBody)?
+  {ExtendDef(genericParams=$1, targetClass=$3, extendFor=$4, genericConstraints=$5, body=$6)}
+
+// oneof의 멤버에 대한 extend가 가능
+ExtendFor = NameLong (WS_NO_NL GenericArgs)? {ExtendFor(name=$0, genericArgs=$1)}
+
+ExtendBody
+  = '{' (WS ExtendMember (StmtDelim ExtendMember)*)? WS '}'
+    {ExtendBody(members=$1{[$1] + $2} ?: [])}
+ExtendMember: ExtendMember = FuncDef | PropDef
+
+
+EnumDef
+  = (Annots WS)? EnumDefNoAnnots
+    {EnumDefWithAnnots(annots=$0$0, enumDef=$1)}
+
+EnumDefNoAnnots =
+  (AccessModifier WS)?
+  "enum"&Tk
+  WS
+  NameTok
+  (WS ':' WS TypePrimary)?
+  WS '{' WS EnumMember (StmtDelim EnumMember)* WS '}'
+  {EnumDef(accessMods=$0$0, name=$3, valueType=$4, body=[$8] + $9)}
+
+EnumMember: EnumMember
+  = EnumValueDef
+  | FuncDef
+  | PropDef
+
+EnumValueDef
+  = NameTok (WS '=' WS IntLiteral)?
+    {EnumValueDef(name=$0, intValue=$1)}
+
+
+OneofDef
+  = (Annots WS)? OneofDefNoAnnots
+    {OneofDefWithAnnots(annots=$0$0, oneofDef=$1)}
+
+OneofDefNoAnnots =
+  (AccessModifier WS)?
+  ("value"&Tk WS)?
+  "oneof"&Tk
+  WS
+  NameTok
+  (WS GenericParams)?
+  (WS ClassExtends)?
+  (WS "where"&Tk WS GenericConstraints)?
+  (WS OneofBody)?
+  {OneofDef(accessMods=$0$0, isValue=ispresent($1), name=$4, genericParams=$5, extends=$6, genericConstraints=$7, body=$8)}
+
+OneofBody
+  = '{' (WS OneofMember (StmtDelim OneofMember)*)? WS '}'
+    {OneofBody(members=$1{[$1] + $2} ?: [])}
+
+OneofMember: OneofMember
+  = OneofFieldDef
+  | FuncDef
+  | PropDef
+  // abstract functions
+  | FuncSig
+  | PropSig
+
+OneofFieldDef =
+  (Annots WS)?
+  (AccessModifier WS)?
+  OneofFieldDefBody
+  {OneofFieldDef(annots=$0$0, accessMods=$1$0, body=$2)}
+
+OneofFieldDefBody: OneofFieldDefBody
+  = NameTok {OneofNameOnlyField(name=$0)}
+  | NameTok WS_NO_NL ':' WS Type {OneofFullField(name=$0, typ=$4)}
+  | NameTok WS_NO_NL '(' WS Type (WS ',' WS Type)* (WS ',')? WS ')'
+    {OneofTupleField(name=$0, types=[$4] + $5)}
+  | NameTok WS_NO_NL ClassBody
+    {OneofStructuralField(name=$0, body=$2)}
+
+
+
+// typealias MyVector<T> = vector<T>
+TypeAliasDef =
+  "typealias"&Tk WS
+  NameTok
+  (WS GenericParams (WS "where"&Tk WS GenericConstraints)?)?
+  WS '=' WS
+  Type
+  {TypeAliasDef(name=$2, genericParams=$3$1, genericConstraints=$3$2, typ=$7)}
+
+
+AnnotationDef =
+  "annotation"&Tk WS NameTok WS AnnotationBody
+  {AnnotationDef(name=$2, body=$4)}
+
+AnnotationBody
+  = '{' WS AnnotationBodyMember (StmtDelim AnnotationBodyMember)* WS '}'
+    {AnnotationBody(members=[$2] + $3)}
+
+AnnotationBodyMember: AnnotationBodyMember
+  = AnnotationProcessor
+  | FieldDef
+  // | ClassDef
+  // | TraitDef
+  // | ExtendDef
+  // | EnumDef
+  // | OneofDef
+  // | TypeAliasDef
+  | "finalize"&Tk WS TrailingLambda
+  | AnnotationOptionDef
+
+AnnotationProcessor =
+  "for" WS AnnotationTarget (WS FuncParams)? WS AnnotationProcessorBody
+  {AnnotationProcessor(target=$2, params=$3, body=$5)}
+
+AnnotationTarget = "class" | "func" | "field" | "prop" | "trait" | "enum" | "oneof"
+
+AnnotationProcessorBody
+  = '{' WS AnnotationProcessorBodyFunc (WS AnnotationProcessorBodyFunc)* WS '}'
+    {[$2] + $3}
+
+AnnotationProcessorBodyFunc
+  = ("ir1" {%IR1} | "ir2" {%IR2}) WS TrailingLambda
+    {AnnotationProcessorBodyFunc(phase: %AnnotPhase = $0, body=$2)}
+
+AnnotationOptionDef =
+  "option"&Tk WS
+  NameTok WS ':' WS Type
+  (WS_NO_NL '=' WS Expr)?
+  {AnnotationOptionDef(name=$2, typ=$6, defaultValue=$7)}
+
+
+
+
+Type: Type
+  = (Annots WS)? TypeSecondary
+    {TypeSecondaryWithAnnots(annots=$0$0, typ=$1)}
+  | OnTheFlyTypeDef
+  | (Annots WS)? (RefKind)? '&' Type
+    {RefTypeWithAnnots(annots=$0$0, kind=$1, typ=$3)}
+  | '*' TypeSecondary
+    {StackType(typ: StackTypeTarget=$1)}
+  | '*' OnTheFlyTypeDef
+    {StackType(typ=$1)}
+  | FunctionType
+  | TupleType
+
+RefKind: %RefKind
+  = "mut" {%MUT}
+  | "own" {%OWN}
+  | "rc" {%RC}
+  | "arc" {%ARC}
+  | "weak" {%WEAK}
+  | "gc" {%GC}
+
+TypeSecondary: TypeSecondary = TypePrimary
+  | TypeWithGenericArgs
+
+TypeWithGenericArgs
+  = TypePrimary WS_NO_NL GenericArgs
+    {TypeWithGenericArgs(base=$0, args=$2)}
+
+GenericArgs = '<' WS GenericArg (WS ',' WS GenericArg)* WS '>' {[$2] + $3}
+// Expr은 mlc extension용. 단, NameLong은 Expr과 겹치기 때문에 Expr으로 파싱됨.
+GenericArg: GenericArg = Type
+  | GenericValueArg-Type
+  | NameTok WS '=' WS Type
+    {NamedGenericTypeArg(name=$0, typ=$4)}
+  | NameTok WS '=' WS Expr-Type
+    {NamedGenericExprArg(name=$0, expr=$4)}
+GenericValueArg: GenericValueArg
+  = PrimaryExprNoLambda
+
+OnTheFlyTypeDef: OnTheFlyTypeDef
+  = (Annots WS)? ClassDefNoAnnots
+  | (Annots WS)? TraitDefNoAnnots
+  | (Annots WS)? EnumDefNoAnnots
+  | (Annots WS)? OneofDefNoAnnots
+
+TypePrimary = NameLong
+
+// (x: lambda (T) -> V)는 "annotation processor에서 함수 내용을 볼 수 있어야 하는 타입"을 의미
+FunctionType
+  = ("lambda"&Tk WS)? '(' (WS Type (WS ',' WS Type)* (WS ',')?)? WS ')' WS "->" WS Type
+    {FunctionType(isLambda=ispresent($0), params=$2{[$1] + $2} ?: [], retType=$8)}
+
+TupleType
+  = '(' WS Type (WS ',' WS Type)+ WS ')'
+    {TupleType(elems=[$2] + $3)}
+  | '(' WS Type WS ',' WS ')'
+    {TupleType(elems=[$2])}
+
+
+Block = '{' (WS Stmts)? WS '}' {Block(stmts=$1 ?: [])}
+Stmts = Stmt (StmtDelim Stmt)* {[$0] + $1}
+
+
+// Expr은 자체적으로 annotation 넣기
+Stmt: Stmt = Expr
+  | IfStmt
+  | (Annots WS)? LetStmt {LetStmtWithAnnot(annots=$0$0, stmt=$1)}
+  | (Annots WS)? Assign {AssignWithAnnot(annots=$0$0, stmt=$1)}
+  | (Annots WS)? Return {ReturnWithAnnot(annots=$0$0, stmt=$1)}
+  | (Annots WS)? Throw {ThrowWithAnnot(annots=$0$0, stmt=$1)}
+  | (Annots WS)? WhileStmt {WhileStmtWithAnnot(annots=$0$0, stmt=$1)}
+  | (Annots WS)? ForStmt {ForStmtWithAnnot(annots=$0$0, stmt=$1)}
+  | (Annots WS)? BreakStmt {BreakStmtWithAnnot(annots=$0$0, stmt=$1)}
+  | (Annots WS)? ContinueStmt {ContinueStmtWithAnnot(annots=$0$0, stmt=$1)}
+  | FuncDef
+  | ClassDef
+  | TraitDef
+  | ExtendDef
+  | EnumDef
+  | OneofDef
+  | TypeAliasDef
+
+Assign = AssignableExpr WS AssignOp WS Expr {Assign(op=$2, lhs=$0, rhs=$4)}
+
+AssignableExpr: AssignableExpr
+  = NameTok
+  | SubscribeAccess
+  // | LongNameAccess
+  | '*' WS AssignableExpr {DerefAssign(ptr=$2)}
+AssignOp: %AssignOps = (
+  '=' {%ASSIGN} |
+  "+=" {%ADD} |
+  "-=" {%SUB} |
+  "*=" {%MUL} |
+  "/=" {%DIV} |
+  "%=" {%REM})&OpTk
+
+Return = "return"&Tk (WS_NO_NL Expr)? {Return(value=$1)}
+Throw = "throw"&Tk WS Expr {Throw(error=$2)}
+
+WhileStmt
+  = ('@' NameTok)? "while"&Tk WS ExprNoLambda WS Block
+    {WhileStmt(label=$0, cond=$3, body=$5)}
+ForStmt
+  = ('@' NameTok)? "for"&Tk WS PatternClause WS "in"&Tk WS ExprNoLambda WS Block
+    {ForStmt(label=$0, iter=$3, coll=$7, body=$9)}
+BreakStmt = "break"&Tk (WS_NO_NL '@' NameTok)? {BreakStmt(label=$1)}
+ContinueStmt = "continue"&Tk (WS_NO_NL '@' NameTok)? {ContinueStmt(label=$1)}
+
+
+// TODO annotation
+Expr: Expr = IfExpr | Lambda | BorrowOrMoveExpr | SpreadExpr
+
+SpreadExpr = "..." WS CallExpr {SpreadExpr(value=$2)}
+
+// 변수 이름으로부터 이름만으로 접근 가능한 것들만 move할 수 있다
+// 그 외의 것들을 move하면 해당 값을 복구할 수도 없고,
+// 복구가 필요치 않더라도 어떤 값이 invalid한지 상태를 추적할 수 없기 때문
+// borrow도 마찬가지. borrow semantic의 존재 이유는 lifetime 분석을 위한 것이기 때문
+// BorrowOrMoveExpr가 이렇게 위에 있는 것은 PrimaryExpr 같은 곳에 얘가 들어가면 MemberAccess 같은데서 ambiguous해질 것이고 (예를 들면 [^a].a, [^a.a]),
+// MemberAccess가 바라보는 CallExpr 보다 위는 전부 산술 연산이라 의미상 이상해 보여서 위로 올리다 보니 여기까지 오게 됨
+BorrowOrMoveExpr: BorrowOrMoveExprOr = OrExpr
+  | '&' BorrowTarget {BorrowExpr(expr=$1)}
+  | '^' NameLong {MoveExpr(expr=$1)}
+
+OrExpr: OrExprOr = AndExpr
+  | OrExpr WS "||"&OpTk WS AndExpr {OrExpr(lhs=$0, rhs=$4)}
+
+AndExpr: AndExprOr = NotEqExpr
+  | AndExpr WS "&&"&OpTk WS NotEqExpr {AndExpr(lhs=$0, rhs=$4)}
+
+NotEqExpr: NotEqExprOr = EqExpr
+  | EqExpr WS "!="&OpTk WS EqExpr {NotEqExpr(lhs=$0, rhs=$4)}
+
+EqExpr: EqExprOr = CompareExpr
+  | CompareExpr (WS "=="&OpTk WS CompareExpr)+ {EqExpr(elems=[$0] + $1)}
+
+// TODO InfixFuncCallExpr 을 넣는다면 여기 어드메에..
+CompareExpr: CompareExpr = RangeExpr | LessExpr | GreaterExpr | InExpr | IsExpr
+
+// <AddExpr> 인 이유는 hello<generic>(123) 에서 <generic>이 비교 연산으로 해석되지 않게 하기 위함
+LessExpr
+  = (<AddExpr> WS ("<" {%LT} | "<=" {%LE})&OpTk WS)+ AddExpr
+    {LessExpr(lhsChain=$0{LessChainLhs(lhs=$0, op: %LessOps=$2)}, rhs=$1)}
+GreaterExpr
+  = (AddExpr WS (">" {%GT} | ">=" {%GE})&OpTk WS)+ AddExpr
+    {GreaterExpr(lhsChain=$0{GreaterChainLhs(lhs=$0, op: %GreaterOps=$2)}, rhs=$1)}
+InExpr = AddExpr WS ("in" {false} | "!in" {true})&OpTk WS RangeExpr {InExpr(lhs=$0, rhs=$4, notIn=$2)}
+IsExpr = AddExpr WS ("is" {false} | "!is" {true})&OpTk WS ClassType {IsExpr(lhs=$0, typ=$4, notIs=$2)}
+
+RangeExpr: RangeExprOr = AddExpr
+  | AddExpr WS (".." {false} | "..<" {true})&OpTk WS AddExpr
+    {RangeExpr(rangeStart=$0, rangeEnd=$4, exclusiveEnd=$2)}
+
+AddExpr: AddExprOr = <MulExpr
+  | MulExpr
+    (WS ("+" {%ADD} | "-" {%SUB})&OpTk WS MulExpr {AddChain(op: %AddOps=$1, rhs=$3)})+
+    {AddExpr(lhs=$0, chain=$1)}>
+
+// let x = 123\n*p = 42 에서 *p 를 deref로 해석하기 위해 맨 뒤에 !(WS AssignOp) 넣어야할 것 같음 -> mgroup2 에서 왜인지 잘 안되는듯함
+MulExpr: MulExprOr = PrefixExpr
+  | MulExpr WS ("*" {%MUL} | "/" {%DIV} | "%" {%REM})&OpTk WS PrefixExpr
+    {MulExpr(op: %MulOps=$2, lhs=$0, rhs=$4)}
+
+PrefixExpr: PrefixExprOr = CallExpr
+  | ('+' {%PLUS} | '-' {%MINUS} | '!' {%NOT})&OpTk WS CallExpr
+    {PrefixExpr(op: %PrefixOps=$0, operand=$2)}
+
+
+CallExpr: CallExprOr = PrimaryExpr | CallChain
+
+CallChain
+  // longest(<...>) 제거: 체인 정지는 국소 결정이라 longest 없이도 델타 0.
+  //   - 원소 부착은 같은 줄 (CallChain_ 의 WS_NO_NL), 트레일링 람다 여부는 1자
+  //     lookahead (!(WS_NO_NL '{'), 커밋 25a4757), 문장 경계는 StmtDelim.
+  // longest 는 런타임 블록-스팬 워처가 되어 .mu 파싱 비용의 ~23% (jar.bbx 기준).
+  // GrammarDiffTest 로 accept 집합 + AST 델타 0 을 실측 검증했다.
+  = (Annots WS)? BaseCallee CallChain_+
+    {CallChainExpr(annots=$0$0, callee=$1, chain=$2)}
+CallChain_
+  = Subscribe_* WS_NO_NL CallChainArgs {CallChain(subs=$0, args=$2)}
+CallChainArgs
+  = (CallArgs WS_NO_NL)? TrailingLambda {CallChainArgs(args=$0$0, trailingLambda=$1)}
+  // lookahead 는 '{' 1자면 충분 — TrailingLambda(=Lambda|Block) 는 둘 다 '{' 로 시작하고,
+  // 같은 줄 '{' 가 유효한 Lambda/Block 이 아닌 입력은 현행 문법에서도 파스 에러라 언어 동일.
+  // (TrailingLambda 전체 lookahead 는 블록-스팬 워처를 만들어 파스 비용의 ~12% 였다 —
+  //  jparser mgroup3/docs/mulang_grammar_ambiguity.md §10.2)
+  | CallArgs !(WS_NO_NL '{') {CallChainArgs(args=$0, trailingLambda=null)}
+  // | Lambda {CallChainArgs(args=null, trailingLambda=$0)}
+BaseCallee: BaseCallee
+  = StringExpr
+  | TupleExpr
+  | ListExpr
+  | MapExpr
+  | '(' WS Expr WS ')' {Parenthesis(expr=$2)}
+  | MatchExpr
+  | Self
+  | "_"&Tk {Underscore()}
+  | NameTok (WS_NO_NL GenericArgs)?
+    {SimpleNameCallee(name=$0, genericArgs=$1)}
+  | RefKind '&' ClassType
+    {RefCreate(kind=$0, clsType=$2)}
+  | '.' NameTok (WS_NO_NL GenericArgs)?
+    {OneofShorthandCreate(name=$1, genericArgs=$2)}
+
+Self = "self"&Tk {Self()}
+
+// TODO vararg expansion? hello(*tokens) 같은..?
+CallArgs = '(' WS ')' {CallArgs(args=[], namedArgs=[])}
+  | '(' WS Expr (WS ',' WS Expr)* (WS ',' WS NamedArg)* (WS ',')? WS ')'
+    {CallArgs([$2] + $3, $4)}
+  | '(' WS NamedArg (WS ',' WS NamedArg)* (WS ',')? WS ')'
+    {CallArgs([], [$2] + $3)}
+NamedArg = NameTok WS '=' WS Expr {NamedArg(name=$0, expr=$4)}
+
+Lambda
+  = '{' (WS LambdaParams)? (WS "return"&Tk WS Type)? WS "->" (WS Stmts)? WS '}'
+    {Lambda(params=$1 ?: [], retType=$2, body=$5 ?: [])}
+
+TrailingLambda: TrailingLambda = Lambda | Block
+
+LambdaParams = PatternClause (WS ',' WS PatternClause)* {[$0] + $1}
+
+
+PrimaryExpr: PrimaryExpr
+  = Literal
+  | StringExpr
+  | TupleExpr
+  | ListExpr
+  | MapExpr
+  | '(' WS Expr WS ')' {Parenthesis(expr=$2)}
+  | MatchExpr
+  | TryCatchExpr
+  | Self
+  | "_"&Tk {Underscore()}
+  | NameTok
+  | SubscribeAccess
+  // | LongNameAccess
+  | InlineObject
+  | '.' NameTok {EnumShorthandExpr(valueName=$1)}
+
+
+Literal: Literal
+  = BoolLiteral
+  | IntLiteral
+  | HexIntLiteral
+  | FloatLiteral
+  | CharLiteral
+
+BoolLiteral = ("true" {BoolLiteral(value=true)} | "false" {BoolLiteral(false)})&Tk
+IntLiteral = Digits IntTypeSuffix? {IntLiteral(digits=$0, typeSuffix=$1)}
+IntTypeSuffix = ('u' {true} | 'i' {false}) '1-9' '0-9'* {IntTypeSuffix(isUnsigned=$0, bitLength=str($1, $2))}
+HexIntLiteral = '0' 'x' HexDigits IntTypeSuffix? {HexIntLiteral(digits=$2, typeSuffix=$3)}
+HexDigits = '0-9a-fA-f'+
+FloatLiteral
+  = Digits '.' '0-9'+ FloatExponent? FloatTypeSuffix?
+    {FloatLiteral(intPart=$0, fracPart=$2, exp=$3, typeSuffix=$4)}
+  | Digits FloatExponent FloatTypeSuffix?
+    {FloatLiteral($0, null, $1, $2)}
+FloatExponent = 'eE' ('+' {false} | '-' {true})? Digits {FloatExponent(isMinus=$1 ?: false, exponent=$2)}
+FloatTypeSuffix = 'f' '1-9' '0-9'* {FloatTypeSuffix(bitLength=str($1, $2))}
+
+Digits = '0' {"0"} | '1-9' '0-9'* {str($0, $1)}
+
+CharLiteral = '\'' CharLiteralValue '\'' {CharLiteral(value=$1)}
+CharLiteralValue: CharLiteralValue
+  = .-'\'' {PlainChar(value=$0)}
+  // TODO Escapes
+
+StringExpr = '"' StringElem* '"' {StringExpr(elems=$1)}
+StringElem: StringElem = <(.-'"\\$')+> {CharsChunk(value=str($0))}
+  | '\\' '\\nbrt0$"\'' {EscapeChar(code=$1)}
+  | '\\' 'u' '{' '0-9a-fA-f'+ '}' {EscapeUnicode(code=str($3))}
+  | '$' <NameTok> {VariableSnip(name=$1)}
+  | '$' '{' WS Expr WS '}' {ExprSnip(expr=$3)}
+
+TupleExpr = '(' WS Expr (WS ',' WS Expr)+ WS ')' {TupleExpr(elems=[$2] + $3)}
+  | '(' WS Expr WS ',' WS ')' {TupleExpr([$2])}
+
+ListExpr
+  = '[' WS ']' {ListExpr(elems=[])}
+  | '[' WS ListElem (WS ',' WS ListElem)* (WS ',')? WS ']' {ListExpr(elems=[$2] + $3)}
+
+ListElem: ListElem
+  = Expr
+  | "if"&Tk WS IfConditions WS "then"&Tk WS Expr
+    {ConditionalListElem(conds=$2, body=$6)}
+
+MapExpr
+  = '{' WS '}' {MapExpr(entries=[])}
+  | MapExprNoEmpty
+MapExprNoEmpty =
+  '{' WS MapEntry (WS ',' WS MapEntry)* (WS ',')? WS '}' {MapExpr(entries=[$2] + $3)}
+
+MapEntry = ExprNoLambda WS ':' WS Expr {MapEntry(key=$0, value=$4)}
+
+
+SubscribeAccess
+  = CallExpr-Digits (WS_NO_NL GenericArgs)? <Subscribe_+>
+    {SubscribeAccess(base=$0, baseGenericArgs=$1, subs=$2)}
+
+LongNameAccess
+  = NameLong WS_NO_NL GenericArgs <MemberSubscribe_+>
+    {LongNameAccess(target=$0, genericArgs=$2, nameChain=$3)}
+
+Subscribe_: Subscribe
+  = MemberSubscribe_
+  | WS '.' WS Digits {TupleElemSubscribe(index=$3)}
+  | IndexSubscribe_
+  | WS_NO_NL "!!"&OpTk {DoubleBangSubscribe()}
+MemberSubscribe_: MemberSubscribe
+  = WS '.' WS NameTok {SimpleMemberSubscribe(name=$3)}
+  | WS '.' WS NameTok WS_NO_NL GenericArgs {GenericMemberSubscribe(name=$3, genericArgs=$5)}
+  | WS '.' WS NameTok "!"&OpTk {InlineMemberSubscribe(name=$3)}
+IndexSubscribe_ = WS_NO_NL '[' WS Index WS ']' {IndexSubscribe(index=$3)}
+
+Index = IndexElem (WS ',' WS IndexElem)* {[$0] + $1}
+IndexElem: IndexElem
+  = Expr
+  | (Expr WS)? ':' (WS Expr)? (WS ':' WS Expr)?
+    {IndexSlice(indexStart=$0$0, indexEnd=$2, step=$3)}
+  | "..." {IndexEllipsis()}
+
+InlineObject
+  = "object"&Tk (WS ClassExtends)? WS ClassBody
+    {InlineObject(extends=$1, body=$3)}
+
+
+MatchExpr: MatchExpr
+  = "match"&Tk WS ExprNoLambda WS MatchBody {MatchValueExpr(value=$2, body=$4)}
+  | "match"&Tk WS '{' WS MatchConditionCase (StmtDelim MatchConditionCase)* (StmtDelim MatchElseCase)? WS '}'
+    {MatchConditionExpr(cases=[$4] + $5, elseCase=$6)}
+
+// else만 있는 경우는 try catch에서 필요할 수 있음
+MatchBody
+  = '{' WS MatchPatternCase (StmtDelim MatchPatternCase)* (StmtDelim MatchElseCase)? WS '}'
+    {MatchBody(cases=[$2] + $3, elseCase=$4)}
+  | '{' WS MatchElseCase WS '}'
+    {MatchBody(cases=[], elseCase=$2)}
+
+MatchPatternCase
+  = "case"&Tk WS Pattern WS "->" CaseHandler_
+    {MatchPatternCase(pattern=$2, handler=$5)}
+
+// 원래 그냥 Block도 있었는데, Stmts에 lambda가 오는 것과 ambiguous해서 제외
+CaseHandler_: CaseHandler
+  = WS Stmts-EmptyBracePair {Block($1)}
+  | WS Block-EmptyBracePair
+  | WS EmptyBracePair
+  | # {EmptyBody()}
+
+EmptyBracePair = '{' WS '}' {EmptyBracePair()}
+
+MatchConditionCase
+  = "case"&Tk WS IfConditions WS "->" CaseHandler_
+    {MatchConditionCase(condition=$2, handler=$5)}
+
+MatchElseCase: CaseHandler = "else"&Tk WS "->" CaseHandler_
+
+
+Pattern = PatternClause (WS IfGuard)? {Pattern(clause=$0, ifGuard=$1)}
+
+PatternClause
+  = PatternClauseNoPlainBinding
+  | BindingName
+//    (WS "let"&Tk WS LetBinding (WS ',' WS LetBinding)* {[$3] + $4})?
+    {PatternClause(factors=[], asBinding=$0)}
+
+PatternClauseNoPlainBinding
+  = PatternFactor (WS '|' WS PatternFactor)*
+    (WS "as"&Tk WS BindingName)?
+//    (WS "let"&Tk WS LetBinding (WS ',' WS LetBinding)* {[$3] + $4})?
+    {PatternClause(factors=[$0] + $1, asBinding=$2)}
+
+PatternOrAs = PatternClauseOrAs (WS IfGuard)? {PatternOrAs(clause=$0, ifGuard=$1)}
+
+PatternClauseOrAs
+  = PatternClauseNoPlainBinding
+  | "as"&Tk WS BindingName
+//    (WS "let"&Tk WS LetBinding (WS ',' WS LetBinding)* {[$3] + $4})?
+    {PatternClause(factors=[], asBinding=$2)}
+
+
+BindingName =
+  (("const"&Tk {%CONST} | '^' {%MOVE}) WS)? NameTok (WS ':' WS Type)?
+  {BindingName(decorator: %BindingDecorators?=$0$0, name=$1, typeAssertion=$2)}
+
+// LetBinding = BindingName WS '=' WS Expr {LetBinding(name=$0, expr=$4)}
+
+PatternFactor: PatternFactor
+  = Literal
+  | '-' WS IntLiteral {MinusInt(value=$2)}
+  | '-' WS FloatLiteral {MinusFloat(value=$2)}
+  | StringExpr
+  | '(' WS Pattern WS ')'
+    {ParenthesisPattern(pattern=$2)}
+  | ComparePatternOps WS Expr
+    {ComparePattern(op=$0, rhs=$2)}
+  | TuplePatternFactor
+  | ListPatternFactor
+  | MapPatternFactor
+  | ClassDecomposePatternFactor
+  | "is"&OpTk WS ClassType (WS_NO_NL '|' WS ClassType)* (WS ClassDecomposePatternFactor)?
+    {IsSubtypePattern(types=[$2] + $3, decompose=$4)}
+  | "!is"&OpTk WS ClassType (WS_NO_NL '|' WS ClassType)*
+    {NotIsSubtypePattern(types=[$2] + $3)}
+  | '.' NameTok (WS_NO_NL PatternFactor)?
+    {OneofOrEnumOrMemberPattern(memberName=$1, valueDecompose=$2)}
+  | '_' {MatchAll()}
+
+ComparePatternOps
+  = ("==" | "!=" | "<" | "<=" | ">" | ">=" | "in" | "!in")&OpTk
+
+TuplePatternFactor
+  = '(' WS Pattern (WS ',' WS Pattern)+ (WS ',')? WS ')'
+    {TuplePatternFactor(elemPatterns=[$2] + $3)}
+  | '(' WS Pattern WS ',' WS ')'
+    {TuplePatternFactor(elemPatterns=[$2])}
+ListPatternFactor: ListPatternFactor
+  = '[' WS ']' {ListPatternFactorExact(elems=[])}
+  | '[' WS ListPatternElems (WS ',')? WS ']' {ListPatternFactorExact($2)}
+  | '[' (WS ListPatternElems WS ',')? WS "..." (WS "as"&Tk WS NameTok)? (WS ',' WS ListPatternElems)? (WS ',')? WS ']'
+    {ListPatternWithRest(firstElems=$1$1 ?: [], restAs=$4, lastElems=$5 ?: [])}
+ListPatternElems = Pattern (WS ',' WS Pattern)* {[$0] + $1}
+
+MapPatternFactor
+  = '{' WS '}' {MapPatternFactor(entries=[], restAs=null)}
+  | '{' WS MapEntryPatternElems (WS ',')? WS '}' {MapPatternFactor(entries=$2, restAs=null)}
+  | '{' (WS MapEntryPatternElems WS ',')? WS "..." (WS "as"&Tk WS NameTok)? (WS ',')? WS '}'
+    {MapPatternFactor(entries=$1$1 ?: [], restAs=$4)}
+MapEntryPatternElems = MapEntryPatternFactor (WS ',' WS MapEntryPatternFactor)* {[$0] + $1}
+MapEntryPatternFactor
+  = ExprNoLambda WS ':' WS Pattern
+    {MapEntryPatternFactor(key=$0, value=$4)}
+
+ClassDecomposePatternFactor
+  = '{' WS ClassMemberPatternFactor (WS ',' WS ClassMemberPatternFactor)* (WS ',')? WS '}'
+    {ClassDecomposePatternFactor(memberPatterns=[$2] + $3)}
+ClassMemberPatternFactor: ClassMemberPatternFactorOr
+  = '.' NameTok (WS PatternOrAs)?
+    {ClassMemberPatternFactor(memberName=$1, pattern=$2)}
+// .NameTok+ -> OneofOrEnumPattern 과 ambiguous -> OneofOrEnumPattern 말고 OneofOrEnumOrMemberPattern
+//  | '.' NameTok ('.' NameTok)+ (WS PatternOrAs)?
+//    {ClassMemberDeepPatternFactor(path=[$1] + $2, pattern=$3)}
+//  | "let"&Tk WS LetBinding
+
+IfGuard = "if"&Tk WS Expr
+
+
+LetStmt: LetStmt
+  = "let"&Tk WS ("const"&Tk WS)? NameTok WS_NO_NL ':' WS Type
+    {LetStmtNoValue(isConst=ispresent($2), name=$3, typ=$7)}
+  | "let"&Tk WS PatternClause WS '=' WS Expr
+    {LetStmtPattern(pattern=$2, value=$6, failBehav=null)}
+  | "try"&Tk WS "let"&Tk WS PatternClause WS '=' WS Expr
+    WS "else"&Tk WS LetMatchFailBehav
+    {LetStmtPattern(pattern=$4, value=$8, failBehav=$12)}
+// try let이 없으면 `let x = if {} else {}`가 ambiguous해짐
+
+LetMatchFailBehav: LetMatchFailBehav = Return | Throw | Block
+
+IfStmt
+  = IfClause (WS "else"&Tk WS IfClause)* (WS "else"&Tk WS Block)?
+    {IfStmt(clauses=[$0] + $1, elseBlock=$2)}
+IfClause
+  = "if"&Tk WS IfConditions WS Block
+    {IfClause(conditions=$2, body=$4)}
+IfConditions = IfCondition (WS ',' WS IfCondition)* {[$0] + $1}
+
+IfExpr
+  = "if"&Tk WS IfConditions WS "then"&Tk WS ExprOrExprBlock WS "else"&Tk WS ExprOrExprBlock
+    {IfExpr(conds=$2, ifTrue=$6, ifFalse=$10)}
+
+ExprOrExprBlock: ExprOrExprBlock
+  = Expr | ExprBlock
+ExprBlock
+  = '{' WS Expr WS '}' {ExprBlock(stmts=[], expr=$2)}
+  | '{' WS Stmts StmtDelim Expr WS '}'
+    {ExprBlock(stmts=$2, expr=$4)}
+
+IfCondition: IfCondition = IfLet | IfConditionExpr
+IfLet = "let"&Tk WS PatternClause WS '=' WS ExprNoLambda {IfLet(pattern=$2, value=$6)}
+IfConditionExpr = ExprNoLambda {IfConditionExpr(condition=$0)}
+
+TryCatchExpr
+  = "try"&Tk WS_01_NL Block WS_01_NL "catch"&Tk WS_01_NL MatchBody
+    {TryCatchExpr(tryBlock=$2, catchBody=$6, finallyBlock=null)}
+  | "try"&Tk WS_01_NL Block (WS_01_NL "catch"&Tk WS_01_NL MatchBody)? WS_01_NL "finally"&Tk WS_01_NL Block
+    {TryCatchExpr(tryBlock=$2, catchBody=$3, finallyBlock=$7)}
+
+
+
+
+
+Annots = Annot (WS Annot)* {Annots(annots=[$0] + $1)}
+
+Annot =
+  '@'
+  (Word ':')?
+  (NamespaceName WS_NO_NL '.')?
+  NameTok
+  (WS_NO_NL CallArgs)?
+  {Annot(scope=$1$0, namespace=$2$0, name=$3, args=$4)}
+
+
+NameTok
+  = Word-AllKeyword {NameTok(name=$0, backtick=false)}
+  | '`' Word '`' {NameTok(name=$1, backtick=true)}
+NameTokOrUnderscore: NameTokOrUnderscore = <NameTok | "_" {Underscore()}>
+
+NameLong = NameTok (WS_NO_NL '.' WS NameTok)* {NameLong(toks=[$0] + $1)}
+
+Word = <Word_>
+Word_
+  = 'a-zA-Z' '0-9a-zA-Z_'* {str($0, $1)}
+  | '_' '0-9a-zA-Z_'+ {str($0, $1)}
+// OpTk의 Word는 in, is 같은 단어들을 위함
+OpTk = <
+  "+" | "-" | "!" | "*" | "/" | "%" |
+  "||" | "&&" | "==" | "!=" | "<" | "<=" | ">" | ">=" |
+  ".." | "..<" | "!in" | "!is" |
+  "=" | "+=" | "-=" | "*=" | "/=" | "%=" |
+  "!!" | Word>
+
+Tk = <Word | "_">
+
+TypeKeyword = CommonKeyword | TypeKeyword_
+TypeKeyword_
+  = "class" | "trait" | "sealed" | "enum" | "oneof"
+  // | "value"
+  // mut, own, rc, arc, gc, weak
+
+ExprKeyword = CommonKeyword | ExprKeyword_
+ExprKeyword_ = "let" | "if" | "then" | "else" | "def"
+  // | "inline" | "operator" | "override"
+  | "match" | "case"
+  | "true" | "false"
+  | "self"
+  | "for" | "while" | "return" | "throw" | "break" | "continue"
+  | "try" | "catch" | "finally"
+  | "object"
+  | "const"
+  | "typealias"
+
+CommonKeyword = "is" | "in" | "as" | "let"
+
+AllKeyword = CommonKeyword | TypeKeyword_ | ExprKeyword_
+
+StmtDelim
+  = WS_NO_NL ('\n' | LineComment) WS
+  | WS ';' WS
+
+WS = (' \n\r\t' | Comment)* {""}
+WS_NO_NL = (' \t' | BlockComment)* {""}
+WS_01_NL = WS
+// TODO WS_01_NL = WS_NO_NL 이거나 개행 한 번
+// WS_01_NL = WS_NO_NL (('\n\r' | LineComment) WS_NO_NL)?
+Comment = LineComment | BlockComment
+LineComment = "//" (.-'\n')* ('\n' | EOF)
+EOF = !.
+BlockComment = "/*" ((. !"*/")* .)? "*/"
+
+
+
+// trailing lambda가 없는 expression
+// ExprNoLambda가 사용되는 위치를 고려할 때 spread expr은 없어도 될듯
+ExprNoLambda: ExprNoLambda = IfExprNoLambda | BorrowOrMoveExprNoLambda
+
+// ExprNoLambda 의 if then else 에서는 block 사용 불가(람다랑 비슷하게 생겼으니까)
+IfExprNoLambda
+  = "if"&Tk WS IfConditions WS "then"&Tk WS ExprNoLambda WS "else"&Tk WS ExprNoLambda
+    {IfExprNoLambda(conds=$2, ifTrue=$6, ifFalse=$10)}
+
+BorrowOrMoveExprNoLambda: BorrowOrMoveExprNoLambdaOr = OrExprNoLambda
+  | '&' BorrowTarget {BorrowExpr(expr=$1)}
+  | '^' NameLong {MoveExpr(expr=$1)}
+
+BorrowTarget
+  = BorrowBase <BorrowSubscribe_*>
+    {BorrowTarget(base=$0, subs=$1)}
+
+BorrowBase: BorrowBase = Self | NameTok
+
+BorrowSubscribe_: BorrowSubscribe
+  = WS '.' WS NameTok {SimpleMemberSubscribe(name=$3)}
+  | WS '.' WS Digits  {TupleElemSubscribe(index=$3)}
+  | IndexSubscribe_
+
+OrExprNoLambda: OrExprNoLambdaOr = AndExprNoLambda
+  | OrExprNoLambda WS "||"&OpTk WS AndExprNoLambda {OrExprNoLambda(lhs=$0, rhs=$4)}
+
+AndExprNoLambda: AndExprNoLambdaOr = NotEqExprNoLambda
+  | AndExprNoLambda WS "&&"&OpTk WS NotEqExprNoLambda {AndExprNoLambda(lhs=$0, rhs=$4)}
+
+NotEqExprNoLambda: NotEqExprNoLambdaOr = EqExprNoLambda
+  | EqExprNoLambda WS "!="&OpTk WS EqExprNoLambda {NotEqExprNoLambda(lhs=$0, rhs=$4)}
+
+EqExprNoLambda: EqExprNoLambdaOr = CompareExprNoLambda
+  | (CompareExprNoLambda WS "=="&OpTk WS)+ CompareExprNoLambda {EqExprNoLambda(elems=$0$0 + [$1])}
+
+CompareExprNoLambda: CompareExprNoLambda
+  = RangeExprNoLambda | LessExprNoLambda | GreaterExprNoLambda | InExprNoLambda | IsExprNoLambda
+
+LessExprNoLambda
+  = (<AddExprNoLambda> WS ("<" {%LT} | "<=" {%LE})&OpTk WS)+ AddExprNoLambda
+    {LessExprNoLambda(lhsChain=$0{LessChainLhsNoLambda(lhs=$0, op: %LessOps=$2)}, rhs=$1)}
+GreaterExprNoLambda
+  = (AddExprNoLambda WS (">" {%GT} | ">=" {%GE})&OpTk WS)+ AddExprNoLambda
+    {GreaterExprNoLambda(lhsChain=$0{GreaterChainLhsNoLambda(lhs=$0, op: %GreaterOps=$2)}, rhs=$1)}
+InExprNoLambda
+  = AddExprNoLambda WS ("in" {false} | "!in" {true})&OpTk WS RangeExprNoLambda
+    {InExprNoLambda(lhs=$0, rhs=$4, notIn=$2)}
+IsExprNoLambda
+  = AddExprNoLambda WS ("is" {false} | "!is" {true})&OpTk WS ClassType
+    {IsExprNoLambda(lhs=$0, typ=$4, notIs=$2)}
+
+RangeExprNoLambda: RangeExprNoLambdaOr = AddExprNoLambda
+  | AddExprNoLambda WS (".." {false} | "..<" {true})&OpTk WS AddExprNoLambda
+    {RangeExprNoLambda(rangeStart=$0, rangeEnd=$4, exclusiveEnd=$2)}
+
+AddExprNoLambda: AddExprNoLambdaOr = <MulExprNoLambda
+  | MulExprNoLambda
+    (WS ("+" {%ADD} | "-" {%SUB})&OpTk WS MulExprNoLambda {AddChainNoLambda(op: %AddOps=$1, rhs=$3)})+
+    {AddExprNoLambda(lhs=$0, chain=$1)}>
+
+MulExprNoLambda: MulExprNoLambdaOr = PrefixExprNoLambda
+  | MulExprNoLambda WS ("*" {%MUL} | "/" {%DIV} | "%" {%REM})&OpTk WS PrefixExprNoLambda
+    {MulExprNoLambda(op: %MulOps=$2, lhs=$0, rhs=$4)}
+
+PrefixExprNoLambda: PrefixExprNoLambdaOr = CallExprNoLambda
+  | ('+' {%PLUS} | '-' {%MINUS} | '!' {%NOT}) WS CallExprNoLambda
+    {PrefixExprNoLambda(op: %PrefixOps=$0, operand=$2)}
+
+
+CallExprNoLambda: CallExprNoLambdaOr = PrimaryExprNoLambda | CallChainNoLambda
+
+PrimaryExprNoLambda: PrimaryExprNoLambda
+  = Literal
+  | StringExpr
+  | TupleExpr
+  | ListExpr
+  | MapExprNoEmpty
+  | '(' WS Expr WS ')' {Parenthesis(expr=$2)}
+  // | MatchExpr
+  // | IfExpr
+  // | TryCatchExpr
+  | Self
+  | "_"&Tk {Underscore()}
+  | NameTok
+  | SubscribeAccessNoLambda
+  // | LongNameAccess
+  | InlineObject
+  | '.' NameTok {EnumShorthandExpr(valueName=$1)}
+
+SubscribeAccessNoLambda
+  = CallExprNoLambda-Digits <Subscribe_+>
+    {SubscribeAccessNoLambda(base=$0, subs=$1)}
+
+CallChainNoLambda
+  = BaseCallee
+    <(Subscribe_* WS_NO_NL CallArgs {CallChainNoLambda(subs=$0, args=$2)})+>
+    {CallChainExprNoLambda(callee=$0, chain=$1)}

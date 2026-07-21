@@ -1039,6 +1039,43 @@ def runGrammarStats() {
   )
 }
 
+// 문법별 milestone group(=MGACP 그룹, LR state count 대응) 인벤토리 수.
+// JSON/Proto3/ES5.1 은 fresh 생성, Mulang 은 pinned fixture data.pb 로드.
+// fixture 디코드가 무거워 힙 상향.
+@action
+def runGroupInventoryStats() {
+  runJUnitTestSuiteWithEnv(
+    mgroup3.test,
+    .some("com.giyeok.jparser.mgroup3.GroupInventoryStatsTest"),
+    {"GROUP_STATS": "1", "JAVA_TOOL_OPTIONS": "-Xmx12g"},
+  )
+}
+
+// Mulang pinned grammar (mulang@4db5727) 로 그룹 수 재계산 + on-disk fixture 대조.
+// 스냅샷은 `git -C ../mulang show 4db5727:grammar/mulang.cdg` 추출본을 리소스로 고정.
+@action
+def runMulangPinnedGroupStats() {
+  runJUnitTestSuiteWithEnv(
+    mgroup3.test,
+    .some("com.giyeok.jparser.mgroup3.GroupInventoryStatsTest"),
+    {
+      "GROUP_STATS": "1",
+      "MULANG_PINNED_CDG": "mgroup3/test/resources/mulang_pinned_4db5727.cdg",
+      "JAVA_TOOL_OPTIONS": "-Xmx12g",
+    },
+  )
+}
+
+// ES5.1 코퍼스 wall-clock (warmup1+median3) + peak live state (main vs watcher 분리).
+@action
+def runEs5CorpusMeasure() {
+  runJUnitTestSuiteWithEnv(
+    mgroup3.test,
+    .some("com.giyeok.jparser.mgroup3.Es5CorpusMeasureTest"),
+    {"ES5_MEASURE": "1", "JAVA_TOOL_OPTIONS": "-Xmx12g"},
+  )
+}
+
 // mulang 에 naive2 까지 포함 (2KB 입력에 수 분 소요 — crossover 실증용)
 @action
 def runAblationBenchmarkMulangNaive() {
