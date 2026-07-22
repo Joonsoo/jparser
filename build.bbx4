@@ -797,6 +797,18 @@ def runMgroup3FixtureGen() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.ParserFixtureGenTest"))
 }
 
+// ES5.1 문법만 data.pb 로 덤프 (mgroup3-native 가 로드). ParserFixtureGenTest 와 달리
+// mulang 등 대형 픽스처를 재생성하지 않는다. 산출:
+// mgroup3-native/tests/fixtures/parser_generated/es5/data.pb
+@action
+def runEs5FixtureGen() {
+  runJUnitTestSuiteWithEnv(
+    mgroup3.test,
+    .some("com.giyeok.jparser.mgroup3.Es5FixtureGenTest"),
+    {"ES5_FIXTURE": "1", "JAVA_TOOL_OPTIONS": "-Xmx12g"},
+  )
+}
+
 // 자동으로 mgroup3-native cdylib 빌드 후, FFM in-process bridge 테스트를 실행.
 // MGROUP3_NATIVE_INPROC=1 을 전파해 JUnit 의 @EnabledIfEnvironmentVariable 게이트를 해제.
 // HotSpot 전용 — GraalVM native-image AOT 의 upcall 미지원과 무관.
@@ -1073,6 +1085,17 @@ def runEs5CorpusMeasure() {
     mgroup3.test,
     .some("com.giyeok.jparser.mgroup3.Es5CorpusMeasureTest"),
     {"ES5_MEASURE": "1", "JAVA_TOOL_OPTIONS": "-Xmx12g"},
+  )
+}
+
+// ES5.1 코퍼스 비용 원인 진단: per-generation p_g 프로파일 + 주석/코드 구간 분리 +
+// 고-p generation 조성 히스토그램 (H1 스파이크 vs H2 고원 판별). timing 미측정.
+@action
+def runEs5DiagProfile() {
+  runJUnitTestSuiteWithEnv(
+    mgroup3.test,
+    .some("com.giyeok.jparser.mgroup3.Es5DiagProfileTest"),
+    {"ES5_DIAG": "1", "JAVA_TOOL_OPTIONS": "-Xmx12g"},
   )
 }
 
