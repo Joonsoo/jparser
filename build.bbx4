@@ -231,6 +231,7 @@ mgroup2(basePath="mgroup2") {
     parserData: artifact
   }
 
+  @requires(genCliJar)
   def genKtParser(
     cdgFile: path,
     astifierClassName: string,
@@ -377,6 +378,7 @@ mgroup3(basePath="mgroup3") {
     kotlinAdtRoot: artifact
   }
 
+  @requires(genCliJar)
   def genRustParser(
     cdgFile: path,
     // 생성될 Kotlin AST 클래스의 FQCN — 마지막 컴포넌트가 클래스명, 앞이 패키지.
@@ -747,28 +749,33 @@ def runScalaTestSuite(lib: jvm.JvmLib, suiteName: optional<string>) {
   }
 }
 
+@requires(mgroup2.test)
 @action
 def runTest() {
   runScalaTest(mgroup2.test)
 }
 
+@requires(mgroup2.test)
 @action
 def runMgroup2Test() {
   runScalaTestSuite(mgroup2.test, .some("com.giyeok.jparser.mgroup2.Mgroup2Test"))
 }
 
+@requires(mgroup3.test)
 @action
 def runMgroup3Test() {
   // Benchmark / profiling suites 는 별도 action 으로만 돌림.
   runJUnitTestExcluding(mgroup3.test, ".*(Benchmark|Profiling).*")
 }
 
+@requires(mgroup3.test)
 @action
 def runMgroup3GenTest() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.ParserGenTest"))
 }
 
 // mgroup2 vs mgroup3 kernelsHistory 동등성 하니스 + AST walk 동등성 검증.
+@requires(mgroup3.test)
 @action
 def runMgroup3HistoryDiffTest() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Mgroup2VsMgroup3HistoryTest"))
@@ -776,6 +783,7 @@ def runMgroup3HistoryDiffTest() {
 
 // Phase A 계측: m2 vs m3 의 live path 체인 / interior milestone 인벤토리 대조 —
 // 파스 페이즈 상태 폭발 (nullable 경계 ptr 쌍) 진단. kernels_history_optimization.md §0.1.
+@requires(mgroup3.test)
 @action
 def runMgroup3PathsDiffTest() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Mgroup2VsMgroup3PathsTest"))
@@ -792,6 +800,7 @@ def runMgroup3PathsDiffTest() {
 // once after cloning if the parser_generated/ cases are needed locally.
 // `runMgroup3Test` invokes the same test as part of the full suite — this
 // action is just a faster way to drive only ParserFixtureGenTest.
+@requires(mgroup3.test)
 @action
 def runMgroup3FixtureGen() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.ParserFixtureGenTest"))
@@ -800,6 +809,7 @@ def runMgroup3FixtureGen() {
 // ES5.1 문법만 data.pb 로 덤프 (mgroup3-native 가 로드). ParserFixtureGenTest 와 달리
 // mulang 등 대형 픽스처를 재생성하지 않는다. 산출:
 // mgroup3-native/tests/fixtures/parser_generated/es5/data.pb
+@requires(mgroup3.test)
 @action
 def runEs5FixtureGen() {
   runJUnitTestSuiteWithEnv(
@@ -812,6 +822,7 @@ def runEs5FixtureGen() {
 // 자동으로 mgroup3-native cdylib 빌드 후, FFM in-process bridge 테스트를 실행.
 // MGROUP3_NATIVE_INPROC=1 을 전파해 JUnit 의 @EnabledIfEnvironmentVariable 게이트를 해제.
 // HotSpot 전용 — GraalVM native-image AOT 의 upcall 미지원과 무관.
+@requires(mgroup3.test)
 @action
 def runMgroup3NativeTest() {
   buildMgroup3NativeRelease()
@@ -825,6 +836,7 @@ def runMgroup3NativeTest() {
 // Phase B FFI 교차 검증: GenCli 로 asdl crate 생성 → cargo build --features ffi
 // → FFM 로드 → Rust walk+encode 결과를 Kotlin AstProtoBinding 으로 decode 해
 // Kotlin walk 와 비교. cargo 필요 (PATH). 첫 실행은 crate 의존성 빌드로 느림.
+@requires(mgroup3.test)
 @action
 def runMgroup3GenAstFfiTest() {
   runJUnitTestSuiteWithEnv(
@@ -837,6 +849,7 @@ def runMgroup3GenAstFfiTest() {
 // AST-delta 차등 게이트 (Stage 3a): 델타 세션 FFI (mgroup3_gen_session_edit_delta) 로
 // 퍼징 편집을 흘려 AstProtoBinding.DeltaSession (applyDelta/initFromFull) 누적 결과가
 // 매 편집 full 파스와 구조+스팬까지 동일한지 검증 (델타/폴백 경로 모두). cargo 필요.
+@requires(mgroup3.test)
 @action
 def runMgroup3GenDeltaTest() {
   runJUnitTestSuiteWithEnv(
@@ -849,6 +862,7 @@ def runMgroup3GenDeltaTest() {
 // mgroup3 Kotlin vs mgroup3-native (FFM) wall-clock benchmark across the
 // mulang corpus. Mulang fixtures must be present (run
 // `runMgroup3FixtureGen` once first).
+@requires(mgroup3.test)
 @action
 def runMgroup3NativeBenchmark() {
   buildMgroup3NativeRelease()
@@ -859,26 +873,31 @@ def runMgroup3NativeBenchmark() {
   )
 }
 
+@requires(mgroup3.test)
 @action
 def runMgroup3CornerCaseTest() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Mgroup3CornerCaseTest"))
 }
 
+@requires(mgroup3.test)
 @action
 def runKtParserCornerCaseTest() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.KtParserCornerCaseTest"))
 }
 
+@requires(mgroup3.test)
 @action
 def runMgroup3ParserTest() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Mgroup3ParserTest"))
 }
 
+@requires(mgroup3.test)
 @action
 def runMgroup3MulangCdgTest() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.MulangCdgTest"))
 }
 
+@requires(mgroup3.test)
 @action
 def runMgroup3AdvancedTest() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Mgroup3ParserAdvancedTest"))
@@ -888,6 +907,7 @@ def runMgroup3AdvancedTest() {
 // kernelsHistory·accept 동일성. 인프로세스 문법 셋(structural corpus + asdl)은 항상,
 // mulang/es5 는 MG4_DIFF=1 + 대형 parserdata 존재 시. MG4_SHAPE_STATS=1 로
 // 병합률/거부사유 카운터 출력. n 은 env var MG4_INTERIOR_N 로도 전역 오버라이드 가능.
+@requires(mgroup4.test)
 @action
 def runMgroup4DiffTest() {
   runJUnitTestSuiteWithEnv(
@@ -901,6 +921,7 @@ def runMgroup4DiffTest() {
 // merged 결과를 현행 재파티션과 나란히 계산해 equals 대조 (MG4_LAZY_VERIFY=1). 게이트는
 // 이 모드를 켠 채로도 byte-parity 전부 그린이어야 한다. MG4_SHAPE_STATS 로 히트율도 출력.
 // G-b2 확장: 경계 edge 캐시 경로도 (캐시 조회 vs 직접 조회) 대조.
+@requires(mgroup4.test)
 @action
 def runMgroup4LazyVerify() {
   runJUnitTestSuiteWithEnv(
@@ -913,6 +934,7 @@ def runMgroup4LazyVerify() {
 // mgroup4 Phase G-b2/G-b3: 캐시 OFF 로 byte-parity (게이트 (i) 캐시 on/off 양쪽). merge 캐시와
 // 경계 edge 캐시를 모두 비활성(MG4_LAZY_CACHE=0)한 채 n∈{1,2,4,6} kernelsHistory 동일성 확인 —
 // 캐시 코드가 파스 결과에 영향 없음을 캐시-없는 경로로 독립 검증한다.
+@requires(mgroup4.test)
 @action
 def runMgroup4DiffTestCacheOff() {
   runJUnitTestSuiteWithEnv(
@@ -923,6 +945,7 @@ def runMgroup4DiffTestCacheOff() {
 }
 
 // mgroup4 거친 wall-clock 신호 (A4 정식 측정 전 신호용) — json2 n=1 vs n=6.
+@requires(mgroup4.test)
 @action
 def runMgroup4WallClock() {
   runJUnitTestSuiteWithEnv(
@@ -935,6 +958,7 @@ def runMgroup4WallClock() {
 // mgroup4 Phase G0: suffix-set 상태 공간 동적 하한 프로브 (phase_g_plan.md §2 G0).
 // asdl(항상) + mulang/es5(대형 pb 존재 시) 를 n∈{2,3,4} 로 파싱하며 distinct suffix-set
 // 상태 수를 잰다. 계측 전용 (MG4_G0_STATS 게이트) — 파스 출력 무영향.
+@requires(mgroup4.test)
 @action
 def runMgroup4G0Probe() {
   runJUnitTestSuiteWithEnv(
@@ -950,6 +974,7 @@ def runMgroup4G0Probe() {
 // (mgroup4/docs/phase_g_design.md §4 G-b0). (i) gen 불변성 (구조·조건), (ii) n=1
 // State↔tipGroup 함수성, (iii) G0 대비 State 수 정합 보고. 계측 전용 — 파스 무영향.
 // MG4_G0_STATS=1 이면 대형 코퍼스(es5) 브리지 보고도 포함.
+@requires(mgroup4.test)
 @action
 def runMgroup4StateBridgeTest() {
   runJUnitTestSuiteWithEnv(
@@ -963,6 +988,7 @@ def runMgroup4StateBridgeTest() {
 // 덤프한다. A4 정식 측정은 n 설정별 **별도 JVM 프로세스**로 돌려야 JIT 순서 편향을
 // 없앨 수 있는데, bibix action 은 런타임 인자를 못 받으므로 classpath 만 내보내고
 // 실제 per-n java 실행은 외부(스크립트)에서 MG4_INTERIOR_N/MG4_BENCH_* env 로 한다.
+@requires(mgroup4.test)
 @action
 def dumpMgroup4Classpath() {
   let runtimeClasspath = artifact.awaitAll(
@@ -978,16 +1004,19 @@ def dumpMgroup4Classpath() {
   context.log("classpath written to build/mg4-classpath.txt")
 }
 
+@requires(mgroup3.test)
 @action
 def runParserBenchmark() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.ParserBenchmarkTest"))
 }
 
+@requires(mgroup3.test)
 @action
 def runMgroup3Profile() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Mgroup3ProfilingTest"))
 }
 
+@requires(mgroup3.test)
 @action
 def runParserBenchmarkTaxonomy() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.ParserBenchmarkTaxonomyTest"))
@@ -997,6 +1026,7 @@ def runParserBenchmarkTaxonomy() {
 // 기본은 json+proto3 합성 입력 스케일링. Mulang 스위트는 별도 타겟
 // (milestone2 파서 데이터는 milestone2-test-cache 에 캐시, mgroup3 는
 // runMgroup3FixtureGen 산출 fixture 재사용).
+@requires(mgroup3.test)
 @action
 def runAblationBenchmark() {
   runJUnitTestSuiteWithEnv(
@@ -1006,6 +1036,7 @@ def runAblationBenchmark() {
   )
 }
 
+@requires(mgroup3.test)
 @action
 def runAblationBenchmarkMulang() {
   runJUnitTestSuiteWithEnv(
@@ -1016,11 +1047,13 @@ def runAblationBenchmarkMulang() {
 }
 
 // ES5.1 직역 문법 (examples/metalang3/resources/es5) 수용 배터리
+@requires(mgroup3.test)
 @action
 def runEs5CdgTest() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Es5CdgTest"))
 }
 
+@requires(mgroup3.test)
 @action
 def runEs5DebugTest() {
   runJUnitTestSuiteWithEnv(
@@ -1031,6 +1064,7 @@ def runEs5DebugTest() {
 }
 
 // ES5 직역 문법으로 es5-corpus/*.js (repo 루트, untracked) 전부 파싱
+@requires(mgroup3.test)
 @action
 def runEs5CorpusTest() {
   runJUnitTestSuiteWithEnv(
@@ -1042,6 +1076,7 @@ def runEs5CorpusTest() {
 }
 
 // 논문 §9 문법 통계 (라인/nonterminal/연산자별 조건부 심볼 수)
+@requires(mgroup3.test)
 @action
 def runGrammarStats() {
   runJUnitTestSuiteWithEnv(
@@ -1054,6 +1089,7 @@ def runGrammarStats() {
 // 문법별 milestone group(=MGACP 그룹, LR state count 대응) 인벤토리 수.
 // JSON/Proto3/ES5.1 은 fresh 생성, Mulang 은 pinned fixture data.pb 로드.
 // fixture 디코드가 무거워 힙 상향.
+@requires(mgroup3.test)
 @action
 def runGroupInventoryStats() {
   runJUnitTestSuiteWithEnv(
@@ -1065,6 +1101,7 @@ def runGroupInventoryStats() {
 
 // Mulang pinned grammar (mulang@4db5727) 로 그룹 수 재계산 + on-disk fixture 대조.
 // 스냅샷은 `git -C ../mulang show 4db5727:grammar/mulang.cdg` 추출본을 리소스로 고정.
+@requires(mgroup3.test)
 @action
 def runMulangPinnedGroupStats() {
   runJUnitTestSuiteWithEnv(
@@ -1079,6 +1116,7 @@ def runMulangPinnedGroupStats() {
 }
 
 // ES5.1 코퍼스 wall-clock (warmup1+median3) + peak live state (main vs watcher 분리).
+@requires(mgroup3.test)
 @action
 def runEs5CorpusMeasure() {
   runJUnitTestSuiteWithEnv(
@@ -1090,6 +1128,7 @@ def runEs5CorpusMeasure() {
 
 // ES5.1 코퍼스 비용 원인 진단: per-generation p_g 프로파일 + 주석/코드 구간 분리 +
 // 고-p generation 조성 히스토그램 (H1 스파이크 vs H2 고원 판별). timing 미측정.
+@requires(mgroup3.test)
 @action
 def runEs5DiagProfile() {
   runJUnitTestSuiteWithEnv(
@@ -1100,6 +1139,7 @@ def runEs5DiagProfile() {
 }
 
 // mulang 에 naive2 까지 포함 (2KB 입력에 수 분 소요 — crossover 실증용)
+@requires(mgroup3.test)
 @action
 def runAblationBenchmarkMulangNaive() {
   runJUnitTestSuiteWithEnv(
