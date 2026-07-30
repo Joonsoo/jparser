@@ -1,0 +1,85 @@
+es5-corpus-asi/ — real, deployed, semicolon-free ES5.1 JavaScript.
+Untracked (same convention as es5-corpus/). Files are verbatim upstream release
+artifacts; nothing was edited or trimmed. Fetched 2026-07-30.
+
+Purpose: every file here is valid ES5.1 per a real engine (node --check) but
+REQUIRES Automatic Semicolon Insertion (ES5.1 §7.9) to parse, so the BASE
+ES5.1 CDG grammar (examples/metalang3/resources/es5/grammar.cdg, which
+explicitly does not encode ASI) must REJECT all of them.
+
+------------------------------------------------------------------------------
+zepto-1.2.0.js                                             58,707 bytes
+  project  Zepto.js (mobile-first jQuery-compatible DOM library)
+  version  v1.2.0 (released 2016-07-14)
+  file     dist/zepto.js  (default build: zepto event ajax form ie)
+  source   https://registry.npmjs.org/zepto/-/zepto-1.2.0.tgz -> package/dist/zepto.js
+  repo     https://github.com/madrobby/zepto  tag v1.2.0
+           commit 12746ff4f78321220e9cda2c67102f01b6ebf9c7
+  license  MIT (package.json "license": "MIT"; MIT-LICENSE in tarball)
+  sha256   53ebcf6b0eb0191363b414739c80561e0a7336f348f2946cf1f402df5ddcc5fb
+  note     dist/ is NOT committed to the git repo, so it is taken from the
+           published npm tarball (tarball sha256
+           93977279a7b5907a0933daeb175295ebd85b9f1c23a24b56bfdc5a114008285d).
+           It is a build, not a literal concatenation of src/*.js.
+
+bean-1.0.14.js                                             32,014 bytes
+  project  bean (DOM event manager)
+  version  v1.0.14
+  file     src/bean.js
+  source   https://raw.githubusercontent.com/fat/bean/v1.0.14/src/bean.js
+  repo     https://github.com/fat/bean  tag v1.0.14
+           commit c8cca215d5703807cbb7e22088a26d3739604af6
+  license  MIT (LICENSE: "Copyright 2011-2012, Jacob Thornton ... MIT")
+  sha256   8965db9a66aa9964dc3bad6bf85f46bd6f2fcc91679754ced724018837d61a65
+
+bonzo-2.0.0.js                                             30,234 bytes
+  project  bonzo (DOM utility)
+  version  v2.0.0
+  file     src/bonzo.js
+  source   https://raw.githubusercontent.com/ded/bonzo/v2.0.0/src/bonzo.js
+  repo     https://github.com/ded/bonzo  tag v2.0.0
+           commit 20b172f0137187c5212227fe1ba65ddcd2446eb5
+  license  MIT (LICENSE: "Copyright 2012, Dustin Diaz ... MIT License")
+  sha256   70020bbb73eaff83c61428e4f2f53aec684e1f58784322445bc056ed3a73bfcc
+
+reqwest-2.0.5.js                                           19,211 bytes
+  project  reqwest (XHR connection manager)
+  version  v2.0.5
+  file     reqwest.js
+  source   https://raw.githubusercontent.com/ded/reqwest/v2.0.5/reqwest.js
+  repo     https://github.com/ded/reqwest  tag v2.0.5
+           commit d9be8c54a65bc54a8fa5ca8e9a719c51abf44996
+  license  MIT (package.json "license": "MIT"; banner "license MIT (c) Dustin Diaz 2015")
+  sha256   8dfd5cc9fec57305c7edcb110b2bf5821f3b949a8adafc28fa0c750d84815184
+------------------------------------------------------------------------------
+
+Verification (see mgroup3/test/kotlin/com/giyeok/jparser/mgroup3/Es5AsiCorpusProbe.kt):
+  bibix4 runEs5AsiCorpusProbe
+    -> BASE grammar x this dir, expects REJECT for every file; prints the
+       first-failure site and classifies it against ES5.1 7.9.1 rule 1.
+  bibix4 runEs5AsiCorpusAccept
+    -> same corpus against the ASI-encoding grammar, expects ACCEPT.
+       Fix ES5_ASI_GRAMMAR in that action to wherever the ASI grammar lands.
+
+Style: literal ';' characters in the whole file (for-headers, strings and regexes
+included) -- zepto 21, bean 34, bonzo 27, reqwest 17. Of the statement-ish lines,
+zepto 600/600 and bean 295/295 end without a semicolon.
+
+Result on 2026-07-30 (BASE grammar): all four REJECTED. First-failure sites --
+  zepto    offset 194  line 4  before '}'  7.9.1 rule 1 clause (b)
+  bean     offset 126  line 3  before 'e' of `else`   clause (a)
+  bonzo    offset 126  line 3  before 'e' of `else`   clause (a)
+  reqwest  offset 262  line 9  before 'e' of `else`   clause (a)
+ASI-repair probe (ES5_ASI_REPAIR=1): inserting only semicolons at positions the
+parser demands drives the parse forward, and every such position is a legal
+7.9.1 site. With the cap at 40 all four files gave 40/40 legal sites and zero
+unexplainable ones. With the cap lifted, reqwest was repaired to completion:
+220 insertions (123 clause (a), 97 clause (a)+(b)), after which the BASE grammar
+ACCEPTS the file -- i.e. ASI is the sole obstacle. That full run takes ~380s for
+19KB and was OS-killed on the next file at -Xmx10g, hence the shipped cap.
+
+Accept side, same day, informational (the ASI grammar was under concurrent
+development; snapshot sha256 2044b5770e9c12637feca7223792de25ee6048e2e3e7b2bc25211d5837a299cf):
+`bibix4 runEs5AsiCorpusAccept` -> all four ACCEPT.
+  reqwest 4703ms peakShapes 1518 | bonzo 4233ms 568
+  bean    4760ms peakShapes  510 | zepto 13614ms 1506

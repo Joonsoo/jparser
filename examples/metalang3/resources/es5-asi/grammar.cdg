@@ -1,0 +1,442 @@
+// ECMAScript 5.1 (ECMA-262 5.1 / ISO-IEC 16262:2011) Annex A -> CDG transliteration,
+// WITH automatic semicolon insertion (7.9) encoded declaratively.
+//
+// This is the ASI variant of examples/metalang3/resources/es5/grammar.cdg. Everything
+// outside the "7.9 Automatic semicolon insertion" section and the statement terminators
+// that reference it is character-identical to that file.
+// Section numbers in comments refer to the ES5.1 specification.
+//
+// Spec devices and their CDG renderings:
+//   [lookahead not-in {...}]      -> !(...)          (A.4 ExpressionStatement; 7.8.4 EscapeSequence '0')
+//   "IdentifierName but not X"    -> IdentifierName - X   (7.6 Identifier)
+//   "SourceCharacter but not X"   -> .-'X'           (string/regex/comment character sets)
+//   longest-match lexing (ch. 7)  -> <...> on token nonterminals, and !-guards where
+//                                    a shorter operator is a prefix of a longer one
+//   [no LineTerminator here]      -> WSNoNL          (7.9.1 restricted productions:
+//                                    PostfixExpression, continue, break, return, throw)
+//   keyword/token boundary        -> "kw"&Tk         (keywords must span a maximal IdentifierName)
+//   two lexical goal symbols      -> none needed: RegularExpressionLiteral and division
+//     (InputElementDiv/RegExp, 7)    coexist as grammar alternatives; context disambiguates
+//   automatic semicolon insertion -> SemiC / SemiA   (7.9; a *procedure* in the spec, here a
+//     (7.9)                          pair of terminator nonterminals — see the section below)
+//
+// DEVIATIONS (documented, all shrink the accepted language or are out of scope):
+//   - Identifiers and whitespace are ASCII-scoped: no Unicode letter categories, no \uXXXX
+//     escapes inside identifiers, no U+2028/U+2029/U+FEFF/U+00A0.
+//   - Annex B legacy forms (octal literals, octal escapes) are omitted.
+//   - Only the non-strict FutureReservedWords (7.6.1.2) are reserved.
+
+// ===== A.5 Programs (14) =====
+
+// WS normal form: WS always attaches to the following anchored element; an optional
+// bundles its leading WS inside. "WS X? WS" would make every boundary inside a long
+// whitespace/comment run a live split point in the milestone representation.
+Program = (WS SourceElement)* WS
+SourceElement = Statement
+  | FunctionDeclaration
+
+// ===== A.5 Functions (13) =====
+
+FunctionDeclaration = "function"&Tk WS Identifier WS '(' (WS FormalParameterList)? WS ')' WS '{' FunctionBody WS '}'
+FunctionExpression = "function"&Tk (WS Identifier)? WS '(' (WS FormalParameterList)? WS ')' WS '{' FunctionBody WS '}'
+FormalParameterList = Identifier (WS ',' WS Identifier)*
+FunctionBody = (WS SourceElement)*
+
+// ===== 7.9 Automatic semicolon insertion =====
+//
+// The spec states ASI as a procedure over the token stream: when the parser hits an
+// "offending token" it may insert a virtual semicolon. Here it is a grammar-level
+// terminator: every production that ended in `WS ';'` and is a candidate for insertion
+// ends in SemiC or SemiA instead. Nothing else in the grammar changes, and no ';' that
+// the spec forbids inserting (for-headers, EmptyStatement) is touched.
+//
+// The three insertion conditions of 7.9.1 map one-to-one:
+//   rule 1  (offending token preceded by a LineTerminator)  -> ^WSNL !(WS (ContTok | EndTok))
+//   rule 1b (offending token is '}')                        -> ^(WS EndTok), EndTok's '}'
+//   rule 2  (end of input, no complete Program yet)         -> ^(WS EndTok), EndTok's Eof
+// and the negative half of the procedure — "no semicolon is inserted if the token can be
+// parsed as part of the statement" — is ContTok: the tokens that CONTINUE the preceding
+// Expression. Because insertion is an alternative rather than a fallback, ContTok is what
+// keeps `a = b \n (c)` from having a second, spurious two-statement reading (7.9.2).
+//
+// Everything except the literal `WS ';'` alternative is zero-width: the surrounding
+// `(WS Statement)*` / `(WS SourceElement)*` still owns the trivia, so the WS normal form
+// of the base grammar is preserved. In particular the end-of-input alternative is
+// `^(WS Eof)` rather than `WS Eof`: consuming the trailing trivia here would leave
+// Program's own trailing WS free to consume it too, i.e. two derivations of one program.
+//
+// The three alternatives of SemiC (and of SemiA) are pairwise disjoint by construction:
+// `WS ';'` needs a real ';' (which the newline alternative excludes via ContTok), and the
+// newline alternative excludes EndTok, which is exactly what the second alternative
+// covers. The disjointness costs nothing in accepted language and buys a single parse
+// tree per program — see Es5AsiCdgTest.statementCounts, which asserts it.
+
+// The end of the input. `.` is the any-character class already used by the comment,
+// string and regex productions, so Eof needs nothing new.
+Eof = !.
+
+// The upcoming trivia run, up to and including its first LineTerminator. WSNL is only
+// ever used under '^', where "some prefix of what follows is a WSNL" says exactly
+// "a LineTerminator occurs in the trivia before the next token" — 7.9.1's precondition.
+// The split is unique: WSNoNL is by construction the LineTerminator-free part.
+// 7.4: "a MultiLineComment that contains a line terminator character is considered to be
+// a LineTerminator" — hence MultiLineCommentNL, which is "a block comment that is not a
+// newline-free one", i.e. exactly the elements WS has and WSNoNL has not.
+WSNL = WSNoNL LineTerminatorTrivia
+LineTerminatorTrivia = '\n\r' | MultiLineCommentNL
+MultiLineCommentNL = MultiLineComment - MultiLineCommentNoNL
+
+// Tokens after which the statement is already over without an insertion (7.9.1 rules
+// 1b and 2). Factored out so the two ASI alternatives below stay mutually exclusive.
+EndTok = '}' | Eof
+
+// Tokens that can continue a completed Expression, i.e. the ones that are NOT offending,
+// so 7.9.1 forbids insertion before them. Each carries the same greedy-lexing guard the
+// corresponding operator carries in the syntactic grammar, so:
+//   - '/' cannot be the start of a comment (comments are trivia, never a division sign);
+//     '/=' is still a continuation, hence only '/' and '*' are excluded.
+//   - '.' followed by a digit is a NumericLiteral (".5"), not a member access, so it is
+//     an offending token and insertion IS allowed.
+//   - '++' / '--' are restricted productions (7.9.1): a LineTerminator before them always
+//     terminates the statement, so only the single-character '+' / '-' continue.
+//   - "!=" / "!==" continue an EqualityExpression, but a lone '!' starts a new unary
+//     expression statement, so only the two-character form is listed.
+//   - ';' is listed so that `a = b \n ;` has only the reading `a = b;` — the ';' is not an
+//     offending token, so 7.9.1 inserts nothing.
+ContTok = ';'
+  | '('
+  | '['
+  | '+' !'+'
+  | '-' !'-'
+  | '/' !'/*'
+  | '.' !'0-9'
+  | "!="
+
+// SemiC — terminator of a statement whose tail is an Expression that a following token
+// could extend. The ContTok guard is what makes rule 1 faithful.
+SemiC = WS ';'
+  | ^(WS EndTok)
+  | ^WSNL !(WS (ContTok | EndTok))
+
+// SemiA — terminator of a statement that nothing can extend across a LineTerminator
+// (break/continue/return with no operand, do-while's ')', debugger). Only ';' itself has
+// to be excluded from the newline alternative, for the same reason as in ContTok.
+SemiA = WS ';'
+  | ^(WS EndTok)
+  | ^WSNL !(WS (';' | EndTok))
+
+// ===== A.4 Statements (12) =====
+
+Statement = Block
+  | VariableStatement
+  | EmptyStatement
+  | ExpressionStatement
+  | IfStatement
+  | IterationStatement
+  | ContinueStatement
+  | BreakStatement
+  | ReturnStatement
+  | WithStatement
+  | LabelledStatement
+  | SwitchStatement
+  | ThrowStatement
+  | TryStatement
+  | DebuggerStatement
+
+Block = '{' (WS Statement)* WS '}'
+
+VariableStatement = "var"&Tk WS VariableDeclarationList SemiC
+VariableDeclarationList = VariableDeclaration (WS ',' WS VariableDeclaration)*
+VariableDeclarationListNoIn = VariableDeclarationNoIn (WS ',' WS VariableDeclarationNoIn)*
+VariableDeclaration = Identifier (WS Initialiser)?
+VariableDeclarationNoIn = Identifier (WS InitialiserNoIn)?
+Initialiser = '=' !'=' WS AssignmentExpression
+InitialiserNoIn = '=' !'=' WS AssignmentExpressionNoIn
+
+// 12.3: stays a literal ';'. 7.9.1 never inserts a semicolon that would become an
+// EmptyStatement, which is why SemiC/SemiA are terminators and not statements.
+EmptyStatement = ';'
+
+// 12.4: ExpressionStatement : [lookahead not-in {"{", "function"}] Expression ;
+ExpressionStatement = !('{' | "function"&Tk) Expression SemiC
+
+IfStatement = "if"&Tk WS '(' WS Expression WS ')' WS Statement WS "else"&Tk WS Statement
+  | "if"&Tk WS '(' WS Expression WS ')' WS Statement
+
+// do-while's ')' is followed by nothing that can extend it, hence SemiA. The three
+// for-header ';' stay literal: 7.9.1 explicitly never inserts there.
+IterationStatement = "do"&Tk WS Statement WS "while"&Tk WS '(' WS Expression WS ')' SemiA
+  | "while"&Tk WS '(' WS Expression WS ')' WS Statement
+  | "for"&Tk WS '(' (WS ExpressionNoIn)? WS ';' (WS Expression)? WS ';' (WS Expression)? WS ')' WS Statement
+  | "for"&Tk WS '(' WS "var"&Tk WS VariableDeclarationListNoIn WS ';' (WS Expression)? WS ';' (WS Expression)? WS ')' WS Statement
+  | "for"&Tk WS '(' WS LeftHandSideExpression WS "in"&Tk WS Expression WS ')' WS Statement
+  | "for"&Tk WS '(' WS "var"&Tk WS VariableDeclarationNoIn WS "in"&Tk WS Expression WS ')' WS Statement
+
+// 12.7-12.9, 12.13: restricted productions — [no LineTerminator here] becomes WSNoNL.
+// The `(... )?` of the base grammar is split into two alternatives so that the operand-less
+// form gets its own terminator. For return this is load-bearing, not cosmetic:
+// `return \n (x);` must read as `return; (x);`, but SemiC's ContTok contains '(' and would
+// suppress the insertion, while WSNoNL already forbids attaching `(x)` to the return —
+// the statement would deadlock. SemiA (no ContTok guard) is the correct terminator for a
+// bare `return`, and likewise for bare `break` / `continue`, which no token can extend.
+ContinueStatement = "continue"&Tk WSNoNL Identifier SemiA
+  | "continue"&Tk SemiA
+BreakStatement = "break"&Tk WSNoNL Identifier SemiA
+  | "break"&Tk SemiA
+ReturnStatement = "return"&Tk WSNoNL Expression SemiC
+  | "return"&Tk SemiA
+// 12.13 has no operand-less throw: `throw \n x` stays a SyntaxError, as the spec's note
+// on the restricted production requires.
+ThrowStatement = "throw"&Tk WSNoNL Expression SemiC
+
+WithStatement = "with"&Tk WS '(' WS Expression WS ')' WS Statement
+
+SwitchStatement = "switch"&Tk WS '(' WS Expression WS ')' WS CaseBlock
+CaseBlock = '{' (WS CaseClause)* (WS DefaultClause (WS CaseClause)*)? WS '}'
+CaseClause = "case"&Tk WS Expression WS ':' (WS Statement)*
+DefaultClause = "default"&Tk WS ':' (WS Statement)*
+
+LabelledStatement = Identifier WS ':' WS Statement
+
+TryStatement = "try"&Tk WS Block WS Catch
+  | "try"&Tk WS Block WS Finally
+  | "try"&Tk WS Block WS Catch WS Finally
+Catch = "catch"&Tk WS '(' WS Identifier WS ')' WS Block
+Finally = "finally"&Tk WS Block
+
+DebuggerStatement = "debugger"&Tk SemiA
+
+// ===== A.3 Expressions (11) =====
+
+PrimaryExpression = "this"&Tk
+  | Identifier
+  | Literal
+  | ArrayLiteral
+  | ObjectLiteral
+  | '(' WS Expression WS ')'
+
+// ElementList/Elision (11.1.4) reformulated in WS normal form; the language is identical:
+// items are comma-separated, an elision is an extra comma, a trailing comma is allowed.
+ArrayLiteral = '[' (WS ',' | WS AssignmentExpression WS ',')* (WS AssignmentExpression)? WS ']'
+
+ObjectLiteral = '{' WS '}'
+  | '{' WS PropertyAssignment (WS ',' WS PropertyAssignment)* (WS ',')? WS '}'
+PropertyAssignment = PropertyName WS ':' WS AssignmentExpression
+  | "get"&Tk WS PropertyName WS '(' WS ')' WS '{' FunctionBody WS '}'
+  | "set"&Tk WS PropertyName WS '(' WS Identifier WS ')' WS '{' FunctionBody WS '}'
+// 11.1.5: PropertyName uses IdentifierName, not Identifier — reserved words are legal here
+PropertyName = IdentifierName
+  | StringLiteral
+  | NumericLiteral
+
+MemberExpression = PrimaryExpression
+  | FunctionExpression
+  | MemberExpression WS '[' WS Expression WS ']'
+  | MemberExpression WS '.' WS IdentifierName
+  | "new"&Tk WS MemberExpression WS Arguments
+
+NewExpression = MemberExpression
+  | "new"&Tk WS NewExpression
+
+CallExpression = MemberExpression WS Arguments
+  | CallExpression WS Arguments
+  | CallExpression WS '[' WS Expression WS ']'
+  | CallExpression WS '.' WS IdentifierName
+
+Arguments = '(' WS ')'
+  | '(' WS ArgumentList WS ')'
+ArgumentList = AssignmentExpression (WS ',' WS AssignmentExpression)*
+
+LeftHandSideExpression = NewExpression
+  | CallExpression
+
+// 11.3: PostfixExpression : LHS [no LineTerminator here] ++ / --
+PostfixExpression = LeftHandSideExpression
+  | LeftHandSideExpression WSNoNL "++"
+  | LeftHandSideExpression WSNoNL "--"
+
+// 11.4. Unary +/- carry !-guards so that ++/-- lex greedily, as in ch. 7.
+UnaryExpression = PostfixExpression
+  | "delete"&Tk WS UnaryExpression
+  | "void"&Tk WS UnaryExpression
+  | "typeof"&Tk WS UnaryExpression
+  | "++" WS UnaryExpression
+  | "--" WS UnaryExpression
+  | '+' !'+' WS UnaryExpression
+  | '-' !'-' WS UnaryExpression
+  | '~' WS UnaryExpression
+  | '!' !'=' WS UnaryExpression
+
+MultiplicativeExpression = UnaryExpression
+  | MultiplicativeExpression WS '*' !'=' WS UnaryExpression
+  // '/' must not be followed by '/', '*' (a comment, never [div, regex] — ch. 7 trivia
+  // maximal munch) or '=' ('/=').
+  | MultiplicativeExpression WS '/' !'/*=' WS UnaryExpression
+  | MultiplicativeExpression WS '%' !'=' WS UnaryExpression
+
+// 11.6. Additive +/- guarded against ++/--/+=/-=: greedy lexing transliterated.
+AdditiveExpression = MultiplicativeExpression
+  | AdditiveExpression WS '+' !'+=' WS MultiplicativeExpression
+  | AdditiveExpression WS '-' !'\-=' WS MultiplicativeExpression
+
+ShiftExpression = AdditiveExpression
+  | ShiftExpression WS "<<" !'=' WS AdditiveExpression
+  | ShiftExpression WS ">>" !'>=' WS AdditiveExpression
+  | ShiftExpression WS ">>>" !'=' WS AdditiveExpression
+
+RelationalExpression = ShiftExpression
+  | RelationalExpression WS '<' !'<=' WS ShiftExpression
+  | RelationalExpression WS '>' !'>=' WS ShiftExpression
+  | RelationalExpression WS "<=" WS ShiftExpression
+  | RelationalExpression WS ">=" WS ShiftExpression
+  | RelationalExpression WS "instanceof"&Tk WS ShiftExpression
+  | RelationalExpression WS "in"&Tk WS ShiftExpression
+
+RelationalExpressionNoIn = ShiftExpression
+  | RelationalExpressionNoIn WS '<' !'<=' WS ShiftExpression
+  | RelationalExpressionNoIn WS '>' !'>=' WS ShiftExpression
+  | RelationalExpressionNoIn WS "<=" WS ShiftExpression
+  | RelationalExpressionNoIn WS ">=" WS ShiftExpression
+  | RelationalExpressionNoIn WS "instanceof"&Tk WS ShiftExpression
+
+EqualityExpression = RelationalExpression
+  | EqualityExpression WS "==" !'=' WS RelationalExpression
+  | EqualityExpression WS "!=" !'=' WS RelationalExpression
+  | EqualityExpression WS "===" WS RelationalExpression
+  | EqualityExpression WS "!==" WS RelationalExpression
+
+EqualityExpressionNoIn = RelationalExpressionNoIn
+  | EqualityExpressionNoIn WS "==" !'=' WS RelationalExpressionNoIn
+  | EqualityExpressionNoIn WS "!=" !'=' WS RelationalExpressionNoIn
+  | EqualityExpressionNoIn WS "===" WS RelationalExpressionNoIn
+  | EqualityExpressionNoIn WS "!==" WS RelationalExpressionNoIn
+
+BitwiseANDExpression = EqualityExpression
+  | BitwiseANDExpression WS '&' !'&=' WS EqualityExpression
+BitwiseANDExpressionNoIn = EqualityExpressionNoIn
+  | BitwiseANDExpressionNoIn WS '&' !'&=' WS EqualityExpressionNoIn
+
+BitwiseXORExpression = BitwiseANDExpression
+  | BitwiseXORExpression WS '^' !'=' WS BitwiseANDExpression
+BitwiseXORExpressionNoIn = BitwiseANDExpressionNoIn
+  | BitwiseXORExpressionNoIn WS '^' !'=' WS BitwiseANDExpressionNoIn
+
+BitwiseORExpression = BitwiseXORExpression
+  | BitwiseORExpression WS '|' !'|=' WS BitwiseXORExpression
+BitwiseORExpressionNoIn = BitwiseXORExpressionNoIn
+  | BitwiseORExpressionNoIn WS '|' !'|=' WS BitwiseXORExpressionNoIn
+
+LogicalANDExpression = BitwiseORExpression
+  | LogicalANDExpression WS "&&" WS BitwiseORExpression
+LogicalANDExpressionNoIn = BitwiseORExpressionNoIn
+  | LogicalANDExpressionNoIn WS "&&" WS BitwiseORExpressionNoIn
+
+LogicalORExpression = LogicalANDExpression
+  | LogicalORExpression WS "||" WS LogicalANDExpression
+LogicalORExpressionNoIn = LogicalANDExpressionNoIn
+  | LogicalORExpressionNoIn WS "||" WS LogicalANDExpressionNoIn
+
+ConditionalExpression = LogicalORExpression
+  | LogicalORExpression WS '?' WS AssignmentExpression WS ':' WS AssignmentExpression
+ConditionalExpressionNoIn = LogicalORExpressionNoIn
+  | LogicalORExpressionNoIn WS '?' WS AssignmentExpression WS ':' WS AssignmentExpressionNoIn
+
+AssignmentExpression = ConditionalExpression
+  | LeftHandSideExpression WS '=' !'=' WS AssignmentExpression
+  | LeftHandSideExpression WS AssignmentOperator WS AssignmentExpression
+AssignmentExpressionNoIn = ConditionalExpressionNoIn
+  | LeftHandSideExpression WS '=' !'=' WS AssignmentExpressionNoIn
+  | LeftHandSideExpression WS AssignmentOperator WS AssignmentExpressionNoIn
+AssignmentOperator = "*=" | "/=" | "%=" | "+=" | "-=" | "<<=" | ">>=" | ">>>=" | "&=" | "^=" | "|="
+
+Expression = AssignmentExpression (WS ',' WS AssignmentExpression)*
+ExpressionNoIn = AssignmentExpressionNoIn (WS ',' WS AssignmentExpressionNoIn)*
+
+// ===== A.1 Lexical Grammar (7) =====
+
+// 7.2/7.3/7.4. WSNoNL renders [no LineTerminator here]: a MultiLineComment containing a
+// line terminator counts as a line terminator (7.4), hence MultiLineCommentNoNL.
+WS = (' \t\n\r' | Comment)*
+WSNoNL = (' \t' | MultiLineCommentNoNL | SingleLineComment)*
+Comment = MultiLineComment | SingleLineComment
+MultiLineComment = "/*" ((. !"*/")* .)? "*/"
+MultiLineCommentNoNL = "/*" (((.-'\n\r') !"*/")* (.-'\n\r'))? "*/"
+// 7.4: a SingleLineComment consists of ALL characters up to (not including) the line
+// terminator — trivia is maximal-munch too. Without the boundary '!', "// he" would be
+// a complete comment and "llo..." would start a phantom token at every interior position.
+SingleLineComment = "//" (.-'\n\r')* !(.-'\n\r')
+
+// 7.6. Identifier :: IdentifierName but not ReservedWord — the spec's "but not" is CDG's '-'.
+// <...> renders the longest-match rule of ch. 7 (maximal munch).
+IdentifierName = <IdentifierStart IdentifierPart*>
+IdentifierStart = 'a-zA-Z$_'
+IdentifierPart = 'a-zA-Z0-9$_'
+Identifier = IdentifierName - ReservedWord
+Tk = IdentifierName
+
+ReservedWord = Keyword | FutureReservedWord | "null" | "true" | "false"
+Keyword = "break" | "case" | "catch" | "continue" | "debugger" | "default" | "delete"
+  | "do" | "else" | "finally" | "for" | "function" | "if" | "in" | "instanceof"
+  | "new" | "return" | "switch" | "this" | "throw" | "try" | "typeof" | "var"
+  | "void" | "while" | "with"
+FutureReservedWord = "class" | "const" | "enum" | "export" | "extends" | "import" | "super"
+
+// 7.8 Literals
+Literal = "null"&Tk | "true"&Tk | "false"&Tk | NumericLiteral | StringLiteral | RegularExpressionLiteral
+
+// 7.8.3: "The source character immediately following a NumericLiteral must not be an
+// IdentifierStart or DecimalDigit" — a prose boundary rule the '!' transliterates.
+// <...> renders maximal munch across the literal alternatives (so "3.toString()" is a
+// syntax error exactly as in the spec: the lexer takes "3.", not "3").
+NumericLiteral = <DecimalLiteral | HexIntegerLiteral> !('a-zA-Z0-9$_')
+DecimalLiteral = DecimalIntegerLiteral '.' DecimalDigits? ExponentPart?
+  | '.' DecimalDigits ExponentPart?
+  | DecimalIntegerLiteral ExponentPart?
+DecimalIntegerLiteral = '0'
+  | NonZeroDigit DecimalDigits?
+DecimalDigits = DecimalDigit+
+DecimalDigit = '0-9'
+NonZeroDigit = '1-9'
+ExponentPart = 'eE' SignedInteger
+SignedInteger = DecimalDigits | '+\-' DecimalDigits
+HexIntegerLiteral = "0x" HexDigit+ | "0X" HexDigit+
+HexDigit = '0-9a-fA-F'
+
+// 7.8.4 String literals. "SourceCharacter but not ..." renders as character-class
+// subtraction; EscapeSequence's '0' carries the spec's inline lookahead restriction.
+StringLiteral = '"' DoubleStringCharacter* '"'
+  | '\'' SingleStringCharacter* '\''
+DoubleStringCharacter = .-'"\\\n\r'
+  | '\\' EscapeSequence
+  | LineContinuation
+SingleStringCharacter = .-'\'\\\n\r'
+  | '\\' EscapeSequence
+  | LineContinuation
+LineContinuation = '\\' '\n\r'
+// 7.8.4: EscapeSequence :: ... | 0 [lookahead not-in DecimalDigit] | ...
+EscapeSequence = CharacterEscapeSequence
+  | '0' !'0-9'
+  | HexEscapeSequence
+  | UnicodeEscapeSequence
+CharacterEscapeSequence = SingleEscapeCharacter | NonEscapeCharacter
+SingleEscapeCharacter = '\'"\\bfnrtv'
+NonEscapeCharacter = .-'\'"\\bfnrtv0-9xu\n\r'
+HexEscapeSequence = 'x' HexDigit HexDigit
+UnicodeEscapeSequence = 'u' HexDigit HexDigit HexDigit HexDigit
+
+// 7.8.5 Regular expression literals. The spec's dual lexical goals (InputElementDiv vs
+// InputElementRegExp) vanish: the literal is just an alternative of Literal, and the
+// syntactic context decides — scannerless parsing needs no goal switch.
+RegularExpressionLiteral = '/' RegularExpressionBody '/' RegularExpressionFlags !('a-zA-Z0-9$_')
+RegularExpressionBody = RegularExpressionFirstChar RegularExpressionChar*
+RegularExpressionFirstChar = .-'*\\/[\n\r'
+  | RegularExpressionBackslashSequence
+  | RegularExpressionClass
+RegularExpressionChar = .-'\\/[\n\r'
+  | RegularExpressionBackslashSequence
+  | RegularExpressionClass
+RegularExpressionBackslashSequence = '\\' (.-'\n\r')
+RegularExpressionClass = '[' RegularExpressionClassChar* ']'
+RegularExpressionClassChar = .-']\\\n\r'
+  | RegularExpressionBackslashSequence
+RegularExpressionFlags = IdentifierPart*

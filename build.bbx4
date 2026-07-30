@@ -1056,6 +1056,13 @@ def runEs5CdgTest() {
   runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Es5CdgTest"))
 }
 
+// ES5.1 + 7.9 자동 세미콜론 삽입 문법 (examples/metalang3/resources/es5-asi) 수용 배터리
+@requires(mgroup3.test)
+@action
+def runEs5AsiCdgTest() {
+  runJUnitTestSuite(mgroup3.test, .some("com.giyeok.jparser.mgroup3.Es5AsiCdgTest"))
+}
+
 @requires(mgroup3.test)
 @action
 def runEs5DebugTest() {
@@ -1157,4 +1164,43 @@ def runAblationBenchmarkMulangNaive() {
 @action
 def exportIml() {
   intellij.exportIml()
+}
+
+// ASI 코퍼스 프로브: semicolon-free 실배포 JS (es5-corpus-asi/, untracked) 를
+// BASE ES5.1 문법 (ASI 미인코딩) 으로 돌려 전부 REJECT 되는지 + first-failure 가
+// 개행 문장 경계인지 확인. ASI 문법이 생기면 env 만 바꿔 ACCEPT 쪽으로 재사용:
+//   ES5_ASI_GRAMMAR=examples/metalang3/resources/es5-asi/grammar.cdg ES5_ASI_EXPECT=accept
+@requires(mgroup3.test)
+@action
+def runEs5AsiCorpusProbe() {
+  runJUnitTestSuiteWithEnv(
+    mgroup3.test,
+    .some("com.giyeok.jparser.mgroup3.Es5AsiCorpusProbe"),
+    {
+      "ES5_ASI_PROBE": "1",
+      "ES5_ASI_REPAIR": "1",
+      // 파일당 삽입 상한 — 상한을 크게 올리면 파일 전체를 수리해 "ASI 만이 유일한 장애"를
+      // 끝까지 증명할 수 있지만 라운드마다 클린 재파싱이라 비싸다 (reqwest 19KB = 220 삽입 / 380s).
+      "ES5_ASI_REPAIR_CAP": "40",
+      "ES5_ASI_REPAIR_BUDGET_MS": "240000",
+      "JAVA_TOOL_OPTIONS": "-Xmx6g",
+    },
+  )
+}
+
+// 위와 같은 코퍼스를 ASI 인코딩 문법으로 돌려 전부 ACCEPT 되는지 확인 (ASI 문법 작업용 핸드오프).
+// ES5_ASI_GRAMMAR 경로는 ASI 문법 파일이 실제로 놓이는 위치에 맞춰 고칠 것.
+@requires(mgroup3.test)
+@action
+def runEs5AsiCorpusAccept() {
+  runJUnitTestSuiteWithEnv(
+    mgroup3.test,
+    .some("com.giyeok.jparser.mgroup3.Es5AsiCorpusProbe"),
+    {
+      "ES5_ASI_PROBE": "1",
+      "ES5_ASI_GRAMMAR": "examples/metalang3/resources/es5-asi/grammar.cdg",
+      "ES5_ASI_EXPECT": "accept",
+      "JAVA_TOOL_OPTIONS": "-Xmx10g",
+    },
+  )
 }
