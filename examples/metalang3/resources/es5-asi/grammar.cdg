@@ -75,16 +75,19 @@ FunctionBody = (WS SourceElement)*
 // string and regex productions, so Eof needs nothing new.
 Eof = !.
 
-// The upcoming trivia run, up to and including its first LineTerminator. WSNL is only
-// ever used under '^', where "some prefix of what follows is a WSNL" says exactly
-// "a LineTerminator occurs in the trivia before the next token" — 7.9.1's precondition.
-// The split is unique: WSNoNL is by construction the LineTerminator-free part.
-// 7.4: "a MultiLineComment that contains a line terminator character is considered to be
-// a LineTerminator" — hence MultiLineCommentNL, which is "a block comment that is not a
-// newline-free one", i.e. exactly the elements WS has and WSNoNL has not.
-WSNL = WSNoNL LineTerminatorTrivia
-LineTerminatorTrivia = '\n\r' | MultiLineCommentNL
-MultiLineCommentNL = MultiLineComment - MultiLineCommentNoNL
+// The trivia runs that are NOT LineTerminator-free — the ones that contain a
+// LineTerminator character or a newline-bearing block comment (7.4: "a MultiLineComment
+// that contains a line terminator character is considered to be a LineTerminator").
+// WSNoNL is by construction the LineTerminator-free part of WS, so `WS - WSNoNL` names
+// the rest of WS directly, with no auxiliary nonterminals. WSNL is only ever used under
+// '^', where "some prefix of what follows is a WSNL" says exactly "a LineTerminator
+// occurs in the trivia before the next token" — 7.9.1's precondition.
+// This is the natural spelling, but it used to mis-parse: WSNoNL is nullable, and the
+// nullable-except defect fixed in 3493fc4a (watcher_anchor_dedup.md §10) lost the zero-width self-finish
+// of `A - B` when B is nullable. The composed form `WSNL = WSNoNL LineTerminatorTrivia`
+// (with LineTerminatorTrivia = '\n\r' | (MultiLineComment - MultiLineCommentNoNL)) was
+// the workaround, and is no longer needed.
+WSNL = WS - WSNoNL
 
 // Tokens after which the statement is already over without an insertion (7.9.1 rules
 // 1b and 2). Factored out so the two ASI alternatives below stay mutually exclusive.
