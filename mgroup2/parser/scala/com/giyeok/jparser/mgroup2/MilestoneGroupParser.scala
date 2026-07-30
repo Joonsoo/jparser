@@ -1,6 +1,6 @@
 package com.giyeok.jparser.mgroup2
 
-import com.giyeok.jparser.{Inputs, NGrammar}
+import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.ParsingErrors.{ParsingError, UnexpectedInputByTermGroups}
 import com.giyeok.jparser.milestone2.{AcceptConditionTemplate, Always, And, Exists, KernelTemplate, Milestone, MilestoneAcceptCondition, MilestonePath, Never, NotExists, OnlyIf, Or, TasksSummary2, Unless}
 import com.giyeok.jparser.nparser.Kernel
@@ -136,194 +136,80 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
     MilestoneAcceptCondition.disjunct(groups + progressCondition)
   }
 
-  // 누적 기록(seen)에 담아도 되는 감시 심볼들 = lookahead(!A/^A)의 body에서 longest(<A>)의
-  // body를 뺀 것. longest 조건도 NotExists로 인코딩되지만 그 창 하한("이번에 취한 매치보다
-  // 더 긴 매치")은 checkFromNextGen 한 비트로만 표현되고 첫 evolve에서 소진되므로, 누적
-  // 기록을 보게 하면 이미 취한 매치가 다시 witness로 잡혀 longest가 Never로 무너진다.
-  // (자세한 근거와 한계는 milestone2 MilestoneParser.cumulativeRecordSymbols 주석)
-  private val cumulativeRecordSymbols: Set[Int] = {
-    val lookaheadBodies = parserData.grammar.nsymbols.values.collect {
-      case NGrammar.NLookaheadIs(_, _, _, lookahead) => lookahead
-      case NGrammar.NLookaheadExcept(_, _, _, lookahead) => lookahead
-    }.toSet
-    val longestBodies = parserData.grammar.nsymbols.values.collect {
-      case NGrammar.NLongest(_, _, body) => body
-    }.toSet
-    lookaheadBodies -- longestBodies
-  }
-
-  // lookahead watcher root 경로는 trackings와 무관하게 살려 둔다.
-  // (근거는 milestone2 MilestoneParser.isLookaheadWatcherRoot 주석 — 생성기의 edge
-  //  requiredSymbols가 조건이 그 엣지에서 물질화될 때만 감시 심볼을 요구해서, body가
-  //  operand보다 길게 뻗으면 watcher가 완성 전에 trimming으로 죽는다)
-  //
-  // bug-B-partial (2026-07-30): 이 계통(milestone2 / mgroup2-scala / mgroup2-kotlin)은
-  // gen>0에 anchor된 guard에 대해 watcher root를 애초에 *만들지* 않는다. 그래서 bug-B
-  // 계열은 여기서 부분적으로만 닫힌다 — 누적 채널(seenProgressedRootMilestones)은
-  // "늦게 태어난 leaf가 과거 관찰을 읽는" 쪽만 고치고, "관찰할 watcher 자체가 없는" 쪽은
-  // 고치지 못한다. 올바른 구현은 mgroup3 / mgroup3-native다 (span-정규화된 cond root
-  // starter가 매 경계에서 watcher를 시동한다). 실측 잔여 형태: `nested-stmts`의
-  // `{fn();}`, `keyclash`의 `bbx;e` / `bbbx;ee` — naive2는 REJECT, 이 세 계통은 ACCEPT
-  // (mgroup3는 전부 REJECT). 문법 형태와 회귀 가드는
-  // mgroup3/test/kotlin/com/giyeok/jparser/mgroup3/Mgroup3ParserKnownIssuesTest.kt 의
-  // testNegativeLookaheadDroppedWhenBodyOutrunsLookahead 참고.
-  private def isLookaheadWatcherRoot(first: Milestone): Boolean =
-    first.pointer == 0 && cumulativeRecordSymbols.contains(first.symbolId)
-
-  // Exists/NotExists(unbounded lookahead)가 볼 수 있는 관찰: 이번 세대의 progress +
-  // 이전 세대들의 누적 기록(seen). 근거는 ParsingContext의 seenProgressedRootMilestones
-  // 주석. bounded(OnlyIf/Unless)는 정확한 span만 discharge해야 하므로 이 함수를 쓰지 않는다.
-  private def observedProgressConditionOf(
-    genActions: GenActions,
-    seenProgressedRootMilestones: Map[Milestone, MilestoneAcceptCondition],
-    milestone: Milestone,
-  ): MilestoneAcceptCondition =
-    MilestoneAcceptCondition.disjunct(Set(
-      getProgressConditionOf(genActions, milestone),
-      seenProgressedRootMilestones.getOrElse(milestone, Never)))
-
-  // 이번 세대의 root progress 관찰을 누적 기록에 접어 넣은 새 기록.
-  // (milestone2 MilestoneParser.updatedSeenProgressedRootMilestones와 동일한 규칙 —
-  //  merge 후 그 세대에서 전체 evolve; 순서가 load-bearing한 이유는 그 쪽 주석 참고)
-  def updatedSeenProgressedRootMilestones(
-    seenProgressedRootMilestones: Map[Milestone, MilestoneAcceptCondition],
-    paths: List[MilestoneGroupPath],
-    genActions: GenActions,
-  ): Map[Milestone, MilestoneAcceptCondition] = {
-    // 문법에 (longest body가 아닌) lookahead 감시 심볼이 없으면 기록은 언제나 비어 있다.
-    if (cumulativeRecordSymbols.isEmpty) seenProgressedRootMilestones else {
-    def merge(
-      acc: Map[Milestone, MilestoneAcceptCondition],
-      milestone: Milestone,
-      condition: MilestoneAcceptCondition,
-    ): Map[Milestone, MilestoneAcceptCondition] =
-      if (condition == Never || !cumulativeRecordSymbols.contains(milestone.symbolId)) acc
-      else acc + (milestone -> (acc.get(milestone) match {
-        case Some(existing) => MilestoneAcceptCondition.disjunct(Set(existing, condition))
-        case None => condition
-      }))
-
-    val mergedMilestones = genActions.progressedRootMilestones.foldLeft(seenProgressedRootMilestones) {
-      case (acc, (milestone, condition)) => merge(acc, milestone, condition)
-    }
-    // root mgroup progress는 그 그룹의 멤버 milestone들에 대한 관찰이다
-    // (getProgressConditionOf의 멤버십 검사와 동일). 조건 leaf는 언제나 pointer 0을
-    // 보므로(Exists/NotExists.milestone) pointer 0만 담는다.
-    val merged = genActions.progressedRootMgroups.foldLeft(mergedMilestones) {
-      case (acc, (mgroup, condition)) =>
-        parserData.milestoneGroups(mgroup.groupId).foldLeft(acc) { (acc2, template) =>
-          if (template.pointer != 0) acc2
-          else merge(acc2, Milestone(template.symbolId, 0, mgroup.gen), condition)
-        }
-    }
-    if (merged.isEmpty) merged else {
-      val updates = merged.collect {
-        case (milestone, condition) if condition != Always && condition != Never =>
-          milestone -> evolveAcceptCondition(paths, genActions, merged, condition)
-      }
-      updates.foldLeft(merged) { case (acc, (milestone, condition)) =>
-        if (condition == Never) acc - milestone else acc + (milestone -> condition)
-      }
-    }
-    }
-  }
-
-  // visiting: 재귀 도중 이미 진행 중인 root milestone들 — 누적 기록의 조건이 자기 자신을
-  // 참조하는 문법에서 무한 재귀를 끊는다 (순환은 witness가 아니라고 보고 leaf를 보류).
   def evolveAcceptCondition(
     paths: List[MilestoneGroupPath],
     genActions: GenActions,
-    seenProgressedRootMilestones: Map[Milestone, MilestoneAcceptCondition],
-    condition: MilestoneAcceptCondition,
-    visiting: Set[Milestone] = Set(),
+    condition: MilestoneAcceptCondition
   ): MilestoneAcceptCondition = {
-    def evolve(cond: MilestoneAcceptCondition, nextVisiting: Set[Milestone] = visiting): MilestoneAcceptCondition =
-      evolveAcceptCondition(paths, genActions, seenProgressedRootMilestones, cond, nextVisiting)
-
     condition match {
       case Always => Always
       case Never => Never
       case And(conditions) =>
-        MilestoneAcceptCondition.conjunct(conditions.map(evolve(_)).toSet)
+        MilestoneAcceptCondition.conjunct(conditions.map(evolveAcceptCondition(paths, genActions, _)).toSet)
       case Or(conditions) =>
-        MilestoneAcceptCondition.disjunct(conditions.map(evolve(_)).toSet)
+        MilestoneAcceptCondition.disjunct(conditions.map(evolveAcceptCondition(paths, genActions, _)).toSet)
       case Exists(symbolId, gen, true) =>
         Exists(symbolId, gen, checkFromNextGen = false)
       case condition: Exists =>
         val milestone = condition.milestone
-        if (visiting.contains(milestone)) condition else {
-          val moreTrackingNeeded = paths.exists(_.first == milestone)
+        val moreTrackingNeeded = paths.exists(_.first == milestone)
 
-          val progressCondition = observedProgressConditionOf(genActions, seenProgressedRootMilestones, milestone)
-          val evolvedCondition = evolve(progressCondition, visiting + milestone)
+        val progressCondition = getProgressConditionOf(genActions, milestone)
+        val evolvedCondition = evolveAcceptCondition(paths, genActions, progressCondition)
 
-          if (moreTrackingNeeded) {
-            MilestoneAcceptCondition.disjunct(Set(condition, evolvedCondition))
-          } else {
-            evolvedCondition
-          }
+        if (moreTrackingNeeded) {
+          MilestoneAcceptCondition.disjunct(Set(condition, evolvedCondition))
+        } else {
+          evolvedCondition
         }
       case NotExists(symbolId, gen, true) =>
         NotExists(symbolId, gen, checkFromNextGen = false)
       case condition: NotExists =>
         val milestone = condition.milestone
-        if (visiting.contains(milestone)) condition else {
-          val moreTrackingNeeded = paths.exists(_.first == milestone)
+        val moreTrackingNeeded = paths.exists(_.first == milestone)
 
-          val progressCondition = observedProgressConditionOf(genActions, seenProgressedRootMilestones, milestone)
-          val evolvedCondition = evolve(progressCondition, visiting + milestone).negation
+        val progressCondition = getProgressConditionOf(genActions, milestone)
+        val evolvedCondition = evolveAcceptCondition(paths, genActions, progressCondition).negation
 
-          if (moreTrackingNeeded) {
-            MilestoneAcceptCondition.conjunct(Set(condition, evolvedCondition))
-          } else {
-            evolvedCondition
-          }
+        if (moreTrackingNeeded) {
+          MilestoneAcceptCondition.conjunct(Set(condition, evolvedCondition))
+        } else {
+          evolvedCondition
         }
       case condition: OnlyIf =>
         val progressCondition = getProgressConditionOf(genActions, condition.milestone)
-        evolve(progressCondition)
+        evolveAcceptCondition(paths, genActions, progressCondition)
       case condition: Unless =>
         val progressCondition = getProgressConditionOf(genActions, condition.milestone)
-        evolve(progressCondition).negation
+        evolveAcceptCondition(paths, genActions, progressCondition).negation
     }
   }
 
   def evaluateAcceptCondition(
     genActions: GenActions,
-    seenProgressedRootMilestones: Map[Milestone, MilestoneAcceptCondition],
-    condition: MilestoneAcceptCondition,
-    visiting: Set[Milestone] = Set(),
+    condition: MilestoneAcceptCondition
   ): Boolean = {
-    def evaluate(cond: MilestoneAcceptCondition, nextVisiting: Set[Milestone] = visiting): Boolean =
-      evaluateAcceptCondition(genActions, seenProgressedRootMilestones, cond, nextVisiting)
-
     condition match {
       case Always => true
       case Never => false
       case And(conditions) =>
-        conditions.forall(evaluate(_))
+        conditions.forall(evaluateAcceptCondition(genActions, _))
       case Or(conditions) =>
-        conditions.exists(evaluate(_))
+        conditions.exists(evaluateAcceptCondition(genActions, _))
       case Exists(_, _, true) => false
       case condition: Exists =>
-        val milestone = condition.milestone
-        !visiting.contains(milestone) && {
-          val progressCondition = observedProgressConditionOf(genActions, seenProgressedRootMilestones, milestone)
-          evaluate(progressCondition, visiting + milestone)
-        }
+        val progressCondition = getProgressConditionOf(genActions, condition.milestone)
+        evaluateAcceptCondition(genActions, progressCondition)
       case NotExists(_, _, true) => true
       case condition: NotExists =>
-        val milestone = condition.milestone
-        visiting.contains(milestone) || {
-          val progressCondition = observedProgressConditionOf(genActions, seenProgressedRootMilestones, milestone)
-          !evaluate(progressCondition, visiting + milestone)
-        }
+        val progressCondition = getProgressConditionOf(genActions, condition.milestone)
+        !evaluateAcceptCondition(genActions, progressCondition)
       case condition: OnlyIf =>
         val progressCondition = getProgressConditionOf(genActions, condition.milestone)
-        evaluate(progressCondition)
+        evaluateAcceptCondition(genActions, progressCondition)
       case condition: Unless =>
         val progressCondition = getProgressConditionOf(genActions, condition.milestone)
-        !evaluate(progressCondition)
+        !evaluateAcceptCondition(genActions, progressCondition)
     }
   }
 
@@ -401,7 +287,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
 
       val newConditions = (newPaths.map(_.acceptCondition) ++ genActions.progressedKernels.values).distinct
       val newConditionUpdates = newConditions
-        .map(cond => cond -> evolveAcceptCondition(newPaths, genActions, ctx.seenProgressedRootMilestones, cond)).toMap
+        .map(cond => cond -> evolveAcceptCondition(newPaths, genActions, cond)).toMap
 
       // newPaths와 수행된 액션을 바탕으로 condition evaluate
       val newPathsUpdated = newPaths
@@ -416,19 +302,14 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
       // TODO 원래는 collectTrackings(newPaths)를 collectTrackings(newPathsUpdated)로 변경해도 괜찮은지 확인 - 괜찮으면 milestone2 파서도 함께 변경
       val trackings = collectTrackings(newPaths)
       val newPathsFiltered = newPathsUpdated
-        .filter(path => path.first == initialMilestone || trackings.contains(path.first) ||
-          isLookaheadWatcherRoot(path.first))
+        .filter(path => path.first == initialMilestone || trackings.contains(path.first))
 
       if (verbose) {
         println(s"  ===== filtered (trackings=$trackings)")
         newPathsFiltered.foreach(path => println(path.prettyString))
       }
 
-      // 이번 세대의 관찰은 위의 evolve(per-generation 채널)가 이미 처리했으므로, 누적 기록에
-      // 접어 넣는 것은 evolve 이후 — 이 기록은 *다음* 세대부터 유효하다.
-      val newSeen = updatedSeenProgressedRootMilestones(ctx.seenProgressedRootMilestones, newPaths, genActions)
-
-      Right(ParsingContext(gen, newPathsFiltered, HistoryEntry(newPaths, genActions) +: ctx.history, newSeen))
+      Right(ParsingContext(gen, newPathsFiltered, HistoryEntry(newPaths, genActions) +: ctx.history))
     }
   }
 
@@ -460,17 +341,6 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
     def mapGen(kernel: Kernel, genMap: Map[Int, Int]): Kernel =
       Kernel(kernel.symbolId, kernel.pointer, genMap(kernel.beginGen), genMap(kernel.endGen))
 
-    // TODO initialHistoryEntry의 progressedMilestones와 progressedMilestoneParentGens 추가
-    val initialHistoryEntry = HistoryEntry(initialCtx.paths, GenActions(List(), List(), List(), Map(), Map(), Map(), Map()))
-    val history = (initialHistoryEntry +: parsingContext.history.reverse).toVector
-
-    // seenHistory(g) = 세대 g의 evolve/evaluate에서 참조할 누적 기록. parseStep과 동일한
-    // 재귀를 history prefix fold로 재구성한다 (milestone2와 동일).
-    val seenHistory: Vector[Map[Milestone, MilestoneAcceptCondition]] =
-      history.scanLeft(Map[Milestone, MilestoneAcceptCondition]()) { (seen, entry) =>
-        updatedSeenProgressedRootMilestones(seen, entry.untrimmedPaths, entry.genActions)
-      }
-
     def isEventuallyAccepted(
       history: Vector[HistoryEntry],
       gen: Int,
@@ -483,9 +353,9 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
         case Never => false
         case _ =>
           val result = if (gen + 1 == history.length) {
-            evaluateAcceptCondition(entry.genActions, seenHistory(gen), condition)
+            evaluateAcceptCondition(entry.genActions, condition)
           } else {
-            val evolved = evolveAcceptCondition(entry.untrimmedPaths, entry.genActions, seenHistory(gen), condition)
+            val evolved = evolveAcceptCondition(entry.untrimmedPaths, entry.genActions, condition)
             isEventuallyAccepted(history, gen + 1, evolved, conditionMemos)
           }
           // println(s"isEventuallyAccepted $gen $condition => $result")
@@ -527,6 +397,10 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
         kernelsCollector += mapGen(kernel, genMap)
       }
     }
+
+    // TODO initialHistoryEntry의 progressedMilestones와 progressedMilestoneParentGens 추가
+    val initialHistoryEntry = HistoryEntry(initialCtx.paths, GenActions(List(), List(), List(), Map(), Map(), Map(), Map()))
+    val history = (initialHistoryEntry +: parsingContext.history.reverse).toVector
 
     val conditionMemos = (0 until history.length).map { _ =>
       Memoize[MilestoneAcceptCondition, Boolean]()
