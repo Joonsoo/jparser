@@ -42,6 +42,83 @@ fn starter_key_of(key_gen: i32, mid_gen: i32, next_gen: i32) -> Option<i32> {
     }
 }
 
+/// late 채널 finish 를 저장 전에 *직전 gen 기준으로* 한 step 먼저 evolve 해 둔다.
+///
+/// late fin 의 end 는 직전 gen (`ctx.gen_idx`) 인데 관찰은 이번 gen 에서 일어난다.
+/// 그래서 그 조건 안의 bounded leaf (`end_gen == ctx.gen_idx`) 를 소비자가 관찰 gen 에서
+/// 평가하면 이미 창 (`gen == end_gen`) 을 지나 있어 default (Unless→Always,
+/// OnlyIf→Never) 로 오해소된다. 저장 전에 그 창을 정확히 소비시켜 두면 이후 소비자
+/// (`evolve_accept_condition` 의 late 분기 / `RecordConditionEvaluator::bounded_fin`) 는
+/// 잔여만 관찰 gen 에서 이어 평가하면 된다.
+///
+/// `active_cond_paths` 로는 `ctx.paths.keys()` (직전 step 의 살아남은 root + main) 를 쓴다:
+///   - 이번 step 에 죽는 root 는 아직 `ctx.paths` 에 있으므로 "직전 gen 에 활성" 이 맞고,
+///     그 leaf 는 pending 으로 남아 이번 step 의 late 채널로 해소된다.
+///   - 직전 step 에 prune 된 root 는 그 gen 에 아무 조건도 참조하지 않았다는 뜻이고,
+///     이번 step 에 late fin 을 낼 수도 없으므로 (`ctx.paths` 에 없어 term 적용 대상이
+///     아니다) 비활성 처리해도 답이 같다.
+///
+/// (bug A) 이 정규화가 없으면 nullable 피제외항의 빈 매치를 감싼 finish 조건
+/// (`X = WS - WSNoNL` 의 self-finish = `Unless(WSNoNL, g, g)`) 이 gen g+1 의 late
+/// 재보고에서 Always 로 되살아나, `^X` 가 X 의 빈 매치를 오인해 `"ab"` 를 오수락했다.
+fn settle_late_fin(
+    cond: AcceptCondition,
+    prev_entry: Option<&HistoryEntry>,
+    active_cond_paths: &HashSet<PathRoot>,
+    ctx: &ParsingCtx,
+) -> AcceptCondition {
+    if matches!(cond, AcceptCondition::Always | AcceptCondition::Never) {
+        return cond;
+    }
+    let Some(prev) = prev_entry else { return cond };
+    evolve_accept_condition(
+        &cond,
+        &prev.cond_path_finishes,
+        &prev.late_cond_path_finishes,
+        active_cond_paths,
+        ctx.gen_idx,
+        &ctx.seen_cond_path_fins,
+    )
+}
+
+/// cond root 의 zero-width self-finish (빈 span `(start_gen, start_gen)` 매치) 를
+/// 올바른 채널에 기록한다.
+///
+/// 두 채널의 end gen 은 규약으로 고정되어 있다 — eager (`cond_path_finishes`) 는
+/// end == `next_gen`, late (`late_cond_path_finishes`) 는 end == `next_gen - 1`
+/// (== `ctx_gen`). 빈 매치의 end 는 `root.start_gen` 이므로 채널은 `start_gen` 으로
+/// 결정된다:
+///   - `start_gen == next_gen` → eager (fresh 시동: 빈 매치의 end 가 이번 gen)
+///   - `start_gen == ctx_gen` → late (same-input 시동 / 조건 참조로 재물질화:
+///     end 는 직전 gen)
+///   - `start_gen < ctx_gen` → 기록하지 않음. per-step 채널로 표현할 end 가 없고,
+///     그 watcher 는 그 시점에 시동됐어야 하므로 지금 만들면 span 이 어긋난 zombie 다
+///     (step 3 도 시동하지 않고 continue 한다).
+///
+/// (bug A) 이전에는 `start_gen` 과 무관하게 항상 eager 로 기록했다. 그래서 gen g 에
+/// 빈 매치로 완성·소멸한 watcher 가 gen g+1 에 조건 참조로 재물질화되면 그 빈 매치가
+/// "span (g, g+1) 의 매치" 로 오인되어, 같은 span 을 감시하는 bounded 조건을 부당하게
+/// 해소했다: `X = '\n' - ' '*` (피제외항이 nullable) 가 `"a\nb"` 를 오거부하고,
+/// `X = Y & Z` (Z nullable) 가 `"a\nb"` 를 오수락했다. `^`/`!` 아래에서는 양방향으로
+/// 뒤집혔다.
+fn record_zero_width_self_finish(
+    root: PathRoot,
+    cond: AcceptCondition,
+    ctx_gen: i32,
+    next_gen: i32,
+    eager_out: &mut HashMap<PathRoot, AcceptCondition>,
+    late_out: &mut HashMap<PathRoot, AcceptCondition>,
+) {
+    let out = if root.start_gen == next_gen {
+        eager_out
+    } else if root.start_gen == ctx_gen {
+        late_out
+    } else {
+        return;
+    };
+    or_merge(out, root, cond);
+}
+
 pub struct Mgroup3Parser {
     plain: ParserDataPlain,
     /// (parent kernel template, tip group id) → tip edge action.
@@ -779,7 +856,15 @@ impl Mgroup3Parser {
                     next_gen,
                     is_last_input,
                 );
-                or_merge(&mut root_progresses, starter_root, cond);
+                // zero-width 매치이므로 채널은 start_gen 으로 결정된다 (bug A).
+                record_zero_width_self_finish(
+                    starter_root,
+                    cond,
+                    ctx.gen_idx,
+                    next_gen,
+                    &mut root_progresses,
+                    &mut late_pf_progresses,
+                );
             }
         }
 
@@ -864,7 +949,16 @@ impl Mgroup3Parser {
                     next_gen,
                     is_last_input,
                 );
-                new_cond_root_progresses.insert(path_root, self_cond);
+                // zero-width 매치이므로 채널은 start_gen 으로 결정된다 (bug A).
+                // 예전의 덮어쓰기 (`insert`) 대신 Or-merge (helper 안에서 or_merge).
+                record_zero_width_self_finish(
+                    path_root,
+                    self_cond,
+                    ctx.gen_idx,
+                    next_gen,
+                    &mut new_cond_root_progresses,
+                    &mut late_pf_progresses,
+                );
             }
             let starter_shape = PathShape::new(None, root_info.milestone_group_id);
             // key(= span 시작) 기준 시동 — step 1b 와 동일한 규칙 (2026-07-30: lookahead
@@ -962,9 +1056,20 @@ impl Mgroup3Parser {
             }
         }
         let mut late_cond_path_finishes: HashMap<PathRoot, AcceptCondition> = HashMap::default();
-        for (root, cond) in &late_pf_progresses {
-            if *root != ctx.main_root {
-                late_cond_path_finishes.insert(*root, cond.clone());
+        if !late_pf_progresses.is_empty() {
+            // late fin 의 end 는 직전 gen 이므로 저장 전에 직전 step 채널로 한 step
+            // 정규화한다 (settle_late_fin 주석 참조 — bug A). 임시 active 집합은 late
+            // fin 이 있을 때만 만든다.
+            let prev_entry = ctx.history.last();
+            let active_prev: HashSet<PathRoot> = ctx.paths.keys().copied().collect();
+            for (root, cond) in &late_pf_progresses {
+                if *root != ctx.main_root {
+                    let settled =
+                        settle_late_fin(cond.clone(), prev_entry, &active_prev, &ctx);
+                    if !matches!(settled, AcceptCondition::Never) {
+                        late_cond_path_finishes.insert(*root, settled);
+                    }
+                }
             }
         }
 
@@ -1220,6 +1325,10 @@ impl Mgroup3Parser {
     /// `endOfInputLateFins` 대응.
     pub fn end_of_input_late_fins(&self, ctx: &ParsingCtx) -> HashMap<PathRoot, AcceptCondition> {
         let mut result: HashMap<PathRoot, AcceptCondition> = HashMap::default();
+        // 가상 late step 도 end == ctx.gen_idx 이므로 실제 late 채널과 같은 정규화가
+        // 필요하다 (settle_late_fin 주석 참조 — bug A).
+        let prev_entry = ctx.history.last();
+        let active_prev: HashSet<PathRoot> = ctx.paths.keys().copied().collect();
         for (root, path_map) in &ctx.paths {
             if *root == ctx.main_root {
                 continue;
@@ -1248,7 +1357,12 @@ impl Mgroup3Parser {
                             ctx.gen_idx,
                             true,
                         );
-                        let combined = AcceptCondition::and_from([cond.clone(), pf_cond]);
+                        let combined = settle_late_fin(
+                            AcceptCondition::and_from([cond.clone(), pf_cond]),
+                            prev_entry,
+                            &active_prev,
+                            ctx,
+                        );
                         if !matches!(combined, AcceptCondition::Never) {
                             or_merge(&mut result, *root, combined);
                         }

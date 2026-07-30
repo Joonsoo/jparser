@@ -540,6 +540,71 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
   // (key==gen 인 lookahead 구 규약이면 실제 span 은 gen-1 — 보고 anchor 별도 기록).
   class PendingStarter(val milestoneGroupId: Int, val sameInput: Boolean)
 
+  // late 채널 finish 의 end 는 직전 gen (ctx.gen) 인데 관찰은 이번 gen 에서 일어난다.
+  // 그래서 그 조건 안의 bounded leaf (endGen == ctx.gen) 는 소비자가 관찰 gen 에서
+  // 평가하면 이미 창 (gen == endGen) 을 지나 있어 default (Unless→Always, OnlyIf→Never)
+  // 로 오해소된다. 저장 전에 *직전 gen 기준으로* 한 step 먼저 evolve 해 그 창을 정확히
+  // 소비시켜 둔다 — 이후 소비자 (evolveAcceptCondition 의 late 분기 /
+  // RecordConditionEvaluator.boundedFin) 는 잔여만 관찰 gen 에서 이어 평가하면 된다.
+  //
+  // activeCondPaths 로는 ctx.paths.keys (직전 step 의 살아남은 root + main) 를 쓴다:
+  //   - 이번 step 에 죽는 root 는 아직 ctx.paths 에 있으므로 "직전 gen 에 활성" 이 맞고,
+  //     그 leaf 는 pending 으로 남아 이번 step 의 late 채널로 해소된다.
+  //   - 직전 step 에 prune 된 root 는 그 gen 에 아무 조건도 참조하지 않았다는 뜻이고,
+  //     이번 step 에 late fin 을 낼 수도 없으므로 (ctx.paths 에 없어 term 적용 대상이
+  //     아니다) 비활성 처리해도 답이 같다.
+  //
+  // (bug A) 이 정규화가 없으면 nullable 피제외항의 빈 매치를 감싼 finish 조건
+  // (`X = WS - WSNoNL` 의 self-finish = Unless(WSNoNL, g, g)) 이 gen g+1 의 late 재보고
+  // 에서 Always 로 되살아나, `^X` 가 X 의 빈 매치를 오인해 "ab" 를 오수락했다.
+  private fun settleLateFin(
+    cond: AcceptCondition,
+    prevEntry: HistoryEntry?,
+    ctx: ParsingCtx,
+  ): AcceptCondition {
+    if (cond == Always || cond == Never || prevEntry == null) return cond
+    return evolveAcceptCondition(
+      cond,
+      prevEntry.condPathFinishes,
+      prevEntry.lateCondPathFinishes,
+      ctx.paths.keys,
+      ctx.gen,
+      ctx.seenCondPathFins,
+    )
+  }
+
+  // cond root 의 zero-width self-finish (빈 span (startGen, startGen) 매치) 를 올바른
+  // 채널에 기록한다. 두 채널의 end gen 은 규약으로 고정되어 있다 —
+  // eager (condPathFinishes) 는 end == gen, late (lateCondPathFinishes) 는 end == gen-1.
+  // 빈 매치의 end 는 root.startGen 이므로 채널은 startGen 으로 결정된다:
+  //   startGen == gen      → eager (fresh 시동: 빈 매치의 end 가 이번 gen)
+  //   startGen == gen - 1  → late  (same-input 시동 / 조건 참조로 재물질화: end 는 직전 gen)
+  //   startGen <  gen - 1  → 기록하지 않음. per-step 채널로 표현할 end 가 없고, 그
+  //                          watcher 는 그 시점에 시동됐어야 하므로 지금 만들면 span 이
+  //                          어긋난 zombie 다 (step 3 도 시동하지 않고 continue 한다).
+  //
+  // (bug A) 이전에는 startGen 과 무관하게 항상 eager 로 기록했다. 그래서 gen g 에
+  // 빈 매치로 완성·소멸한 watcher 가 gen g+1 에 조건 참조로 재물질화되면 그 빈 매치가
+  // "span (g, g+1) 의 매치" 로 오인되어, 같은 span 을 감시하는 bounded 조건을 부당하게
+  // 해소했다: `X = '\n' - ' '*` (excluded 쪽이 nullable) 가 "a\nb" 를 오거부하고,
+  // `X = Y & Z` (Z nullable) 가 "a\nb" 를 오수락했다. ^/! 아래에서는 양방향으로 뒤집혔다.
+  private fun recordZeroWidthSelfFinish(
+    root: PathRoot,
+    cond: AcceptCondition,
+    ctxGen: Int,
+    gen: Int,
+    eagerOut: MutableMap<PathRoot, AcceptCondition>,
+    lateOut: MutableMap<PathRoot, AcceptCondition>,
+  ) {
+    val out = when (root.startGen) {
+      gen -> eagerOut
+      ctxGen -> lateOut
+      else -> return
+    }
+    val existing = out[root]
+    out[root] = if (existing != null) Or.from(existing, cond) else cond
+  }
+
   fun parseStep(ctx: ParsingCtx, input: Char, isLastInput: Boolean): ParsingCtx {
     val mainPathsBefore = ctx.paths[ctx.mainRoot] ?: emptyMap()
     if (mainPathsBefore.isEmpty()) {
@@ -694,8 +759,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
           rootInfo.selfFinishAcceptCondition.toAcceptCondition(starterRoot.startGen, starterRoot.startGen, gen),
           gen, isLastInput,
         )
-        val existing = rootProgresses[starterRoot]
-        rootProgresses[starterRoot] = if (existing != null) Or.from(existing, cond) else cond
+        recordZeroWidthSelfFinish(starterRoot, cond, ctx.gen, gen, rootProgresses, latePfProgresses)
       }
     }
 
@@ -749,7 +813,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
           rootInfo.selfFinishAcceptCondition.toAcceptCondition(pathRoot.startGen, pathRoot.startGen, gen),
           gen, isLastInput,
         )
-        newCondRootProgresses[pathRoot] = selfCond
+        recordZeroWidthSelfFinish(pathRoot, selfCond, ctx.gen, gen, newCondRootProgresses, latePfProgresses)
       }
       val starterShape = PathShape(null, rootInfo.milestoneGroupId)
       // key(=span 시작) 기준 시동 — step 1b 와 동일한 규칙 (2026-07-30: lookahead 도
@@ -816,9 +880,13 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       }
     }
     val lateCondPathFinishes = mutableMapOf<PathRoot, AcceptCondition>()
-    for ((root, cond) in latePfProgresses) {
-      if (root != ctx.mainRoot) {
-        lateCondPathFinishes[root] = cond
+    if (latePfProgresses.isNotEmpty()) {
+      val prevEntry = ctx.history.lastOrNull()
+      for ((root, cond) in latePfProgresses) {
+        if (root != ctx.mainRoot) {
+          val settled = settleLateFin(cond, prevEntry, ctx)
+          if (settled != Never) lateCondPathFinishes[root] = settled
+        }
       }
     }
 
@@ -1053,6 +1121,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
   // (end = ctx.gen — bounded 조건의 endGen == 마지막 gen 인 경우의 discharge 용.)
   private fun endOfInputLateFins(ctx: ParsingCtx): Map<PathRoot, AcceptCondition> {
     val result = mutableMapOf<PathRoot, AcceptCondition>()
+    val prevEntry = ctx.history.lastOrNull()
     for ((root, pathMap) in ctx.paths) {
       if (root == ctx.mainRoot) continue
       for ((shape, cond) in pathMap) {
@@ -1065,7 +1134,9 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
             val pfCond = resolveEofLeaves(
               pf.acceptCondition.toAcceptCondition(prevGen, ctx.gen, ctx.gen + 1), ctx.gen, true
             )
-            val combined = And.from(cond, pfCond)
+            // 가상 late step 도 end == ctx.gen 이므로 실제 late 채널과 같은 정규화가
+            // 필요하다 (settleLateFin 주석 참조 — bug A).
+            val combined = settleLateFin(And.from(cond, pfCond), prevEntry, ctx)
             if (combined != Never) {
               val existing = result[root]
               result[root] = if (existing != null) Or.from(existing, combined) else combined

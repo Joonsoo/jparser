@@ -277,3 +277,26 @@ bug B 가 알려지지 않았고, 위 케이스들이 회귀 테스트로 고정
 
 (iii) 의 fresh fallback 은 span-정규화 후에는 "남의 span 매치를 이 key 에
 기록하는 오염" 이므로 제거가 맞다 (drift-paren 케이스 `({});` 가 그 증거).
+
+## 10. zero-width self-finish 의 채널 규약 (2026-07-30, bug A)
+
+§9 의 span-정규화는 조건 anchor 와 watcher key 를 다뤘고, cond root 자신의
+**빈 매치** (span `(startGen, startGen)`) 가 per-step 채널로 들어가는 경로는
+다루지 않았다. 두 채널의 end gen 규약 — eager `condPathFinishes` 는 end == gen,
+late `lateCondPathFinishes` 는 end == gen-1 — 에 대해 self-finish 는 항상
+eager 로 기록되고 있었으므로, same-input 시동/조건 참조 재물질화
+(`startGen == gen-1`) 의 빈 매치가 "span `(gen-1, gen)` 의 1글자 매치" 로
+오인되었다. 결과: nullable excluded operand 의 `-` 가 자기 body 의 넓은 span
+을 부당하게 죽이고 (`X = '\n' - ' '*` 가 `a\nb` 오거부), nullable operand 의
+`&` 는 오수락, `^`/`!` 아래에서는 양방향으로 뒤집혔다. 또한 late fin 을
+raw 로 저장해 두면 그 안의 bounded leaf 가 gen == endGen+1 분기에서 Always
+로 되살아나는 두 번째 경로가 있었다.
+
+수정 (bug A): `recordZeroWidthSelfFinish` 가 self-finish 를 startGen 에 따라
+eager/late 로 라우팅하고 (startGen < gen-1 은 기록 불가 — step 3 이 그런
+zombie watcher 를 시동하지 않는 규약과 일치), `settleLateFin` 이 late fin 을
+직전 history entry 의 채널에 대해 한 번 evolve 해서 저장한다. Rust 미러 동일.
+회귀: `Mgroup3ParserKnownIssuesTest.testNullableExcludedOperandOfExcept` /
+`...UnderLookahead` / `testNullableOperandOfJoin`, naive2 차분 배터리
+26 문법 / 87 입력 87/87 (pre-fix 67/87). milestone2/mgroup2 계열은 이 결함이
+없다 (5 계보 87/87 일치).

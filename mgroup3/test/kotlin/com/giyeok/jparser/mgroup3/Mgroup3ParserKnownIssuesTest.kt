@@ -353,4 +353,239 @@ class Mgroup3ParserKnownIssuesTest {
     assertRejects(perChar, "b")
     assertRejects(perChar, "ab")
   }
+
+  // ================================================================================
+  // "bug A" 회귀 가드: 감시 대상 (except 의 피제외항 / join 의 상대항) 이 nullable 일 때
+  // ================================================================================
+  // 2026-07-30 발견/수정. 최소 재현:
+  //     G = 'a' X 'b'
+  //     X = '\n' - ' '*
+  // 입력 "a\nb" -> naive2 / milestone2 / mgroup2(Scala) / mgroup2(Kotlin) 는 모두
+  // ACCEPT (정답: ' '* 는 span (1,2) 를 매치하지 않는다). 수정 전 mgroup3 만 REJECT.
+  // `X = '\n' - ' '+` (피제외항 non-nullable) 이면 수정 전에도 전원 일치 — nullable
+  // 전용 결함이다. `^X`/`!X` 아래에서는 같은 결함이 양방향으로 뒤집혔다.
+  //
+  // 근본 원인은 *빈 매치 (zero-width finish) 의 end gen 오인* 두 곳이다. per-step
+  // finish 채널의 end 규약은 eager(condPathFinishes) = gen, late(lateCondPathFinishes)
+  // = gen-1 로 고정되어 있고, bounded 조건 (Unless/OnlyIf) 은 정확히 그 span 의 finish
+  // 만 discharge 한다:
+  //  (1) cond root 의 selfFinishAcceptCondition (빈 span (startGen,startGen) 매치) 을
+  //      startGen 과 무관하게 eager 로 기록했다. 빈 매치로 완성·소멸한 watcher 가
+  //      다음 gen 에 조건 참조로 재물질화되면 (step 3), 그 빈 매치가 "한 글자 매치" 로
+  //      오인되어 Unless(sym, g, g+1) 을 죽였다 → `X = '\n' - ' '*` 오거부.
+  //      수정: recordZeroWidthSelfFinish — startGen==gen 은 eager, startGen==gen-1 은
+  //      late, 그보다 과거는 기록하지 않음.
+  //  (2) late 채널 finish 는 end 가 gen-1 인데 관찰은 gen 에서 일어나므로, 그 조건 안의
+  //      bounded leaf (endGen == gen-1) 가 소비자에게 "창을 지난 leaf" 로 보여
+  //      default (Unless→Always) 로 되살아났다 → `^(WS - WSNoNL)` 가 빈 매치를
+  //      오인해 "ab" 오수락. 수정: settleLateFin — 저장 전에 직전 gen 기준으로 한 step
+  //      먼저 evolve (endOfInputLateFins 의 가상 late step 도 동일).
+  //
+  // 테이블은 원래도 정상이었다 (a1 의 term action 조건은 except{symbol_id:8,
+  // start_gen:MID, end_gen:NEXT} = Unless(8,1,2) — 정확히 body 의 span). 순수 런타임 결함.
+  @Test
+  fun testNullableExcludedOperandOfExcept() {
+    // (1) 평문 nullable except.
+    val star = makeParser(
+      """
+        G = 'a' X 'b'
+        X = '\n' - ' '*
+      """.trimIndent(),
+      startName = "G",
+    )
+    assertAccepts(star, "a\nb")
+    assertRejects(star, "ab")
+    assertRejects(star, "a b")
+
+    // nullable 을 ? 로 표현해도 동일.
+    val opt = makeParser(
+      """
+        G = 'a' X 'b'
+        X = '\n' - ('x')?
+      """.trimIndent(),
+      startName = "G",
+    )
+    assertAccepts(opt, "a\nb")
+    assertRejects(opt, "ab")
+    assertRejects(opt, "axb")
+
+    // control: 피제외항이 non-nullable 이면 수정 전에도 정상이었다.
+    val nonNullable = makeParser(
+      """
+        G = 'a' X 'b'
+        X = '\n' - ' '+
+      """.trimIndent(),
+      startName = "G",
+    )
+    assertAccepts(nonNullable, "a\nb")
+    assertRejects(nonNullable, "ab")
+    assertRejects(nonNullable, "a b")
+
+    // control: 본문이 nullable, 피제외항이 non-nullable (반대 방향).
+    val nullableBody = makeParser(
+      """
+        G = 'a' X 'b'
+        X = ' '* - '\n'
+      """.trimIndent(),
+      startName = "G",
+    )
+    assertRejects(nullableBody, "a\nb")
+    assertAccepts(nullableBody, "ab")
+    assertAccepts(nullableBody, "a  b")
+
+    // 양쪽 nullable — 같은 심볼이면 아무것도 매치하지 않는다.
+    val bothSame = makeParser(
+      """
+        G = 'a' X 'b'
+        X = ' '* - ' '*
+      """.trimIndent(),
+      startName = "G",
+    )
+    assertRejects(bothSame, "ab")
+    assertRejects(bothSame, "a b")
+
+    // 양쪽 nullable, 서로 다름 — 빈 매치만 죽고 나머지는 살아야 한다.
+    val bothDiff = makeParser(
+      """
+        G = 'a' X 'b'
+        X = ' '* - '\n'*
+      """.trimIndent(),
+      startName = "G",
+    )
+    assertRejects(bothDiff, "ab")
+    assertAccepts(bothDiff, "a b")
+    assertAccepts(bothDiff, "a  b")
+
+    // watcher 가 여러 gen 살아야 하는 경우 — 긴 span 의 매치도 정확히 관찰돼야 한다.
+    val multigen = makeParser(
+      """
+        G = 'a' X 'b'
+        X = Y - Z
+        Y = ' \n'+
+        Z = ' '*
+      """.trimIndent(),
+      startName = "G",
+    )
+    assertRejects(multigen, "a b")
+    assertRejects(multigen, "a   b")
+    assertAccepts(multigen, "a \nb")
+    assertAccepts(multigen, "a\n b")
+    assertAccepts(multigen, "a\n\nb")
+
+    // nonterminal chain 을 거쳐도 (피제외항이 여러 단계 아래).
+    val chain = makeParser(
+      """
+        G = 'a' X 'b'
+        X = NL - Sp
+        NL = '\n'
+        Sp = SpInner
+        SpInner = ' '*
+      """.trimIndent(),
+      startName = "G",
+    )
+    assertAccepts(chain, "a\nb")
+    assertRejects(chain, "ab")
+
+    // repeat 안에서 / 같은 심볼이 여러 span 에서 감시될 때.
+    val inRepeat = makeParser("G = X*\nX = 'a-c' - 'b'*", startName = "G")
+    assertAccepts(inRepeat, "")
+    assertAccepts(inRepeat, "a")
+    assertRejects(inRepeat, "b")
+    assertAccepts(inRepeat, "ac")
+    assertRejects(inRepeat, "abc")
+
+    // 입력 끝에서 조건이 평가되는 경로 (endOfInputLateFins 의 가상 late step).
+    val atEof = makeParser(
+      """
+        G = 'a' X
+        X = '\n' - ' '*
+      """.trimIndent(),
+      startName = "G",
+    )
+    assertAccepts(atEof, "a\n")
+    assertRejects(atEof, "a")
+  }
+
+  // (2) 의 direction-flip: nullable except 가 lookahead 본문일 때. 수정 전 mgroup3 는
+  // "a\nb" 를 오거부하고 "ab" 를 오수락했다 (^ 아래), ! 아래에서는 그 반대.
+  @Test
+  fun testNullableExcludedOperandUnderLookahead() {
+    val posLookahead = makeParser(
+      """
+        G = 'a' ^X WS 'b'
+        X = WS - WSNoNL
+        WS = ' \n'*
+        WSNoNL = ' '*
+      """.trimIndent(),
+      startName = "G",
+    )
+    assertAccepts(posLookahead, "a\nb")
+    assertRejects(posLookahead, "ab")
+    assertRejects(posLookahead, "a b")
+    assertAccepts(posLookahead, "a \nb")
+    assertAccepts(posLookahead, "a\n b")
+
+    val negLookahead = makeParser(
+      """
+        G = 'a' !X WS 'b'
+        X = WS - WSNoNL
+        WS = ' \n'*
+        WSNoNL = ' '*
+      """.trimIndent(),
+      startName = "G",
+    )
+    assertRejects(negLookahead, "a\nb")
+    assertAccepts(negLookahead, "ab")
+    assertAccepts(negLookahead, "a b")
+    assertRejects(negLookahead, "a \nb")
+    assertRejects(negLookahead, "a\n b")
+
+    // 입력 끝에서 (가상 late step) 도 동일.
+    val posAtEof = makeParser(
+      """
+        G = 'a' ^X WS
+        X = WS - WSNoNL
+        WS = ' \n'*
+        WSNoNL = ' '*
+      """.trimIndent(),
+      startName = "G",
+    )
+    assertAccepts(posAtEof, "a\n")
+    assertRejects(posAtEof, "a")
+    assertRejects(posAtEof, "a ")
+    assertAccepts(posAtEof, "a \n")
+  }
+
+  // 같은 근본 원인의 join (`&`) 쪽 — 상대항이 nullable 이면 빈 매치가 OnlyIf 를
+  // 부당하게 만족시켜 오수락됐다.
+  @Test
+  fun testNullableOperandOfJoin() {
+    val join = makeParser(
+      """
+        G = 'a' X 'b'
+        X = Y & Z
+        Y = ' \n'*
+        Z = ' '*
+      """.trimIndent(),
+      startName = "G",
+    )
+    assertAccepts(join, "ab")
+    assertAccepts(join, "a b")
+    assertAccepts(join, "a  b")
+    assertRejects(join, "a\nb")
+    assertRejects(join, "a \nb")
+
+    val joinAtEof = makeParser(
+      """
+        G = 'a' X
+        X = Y & Z
+        Y = ' \n'*
+        Z = ' '*
+      """.trimIndent(),
+      startName = "G",
+    )
+    assertAccepts(joinAtEof, "a")
+    assertAccepts(joinAtEof, "a ")
+    assertRejects(joinAtEof, "a\n")
+  }
 }
