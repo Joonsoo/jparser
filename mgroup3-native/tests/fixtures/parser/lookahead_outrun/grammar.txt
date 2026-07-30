@@ -1,0 +1,2 @@
+Program = !"fn" Expression ';'
+Expression = "fn" "()" | "gn" "()"

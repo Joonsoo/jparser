@@ -1,0 +1,4 @@
+A = WS B WS EOF
+B = 'x'+
+WS = ' '*
+EOF = !.

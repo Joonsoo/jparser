@@ -1,0 +1,4 @@
+Grammar = 'a' J 'b'
+J = Y & Z
+Y = 'x'*
+Z = ('x' 'x')*

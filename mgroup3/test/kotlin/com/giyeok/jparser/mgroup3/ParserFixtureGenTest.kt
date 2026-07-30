@@ -108,6 +108,55 @@ class ParserFixtureGenTest {
       InlineInput("ababab", "ababab", true),
       InlineInput("", "empty", false), InlineInput("a", "a", false), InlineInput("aba", "aba", false),
     )),
+    // ---- Conditional-symbol cases. Everything above uses only CFG shapes, so
+    // before these four the committed corpus had no grammar with `-`, `&`, `^`
+    // or `!` in it and the Kotlin<->Rust gate covered none of the accept-condition
+    // machinery. Each case is deliberately minimal (tiny table, short goldens)
+    // and pins one of the two defects fixed this week:
+    //   except_nullable / join_nullable — zero-width self-finish of a binary
+    //     conditional symbol whose right operand is nullable (bug A, 3493fc4a).
+    //   lookahead_outrun / eof_shape    — negative-lookahead discharge when the
+    //     body outruns the lookahead window (bug B, 11c30887).
+    // Still uncovered here: `^` (followed-by) and `<...>` (longest match).
+    Case(
+      "except_nullable",
+      grammar = "Grammar = 'a' X 'b'\nX = '\\n' - ' '*",
+      inlineInputs = listOf(
+        InlineInput("a\nb", "a_nl_b", true),
+        InlineInput("ab", "ab", false),
+        InlineInput("a b", "a_sp_b", false),
+      ),
+    ),
+    Case(
+      "join_nullable",
+      grammar = "Grammar = 'a' J 'b'\nJ = Y & Z\nY = 'x'*\nZ = ('x' 'x')*",
+      inlineInputs = listOf(
+        InlineInput("ab", "ab", true),
+        InlineInput("axxb", "axxb", true),
+        InlineInput("axxxxb", "axxxxb", true),
+        InlineInput("axb", "axb", false),
+        InlineInput("axxxb", "axxxb", false),
+      ),
+    ),
+    Case(
+      "lookahead_outrun",
+      grammar = "Program = !\"fn\" Expression ';'\nExpression = \"fn\" \"()\" | \"gn\" \"()\"",
+      startName = "Program",
+      inlineInputs = listOf(
+        InlineInput("gn();", "gn", true),
+        InlineInput("fn();", "fn", false),
+      ),
+    ),
+    Case(
+      "eof_shape",
+      grammar = "A = WS B WS EOF\nB = 'x'+\nWS = ' '*\nEOF = !.",
+      startName = "A",
+      inlineInputs = listOf(
+        InlineInput(" xx ", "sp_xx_sp", true),
+        InlineInput("xy", "xy", false),
+        InlineInput("", "empty", false),
+      ),
+    ),
     // mulang.cdg + accepted example files. class.mu and ccgen.mu are excluded
     // because they hit a known grammar issue and an OOM respectively. The
     // generated artifacts are large (data.pb ~41MB, golden.txt totals ~50MB)
