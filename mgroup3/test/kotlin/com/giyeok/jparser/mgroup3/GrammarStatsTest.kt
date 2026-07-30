@@ -60,8 +60,16 @@ class GrammarStatsTest {
       statsOf("JSON", Path.of("examples/metalang3/resources/json/grammar.cdg"), "json"),
       statsOf("Proto3", Path.of("examples/metalang3/resources/proto3/grammar.cdg"), "proto3"),
       statsOf("ES5.1", Path.of("examples/metalang3/resources/es5/grammar.cdg"), "Program"),
+      // ES5.1 + 7.9 자동 세미콜론 삽입 — §9.3 ASI 측정 대상 문법.
+      statsOf("ES5.1-ASI", Path.of("examples/metalang3/resources/es5-asi/grammar.cdg"), "Program"),
       statsOf("ECMA262(excerpt)", Path.of("examples/metalang3/resources/ecma262-13.cdg"), "Expression"),
-      statsOf("Mulang", Path.of("../mulang/grammar/mulang.cdg"), "CompileUnit"),
+      // MULANG_PINNED_CDG override — GroupInventoryStatsTest / AblationBenchmarkTest
+      // 와 같은 규약. tab:grammar-stats 의 Mulang 행은 pinned 문법 기준이다.
+      statsOf(
+        "Mulang",
+        Path.of(System.getenv("MULANG_PINNED_CDG") ?: "../mulang/grammar/mulang.cdg"),
+        "CompileUnit",
+      ),
     )
     println("%-18s %6s %8s | %5s %7s %8s %4s %4s | %8s %5s".format(
       "grammar", "lines", "nonterm", "join", "except", "longest", "la", "nla", "symbols", "seqs"))

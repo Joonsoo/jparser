@@ -822,6 +822,20 @@ def runEs5FixtureGen() {
   )
 }
 
+// 위와 같지만 ASI (7.9 자동 세미콜론 삽입) 문법 변종. 산출:
+// mgroup3-native/tests/fixtures/parser_generated/es5-asi/data.pb
+// es5-asi 는 §9.3 ASI 측정의 입력인데 이 타겟이 없으면 Rust 런타임용 덤프를
+// 재생성할 경로가 아예 없어, 문법을 고쳐도 fixture 가 조용히 stale 해진다.
+@requires(mgroup3.test)
+@action
+def runEs5AsiFixtureGen() {
+  runJUnitTestSuiteWithEnv(
+    mgroup3.test,
+    .some("com.giyeok.jparser.mgroup3.Es5FixtureGenTest"),
+    {"ES5_FIXTURE": "1", "ES5_FIXTURE_VARIANT": "es5-asi", "JAVA_TOOL_OPTIONS": "-Xmx12g"},
+  )
+}
+
 // 자동으로 mgroup3-native cdylib 빌드 후, FFM in-process bridge 테스트를 실행.
 // MGROUP3_NATIVE_INPROC=1 을 전파해 JUnit 의 @EnabledIfEnvironmentVariable 게이트를 해제.
 // HotSpot 전용 — GraalVM native-image AOT 의 upcall 미지원과 무관.
@@ -1049,6 +1063,24 @@ def runAblationBenchmarkMulang() {
   )
 }
 
+// 위와 같지만 **pinned** Mulang 문법 (mulang@4db5727 스냅샷) 으로 측정 — 논문
+// tab:ablation 의 Mulang 행이 이 기준이다. 기본 타겟은 툴체인 체크아웃의 현재
+// 문법을 읽으므로 문법이 진화한 뒤에는 논문 수치를 재현하지 못한다.
+@requires(mgroup3.test)
+@action
+def runAblationBenchmarkMulangPinned() {
+  runJUnitTestSuiteWithEnv(
+    mgroup3.test,
+    .some("com.giyeok.jparser.mgroup3.AblationBenchmarkTest"),
+    {
+      "ABLATION_BENCH": "1",
+      "ABLATION_SUITES": "mulang",
+      "ABLATION_CAP_MS": "150000",
+      "MULANG_PINNED_CDG": "mgroup3/test/resources/mulang_pinned_4db5727.cdg",
+    },
+  )
+}
+
 // ES5.1 직역 문법 (examples/metalang3/resources/es5) 수용 배터리
 @requires(mgroup3.test)
 @action
@@ -1093,6 +1125,21 @@ def runGrammarStats() {
     mgroup3.test,
     .some("com.giyeok.jparser.mgroup3.GrammarStatsTest"),
     {"GRAMMAR_STATS": "1"},
+  )
+}
+
+// 위와 같지만 Mulang 행을 pinned 문법 (mulang@4db5727) 으로 — 논문
+// tab:grammar-stats 의 Mulang 행이 이 기준 (1,060 lines / 233 nonterminals).
+@requires(mgroup3.test)
+@action
+def runGrammarStatsPinned() {
+  runJUnitTestSuiteWithEnv(
+    mgroup3.test,
+    .some("com.giyeok.jparser.mgroup3.GrammarStatsTest"),
+    {
+      "GRAMMAR_STATS": "1",
+      "MULANG_PINNED_CDG": "mgroup3/test/resources/mulang_pinned_4db5727.cdg",
+    },
   )
 }
 

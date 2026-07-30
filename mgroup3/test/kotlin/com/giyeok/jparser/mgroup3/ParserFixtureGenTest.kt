@@ -164,7 +164,10 @@ class ParserFixtureGenTest {
     // locally via `bibix4 runMgroup3FixtureGen`.
     Case(
       name = "mulang",
-      grammarPath = "../mulang/grammar/mulang.cdg",
+      // MULANG_PINNED_CDG override — 다른 논문 하네스와 같은 규약. 이 fixture 는
+      // 논문 수치의 입력이라 pinned 문법으로 생성돼야 한다 (GroupInventoryStatsTest
+      // 의 기본 Mulang 행이 이 data.pb 를 그대로 읽는다).
+      grammarPath = System.getenv("MULANG_PINNED_CDG") ?: "../mulang/grammar/mulang.cdg",
       startName = "CompileUnit",
       generatedOnly = true,
       fileInputs = listOf(
@@ -194,13 +197,21 @@ class ParserFixtureGenTest {
     generatedDir.mkdirs()
     var totalInputs = 0
     var skippedCases = 0
+    var writtenCases = 0
+    // FIXTURE_CASES=<name>[,<name>...] 이면 그 케이스만 재생성한다 (미설정 시 전부 —
+    // 기존 동작). mulang 처럼 무거운 케이스 하나만 다시 뽑을 때, 그리고 committed
+    // fixture 를 건드리지 않고 gitignored 케이스만 갱신할 때 쓴다.
+    val onlyCases = System.getenv("FIXTURE_CASES")
+      ?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }?.toSet()
     for (case in corpus) {
+      if (onlyCases != null && case.name !in onlyCases) continue
       val grammarSource = resolveGrammarSource(case)
       if (grammarSource == null) {
         println("[skip] case=${case.name}: grammar source missing (path=${case.grammarPath})")
         skippedCases += 1
         continue
       }
+      writtenCases += 1
       val outDir = if (case.generatedOnly) generatedDir else committedDir
       val caseDir = File(outDir, case.name)
       caseDir.mkdirs()
@@ -257,7 +268,8 @@ class ParserFixtureGenTest {
         totalInputs += 1
       }
     }
-    println("ParserFixtureGenTest wrote ${corpus.size - skippedCases} cases / $totalInputs inputs (committed=$committedDir, generated=$generatedDir, skipped=$skippedCases cases)")
+    val selection = onlyCases?.let { " (FIXTURE_CASES=${it.joinToString(",")})" } ?: ""
+    println("ParserFixtureGenTest wrote $writtenCases cases / $totalInputs inputs$selection (committed=$committedDir, generated=$generatedDir, skipped=$skippedCases cases)")
   }
 
   private fun resolveGrammarSource(case: Case): String? {

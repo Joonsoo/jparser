@@ -308,11 +308,16 @@ class AblationBenchmarkTest {
   private fun runMulangSuite() {
     println()
     println("--- suite: mulang ---")
-    val cdgPath = Path.of("../mulang/grammar/mulang.cdg")
+    // 논문 재현용 override: MULANG_PINNED_CDG 가 있으면 그 문법으로 측정한다
+    // (GroupInventoryStatsTest / GrammarStatsTest 와 같은 규약). 미설정 시 기존
+    // 동작 유지 — 툴체인 체크아웃의 현재 문법. 논문 §7.4 의 Mulang 수치는 pinned
+    // 문법 기준이므로, 문법이 진화한 뒤에는 override 없이는 재현되지 않는다.
+    val cdgPath = Path.of(System.getenv("MULANG_PINNED_CDG") ?: "../mulang/grammar/mulang.cdg")
     if (!cdgPath.exists()) {
       println("[mulang] SKIPPED: ${cdgPath.toAbsolutePath()} not found")
       return
     }
+    println("[mulang] grammar: ${cdgPath.toAbsolutePath()}")
     val inputs = listOf("class.mu", "ccgen.mu").mapNotNull { name ->
       val p = Path.of("../mulang/examples/$name")
       if (p.exists()) Pair(name, p.readText()) else {
