@@ -243,28 +243,29 @@ class Mgroup3ParserGenerator(val grammar: NGrammar) {
 
   // cond root starter 들을 (symbolId, keyGen, sameInput) 로 dedup/정렬해 emit.
   //
-  // bounded (except/join/longest) watcher — span-정규화 key:
+  // 모든 watcher 계열 (bounded = except/join/longest, lookahead = Exists/NotExists)
+  // 공통 span-정규화 key:
   //   pos Curr/Mid (term) → (MID, same-input): key=ctx.gen, 이번 입력이 첫 글자.
   //   pos Curr/Mid (edge) → 과거 경계 — 그 시점에 이미 등록된 watcher, emit 생략.
   //   pos Next → (NEXT, fresh): key=gen, 소비는 다음 step 부터.
-  // lookahead watcher — 구 규약 (드리프트하는 anchor 와 쌍):
-  //   pos Next (progress-phase 경계) → (NEXT, fresh) — f20d1d56 의 token-boundary fresh.
-  //   그 외 → (NEXT, same-input): key=등록 gen, 이번 입력부터 소비 (span 은 gen-1).
+  //
+  // 2026-07-30: lookahead 도 이 규약으로 통일 (bug B 수정). 이전에는 lookahead 만
+  // (NEXT, same-input) = "key 는 등록 gen, span 은 key-1" 구 규약이었고, 조건 leaf 의
+  // anchor 는 frame 에 따라 span 또는 span+1 로 resolve 되어 한 key 가 두 span 을
+  // 뜻했다 (`starterDied` 의 fresh fallback 이 그 충돌을 임시로 봉합). remapEdgeCondGens
+  // 가 lookahead anchor 도 Grand(=dot) 로 리맵하게 되면서 anchor = key = span 시작으로
+  // 일치한다. 상세: mgroup3/docs/watcher_anchor_dedup.md §9.
   private fun emitCondRootStarters(
     observed: Set<ObservedCondSym>,
     edgeFrame: Boolean,
     add: (symbolId: Int, milestoneGroupId: Int, keyGen: KernelTemplateGen, sameInput: Boolean) -> Unit,
   ) {
     val keyed = observed.mapNotNull { obs ->
-      if (obs.isLookahead) {
-        Triple(obs.symbolId, KernelTemplateGen.NEXT, obs.pos != Next)
-      } else {
-        when (obs.pos) {
-          Curr, GenNodeGeneration.Mid ->
-            if (edgeFrame) null else Triple(obs.symbolId, KernelTemplateGen.MID, true)
-          Next -> Triple(obs.symbolId, KernelTemplateGen.NEXT, false)
-          else -> null
-        }
+      when (obs.pos) {
+        Curr, GenNodeGeneration.Mid ->
+          if (edgeFrame) null else Triple(obs.symbolId, KernelTemplateGen.MID, true)
+        Next -> Triple(obs.symbolId, KernelTemplateGen.NEXT, false)
+        else -> null
       }
     }.distinct().sortedWith(compareBy({ it.first }, { it.second.number }, { it.third }))
     for ((sym, keyGen, sameInput) in keyed) {

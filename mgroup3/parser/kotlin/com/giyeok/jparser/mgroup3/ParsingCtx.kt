@@ -40,7 +40,23 @@ data class ParsingCtx(
   // 보고 전용 root anchor — same-input 적용으로 시작한 cond root 는 실제 span 이
   // (생성 gen - 1) 부터이므로 (m2 의 pended root 는 생성 gen 부터 span), 보고 좌표의
   // 기준 gen 을 따로 둔다. 키가 없으면 root.startGen. 런타임(조건 anchoring)은 불변.
+  // VESTIGIAL (2026-07-30, watcher_anchor_dedup.md §9.2(c)): -1 드리프트가 사라져
+  // (보고 anchor == key == span 시작) 양쪽 런타임에 writer 가 없다 — 항상 빈 map.
+  // reader 만 남아 있어 필드는 유지 (전부 fallback = root.startGen 으로 동작).
   val rootReportGens: MutableMap<PathRoot, Int> = mutableMapOf(),
+  // lookahead watcher root 들의 *이전 gen* finish 누적 기록 (root → Or-merged finish
+  // condition; 관찰 gen 부터 매 step evolve 되어 현재 gen 기준). unbounded lookahead
+  // 조건 (NotExists/Exists) 이 watcher 사망 이후에 물질화되는 경우의 해소에 쓴다 —
+  // 근거는 evolveAcceptCondition 의 seenCondPathFins 문서 (bug B).
+  // lookaheadCondSymbols 에 속하고 eofCondSymbols 가 아닌 root 만 담는다 (bounded /
+  // longest shape 은 정확한 span 으로만 discharge 되므로 이 채널을 보지 않는다).
+  val seenCondPathFins: MutableMap<PathRoot, AcceptCondition> = mutableMapOf(),
+  // seenCondPathFins 중 값이 상수(Always/Never)가 아닌 root 들. 매 step 의 evolve 패스는
+  // 이 집합만 순회한다 — 전체 map 을 훑으면 |seen| 이 입력 길이에 비례해 커지는 문법
+  // (es5 처럼 lookahead watcher 가 자주 완성되는 경우) 에서 step 당 O(|seen|) = 전체
+  // O(n^2) 가 된다 (실측: underscore 52KB 에서 1.8s -> 5.1s). 상수는 evolve 의 고정점이라
+  // 다시 볼 필요가 없다.
+  val seenCondPathFinsPending: MutableSet<PathRoot> = mutableSetOf(),
 ) {
   // 편의 view — main path 만, cond path 들만 (디버그/print 용).
   val mainPaths: PathMap get() = paths[mainRoot] ?: emptyMap()

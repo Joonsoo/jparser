@@ -23,8 +23,9 @@ use crate::term_group::{is_match, TermGroupBuilder, TermSet};
 
 use super::ParsingError;
 
-/// 시동 대기 중인 cond root starter — same_input 이면 이번 입력이 watcher 의 첫 글자
-/// (key==gen 인 lookahead 구 규약이면 실제 span 은 gen-1 — 보고 anchor 별도 기록).
+/// 시동 대기 중인 cond root starter — same_input 이면 이번 입력이 watcher 의 첫
+/// 글자 (key == ctx.gen == span 시작). 2026-07-30 이후 lookahead 계열도 같은
+/// span-정규화 규약을 쓰므로 key 와 span 시작이 항상 일치한다.
 #[derive(Clone, Copy, Debug)]
 pub struct PendingStarter {
     pub milestone_group_id: i32,
@@ -200,13 +201,28 @@ impl Mgroup3Parser {
             }
         }
 
+        let initial_active: HashSet<PathRoot> = initial_cond_roots.iter().copied().collect();
+
+        // gen 0 의 zero-width finish 도 누적 기록에 담는다 — 이후 gen 에서 물질화되는
+        // lookahead leaf 가 이 관찰을 봐야 한다 (bug B).
+        let mut initial_seen: HashMap<PathRoot, AcceptCondition> = HashMap::default();
+        let mut initial_seen_pending: HashSet<PathRoot> = HashSet::default();
+        self.update_seen_cond_path_fins(
+            &mut initial_seen,
+            &mut initial_seen_pending,
+            &initial_cond_path_finishes,
+            &HashMap::default(),
+            &initial_active,
+            0,
+        );
+
         let initial_entry = HistoryEntry {
             action_applications: initial_apps,
             finished_kernels: initial_finished,
             added_kernels: Vec::new(),
             cond_path_finishes: initial_cond_path_finishes,
             late_cond_path_finishes: HashMap::default(),
-            active_cond_paths: initial_cond_roots.iter().copied().collect(),
+            active_cond_paths: initial_active,
             main_root_finish: initial_main_root_finish,
             reported_cond_roots: initial_cond_roots.into_iter().collect(),
         };
@@ -220,12 +236,114 @@ impl Mgroup3Parser {
             history: History::from_entry(initial_entry),
             ever_seen_cond_roots: Default::default(),
             root_report_gens: Default::default(),
+            seen_cond_path_fins: initial_seen,
+            seen_cond_path_fins_pending: initial_seen_pending,
             term_action_cache: Default::default(),
             step_scratch: Default::default(),
         }
     }
 
-    
+    /// `seen_cond_path_fins` 에 담을 수 있는 관찰인가 (Kotlin
+    /// `recordableLookaheadRoot`).
+    ///  - `lookahead_cond_symbols` 밖의 root 를 참조하는 leaf 는 NotExists/Exists 가
+    ///    아니다 (생성기가 lookahead 조건의 symbolId 로 정확히 이 집합을 emit 한다).
+    ///  - `eof_cond_symbols` 의 leaf 는 생성 시점에 `resolve_eof_leaves` 가 접어
+    ///    없앤다. eof watcher 는 매 gen 완성되므로 담으면 입력 길이만큼 entry 가 쌓인다.
+    fn recordable_lookahead_root(&self, root: &PathRoot, fin: &AcceptCondition) -> bool {
+        !matches!(fin, AcceptCondition::Never)
+            && self.plain.lookahead_cond_symbols.contains(&root.symbol_id)
+            && !self.plain.eof_cond_symbols.contains(&root.symbol_id)
+    }
+
+    /// 누적 lookahead finish 기록 갱신 (Kotlin `updateSeenCondPathFins`).
+    /// 순서가 중요하다:
+    ///  1) 이번 step 의 eager/late finish 를 Or 로 접어 넣는다 (raw).
+    ///  2) 그 다음 *모든* entry 를 이번 gen 으로 evolve. 저장된 finish 조건은 (nested
+    ///     join/except/longest 로) 다른 root 를 참조할 수 있어서 관찰 gen 부터 매 step
+    ///     evolve 돼야 하며, 특히 *관찰 gen 자신의* evolve 를 건너뛰면 안 된다 —
+    ///     예: watcher 16 의 fin 이 OnlyIf(23, 0, 2) 로 gen 2 에 관찰되면 그 discharge
+    ///     (end_gen == 2 의 eager fin 흡수) 는 gen 2 의 evolve 에서만 일어난다. gen 3
+    ///     에서 처음 evolve 하면 end_gen+1 분기가 late fin 부재로 Never 를 만들어
+    ///     관찰이 사라진다. Always/Never 는 고정점이라 skip.
+    ///  결과 Never 는 "그 관찰은 불가능했다" 이므로 entry 를 제거한다.
+    ///  evolve 는 갱신 전 `seen` 만 읽고 (updates 에 모아 두었다가 일괄 적용) 순회
+    ///  순서와 무관하게 결정적이다 (Kotlin↔Rust byte-identity 게이트).
+    ///
+    /// `pending` 은 `seen` 중 값이 상수(Always/Never)가 *아닌* key 집합 — evolve 패스가
+    /// 실제로 다시 봐야 하는 entry 들. 상수는 evolve 의 고정점이라 영구히 건너뛰어도
+    /// 의미가 같고, 이 집합만 순회하면 step 당 O(|seen|) (= 전체 O(n²)) 비용이 사라진다.
+    /// 측정치는 `ParsingCtx::seen_cond_path_fins_pending` 문서 참고.
+    fn update_seen_cond_path_fins(
+        &self,
+        seen: &mut HashMap<PathRoot, AcceptCondition>,
+        pending: &mut HashSet<PathRoot>,
+        cond_path_finishes: &HashMap<PathRoot, AcceptCondition>,
+        late_cond_path_finishes: &HashMap<PathRoot, AcceptCondition>,
+        active_cond_roots: &HashSet<PathRoot>,
+        gen_idx: i32,
+    ) {
+        for source in [cond_path_finishes, late_cond_path_finishes] {
+            for (root, fin) in source.iter() {
+                if !self.recordable_lookahead_root(root, fin) {
+                    continue;
+                }
+                // `or_merge` 와 같은 병합 (vacant → fin, occupied → Or(existing, fin)).
+                // 병합 결과를 봐야 pending 을 유지할 수 있어 인라인한다.
+                let merged = match seen.get(root) {
+                    None => fin.clone(),
+                    Some(existing) => AcceptCondition::or_from([existing.clone(), fin.clone()]),
+                };
+                let is_const = matches!(merged, AcceptCondition::Always | AcceptCondition::Never);
+                seen.insert(*root, merged);
+                if is_const {
+                    pending.remove(root);
+                } else {
+                    pending.insert(*root);
+                }
+            }
+        }
+        if pending.is_empty() {
+            return;
+        }
+        let updates: Vec<(PathRoot, AcceptCondition)> = {
+            let seen_ro: &HashMap<PathRoot, AcceptCondition> = seen;
+            let mut updates: Vec<(PathRoot, AcceptCondition)> = Vec::new();
+            for root in pending.iter() {
+                let c = &seen_ro[root];
+                let evolved = evolve_accept_condition(
+                    c,
+                    cond_path_finishes,
+                    late_cond_path_finishes,
+                    active_cond_roots,
+                    gen_idx,
+                    seen_ro,
+                );
+                if evolved != *c {
+                    updates.push((*root, evolved));
+                }
+            }
+            updates
+        };
+        for (root, c) in updates {
+            match c {
+                // 그 관찰은 불가능했다 — 기록에서 제거.
+                AcceptCondition::Never => {
+                    seen.remove(&root);
+                    pending.remove(&root);
+                }
+                // 확정된 관찰 — 기록은 유지하되 다시 evolve 할 필요는 없다.
+                AcceptCondition::Always => {
+                    seen.insert(root, c);
+                    pending.remove(&root);
+                }
+                _ => {
+                    seen.insert(root, c);
+                }
+            }
+        }
+    }
+
+
 
     /// Build initial path maps for every symbol in the transitive closure of
     /// `cond_symbol_ids`. Mirrors `Mgroup3Parser.kt:72-86`. Each created path
@@ -547,29 +665,22 @@ impl Mgroup3Parser {
             }
         }
 
-        // same-input 시동이 죽었을 때 (매치 실패 / 살아남은 path 없음):
-        //  - lookahead 계열 key (== next_gen): 구 규약의 fresh fallback — 같은 key 를
-        //    다음 경계 watcher (span gen) 로 재시동. 드리프트하는 lookahead anchor 는
-        //    같은 key 로 span gen-1 과 span gen 양쪽 해석을 요구할 수 있다.
-        //  - bounded 계열 key (== ctx.gen): span-정규화 — 그 span 의 매치는 불가로
-        //    확정, key 를 소진시켜 이후 재시동 (span 이 어긋난 zombie) 을 막는다.
+        // same-input 시동이 죽었을 때 (매치 실패 / 살아남은 path 없음): key 는 span
+        // 시작 (== ctx.gen) 이므로 그 span 의 매치는 불가로 확정된다. key 를 소진시켜
+        // 이후 재시동 (span 이 어긋난 zombie watcher) 을 막는다.
+        // 2026-07-30: 구 규약의 "lookahead key(==next_gen) 는 fresh 로 재시동" fallback
+        // 제거 — lookahead key 도 span-정규화되어 한 key 가 한 span 만 뜻하므로 재시동은
+        // 곧 남의 span 매치를 그 key 에 기록하는 오염이다.
         macro_rules! starter_died {
-            ($root:expr, $shape:expr, $next_paths:expr, $ctx:expr) => {
-                if $root.start_gen == next_gen {
-                    let mut seeded = PathMap::default();
-                    seeded.insert($shape, AcceptCondition::Always);
-                    $next_paths.insert($root, seeded);
-                } else {
-                    $ctx.ever_seen_cond_roots.insert($root);
-                }
+            ($root:expr, $ctx:expr) => {
+                $ctx.ever_seen_cond_roots.insert($root);
             };
         }
 
         // ----- step 1b: cond root starters 시동 -----
-        //  - same_input: 이번 입력이 watcher 의 첫 글자. bounded 계열은 key==ctx.gen
-        //    (span-정규화), lookahead 계열은 key==gen (구 규약 — 실제 span 은 gen-1,
-        //    보고 anchor 별도 기록).
-        //  - !same_input: fresh — 시동만 하고 소비는 다음 step 부터 (새 경계 watcher).
+        //  - same_input: 이번 입력이 watcher 의 첫 글자, key == ctx.gen == span 시작.
+        //  - !same_input: fresh — 시동만 하고 소비는 다음 step 부터
+        //    (key == next_gen == span 시작, 새 경계 watcher).
         for (&starter_root, &pending) in &cond_root_starters_from_term {
             if ctx.paths.contains_key(&starter_root) {
                 continue;
@@ -601,15 +712,8 @@ impl Mgroup3Parser {
             } else {
                 let ta = self.find_applicable_action(&mut term_cache, &starter_shape, input);
                 if let Some(ta) = ta {
-                    // 실제 span 시작: key==gen (lookahead 구 규약) 이면 gen-1.
-                    let report_gen = if starter_root.start_gen == next_gen {
-                        next_gen - 1
-                    } else {
-                        starter_root.start_gen
-                    };
-                    if report_gen != starter_root.start_gen {
-                        ctx.root_report_gens.insert(starter_root, report_gen);
-                    }
+                    // key 는 span-정규화되어 있으므로 보고 anchor == key (드리프트 없음).
+                    let report_gen = starter_root.start_gen;
                     let mut per_starter_next: PathMap = PathMap::default();
                     let mut ignored_starters: HashMap<PathRoot, PendingStarter> = HashMap::default();
                     self.apply_term_action(
@@ -650,7 +754,7 @@ impl Mgroup3Parser {
                                 pending.milestone_group_id
                             );
                         }
-                        starter_died!(starter_root, starter_shape, next_paths, ctx);
+                        starter_died!(starter_root, ctx);
                     }
                 } else {
                     if blog {
@@ -660,7 +764,7 @@ impl Mgroup3Parser {
                             pending.milestone_group_id
                         );
                     }
-                    starter_died!(starter_root, starter_shape, next_paths, ctx);
+                    starter_died!(starter_root, ctx);
                 }
             }
             if let Some(self_finish_tpl) = root_info.self_finish_accept_condition.as_ref() {
@@ -705,13 +809,33 @@ impl Mgroup3Parser {
         for &root in cond_root_starters_from_term.keys() {
             new_cond_roots.insert(root);
         }
+        // cond root 의 *내부* cond symbol 들 (initial_cond_symbol_ids 의 transitive
+        // closure) 은 그 root 와 같은 span 에서 시작한다 (예: `"fn"&Tk` 의 Tk,
+        // `Tk = <Word>` 의 Word). init_ctx 의 cond_paths_for 는 gen 0 root 에 대해 이
+        // closure 를 만들어 주지만, 입력 중간에 시동되는 starter 에는 그 경로가 없어서
+        // (step 1b/step 3 는 starter 의 term action 의 cond_root_starters 를 무시한다)
+        // 내부 watcher 가 `PathRoot(sym, next_gen)` — 즉 부모보다 뒤인 잘못된 span —
+        // 으로만 생기고 있었다. 그 결과 부모 watcher 의 finish 조건
+        // (OnlyIf(Tk@span, ...)) 이 빈 key 를 보고 Never 로 무너진다.
+        // (`new_cond_roots_sorted` 를 스냅샷 버퍼로 재사용 — 아래에서 다시 clear 된다.)
+        let mut new_cond_roots_sorted = std::mem::take(&mut scratch.new_cond_roots_sorted);
+        new_cond_roots_sorted.clear();
+        new_cond_roots_sorted.extend(new_cond_roots.iter().copied());
+        for root in new_cond_roots_sorted.iter() {
+            let Some(closure) = self.plain.transitive_initial_cond_symbols.get(&root.symbol_id)
+            else {
+                continue;
+            };
+            for &sym in closure.iter() {
+                new_cond_roots.insert(PathRoot::new(sym, root.start_gen));
+            }
+        }
 
         let mut new_cond_root_progresses = std::mem::take(&mut scratch.new_cond_root_progresses);
         new_cond_root_progresses.clear();
         // Iterate over a sorted-by-(sym,next_gen) copy to keep step3 deterministic
         // across HashSet iteration orders. (drain keeps new_cond_roots' allocation
         // for reuse; the sorted vec is likewise pooled.)
-        let mut new_cond_roots_sorted = std::mem::take(&mut scratch.new_cond_roots_sorted);
         new_cond_roots_sorted.clear();
         new_cond_roots_sorted.extend(new_cond_roots.drain());
         new_cond_roots_sorted.sort_by_key(|r| (r.symbol_id, r.start_gen));
@@ -743,14 +867,14 @@ impl Mgroup3Parser {
                 new_cond_root_progresses.insert(path_root, self_cond);
             }
             let starter_shape = PathShape::new(None, root_info.milestone_group_id);
-            // 시동 flavor (step 1b 와 동일한 규칙):
-            //  - start_gen == next_gen: lookahead 심볼이면 구 규약 same-input (실제 span
-            //    gen-1), 그 외 (새 경계 watcher) 는 fresh 시동만.
-            //  - start_gen == ctx.gen: bounded span-정규화 same-input.
+            // key(= span 시작) 기준 시동 — step 1b 와 동일한 규칙 (2026-07-30: lookahead
+            // 도 span-정규화되어 계열 구분이 사라졌다):
+            //  - start_gen == next_gen: fresh 시동만 (소비는 다음 step 부터).
+            //  - start_gen == ctx.gen: same-input — 이번 입력이 첫 글자. 실패 시 key 소진.
             //  - start_gen < ctx.gen: 그 시점에 시동됐어야 하는 watcher — 지금 만들면
             //    span 이 어긋난 zombie 가 되므로 시동하지 않는다.
             let same_input = if path_root.start_gen == next_gen {
-                self.plain.lookahead_cond_symbols.contains(&path_root.symbol_id)
+                false
             } else if path_root.start_gen == ctx.gen_idx {
                 true
             } else {
@@ -771,14 +895,8 @@ impl Mgroup3Parser {
             } else {
                 let ta = self.find_applicable_action(&mut term_cache, &starter_shape, input);
                 if let Some(ta) = ta {
-                    let report_gen = if path_root.start_gen == next_gen {
-                        next_gen - 1
-                    } else {
-                        path_root.start_gen
-                    };
-                    if report_gen != path_root.start_gen {
-                        ctx.root_report_gens.insert(path_root, report_gen);
-                    }
+                    // key 는 span-정규화되어 있으므로 보고 anchor == key.
+                    let report_gen = path_root.start_gen;
                     let mut starter_next_paths: PathMap = PathMap::default();
                     let mut ignored_starters: HashMap<PathRoot, PendingStarter> = HashMap::default();
                     self.apply_term_action(
@@ -816,7 +934,7 @@ impl Mgroup3Parser {
                                 root_info.milestone_group_id
                             );
                         }
-                        starter_died!(path_root, starter_shape, next_paths, ctx);
+                        starter_died!(path_root, ctx);
                     }
                 } else {
                     if blog {
@@ -826,7 +944,7 @@ impl Mgroup3Parser {
                             root_info.milestone_group_id
                         );
                     }
-                    starter_died!(path_root, starter_shape, next_paths, ctx);
+                    starter_died!(path_root, ctx);
                 }
             }
         }
@@ -868,6 +986,7 @@ impl Mgroup3Parser {
                     &late_cond_path_finishes,
                     &active_cond_roots,
                     next_gen,
+                    &ctx.seen_cond_path_fins,
                 );
                 if matches!(evolved, AcceptCondition::Never) {
                     continue;
@@ -885,8 +1004,7 @@ impl Mgroup3Parser {
             paths_evolved.get(&ctx.main_root).cloned().unwrap_or_default();
 
         // ----- step 6: prune unreferenced cond paths -----
-        // referenced_roots: 런타임 생존 규칙 — 조건 참조 root + observing 의 dot anchor
-        //   (+ lookahead 는 tip/parent anchor 도 — 구 규약의 드리프트 쌍).
+        // referenced_roots: 런타임 생존 규칙 — 조건 참조 root + observing 의 dot anchor.
         // reported_cond_roots: 보고 대상 — m2 trackings 의 narrow 규칙
         //   (조건 참조 root + observing 의 parent-gen anchor 만).
         // next_paths 의 inner map 들은 step5 에서 읽기만 하고 이후 필요 없다 —
@@ -925,18 +1043,14 @@ impl Mgroup3Parser {
                         let parent_gen =
                             node.parent.as_ref().map(|p| p.gen_idx).unwrap_or(ctx.main_root.start_gen);
                         reported_cond_roots.insert(PathRoot::new(sid, parent_gen));
-                        // bounded (except/join/longest) 의 미래 조건 anchor 는 dot 뿐 —
-                        // term 조건은 MID(같은 step 에 starter 로 시동), edge 조건은
-                        // GRAND(=dot) 로만 anchoring (remapEdgeCondGens; 실측
-                        // scanCondAnchorTags: mulang 전 템플릿에서 bounded CURR anchor
-                        // 0건). tip(gen)/parent anchor 로만 살아남는 bounded 워처가
-                        // 인접-gen 중복 root 의 원인 (watcher_anchor_dedup.md §1).
-                        // lookahead 는 edge 조건이 CURR/MID 태그를 유지하므로 구 규약의
-                        // 3 anchor 그대로 — 드리프트 anchor 와 쌍인 자기일관 시스템.
-                        if self.plain.lookahead_cond_symbols.contains(&sid) {
-                            referenced_roots.insert(PathRoot::new(sid, node.gen_idx));
-                            referenced_roots.insert(PathRoot::new(sid, parent_gen));
-                        }
+                        // 모든 watcher 계열의 미래 조건 anchor 는 dot 뿐 — term 조건은
+                        // MID(같은 step 에 starter 로 시동), edge 조건은 GRAND(=dot) 로만
+                        // anchoring (remapEdgeCondGens; 실측 scanCondAnchorTags: mulang 전
+                        // 템플릿에서 bounded CURR anchor 0건). tip(gen)/parent anchor 로만
+                        // 살아남는 워처가 인접-gen 중복 root 의 원인
+                        // (watcher_anchor_dedup.md §1).
+                        // 2026-07-30: lookahead 도 remap 대상이 되어 dot-only 규칙에 합류
+                        // (§9) — 구 규약의 tip/parent 예외 anchor 제거.
                     }
                     mp = node.parent.clone();
                 }
@@ -1015,6 +1129,21 @@ impl Mgroup3Parser {
             reported_cond_roots,
         };
 
+        // 이번 step 의 lookahead watcher finish 들을 누적 기록에 접어 넣는다 (step 5
+        // 이후 — 이번 step 의 관찰은 per-step 채널이 이미 처리했고, 이 기록은 *다음*
+        // step 부터 유효하다). bug B: 조건은 watcher 사망 이후에도 물질화될 수 있다.
+        // (Kotlin 은 history push 직후에 호출하지만 이 함수는 history/
+        // ever_seen_cond_roots 를 읽지 않으므로 순서는 출력에 무관 — 여기서는 두
+        // finish 맵이 아직 owned local 인 지점에 둔다.)
+        self.update_seen_cond_path_fins(
+            &mut ctx.seen_cond_path_fins,
+            &mut ctx.seen_cond_path_fins_pending,
+            &history_entry.cond_path_finishes,
+            &history_entry.late_cond_path_finishes,
+            &active_cond_roots,
+            next_gen,
+        );
+
         // scratch 로 꺼냈던 owned 컬렉션들을 되돌린다 (다음 step 재사용). drain 된
         // 컨테이너는 비어있고 capacity 만 유지된 상태. 다음 step 진입 시 clear() 되므로
         // 여기서 별도 clear 불필요.
@@ -1035,7 +1164,14 @@ impl Mgroup3Parser {
         scratch.referenced_roots = referenced_roots;
         scratch.walked_nodes = walked_nodes;
 
-        let ParsingCtx { mut history, mut ever_seen_cond_roots, root_report_gens, .. } = ctx;
+        let ParsingCtx {
+            mut history,
+            mut ever_seen_cond_roots,
+            root_report_gens,
+            seen_cond_path_fins,
+            seen_cond_path_fins_pending,
+            ..
+        } = ctx;
         history.push(history_entry);
         ever_seen_cond_roots.extend(active_cond_paths_for_history);
 
@@ -1048,6 +1184,8 @@ impl Mgroup3Parser {
             history,
             ever_seen_cond_roots,
             root_report_gens,
+            seen_cond_path_fins,
+            seen_cond_path_fins_pending,
             term_action_cache: term_cache,
             step_scratch: scratch,
         })
@@ -1756,7 +1894,12 @@ impl KernelsQuery<'_> {
 /// record 생성 시점(record_gen)부터 매 step 의 evolve 를 재생한 뒤 입력-끝 평가.
 /// 파스 중 live path 의 조건이 겪는 단계별 진화와 동일 — longest/join/except 의
 /// 타이밍 의미가 보존된다. Mirrors Kotlin `evaluateRecordCondition` /
-/// mgroup2 kernelsHistory 의 `isEventuallyAccepted`.
+/// `RecordConditionEvaluator.evaluateReplay` / mgroup2 kernelsHistory 의
+/// `isEventuallyAccepted`.
+///
+/// history 의 finish 는 누적 `seen` 채널로 넘긴다 — record 조건은 dot 이 조건부
+/// kernel 을 통과하는 step 에 물질화되므로 watcher 사망 이후에 태어날 수 있고, 그
+/// 경우 이전 관찰이 unbounded lookahead leaf 의 해소에 쓰여야 한다 (bug B).
 pub fn evaluate_record_condition(
     cond: &AcceptCondition,
     history: &History,
@@ -1765,6 +1908,37 @@ pub fn evaluate_record_condition(
 ) -> bool {
     let mut c = cond.clone();
     let len = history.len() as i32;
+    // seen 은 *전 history* 의 fin 을 담는다 (parse_step 과 같은 merge→그 gen 에서
+    // evolve 절차를 gen 0..len-1 에 대해 replay 루프 전에 미리 돌린다 — 그래야 gen g
+    // 의 evolve 가 g 에 기록된 fin 을 이미 볼 수 있다; merge→same-gen evolve 규율은
+    // `update_replay_seen` 안에 그대로 있다). 필터는 없다 — record 조건에는 eof leaf
+    // 도 나타나고 direct 평가 (RecordConditionEvaluator::any_all_fins_true) 는
+    // history 의 모든 fin 을 보므로 여기서도 전부 담아야 일치한다.
+    //
+    // 왜 record_gen 이전까지가 아니라 전체인가: unbounded lookahead 의 진릿값은
+    // (symbol, anchor) 만의 함수이므로 replay 의 step-by-step 진행으로는 "이 root 가
+    // *나중* gen 에 완성된다" 를 볼 수 없다. per-step 채널만 보면 root 가 그 step 에
+    // 비활성이면 parts.is_empty() -> Always 로 조기 확정되는데, 그게 바로 bug B 다.
+    //   실례 (Mgroup2VsMgroup3HistoryTest 의 asdl 문법, `EOF = !.`):
+    //   AnyChar watcher (21@15) 는 gen 16 에 완성되지만 active_cond_paths 에는 한 번도
+    //   오르지 않는다 (resolve_eof_leaves 가 path 조건의 eof leaf 를 생성 시점에 접기
+    //   때문에 아무 조건도 그 root 를 참조하지 않아 step 6 이 즉시 버린다). record
+    //   조건은 접히지 않은 채 남으므로 replay 는 gen 15 에서 Always 로 확정해
+    //   "position 15 에 글자가 없다" 는 거짓 답을 냈다.
+    // bounded(Unless/OnlyIf) / longest(NoLongerMatch) 는 여전히 per-gen 채널로만
+    // discharge 되므로 replay 의 교차검증 가치는 유지된다.
+    // (Kotlin `RecordConditionEvaluator.evaluateReplay` 와 정확히 같은 순서.)
+    let mut seen: HashMap<PathRoot, AcceptCondition> = HashMap::default();
+    for g in 0..len {
+        let entry = history.get(g as usize).expect("history entry in range");
+        update_replay_seen(&mut seen, entry, g);
+    }
+    for (root, fin) in end_late_fins.iter() {
+        if matches!(fin, AcceptCondition::Never) {
+            continue;
+        }
+        or_merge(&mut seen, *root, fin.clone());
+    }
     let mut g = record_gen;
     while g < len {
         if matches!(c, AcceptCondition::Always) {
@@ -1780,6 +1954,7 @@ pub fn evaluate_record_condition(
             &entry.late_cond_path_finishes,
             &entry.active_cond_paths,
             g,
+            &seen,
         );
         g += 1;
     }
@@ -1793,9 +1968,59 @@ pub fn evaluate_record_condition(
     if !end_late_fins.is_empty() {
         let no_fins: HashMap<PathRoot, AcceptCondition> = HashMap::default();
         let no_active: HashSet<PathRoot> = HashSet::default();
-        c = evolve_accept_condition(&c, &no_fins, end_late_fins, &no_active, len);
+        c = evolve_accept_condition(&c, &no_fins, end_late_fins, &no_active, len, &seen);
     }
     evaluate_at_end_of_input(&c)
+}
+
+/// `Mgroup3Parser::update_seen_cond_path_fins` 의 거울 (Kotlin
+/// `RecordConditionEvaluator.updateSeen`): merge → 그 gen 에서 전체 evolve.
+/// 필터가 없다는 점만 다르다 (parser 는 `&self.plain` 의 lookahead/eof 집합으로
+/// 걸러 기록 크기를 줄이지만, replay 검증은 direct 평가와 맞춰 전부 담는다).
+fn update_replay_seen(
+    seen: &mut HashMap<PathRoot, AcceptCondition>,
+    entry: &HistoryEntry,
+    gen_idx: i32,
+) {
+    for source in [&entry.cond_path_finishes, &entry.late_cond_path_finishes] {
+        for (root, fin) in source.iter() {
+            if matches!(fin, AcceptCondition::Never) {
+                continue;
+            }
+            or_merge(seen, *root, fin.clone());
+        }
+    }
+    if seen.is_empty() {
+        return;
+    }
+    let updates: Vec<(PathRoot, AcceptCondition)> = {
+        let seen_ro: &HashMap<PathRoot, AcceptCondition> = seen;
+        let mut updates: Vec<(PathRoot, AcceptCondition)> = Vec::new();
+        for (root, c) in seen_ro.iter() {
+            if matches!(c, AcceptCondition::Always | AcceptCondition::Never) {
+                continue;
+            }
+            let evolved = evolve_accept_condition(
+                c,
+                &entry.cond_path_finishes,
+                &entry.late_cond_path_finishes,
+                &entry.active_cond_paths,
+                gen_idx,
+                seen_ro,
+            );
+            if evolved != *c {
+                updates.push((*root, evolved));
+            }
+        }
+        updates
+    };
+    for (root, c) in updates {
+        if matches!(c, AcceptCondition::Never) {
+            seen.remove(&root);
+        } else {
+            seen.insert(root, c);
+        }
+    }
 }
 
 /// replay 후 residual 조건의 입력-끝 평가. residual leaf 는 "마지막 step 까지

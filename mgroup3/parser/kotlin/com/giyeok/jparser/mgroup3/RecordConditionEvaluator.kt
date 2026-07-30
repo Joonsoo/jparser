@@ -16,8 +16,11 @@ var mg3RecordCondDiffCheck: Boolean =
 //    살아있을 때만 한 step 대기 (evolve 의 activeCondPaths 분기 그대로).
 //  - NoLongerMatch/NeedLongerMatch: end >= minEndGen 인 finish 만 흡수
 //    (eager fin 의 end == gen, late fin 의 end == gen-1).
-//  - NotExists/Exists: end 무관 — 두 채널의 모든 finish.
-//  - 흡수 창: replay 에서 leaf 는 root 가 죽는 step 에서 pending 을 떨구고 확정되므로,
+//  - NotExists/Exists: end 무관 — 그 root 의 *전 생애* finish (두 채널 + 입력 끝 가상
+//    late). record 조건은 dot 이 조건부 kernel 을 통과하는 step 에 물질화되므로 watcher
+//    사망 이후에 태어날 수 있고, 진릿값은 (symbol, anchor) 만의 함수이므로 record 생성
+//    시점(fromGen)으로 창을 자르면 안 된다 (bug B — 아래 흡수 창 규칙의 예외).
+//  - 흡수 창 (NLM/NeedLM): replay 에서 leaf 는 root 가 죽는 step 에서 pending 을 떨구고 확정되므로,
 //    fin 스캔은 root 활성 구간 기준 [fromGen, lastActive+1] 로 제한된다
 //    (lastActive+1 step 의 fin 은 그 step 에 죽으면서 등록된 것 — 흡수됨).
 //    fromGen 에 root 가 비활성이면 fromGen step 의 fin 만 흡수하고 확정.
@@ -25,8 +28,10 @@ var mg3RecordCondDiffCheck: Boolean =
 //    연속이고, 죽은 뒤의 fin 은 존재하지 않는다.
 //  - 흡수한 finish 의 조건은 그 관찰 gen 에서 재귀 평가 (fin 조건이 또 조건 참조).
 //  - visiting (같은 step 안에서 자기 root 로 재귀 도달): NoLongerMatch/NeedLongerMatch 는
-//    둘 다 Always (evolve 그대로 — 쌍대가 아님에 주의), 나머지는 이번 step 소비만
-//    건너뛰고 다음 step 부터 fresh 재평가 (= evalCond(cond, fromGen+1, ∅)).
+//    둘 다 Always (evolve 그대로 — 쌍대가 아님에 주의), Unless/OnlyIf 는 이번 step 소비만
+//    건너뛰고 다음 step 부터 fresh 재평가 (= evalCond(cond, fromGen+1, ∅)),
+//    NotExists/Exists 는 스캔이 fromGen 무관해졌으므로 미루기로는 종료하지 않는다 —
+//    순환은 well-founded witness 가 아니라고 보아 true/false 로 끊는다.
 //  - 입력 끝: 실제 step 이후의 가상 late step (gen == history.size, endLateFins) 을
 //    거친 뒤 잔여 leaf 는 NoLongerMatch/NotExists/Unless true, 쌍대 false.
 //
@@ -95,12 +100,16 @@ class RecordConditionEvaluator(
   //  - NLM/NeedLM: 활성 구간 안에서는 minEndGen 클램프 이전의 fin 이 무시되므로
   //    fromGen <= minEndGen 이 같은 답 (스캔 창 상한은 lastActive+1 로 fromGen 무관).
   //    비활성 fromGen 은 그 step 의 fin 소비 여부가 fromGen 자체에 달려 있어 정규화 없음.
-  //  - NotExists/Exists 와 composite: fromGen 자체가 스캔 시작 — 정규화 없음.
+  //  - NotExists/Exists: root 전 생애를 스캔하므로 답이 fromGen 과 무관 — 상수로 clamp.
+  //    (visiting 이 비었을 때만 이 함수가 호출되므로 finVisiting 도 fromGen 무관.)
+  //  - composite: fromGen 자체가 스캔 시작 — 정규화 없음.
   private fun normalizedGen(cond: AcceptCondition, g: Int): Int = when (cond) {
     is Unless -> normalizedBoundedGen(g, cond.endGen)
     is OnlyIf -> normalizedBoundedGen(g, cond.endGen)
     is NoLongerMatch -> normalizedLongestGen(PathRoot(cond.symbolId, cond.startGen), g, cond.minEndGen)
     is NeedLongerMatch -> normalizedLongestGen(PathRoot(cond.symbolId, cond.startGen), g, cond.minEndGen)
+    is NotExists -> 0
+    is Exists -> 0
     else -> g
   }
 
@@ -149,15 +158,23 @@ class RecordConditionEvaluator(
       if (root in visiting) true
       else anyAbsorbedFinTrue(root, fromGen, cond.minEndGen, cond.minEndGen + 1, visiting)
     }
+    // unbounded lookahead: 진릿값은 (symbol, anchor) 만의 함수 — "anchor 에서 시작하는
+    // 매치가 (end 무관하게) 존재하는가". record 가 언제 만들어졌는지(fromGen)와 무관하게
+    // 그 root 의 *전 생애* finish 를 본다 (anyAllFinsTrue). record 조건은 dot 이
+    // 조건부 kernel 을 통과하는 step 에 물질화되므로 watcher 사망 이후에 태어날 수
+    // 있고, fromGen 이후만 스캔하면 그런 record 가 Always 로 오해소된다 (bug B).
+    //
+    // visiting (같은 root 의 finish 조건 안에서 자기 자신으로 재도달): 스캔이 fromGen
+    // 무관해졌으므로 evolve 처럼 "다음 step 으로 미루기" 로는 종료하지 않는다. 순환은
+    // well-founded witness 가 아니므로 Exists=false / NotExists=true 로 끊는다
+    // (evolve 도 root 가 죽고 나면 같은 값으로 수렴한다 — 자기참조 문법에서만 차이).
     is NotExists -> {
       val root = PathRoot(cond.symbolId, cond.startGen)
-      if (root in visiting) evalCond(cond, fromGen + 1, emptySet())
-      else !anyAbsorbedFinTrue(root, fromGen, Int.MIN_VALUE, Int.MIN_VALUE, visiting)
+      if (root in visiting) true else !anyAllFinsTrue(root, fromGen, visiting)
     }
     is Exists -> {
       val root = PathRoot(cond.symbolId, cond.startGen)
-      if (root in visiting) evalCond(cond, fromGen + 1, emptySet())
-      else anyAbsorbedFinTrue(root, fromGen, Int.MIN_VALUE, Int.MIN_VALUE, visiting)
+      if (root in visiting) false else anyAllFinsTrue(root, fromGen, visiting)
     }
 
     is Unless -> {
@@ -207,9 +224,33 @@ class RecordConditionEvaluator(
     return if (fin == null) null else BoundedFin(fin, g)
   }
 
-  // NLM/NeedLM/NotExists/Exists 가 흡수하는 fin 들 중 조건이 참으로 평가되는 것이
-  // 있는지. eagerMinGen/lateMinGen 은 minEndGen 클램프 (eager fin end == gen,
-  // late fin end == gen-1 → late 는 minEndGen+1 부터). NotExists/Exists 는 클램프 없음.
+  // unbounded lookahead (NotExists/Exists) 전용: 그 root 의 *모든* 기록된 finish
+  // (eager/late + 입력 끝 가상 late) 중 조건이 참으로 평가되는 것이 있는지.
+  // fromGen 과 무관 — anchor 가 span 시작을 유일하게 정하므로 그 root 의 어떤 finish
+  // 든 "anchor 에서 시작하는 매치" 의 증인이다.
+  private fun anyAllFinsTrue(root: PathRoot, fromGen: Int, visiting: Set<PathRoot>): Boolean {
+    eagerFinGens[root]?.let { gens ->
+      for (g in gens) {
+        val fin = history[g].condPathFinishes[root]!!
+        if (evalCond(fin, g, finVisiting(g, fromGen, visiting, root))) return true
+      }
+    }
+    lateFinGens[root]?.let { gens ->
+      for (g in gens) {
+        val fin = history[g].lateCondPathFinishes[root]!!
+        if (evalCond(fin, g, finVisiting(g, fromGen, visiting, root))) return true
+      }
+    }
+    val endFin = endLateFins[root]
+    if (endFin != null &&
+      evalCond(endFin, historySize, finVisiting(historySize, fromGen, visiting, root))
+    ) return true
+    return false
+  }
+
+  // NLM/NeedLM 가 흡수하는 fin 들 중 조건이 참으로 평가되는 것이 있는지.
+  // eagerMinGen/lateMinGen 은 minEndGen 클램프 (eager fin end == gen,
+  // late fin end == gen-1 → late 는 minEndGen+1 부터).
   private fun anyAbsorbedFinTrue(
     root: PathRoot,
     fromGen: Int,
@@ -269,21 +310,77 @@ class RecordConditionEvaluator(
   // === 이하 검증용 replay 구현 (기존 evaluateRecordCondition 그대로) ===
 
   // record 가 생성된 시점(recordGen)부터 매 step 의 evolve 를 재생한 뒤 최종 평가.
+  // recordGen 이전 gen 들의 finish 는 seen 채널로 넘긴다 — record 조건은 dot 이 조건부
+  // kernel 을 통과하는 step 에 물질화되므로 watcher 사망 이후에 태어날 수 있고,
+  // 그 경우 이전 관찰이 unbounded lookahead leaf 의 해소에 쓰여야 한다 (bug B).
   fun evaluateReplay(cond: AcceptCondition, recordGen: Int): Boolean {
     var c = cond
+    // seen 은 *전 history* 의 fin 을 담는다 (parseStep 과 같은 merge→그 gen 에서 evolve
+    // 절차를 gen 0..N-1 에 대해 미리 돌린다). 필터는 없다 — record 조건에는 eof leaf 도
+    // 나타나고 direct 평가 (anyAllFinsTrue) 는 history 의 모든 fin 을 보므로.
+    //
+    // 왜 recordGen 이전까지가 아니라 전체인가: unbounded lookahead 의 진릿값은
+    // (symbol, anchor) 만의 함수이므로 replay 의 step-by-step 진행으로는 "이 root 가
+    // *나중* gen 에 완성된다" 를 볼 수 없다. per-step 채널만 보면 root 가 그 step 에
+    // 비활성이면 parts.isEmpty() -> Always 로 조기 확정되는데, 그게 바로 bug B 다.
+    //   실례 (Mgroup2VsMgroup3HistoryTest 의 asdl 문법, `EOF = !.`):
+    //   AnyChar watcher (21@15) 는 gen 16 에 완성되지만 activeCondPaths 에는 한 번도
+    //   오르지 않는다 (resolveEofLeaves 가 path 조건의 eof leaf 를 생성 시점에 접기
+    //   때문에 아무 조건도 그 root 를 참조하지 않아 step 6 이 즉시 버린다). record
+    //   조건은 접히지 않은 채 남으므로 replay 는 gen 15 에서 Always 로 확정해
+    //   "position 15 에 글자가 없다" 는 거짓 답을 냈다.
+    // bounded(Unless/OnlyIf) / longest(NoLongerMatch) 는 여전히 per-gen 채널로만
+    // discharge 되므로 replay 의 교차검증 가치는 유지된다.
+    val seen = HashMap<PathRoot, AcceptCondition>()
+    for (g in history.indices) {
+      updateSeen(seen, history[g], g)
+    }
+    if (endLateFins.isNotEmpty()) {
+      for ((root, fin) in endLateFins) {
+        if (fin == Never) continue
+        val existing = seen[root]
+        seen[root] = if (existing == null) fin else Or.from(existing, fin)
+      }
+    }
     for (g in recordGen until history.size) {
       if (c == Always) return true
       if (c == Never) return false
       val entry = history[g]
-      c = evolveAcceptCondition(c, entry.condPathFinishes, entry.lateCondPathFinishes, entry.activeCondPaths, g)
+      c = evolveAcceptCondition(
+        c, entry.condPathFinishes, entry.lateCondPathFinishes, entry.activeCondPaths, g, seen
+      )
     }
     if (c == Always) return true
     if (c == Never) return false
     // 가상 late step: 입력 끝에서 살아있던 root 들의 마지막-gen zero-width finish 들.
     if (endLateFins.isNotEmpty()) {
-      c = evolveAcceptCondition(c, emptyMap(), endLateFins, emptySet(), history.size)
+      c = evolveAcceptCondition(c, emptyMap(), endLateFins, emptySet(), history.size, seen)
     }
     return evaluateAtEndOfInput(c)
+  }
+
+  // Mgroup3Parser.updateSeenCondPathFins 의 거울: merge → 그 gen 에서 전체 evolve.
+  private fun updateSeen(seen: HashMap<PathRoot, AcceptCondition>, entry: HistoryEntry, gen: Int) {
+    for (source in listOf(entry.condPathFinishes, entry.lateCondPathFinishes)) {
+      for ((root, fin) in source) {
+        if (fin == Never) continue
+        val existing = seen[root]
+        seen[root] = if (existing == null) fin else Or.from(existing, fin)
+      }
+    }
+    if (seen.isEmpty()) return
+    var updates: MutableMap<PathRoot, AcceptCondition>? = null
+    for ((root, cc) in seen) {
+      if (cc == Always || cc == Never) continue
+      val evolved = evolveAcceptCondition(
+        cc, entry.condPathFinishes, entry.lateCondPathFinishes, entry.activeCondPaths, gen, seen
+      )
+      if (evolved != cc) {
+        if (updates == null) updates = HashMap()
+        updates[root] = evolved
+      }
+    }
+    updates?.forEach { (root, cc) -> if (cc == Never) seen.remove(root) else seen[root] = cc }
   }
 
   // replay 를 마지막 entry 까지 마친 뒤 남은 residual 조건의 입력-끝 평가.

@@ -83,7 +83,9 @@ class ParserDataPlain(val proto: Mgroup3ParserData) {
   val midEdgeActions: List<MidEdgeActionPair> =
     proto.midEdgeActionsList.map { MidEdgeActionPair(it.parent, it.tip, EdgeActionPlain(it.edgeAction)) }
 
-  // lookahead 가 감시하는 심볼들 — step 3 시동 flavor 판별 (구 규약: same-input).
+  // lookahead 가 감시하는 심볼들 — 2026-07-30 §9 이후 시동 flavor 판별에는 쓰이지
+  // 않는다 (lookahead 도 span-정규화). 남은 용도는 recordableLookaheadRoot 게이팅
+  // (Mgroup3Parser.kt:177, Rust core.rs:254): seenCondPathFins 에 담을 root 필터.
   val lookaheadCondSymbols: Set<Int> = proto.lookaheadCondSymbolIdsList.toHashSet()
 
   // 각 symbol 의 transitive initialCondSymbolIds closure (자기 자신 포함).

@@ -7,7 +7,14 @@ import scala.collection.{MapView, mutable}
 case class ParsingContext(
   gen: Int,
   paths: List[MilestoneGroupPath],
-  history: List[HistoryEntry])
+  history: List[HistoryEntry],
+  // 이전 세대들에서 관찰된 root milestone progress의 누적 기록.
+  // (milestone2 ParsingContext.seenProgressedRootMilestones와 동일한 이유 — unbounded
+  //  lookahead(Exists/NotExists) 조건은 watcher가 소멸한 뒤에 물질화될 수 있다)
+  // mgroup2는 root progress가 progressedRootMilestones와 progressedRootMgroups 양쪽에
+  // 기록되므로, 기록 시점에 mgroup을 멤버 milestone들로 펼쳐서 milestone 단위로 담는다
+  // (getProgressConditionOf가 하는 union의 누적판).
+  seenProgressedRootMilestones: Map[Milestone, MilestoneAcceptCondition] = Map())
 
 case class MilestoneGroupPath(
   first: Milestone,

@@ -22,6 +22,8 @@ replace 귀속 수정 = Phase B, 잔여 격차 분석). 이 문서는 그 잔여
   edge frame 에서 GRAND(=dot, remapEdgeCondGens 의 결과) 뿐. CURR anchor 0건.
   lookahead 는 edge 조건이 CURR/MID 태그를 유지하므로 (remap 대상 아님) 구
   규약 유지 필요.
+  **(2026-07-30 §9 로 대체됨: lookahead 계열도 span-정규화 — 이 문단의 "구 규약
+  유지 필요" 는 더는 현재 규약이 아니다.)**
 - **수정 (§4 의 A 변형)**: step6 collectFromShape 에서 bounded 심볼의 체인
   anchor 를 dot 만 유지 (lookahead 는 기존 3 anchor). Kotlin
   `Mgroup3Parser.kt` + Rust `core.rs` 미러, 각 10줄. 생성기/proto 변경 없음
@@ -86,6 +88,8 @@ Phase B (jparser 커밋 47a7b5e7) 이후 상태:
   키 same-input watcher 와 쌍을 이루는 자기일관 시스템 (a^n b^n c^n 다세대
   lookahead 가 의존; per-char !b repeat 는 같은 key 의 양쪽 해석 필요).
   런타임은 proto `lookahead_cond_symbol_ids` 로 시동 flavor 판별.
+  **(2026-07-30 §9 로 대체됨: 이 bullet 전체가 폐기 — lookahead 계열도 bounded 와
+  동일한 span-정규화 key, fresh fallback 없음, rootReportGens -1 드리프트 없음.)**
 - 관련 코드: 시동 = Mgroup3Parser.kt step1b/step3 (starterDied,
   everSeenCondRoots), 생성기 emitCondRootStarters / observedCondSymbolsFromAcc
   (Mgroup3ParserGenerator.kt), 생존/prune = step6 (referencedRoots 기반).
@@ -176,3 +180,100 @@ Phase B (jparser 커밋 47a7b5e7) 이후 상태:
 사라지므로 기대 효과가 Phase C 보다 크다 (peak ~300–500, jar.bbx ~1s 급 추정).
 문법 트랙이 성사되면 Phase C 의 대상 워처가 대부분 사라지므로 이 문서의
 우선순위는 재평가할 것. 단 언어 설계 결정 필요 — 사용자와 검토 세션 예정.
+
+## 9. lookahead 계열 span-정규화 (2026-07-30) — §2 구 규약 폐기
+
+§2 는 lookahead (Exists/NotExists) 만 "구 규약" (NEXT + same_input, 실 span 은
+key-1, 죽으면 같은 key 로 fresh fallback 재시동) 을 의도적으로 유지한다고
+기록했고, §5 는 전면 정규화 시도가 깨졌던 역사를 남겼다. **그 규약이
+acceptance-affecting 버그의 원인임이 확정되어 (bug B, 2026-07-30) 폐기했다.**
+이제 bounded 계열과 완전히 동일한 span-정규화 규약이다.
+
+### 9.1 무엇이 틀렸는가
+
+`!A` 는 zero-width guard 이고 그 의미는 NaiveACP 의 `NotExists(pos,pos,A)` —
+"pos 에서 시작하는 A 매치가 (end 무관하게) 없어야 한다" 다. milestone 계열에서
+조건부 kernel 이 interior (그룹 closure 안) 이면 조건은 dot 이 그 kernel 을
+통과하는 step 에 비로소 물질화되는데, 그 시점이 watcher 소멸 이후일 수 있다.
+최소 재현:
+
+```
+Program = !"fn" Expression ';'
+Expression = "fn" "()"
+```
+
+`fn();` — watcher("fn"@0) 는 gen 2 에 완성·소멸, seq dot 은 gen 4 에 통과.
+`evolveAcceptCondition` 의 NotExists 분기는 per-step 채널만 보므로
+"이번 step finish 없음 + root 비활성" → `Always` 로 오해소했다 (naive2 는 REJECT).
+milestone2 / mgroup2(Scala) / mgroup2(Kotlin) / mgroup3(Kotlin) /
+mgroup3-native(Rust) 전부 동일. 실문법 영향: es5 12.4 의
+`ExpressionStatement = !('{' | "function"&Tk) Expression WS ';'` 미강제
+(`{ function f() {}; }` 오수락).
+
+누적 관찰 기록만 추가하면 반대 방향 오답 (오거부) 이 생겼다. 원인이 §2 의
+구 규약이다 — 같은 key `g` 가
+
+- 테이블 스타터 `CondRootStarter{key_gen=NEXT, same_input=true}` → span `g-1`
+  (나중 edge frame 에서 물질화되는 leaf 와 쌍),
+- 조건 기반 발견 (step 3, `startGen == ctx.gen`) → span `g`
+  (같은 step 의 term frame leaf 와 쌍)
+
+양쪽에 쓰이고, 먼저 잡은 쪽이 key 를 점유한다 (`everSeenCondRoots` 로 재시동
+금지). 그래서 key `g` 의 finish 가 어느 span 의 매치인지 판정 불가였고, 다른
+쪽 해석의 leaf 는 워처를 못 얻어 조용히 `Always` 가 됐다 (bug B 와 별개로
+lookahead 강제가 통째로 사라지는 케이스). 태그 census (실측, es5 테이블):
+bounded 는 term frame MID / edge frame GRAND 뿐인데 (CURR 0건), lookahead 는
+**edge frame 에서도 MID** 가 3,112건 (TIPEDGE append 1,870 + MIDEDGE append 1,242)
+— 즉 같은 태그가 frame 에 따라 span / span+1 로 resolve 됐다.
+
+### 9.2 수정
+
+- (a) 생성기 `remapEdgeCondGens` (GenParsingGraph.kt): NotExists/Exists 의
+  `startGen` 도 Curr/Mid → Grand 리맵. 이제 모든 계열의 edge frame anchor 가
+  parent 의 dot = span 시작이다.
+- (b) 생성기 `emitCondRootStarters` (Mgroup3ParserGenerator.kt): `isLookahead`
+  특례 삭제 — term frame Curr/Mid → (MID, same-input), edge frame Curr/Mid →
+  skip (그 경계는 이미 등록됨), Next → (NEXT, fresh).
+- (c) 런타임 (Mgroup3Parser.kt): step 3 시동 flavor 의 `lookaheadCondSymbols`
+  분기 제거 (`startGen == gen` → fresh), `starterDied` 의 fresh fallback 제거
+  (key 소진만), step 6 `collectFromShape` 의 lookahead 전용 tip/parent anchor
+  제거 (dot-only 로 통일). `rootReportGens` 의 -1 드리프트도 사라진다
+  (보고 anchor == key == span 시작; m2 와 동일).
+- (d) 누적 finish 기록 `ParsingCtx.seenCondPathFins` (+ `evolveAcceptCondition`
+  의 `seenCondPathFins` 인자, NotExists/Exists 전용): watcher 소멸 이후
+  물질화되는 leaf 가 과거 관찰을 본다. 갱신 순서가 load-bearing —
+  **merge 먼저, 그 다음 같은 gen 에서 전체 evolve**. 관찰 gen 의 evolve 를
+  건너뛰면 `OnlyIf(sym, span, endGen=관찰gen)` 형태의 fin 조건이 다음 gen 의
+  `endGen+1` 분기에서 late fin 부재로 Never 가 되어 관찰이 사라진다
+  (es5 `"function"&Tk` 가 정확히 이 형태). 기록 대상은
+  `lookaheadCondSymbols \ eofCondSymbols` (eof leaf 는 생성 시점에
+  `resolveEofLeaves` 가 접고, eof watcher 는 매 gen 완성돼 담으면 O(n) 누적).
+  `RecordConditionEvaluator` 는 NotExists/Exists 의 흡수 창을 root 전 생애로
+  넓히고 (`anyAllFinsTrue`), `visiting` 순환은 true/false 로 끊는다
+  (스캔이 fromGen 무관해져 "다음 step 으로 미루기" 로는 종료하지 않음).
+- (e) 런타임 step 3: cond root 의 내부 cond symbol
+  (`transitiveInitialCondSymbols`) 을 **부모와 같은 span key** 로 시동.
+  `initCtx` 의 `condPathsFor` 는 gen 0 root 에만 이 closure 를 만들어 주고,
+  입력 중간에 시동되는 starter 는 자기 term action 의 `condRootStarters` 가
+  무시되므로 (step 1b/step 3 의 `ignoredStarters`) 내부 watcher 가
+  `PathRoot(sym, gen)` — 부모보다 뒤인 잘못된 span — 으로만 생겼다. 그러면
+  부모의 finish 조건 `OnlyIf(Tk@span, …)` 이 빈 key 를 보고 Never 로 무너진다
+  (블록 안 문장에서 es5 lookahead 가 강제되지 않던 잔여 원인).
+
+### 9.3 §5 의 반론이 왜 더는 유효하지 않은가
+
+§5 는 (i) `a^n b^n c^n` 다세대 lookahead, (ii) per-char `!b` repeat 의
+same-input/fresh 동일 key 충돌, (iii) fresh fallback 제거 시 per-char
+except/lookahead repeat 파괴를 근거로 구 규약 유지를 택했다. 그 판단 당시에는
+bug B 가 알려지지 않았고, 위 케이스들이 회귀 테스트로 고정되어 있지 않았다.
+지금은 세 케이스가 모두 enabled 테스트다:
+
+- `Mgroup3ParserKnownIssuesTest.testLookaheadSpanKeyGuards`
+  (`({});`, `{x;}`, `{{x;}}`, `{x;x;}`, per-char `!b` repeat),
+- `testNegativeLookaheadDroppedWhenBodyOutrunsLookahead`
+  (outrun 4형 + join-in-lookahead 7형 + 다세대 `^"ab"`),
+- naive2 차분 배터리 (12 문법 / 44 입력; `a^n b^n c^n` 의 `&` 교차, except,
+  longest, lookahead-in-repeat 포함) — 44/44 일치.
+
+(iii) 의 fresh fallback 은 span-정규화 후에는 "남의 span 매치를 이 key 에
+기록하는 오염" 이므로 제거가 맞다 (drift-paren 케이스 `({});` 가 그 증거).

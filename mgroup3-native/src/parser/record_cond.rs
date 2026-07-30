@@ -10,19 +10,28 @@
 //!    the root is alive at `end_gen` (the evolve active_cond_paths branch).
 //!  - NoLongerMatch/NeedLongerMatch: only finishes with end >= min_end_gen
 //!    (eager fin end == gen, late fin end == gen-1).
-//!  - NotExists/Exists: every finish on both channels, end-agnostic.
-//!  - Absorption window: in the replay a leaf drops its pending obligation
-//!    (and resolves) at the first step where the root is inactive, so the fin
-//!    scan is capped at [from_gen, last_active+1] (fins at last_active+1 are
-//!    registered by the paths dying that step — still absorbed). If the root
+//!  - NotExists/Exists: end-agnostic AND from_gen-agnostic — that root's ENTIRE
+//!    lifetime of finishes (both channels + the virtual end-of-input late fin).
+//!    A record condition materializes on the step the dot passes the conditional
+//!    kernel, so it can be born after the watcher died; its truth value is a
+//!    function of (symbol, anchor) only, so the window must NOT be clamped to the
+//!    record's birth gen (bug B — the exception to the absorption-window rule
+//!    below).
+//!  - Absorption window (NLM/NeedLM): in the replay a leaf drops its pending
+//!    obligation (and resolves) at the first step where the root is inactive, so
+//!    the fin scan is capped at [from_gen, last_active+1] (fins at last_active+1
+//!    are registered by the paths dying that step — still absorbed). If the root
 //!    is inactive at from_gen, only that step's fins are absorbed. The
 //!    ever_seen_cond_roots rule (a root is never restarted) makes the active
 //!    interval contiguous and forbids fins after death.
 //!  - Absorbed finish conditions recurse at their observed gen.
 //!  - visiting (same-step self-recursion guard): NoLongerMatch AND
 //!    NeedLongerMatch both become Always (mirroring evolve — not duals!);
-//!    the other leaves skip only the current step's consumption and continue
-//!    fresh from the next step (= eval_cond(cond, from_gen + 1, ∅)).
+//!    Unless/OnlyIf skip only the current step's consumption and continue fresh
+//!    from the next step (= eval_cond(cond, from_gen + 1, ∅)); NotExists/Exists
+//!    cannot terminate by deferring now that their scan is gen-independent, so a
+//!    cycle is treated as "not a well-founded witness" and cut with
+//!    NotExists = true / Exists = false.
 //!  - End of input: a virtual late step at `gen == history.len()` carries
 //!    `end_late_fins`; residual leaves resolve NoLongerMatch/NotExists/Unless
 //!    true and their duals false.
@@ -317,9 +326,14 @@ impl<'a> RecordConditionEvaluator<'a> {
     ///    min_end_gen clamp, so g <= min_end_gen answers alike (the window
     ///    cap last_active+1 does not depend on g). Inactive g is not
     ///    normalized: whether that step's fins are absorbed depends on g.
-    ///  - NotExists/Exists and composites: from_gen itself is the scan start.
+    ///  - NotExists/Exists scan the root's entire lifetime, so the answer is
+    ///    from_gen-independent — clamp to a constant. (This function only runs
+    ///    with an empty `visiting`, so `fin_visiting` is likewise
+    ///    from_gen-independent: it yields `{root}` either way.)
+    ///  - Composites: from_gen itself is the scan start.
     fn normalized_gen(&self, cond: &AcceptCondition, g: i32) -> i32 {
         match cond {
+            AcceptCondition::NotExists { .. } | AcceptCondition::Exists { .. } => 0,
             AcceptCondition::Unless { end_gen, .. } | AcceptCondition::OnlyIf { end_gen, .. } => {
                 if g <= *end_gen {
                     *end_gen
@@ -385,20 +399,35 @@ impl<'a> RecordConditionEvaluator<'a> {
                     )
                 }
             }
+            // unbounded lookahead: the truth value is a function of
+            // (symbol, anchor) alone — "does a match starting at anchor exist
+            // (any end)". Independent of when the record was created (from_gen),
+            // so scan that root's ENTIRE lifetime of finishes
+            // (`any_all_fins_true`). A record condition materializes on the step
+            // the dot passes the conditional kernel, so it can be born after the
+            // watcher died; scanning only from from_gen would mis-resolve such a
+            // record to Always (bug B).
+            //
+            // visiting (re-reaching this root inside its own finish condition):
+            // now that the scan is from_gen-independent, "defer to the next step"
+            // no longer terminates. A cycle is not a well-founded witness, so cut
+            // it with Exists = false / NotExists = true (evolve converges to the
+            // same values once the root dies — the two differ only on
+            // self-referential grammars).
             AcceptCondition::NotExists { .. } => {
                 let root = leaf_root(cond).expect("NotExists is a leaf");
                 if visiting.contains(&root) {
-                    self.eval_cond(cond, from_gen + 1, &[])
+                    true
                 } else {
-                    !self.any_absorbed_fin_true(root, from_gen, i32::MIN, i32::MIN, visiting)
+                    !self.any_all_fins_true(root, from_gen, visiting)
                 }
             }
             AcceptCondition::Exists { .. } => {
                 let root = leaf_root(cond).expect("Exists is a leaf");
                 if visiting.contains(&root) {
-                    self.eval_cond(cond, from_gen + 1, &[])
+                    false
                 } else {
-                    self.any_absorbed_fin_true(root, from_gen, i32::MIN, i32::MIN, visiting)
+                    self.any_all_fins_true(root, from_gen, visiting)
                 }
             }
 
@@ -480,10 +509,41 @@ impl<'a> RecordConditionEvaluator<'a> {
         fin.map(|f| (f, g))
     }
 
-    /// Does any fin absorbed by NLM/NeedLM/NotExists/Exists evaluate true?
+    /// Unbounded lookahead (NotExists/Exists) only: does ANY recorded finish of
+    /// that root — every eager fin gen, every late fin gen, and the virtual
+    /// end-of-input late fin — evaluate true? from_gen-independent: the anchor
+    /// pins the span's start uniquely, so any finish of that root witnesses "a
+    /// match starting at anchor exists". (`from_gen` is still threaded through
+    /// for `fin_visiting`'s same-step check.)
+    fn any_all_fins_true(&self, root: PathRoot, from_gen: i32, visiting: &[PathRoot]) -> bool {
+        if let Some(gens) = self.eager_fin_gens.get(&root) {
+            for &g in gens {
+                let fin = &self.history.get(g as usize).unwrap().cond_path_finishes[&root];
+                if self.eval_cond(fin, g, &fin_visiting(g, from_gen, visiting, root)) {
+                    return true;
+                }
+            }
+        }
+        if let Some(gens) = self.late_fin_gens.get(&root) {
+            for &g in gens {
+                let fin = &self.history.get(g as usize).unwrap().late_cond_path_finishes[&root];
+                if self.eval_cond(fin, g, &fin_visiting(g, from_gen, visiting, root)) {
+                    return true;
+                }
+            }
+        }
+        if let Some(fin) = self.end_late_fins.get(&root) {
+            let v = fin_visiting(self.history_size, from_gen, visiting, root);
+            if self.eval_cond(fin, self.history_size, &v) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Does any fin absorbed by NLM/NeedLM evaluate true?
     /// `eager_min_gen`/`late_min_gen` carry the min_end_gen clamp (eager fin
-    /// end == gen, late fin end == gen-1 → late starts at min_end_gen+1);
-    /// NotExists/Exists pass i32::MIN (no clamp).
+    /// end == gen, late fin end == gen-1 → late starts at min_end_gen+1).
     fn any_absorbed_fin_true(
         &self,
         root: PathRoot,

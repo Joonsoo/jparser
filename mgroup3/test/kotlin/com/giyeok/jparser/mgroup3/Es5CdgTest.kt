@@ -280,6 +280,14 @@ class Es5CdgTest {
     accept("x = typeof a === \"string\" && !b || void 0;")
     accept("x = a << 2 >>> b >= c & d | e ^ f;")
     accept("x = a <<= 2;")
-    reject("{ function f() {} }")                    // ES5: 블록 안 FunctionDeclaration 없음
+    reject("{ function f() {} }", alsoNaive = true)  // ES5: 블록 안 FunctionDeclaration 없음
+    // 12.4 `[lookahead not-in {"{", "function"}]` — 2026-07-30 의 bug B 수정 전에는
+    // 강제되지 않아 오수락됐다 (Mgroup3ParserKnownIssuesTest 의
+    // testNegativeLookaheadDroppedWhenBodyOutrunsLookahead 참고).
+    reject("{ function f() {}; }", alsoNaive = true)
+    reject("{ function g() {}; };", alsoNaive = true)
+    // 최상위 `function f() {};` 는 FunctionDeclaration + EmptyStatement 로 유효 —
+    // 12.4 의 lookahead 는 ExpressionStatement 에만 걸린다.
+    accept("function f() {};", alsoNaive = true)
   }
 }

@@ -147,6 +147,14 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       reportedCondRoots = initialCondPaths.keys,
     )
 
+    // gen 0 의 zero-width finish 도 누적 기록에 담는다 — 이후 gen 에서 물질화되는
+    // lookahead leaf 가 이 관찰을 봐야 한다 (bug B).
+    val initialSeen = mutableMapOf<PathRoot, AcceptCondition>()
+    val initialSeenPending = mutableSetOf<PathRoot>()
+    updateSeenCondPathFins(
+      initialSeen, initialSeenPending, initialCondPathFinishes, emptyMap(), initialCondPaths.keys, 0
+    )
+
     return ParsingCtx(
       gen = 0,
       line = 0,
@@ -154,8 +162,20 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       mainRoot = mainRoot,
       paths = allPaths,
       history = arrayListOf(initialEntry),
+      seenCondPathFins = initialSeen,
+      seenCondPathFinsPending = initialSeenPending,
     )
   }
+
+  // seenCondPathFins 에 담을 수 있는 관찰인가.
+  //  - lookaheadCondSymbols 밖의 root 를 참조하는 leaf 는 NotExists/Exists 가 아니다
+  //    (생성기가 lookahead 조건의 symbolId 로 정확히 이 집합을 emit 한다).
+  //  - eofCondSymbols 의 leaf 는 생성 시점에 resolveEofLeaves 가 접어 없앤다. eof
+  //    watcher 는 매 gen 완성되므로 담으면 입력 길이만큼 entry 가 쌓인다.
+  private fun recordableLookaheadRoot(root: PathRoot, fin: AcceptCondition): Boolean =
+    fin != Never &&
+      root.symbolId in plain.lookaheadCondSymbols &&
+      root.symbolId !in plain.eofCondSymbols
 
   fun initCtx(): ParsingCtx = initCtx(plain.startSymbolId)
 
@@ -612,24 +632,19 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
 
     tPhase = phaseMark(0, tPhase)
 
-    // same-input 시동이 죽었을 때 (매치 실패 / 살아남은 path 없음):
-    //  - lookahead 계열 key (== gen): 구 규약의 fresh fallback — 같은 key 를 다음 경계
-    //    watcher (span gen) 로 재시동한다. 드리프트하는 lookahead anchor 는 같은 key 로
-    //    span gen-1 (same-input) 과 span gen (fresh) 양쪽 해석을 요구할 수 있다.
-    //  - bounded 계열 key (== ctx.gen): span-정규화 — 그 span 의 매치는 불가로 확정,
-    //    key 를 소진시켜 이후 재시동 (span 이 어긋난 zombie watcher) 을 막는다.
-    fun starterDied(root: PathRoot, shape: PathShape, out: MutableMap<PathRoot, MutableMap<PathShape, AcceptCondition>>) {
-      if (root.startGen == gen) {
-        out[root] = mutableMapOf(shape to Always)
-      } else {
-        ctx.everSeenCondRoots.add(root)
-      }
+    // same-input 시동이 죽었을 때 (매치 실패 / 살아남은 path 없음): key 는 span 시작
+    // (== ctx.gen) 이므로 그 span 의 매치는 불가로 확정된다. key 를 소진시켜 이후
+    // 재시동 (span 이 어긋난 zombie watcher) 을 막는다.
+    // 2026-07-30: 구 규약의 "lookahead key(==gen) 는 fresh 로 재시동" fallback 제거 —
+    // lookahead key 도 span-정규화되어 한 key 가 한 span 만 뜻하므로 재시동은 곧
+    // 남의 span 매치를 그 key 에 기록하는 오염이다 (bug B 조사의 drift-paren 케이스).
+    fun starterDied(root: PathRoot) {
+      ctx.everSeenCondRoots.add(root)
     }
 
     // step 1b: main path 의 액션에 등록된 cond root starter 들 시동.
-    //  - sameInput: 이번 입력이 watcher 의 첫 글자. bounded 계열은 key==ctx.gen (span-정규화),
-    //    lookahead 계열은 key==gen (구 규약 — 실제 span 은 gen-1, 보고 anchor 별도 기록).
-    //  - !sameInput: fresh — 시동만 하고 소비는 다음 step 부터 (새 경계 watcher).
+    //  - sameInput: 이번 입력이 watcher 의 첫 글자, key == ctx.gen == span 시작.
+    //  - !sameInput: fresh — 시동만 하고 소비는 다음 step 부터 (key == gen == span 시작).
     for ((starterRoot, pending) in condRootStartersFromTerm) {
       if (starterRoot in ctx.paths.keys) continue
       if (starterRoot in nextPaths.keys) continue
@@ -642,9 +657,8 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       } else {
         val ta = findApplicableAction(starterShape, input)
         if (ta != null) {
-          // 실제 span 시작: key==gen (lookahead 구 규약) 이면 gen-1 — 보고 anchor 기록.
-          val reportGen = if (starterRoot.startGen == gen) gen - 1 else starterRoot.startGen
-          if (reportGen != starterRoot.startGen) ctx.rootReportGens[starterRoot] = reportGen
+          // key 는 span-정규화되어 있으므로 보고 anchor == key (드리프트 없음).
+          val reportGen = starterRoot.startGen
           val perStarterNext = mutableMapOf<PathShape, AcceptCondition>()
           val ignoredStarters = mutableMapOf<PathRoot, PendingStarter>()
           applyTermAction(
@@ -669,10 +683,10 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
               perStarterNext.forEach { (s, c) -> acc.addPath(s, c) }
             }
           } else {
-            starterDied(starterRoot, starterShape, nextPaths)
+            starterDied(starterRoot)
           }
         } else {
-          starterDied(starterRoot, starterShape, nextPaths)
+          starterDied(starterRoot)
         }
       }
       if (rootInfo.selfFinishAcceptCondition != null) {
@@ -708,6 +722,18 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     for ((root, _) in condRootStartersFromTerm) {
       newCondRoots.add(root)
     }
+    // cond root 의 *내부* cond symbol 들 (initialCondSymbolIds 의 transitive closure) 은
+    // 그 root 와 같은 span 에서 시작한다 (예: `"fn"&Tk` 의 Tk, `Tk = <Word>` 의 Word).
+    // initCtx 의 condPathsFor 는 gen 0 root 에 대해 이 closure 를 만들어 주지만, 입력
+    // 중간에 시동되는 starter 에는 그 경로가 없어서 (step 1b/step 3 는 starter 의 term
+    // action 의 condRootStarters 를 무시한다) 내부 watcher 가 `PathRoot(sym, gen)` —
+    // 즉 부모보다 뒤인 잘못된 span — 으로만 생기고 있었다. 그 결과 부모 watcher 의
+    // finish 조건 (OnlyIf(Tk@span, ...)) 이 빈 key 를 보고 Never 로 무너진다
+    // (ES5 `!('{' | "function"&Tk)` 가 블록 안에서 강제되지 않던 원인).
+    for (root in newCondRoots.toList()) {
+      val closure = plain.transitiveInitialCondSymbols[root.symbolId] ?: continue
+      for (sym in closure) newCondRoots.add(PathRoot(sym, root.startGen))
+    }
 
     // history 에 한 번이라도 등장한 적 있는 cond root 은 skip.
     // ctx.everSeenCondRoots 는 이전 step 까지 누적된 active roots — O(1) amortized 로 share.
@@ -726,19 +752,14 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
         newCondRootProgresses[pathRoot] = selfCond
       }
       val starterShape = PathShape(null, rootInfo.milestoneGroupId)
-      // key(=span 시작) 기준 시동 — step 1b 와 동일한 규칙:
+      // key(=span 시작) 기준 시동 — step 1b 와 동일한 규칙 (2026-07-30: lookahead 도
+      // span-정규화되어 계열 구분이 사라졌다):
       //  - startGen == gen: fresh 시동만 (소비는 다음 step 부터).
       //  - startGen == ctx.gen: same-input — 이번 입력이 첫 글자. 실패 시 key 소진.
       //  - startGen < ctx.gen: 그 시점에 시동됐어야 하는 watcher — 지금 만들면 span 이
       //    어긋난 zombie 가 되므로 시동하지 않는다.
-      // 시동 flavor:
-      //  - startGen == gen: lookahead 심볼이면 구 규약 same-input (실제 span gen-1),
-      //    그 외 (새 경계 watcher) 는 fresh 시동만.
-      //  - startGen == ctx.gen: bounded span-정규화 same-input.
-      //  - startGen < ctx.gen: 그 시점에 시동됐어야 하는 watcher — 지금 만들면 span 이
-      //    어긋난 zombie 가 되므로 시동하지 않는다.
       val sameInput = when (pathRoot.startGen) {
-        gen -> pathRoot.symbolId in plain.lookaheadCondSymbols
+        gen -> false
         ctx.gen -> true
         else -> continue
       }
@@ -747,8 +768,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       } else {
         val ta = findApplicableAction(starterShape, input)
         if (ta != null) {
-          val reportGen = if (pathRoot.startGen == gen) gen - 1 else pathRoot.startGen
-          if (reportGen != pathRoot.startGen) ctx.rootReportGens[pathRoot] = reportGen
+          val reportGen = pathRoot.startGen
           val starterNextPaths = mutableMapOf<PathShape, AcceptCondition>()
           val ignoredStarters = mutableMapOf<PathRoot, PendingStarter>()
           applyTermAction(
@@ -771,10 +791,10 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
           if (starterNextPaths.isNotEmpty()) {
             nextPaths[pathRoot] = starterNextPaths
           } else {
-            starterDied(pathRoot, starterShape, nextPaths)
+            starterDied(pathRoot)
           }
         } else {
-          starterDied(pathRoot, starterShape, nextPaths)
+          starterDied(pathRoot)
         }
       }
     }
@@ -827,7 +847,9 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
           println("    in : ${cond.toString().take(300)}")
           evolveTrace = true
         }
-        val evolved = evolveAcceptCondition(cond, condPathFinishes, lateCondPathFinishes, activeCondRoots, gen)
+        val evolved = evolveAcceptCondition(
+          cond, condPathFinishes, lateCondPathFinishes, activeCondRoots, gen, ctx.seenCondPathFins
+        )
         if (trace && label == "main") {
           evolveTrace = false
           println("    out: ${evolved.toString().take(300)}")
@@ -854,8 +876,7 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     tPhase = phaseMark(5, tPhase)
 
     // step 6: 사용되지 않는 cond path 제거 — mainRoot 는 항상 keep.
-    // referencedRoots: 런타임 생존 규칙 — 조건 참조 root + observing 의 dot anchor
-    //   (+ lookahead 는 tip/parent anchor 도 — 구 규약의 드리프트 쌍).
+    // referencedRoots: 런타임 생존 규칙 — 조건 참조 root + observing 의 dot anchor.
     // reportedCondRoots: 보고 대상 — mgroup2 의 trackings 와 같은 규칙
     //   (조건 참조 root + observing 의 parent-gen anchor 만; tip-gen anchor 제외).
     //   m2 는 이 규칙으로 매 step 끝에 root 경로를 필터하므로, 같은 입력에서
@@ -877,17 +898,12 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
           reportedCondRoots.add(PathRoot(sid, mp.gen - 1))
           val parentGen = mp.parent?.gen ?: ctx.mainRoot.startGen
           reportedCondRoots.add(PathRoot(sid, parentGen))
-          // bounded (except/join/longest) 의 미래 조건 anchor 는 dot 뿐 — term 조건은
-          // MID(같은 step 에 starter 로 시동), edge 조건은 GRAND(=dot) 로만 anchoring
-          // (remapEdgeCondGens; 실측 scanCondAnchorTags: mulang 전 템플릿에서 bounded
-          // 의 CURR anchor 0건). tip(mp.gen)/parent(parentGen) anchor 로만 살아남는
-          // bounded 워처가 인접-gen 중복 root 의 원인 (watcher_anchor_dedup.md §1).
-          // lookahead 는 edge 조건이 CURR/MID 태그를 유지하므로 (remap 대상 아님)
-          // 구 규약의 3 anchor 그대로 — 드리프트 anchor 와 쌍인 자기일관 시스템 (§5).
-          if (sid in plain.lookaheadCondSymbols) {
-            referencedRoots.add(PathRoot(sid, mp.gen))
-            referencedRoots.add(PathRoot(sid, parentGen))
-          }
+          // 모든 watcher 계열의 미래 조건 anchor 는 dot 뿐 — term 조건은 MID(같은 step
+          // 에 starter 로 시동), edge 조건은 GRAND(=dot) 로만 anchoring
+          // (remapEdgeCondGens). tip(mp.gen)/parent(parentGen) anchor 로만 살아남는
+          // 워처가 인접-gen 중복 root 의 원인 (watcher_anchor_dedup.md §1).
+          // 2026-07-30: lookahead 도 remap 대상이 되어 dot-only 규칙에 합류 (§9) —
+          // 구 규약의 tip/parent 예외 anchor 제거.
         }
         mp = mp.parent
       }
@@ -935,6 +951,14 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
     nextHistory.add(historyEntry)
     ctx.everSeenCondRoots.addAll(historyEntry.activeCondPaths)
 
+    // 이번 step 의 lookahead watcher finish 들을 누적 기록에 접어 넣는다 (step 5 이후 —
+    // 이번 step 의 관찰은 per-step 채널이 이미 처리했고, 이 기록은 *다음* step 부터
+    // 유효하다). bug B: 조건은 watcher 사망 이후에도 물질화될 수 있다.
+    updateSeenCondPathFins(
+      ctx.seenCondPathFins, ctx.seenCondPathFinsPending,
+      condPathFinishes, lateCondPathFinishes, activeCondRoots, gen
+    )
+
     phaseMark(7, tPhase)
 
     return ParsingCtx(
@@ -946,7 +970,62 @@ class Mgroup3Parser(val data: Mgroup3ParserData) {
       history = nextHistory,
       everSeenCondRoots = ctx.everSeenCondRoots,
       rootReportGens = ctx.rootReportGens,
+      seenCondPathFins = ctx.seenCondPathFins,
+      seenCondPathFinsPending = ctx.seenCondPathFinsPending,
     )
+  }
+
+  // 누적 lookahead finish 기록 갱신. 순서가 중요하다:
+  //  1) 이번 step 의 eager/late finish 를 Or 로 접어 넣는다 (raw).
+  //  2) 그 다음 *모든* entry 를 이번 gen 으로 evolve. 저장된 finish 조건은 (nested
+  //     join/except/longest 로) 다른 root 를 참조할 수 있어서 관찰 gen 부터 매 step
+  //     evolve 돼야 하며, 특히 *관찰 gen 자신의* evolve 를 건너뛰면 안 된다 —
+  //     예: watcher 16 의 fin 이 OnlyIf(23, 0, 2) 로 gen 2 에 관찰되면 그 discharge
+  //     (endGen==2 의 eager fin 흡수) 는 gen 2 의 evolve 에서만 일어난다. gen 3 에서
+  //     처음 evolve 하면 endGen+1 분기가 late fin 부재로 Never 를 만들어 관찰이
+  //     사라진다 (ES5 `!('{' | "function"&Tk)` 가 정확히 이 형태).
+  //     Always/Never 는 고정점이라 skip (대다수 watcher 의 fin 조건은 Always).
+  //  결과 Never 는 "그 관찰은 불가능했다" 이므로 entry 를 제거한다.
+  //  evolve 는 갱신 전 `seen` 만 읽고 (updates 에 모아 두었다가 일괄 적용) 결정적이다.
+  private fun updateSeenCondPathFins(
+    seen: MutableMap<PathRoot, AcceptCondition>,
+    pending: MutableSet<PathRoot>,
+    condPathFinishes: Map<PathRoot, AcceptCondition>,
+    lateCondPathFinishes: Map<PathRoot, AcceptCondition>,
+    activeCondRoots: Set<PathRoot>,
+    gen: Int,
+  ) {
+    for (source in listOf(condPathFinishes, lateCondPathFinishes)) {
+      for ((root, fin) in source) {
+        if (!recordableLookaheadRoot(root, fin)) continue
+        val existing = seen[root]
+        val merged = if (existing == null) fin else Or.from(existing, fin)
+        seen[root] = merged
+        if (merged == Always || merged == Never) pending.remove(root) else pending.add(root)
+      }
+    }
+    // evolve 패스는 non-constant entry 만 (pending) — 상수는 고정점이라 재방문 불필요.
+    // 전체 map 순회는 step 당 O(|seen|) 이고 |seen| 은 입력 길이에 비례해 커진다.
+    if (pending.isEmpty()) return
+    var updates: MutableMap<PathRoot, AcceptCondition>? = null
+    for (root in pending) {
+      val c = seen[root] ?: continue
+      val evolved = evolveAcceptCondition(
+        c, condPathFinishes, lateCondPathFinishes, activeCondRoots, gen, seen
+      )
+      if (evolved != c) {
+        if (updates == null) updates = HashMap()
+        updates[root] = evolved
+      }
+    }
+    updates?.forEach { (root, c) ->
+      if (c == Never) {
+        seen.remove(root); pending.remove(root)
+      } else {
+        seen[root] = c
+        if (c == Always) pending.remove(root)
+      }
+    }
   }
 
   fun parse(text: String): ParsingCtx {

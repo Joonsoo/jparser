@@ -171,7 +171,12 @@ fn diff_against_kotlin_fixture() {
                 let gen_step: i32 = get_field(block, "gen").parse().unwrap();
                 let expected = parse_cond_field(block, "expected");
                 let late_fins = Default::default();
-                let actual = evolve_accept_condition(&cond, &fins, &late_fins, &active, gen_step);
+                // The fixture has no cumulative `seen` channel (Kotlin's default
+                // argument is an empty map) — keep it byte-identical.
+                let seen_fins = Default::default();
+                let actual = evolve_accept_condition(
+                    &cond, &fins, &late_fins, &active, gen_step, &seen_fins,
+                );
                 assert_eq!(
                     actual, expected,
                     "{}: evolve mismatch\n  cond={}\n  expected={}\n  actual={}",

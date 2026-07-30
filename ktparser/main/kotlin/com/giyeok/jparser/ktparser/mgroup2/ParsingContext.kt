@@ -6,6 +6,11 @@ data class ParsingContextKt(
   val gen: Int,
   val paths: List<MilestoneGroupPathKt>,
   val history: HistoryEntryList,
+  // 이전 세대들에서 관찰된 root milestone progress의 누적 기록.
+  // (Scala mgroup2 ParsingContext.seenProgressedRootMilestones와 동일 — unbounded
+  //  lookahead(Exists/NotExists) 조건은 감시 대상 watcher가 소멸한 뒤에 물질화될 수 있고,
+  //  그 진릿값은 (symbol, gen)만의 함수이므로 이전 관찰로 해소돼야 한다)
+  val seenProgressedRootMilestones: Map<MilestoneKt, MilestoneAcceptConditionKt> = emptyMap(),
 )
 
 data class MilestoneGroupPathKt(

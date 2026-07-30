@@ -275,7 +275,10 @@ class AcceptConditionFixtureGenTest {
     ))
 
     for (c in cases) {
-      val expected = evolveAcceptCondition(c.cond, c.fins, emptyMap(), c.active, c.gen)
+      // seenCondPathFins (6번째 인자) 는 비워 둔다 — 이 픽스처는 per-step 채널만의
+      // discharge 규칙을 고정하고, 누적 채널은 파서 레벨 테스트가 덮는다.
+      val expected =
+        evolveAcceptCondition(c.cond, c.fins, emptyMap(), c.active, c.gen, emptyMap())
       emitBlock(
         out, "evolve",
         listOf(

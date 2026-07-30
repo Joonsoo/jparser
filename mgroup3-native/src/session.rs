@@ -1016,6 +1016,23 @@ impl ParseSession {
         // Final live state: rebase the OLD final ctx into the new gen space and
         // attach the spliced history. (`prev_final_ctx` is the OLD parse's final
         // ctx; still valid here — overwritten by finish_parse after we return.)
+        //
+        // HONEST-ACCOUNTING NOTE (`seen_cond_path_fins`, the one CUMULATIVE ctx
+        // field — see the `rebase.rs` module doc for the full statement): the
+        // spliced ctx's cumulative `seen_cond_path_fins` is NOT re-folded, it is
+        // rebuilt purely by coordinate-mapping the OLD final ctx's map. So (a) the
+        // observations `new_ctx` accumulated between the resume gen and q* are
+        // DISCARDED (we take only its history; the fingerprint never covered
+        // `seen`), (b) entries anchored inside the replaced window are retained
+        // coordinate-mapped even though their text is gone, and (c) `GenRebase::map`
+        // is non-injective for negative deltas, so such an entry can collide with a
+        // valid prefix key (last-wins, in HashMap order).
+        // This is LATENT, not a live bug: nothing reads a spliced ctx's live `seen`
+        // — the accept/kernels path replays against the spliced HISTORY and derives
+        // its own `seen`, and the next edit resumes from a ring checkpoint whose
+        // `seen` is an honest step-by-step fold. Any future consumer of a spliced
+        // outcome ctx's live `seen` must first filter window-anchored entries (and
+        // re-fold the new prefix's observations).
         let old_final = self.prev_final_ctx.as_ref().expect("prev_final_ctx for splice");
         let final_ctx = rebase.ctx(old_final, spliced);
         debug_assert_eq!(

@@ -47,6 +47,14 @@ fn serialize_kernels_history(history: &[rustc_hash::FxHashSet<KtlibKernel>]) -> 
     out
 }
 
+/// A case dir is runnable only if it has an `inputs/` subdir. Locally generated
+/// fixtures (`tests/fixtures/parser_generated/`, gitignored) can hold a grammar's
+/// `data.pb` with no input/golden pairs yet — e.g. `es5/`, `es5-asi/`. Those are
+/// reported as skipped rather than panicking in `read_dir`.
+fn has_inputs(case_dir: &std::path::Path) -> bool {
+    case_dir.join("inputs").is_dir()
+}
+
 fn run_case(case_dir: &std::path::Path) -> Vec<String> {
     let mut failures = Vec::new();
     let data_path = case_dir.join("data.pb");
@@ -162,8 +170,13 @@ fn diff_against_kotlin_parser_fixture() {
     let mut total_inputs = 0usize;
     let mut all_failures: Vec<String> = Vec::new();
     let mut case_summary: Vec<(String, usize, usize)> = Vec::new(); // (name, ok, fail)
+    let mut skipped: Vec<String> = Vec::new();
     for case_dir in &case_dirs {
         let case_name = case_dir.file_name().unwrap().to_string_lossy().into_owned();
+        if !has_inputs(case_dir) {
+            skipped.push(case_name);
+            continue;
+        }
         let before = all_failures.len();
         let failures = run_case(case_dir);
         let inputs_dir = case_dir.join("inputs");
@@ -180,7 +193,7 @@ fn diff_against_kotlin_parser_fixture() {
 
     println!(
         "parser_diff: {} cases / {} inputs total",
-        case_dirs.len(),
+        case_summary.len(),
         total_inputs
     );
     for (name, ok, fail) in &case_summary {
@@ -189,6 +202,9 @@ fn diff_against_kotlin_parser_fixture() {
         } else {
             println!("  {}: {} ok / {} FAIL", name, ok, fail);
         }
+    }
+    for name in &skipped {
+        println!("  {}: SKIPPED (no inputs/ subdir)", name);
     }
 
     if !all_failures.is_empty() {

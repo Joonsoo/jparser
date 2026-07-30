@@ -495,17 +495,38 @@ var evolveTrace: Boolean = false
 //   cond path 가 이번 input 을 매치하지 못해 죽으면서 possible_finishes 로 등록한 것.
 //   두 채널의 end gen 이 다르므로 분리해서 전달해야 bounded shape (Unless/OnlyIf) 와
 //   longest (NoLongerMatch) 가 정확한 span 으로 discharge 된다.
+// seenCondPathFins: *이전 gen 들* 에서 이미 관찰된 cond root finish 들의 누적 기록
+//   (root → Or-merged finish condition; 관찰 gen 부터 매 step evolve 돼 현재 gen 기준).
+//   NotExists/Exists 전용.
+//
+//   왜 필요한가 (bug B): unbounded lookahead 조건 NotExists(b,b,X) 의 진릿값은
+//   (X, b) 만의 함수 — "b 에서 시작하는 X 매치가 (end 무관하게) 존재하는가" — 이며
+//   조건 인스턴스가 *언제* 만들어졌는지와 무관하다. 그런데 milestone 계열에서 조건은
+//   dot 이 조건부 kernel 을 통과하는 step 에 비로소 물질화된다 (interior kernel 은
+//   milestone 이 아니라 그룹 closure 안에 접혀 있다). 따라서 감시 대상 watcher 가
+//   이미 완성되고 소멸한 *뒤* 에 태어나는 leaf 가 정상적으로 존재한다 — 예:
+//     Program = !"fn" Expression ';' ; Expression = "fn" "()"
+//   입력 "fn();" 에서 watcher("fn"@0) 는 gen 2 에 완성·소멸하는데, seq 의 dot 이
+//   `!"fn"` 를 지나는 progression 은 Expression 이 끝나는 gen 4 에 관찰된다.
+//   per-step 채널만 보면 그 leaf 는 "이번 step 의 finish 없음 + root 비활성" 이라
+//   Always 로 오해소돼 lookahead 가 통째로 사라진다 (naive2 는 REJECT).
+//
+//   bounded (Unless/OnlyIf) 와 longest (NoLongerMatch/NeedLongerMatch) 는 정확한
+//   span 의 finish 만 discharge 에 써야 하므로 이 채널을 쓰지 않는다.
 fun evolveAcceptCondition(
   cond: AcceptCondition,
   condPathFins: Map<PathRoot, AcceptCondition>,
   lateCondPathFins: Map<PathRoot, AcceptCondition>,
   activeCondPaths: Set<PathRoot>,
   gen: Int,
+  seenCondPathFins: Map<PathRoot, AcceptCondition> = emptyMap(),
 ): AcceptCondition {
   if (evolveTrace) {
     println("EV TOP  cond=${cond.toString().take(300)}")
   }
-  val r = evolveAcceptCondition(cond, condPathFins, lateCondPathFins, activeCondPaths, gen, emptySet(), 0)
+  val r = evolveAcceptCondition(
+    cond, condPathFins, lateCondPathFins, activeCondPaths, gen, seenCondPathFins, emptySet(), 0
+  )
   if (evolveTrace) println("EV TOP-> ${r.toString().take(300)}")
   return r
 }
@@ -516,11 +537,14 @@ private fun evolveAcceptCondition(
   lateCondPathFins: Map<PathRoot, AcceptCondition>,
   activeCondPaths: Set<PathRoot>,
   gen: Int,
+  seenCondPathFins: Map<PathRoot, AcceptCondition>,
   visiting: Set<PathRoot>,
   depth: Int = 0,
 ): AcceptCondition {
   fun rec(c: AcceptCondition, v: Set<PathRoot> = visiting): AcceptCondition =
-    evolveAcceptCondition(c, condPathFins, lateCondPathFins, activeCondPaths, gen, v, depth + 1)
+    evolveAcceptCondition(
+      c, condPathFins, lateCondPathFins, activeCondPaths, gen, seenCondPathFins, v, depth + 1
+    )
   val indent = "  ".repeat(depth)
   if (evolveTrace) println("${indent}EV($depth) $cond visiting=$visiting")
   val result: AcceptCondition = when (cond) {
@@ -571,14 +595,17 @@ private fun evolveAcceptCondition(
     }
 
     // lookahead: startGen 에서 시작하는 매치가 (end 무관하게) 존재하는지 — eager 와
-    // late fin 모두 유효하다. root 가 살아있으면 pending 유지.
+    // late fin 모두 유효하고, *이전 gen 들* 에서 이미 관찰된 finish (seenCondPathFins)
+    // 도 유효하다 (조건이 watcher 사망 후에 물질화될 수 있으므로 — bug B).
+    // root 가 살아있으면 pending 유지.
     is NotExists -> {
       val root = PathRoot(cond.symbolId, cond.startGen)
       if (root in visiting) cond
       else {
-        val parts = ArrayList<AcceptCondition>(3)
+        val parts = ArrayList<AcceptCondition>(4)
         condPathFins[root]?.let { parts.add(rec(it.neg(), visiting + root)) }
         lateCondPathFins[root]?.let { parts.add(rec(it.neg(), visiting + root)) }
+        seenCondPathFins[root]?.let { parts.add(rec(it.neg(), visiting + root)) }
         if (root in activeCondPaths) parts.add(cond)
         if (parts.isEmpty()) Always else And.from(parts)
       }
@@ -588,9 +615,10 @@ private fun evolveAcceptCondition(
       val root = PathRoot(cond.symbolId, cond.startGen)
       if (root in visiting) cond
       else {
-        val parts = ArrayList<AcceptCondition>(3)
+        val parts = ArrayList<AcceptCondition>(4)
         condPathFins[root]?.let { parts.add(rec(it, visiting + root)) }
         lateCondPathFins[root]?.let { parts.add(rec(it, visiting + root)) }
+        seenCondPathFins[root]?.let { parts.add(rec(it, visiting + root)) }
         if (root in activeCondPaths) parts.add(cond)
         if (parts.isEmpty()) Never else Or.from(parts)
       }

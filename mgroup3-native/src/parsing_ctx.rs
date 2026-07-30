@@ -416,6 +416,29 @@ pub struct ParsingCtx {
     /// from (creation gen - 1); report coordinates use this instead of
     /// `root.start_gen`. Runtime keys/anchoring unchanged.
     pub root_report_gens: HashMap<PathRoot, i32>,
+    /// Cumulative record of lookahead watcher roots' finishes from *earlier*
+    /// gens (root → Or-merged finish condition, evolved every step from its
+    /// observation gen so it is current-gen relative). Resolves unbounded
+    /// lookahead conditions (`NotExists`/`Exists`) that materialize *after* the
+    /// watcher died — see `evolve_accept_condition`'s `seen_cond_path_fins` doc
+    /// (bug B). Only roots in `lookahead_cond_symbols` and not in
+    /// `eof_cond_symbols` are recorded (bounded / longest shapes discharge on
+    /// the exact span only, so they never read this channel).
+    pub seen_cond_path_fins: HashMap<PathRoot, AcceptCondition>,
+    /// The subset of `seen_cond_path_fins` keys whose stored value is NOT a
+    /// constant (`Always`/`Never`) — exactly the entries the per-step evolve pass
+    /// still has to revisit. Carried across steps like the map itself.
+    ///
+    /// Why (cost, not semantics): `seen_cond_path_fins` grows roughly linearly
+    /// with input length on grammars whose lookahead watchers complete often, so
+    /// an evolve pass that walked the whole map every step was O(|seen|) per step
+    /// = O(n²) overall. Constants are fixpoints of `evolve`, so never revisiting
+    /// them is semantically free, and iterating only this set removes the
+    /// quadratic term. Measured (`es5/data.pb` + `es5-corpus/underscore-1.8.3.js`,
+    /// 52,915 chars, parse phase, 2 runs): 1.00/1.08 s before this channel
+    /// existed, 2.29/2.32 s walking the whole map each step, 1.06/1.07 s with
+    /// this pending set.
+    pub seen_cond_path_fins_pending: HashSet<PathRoot>,
     /// (tipGroupId << 32) | charCode → term action 조회 캐시 — 파스-로컬.
     /// 파서 인스턴스는 스레드 간 공유되므로 (bibix4 병렬 파싱) 파서에 두면
     /// 핫패스 락 경합이 생긴다. ctx 는 파스마다 하나라 락 불필요.
@@ -454,6 +477,8 @@ impl ParsingCtx {
             history: History::new(),
             ever_seen_cond_roots: self.ever_seen_cond_roots.clone(),
             root_report_gens: self.root_report_gens.clone(),
+            seen_cond_path_fins: self.seen_cond_path_fins.clone(),
+            seen_cond_path_fins_pending: self.seen_cond_path_fins_pending.clone(),
             term_action_cache: self.term_action_cache.clone(),
             step_scratch: self.step_scratch.clone(),
         }
@@ -618,6 +643,8 @@ mod tests {
             history: History::new(),
             ever_seen_cond_roots: HashSet::default(),
             root_report_gens: HashMap::default(),
+            seen_cond_path_fins: HashMap::default(),
+            seen_cond_path_fins_pending: HashSet::default(),
             term_action_cache: Default::default(),
             step_scratch: Default::default(),
         };

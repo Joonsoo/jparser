@@ -76,8 +76,50 @@
 //!   - `ever_seen_cond_roots: HashSet<PathRoot>` — each `.start_gen`.
 //!   - `root_report_gens: HashMap<PathRoot, i32>` — key `PathRoot.start_gen` AND
 //!     value (a report gen). Both mapped.
+//!   - `seen_cond_path_fins: HashMap<PathRoot, AcceptCondition>` — key
+//!     `PathRoot.start_gen` + value condition leaf gens. Both mapped.
+//!   - `seen_cond_path_fins_pending: HashSet<PathRoot>` — each `.start_gen`. The
+//!     non-constant subset of the map's keys; rebased the same way so the
+//!     "pending == non-constant keys of the map" invariant survives the splice.
 //!   - `history` — handled separately by the session's lazy materialization
 //!     (`rebase_entry` per old-suffix entry).
+//!
+//! ### `seen_cond_path_fins` on a splice is NOT an honest fold (latent, by design)
+//!
+//! Unlike every other field above, this one is CUMULATIVE: a real parse folds it
+//! step by step over gens 0..=n (`update_seen_cond_path_fins`). A splice does not
+//! re-fold it — `ctx()` rebuilds it purely by coordinate-mapping the OLD final
+//! ctx's map (`self.root`/`self.cond` per entry). Three consequences, none of
+//! which any live consumer hits today:
+//!   1. Observations made by the NEW prefix parse between the resume gen and `q*`
+//!      are DISCARDED (the freshly-parsed `new_ctx`'s own `seen_cond_path_fins` is
+//!      dropped along with the rest of that ctx in `finish_splice`; only its
+//!      history survives). The convergence fingerprint does not cover `seen`, so
+//!      these can genuinely differ from the old parse's.
+//!   2. Entries anchored INSIDE the replaced window (old gens
+//!      `p < start_gen <= p + old_len`, i.e. watchers of the very text the edit
+//!      deleted) are RETAINED, coordinate-mapped into `(p + delta, p + new_len]`.
+//!      They now describe text that no longer exists.
+//!   3. `GenRebase::map` is NOT injective for negative deltas (net-shrinking
+//!      edits): it is identity on `g <= p` and `g + delta` on `g > p`, so a
+//!      replaced-window gen `g > p` can land at or below `p` and collide with the
+//!      genuine prefix key `g + delta` (e.g. old `p+1` and old `p+1+delta` both
+//!      map to `p+1+delta`). `collect()` resolves such collisions LAST-WINS in
+//!      `HashMap` iteration order, i.e. nondeterministically.
+//!
+//! Why this is latent rather than a bug: no consumer reads a SPLICED outcome
+//! ctx's live `seen_cond_path_fins`. The accept/kernels path
+//! (`is_accepted` / `kernels_history` / `RecordConditionEvaluator`) replays
+//! against the spliced HISTORY and derives its own `seen` from those entries; and
+//! a later edit resumes from a ring CHECKPOINT ctx, whose `seen` is an honest
+//! fold produced by real parse steps, never from a spliced final ctx. So the
+//! mapped map is carried for structural completeness only.
+//!
+//! DO NOT change behavior on the strength of this note. But any future consumer
+//! that reads a spliced outcome ctx's live `seen_cond_path_fins` (e.g. resuming
+//! a parse directly from the spliced final ctx instead of a checkpoint) MUST
+//! first filter out window-anchored entries and re-fold the new prefix's
+//! observations — the mapped map alone is not a sound starting state.
 //!   - `term_action_cache`, `step_scratch` — parse-local scratch, NOT gen-bearing
 //!     in a way that affects output; reset to `Default` on the rebased final ctx
 //!     (they are rebuilt on demand and never read by kernels_history/is_accepted).
@@ -296,6 +338,8 @@ impl GenRebase {
         }
         let root_report_gens: HashMap<PathRoot, i32> =
             ctx.root_report_gens.iter().map(|(r, g)| (self.root(*r), self.map(*g))).collect();
+        let seen_cond_path_fins: HashMap<PathRoot, AcceptCondition> =
+            ctx.seen_cond_path_fins.iter().map(|(r, c)| (self.root(*r), self.cond(c))).collect();
         ParsingCtx {
             gen_idx: self.map(ctx.gen_idx),
             // line/col are copied from the OLD parse's final ctx and may be stale
@@ -312,6 +356,8 @@ impl GenRebase {
             history: spliced_history,
             ever_seen_cond_roots: self.root_set(&ctx.ever_seen_cond_roots),
             root_report_gens,
+            seen_cond_path_fins,
+            seen_cond_path_fins_pending: self.root_set(&ctx.seen_cond_path_fins_pending),
             term_action_cache: Default::default(),
             step_scratch: Default::default(),
         }

@@ -637,6 +637,9 @@ def runJUnitTestExcluding(lib: jvm.JvmLib, excludeClassnameRegex: string) {
   let cmd = [
     java.javaCmd(),
     "--enable-native-access=ALL-UNNAMED",
+    // 전체 스위트는 mulang 급 parser data 생성 (ParserFixtureGenTest, ~41MB data.pb)
+    // 을 포함해서 기본 힙으로는 OutOfMemoryError 로 죽는다.
+    "-Xmx12g",
     "-cp", cpArg,
     "org.junit.platform.console.ConsoleLauncher",
     "--fail-if-no-tests",
