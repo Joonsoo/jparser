@@ -64,4 +64,109 @@ class LookaheadOutrunReproTest extends AnyFlatSpec {
     assert(mgroup2Accepts(inputs),
       "mgroup2가 gn();를 거부 — NotExists의 정상(공허 참) 해소가 깨졌다")
   }
+
+  // ---- Exists 쌍둥이: Program = ^"fn" Expression ';' (positive lookahead) ----
+  //
+  // 위 bug B와 같은 "배달(경로 위 물질화 gen 4) vs 관측(watcher 완성 gen 2)" 갭을
+  // Exists 방향에서 핀한다. 증거 소실 후 평가는 NotExists에서는 공허 참(오수락),
+  // Exists에서는 거짓(오거부)으로 기운다. milestone2 쪽 실측(2026-07-31)에서 fn();
+  // 오거부(bug B의 쌍대)가 확인됐다 — 상세는 milestone2/test의 동명 테스트 주석.
+  // old_tip_accept_condition(이른 배달) 재설계는 이 케이스까지 GREEN이어야 완료다.
+  private val posGrammarText =
+    """Program = ^"fn" Expression ';'
+      |Expression = "fn" "()" | "gn" "()"
+      |""".stripMargin
+
+  private lazy val posGrammar: NGrammar = MetaLanguage3.analyzeGrammar(posGrammarText, "Testing").ngrammar
+  private lazy val posParserData = new MilestoneGroupParserGen(posGrammar).parserData()
+
+  private def posNaive2Accepts(inputs: List[Inputs.Input]): Boolean = {
+    val parser = new NaiveParser2(posGrammar)
+    parser.parse(inputs) match {
+      case Left(_) => false
+      case Right(ctx) =>
+        parser.parseTreeReconstructor2(ParseForestFunc, ctx).reconstruct().isDefined
+    }
+  }
+
+  private def posMgroup2Accepts(inputs: List[Inputs.Input]): Boolean = {
+    val parser = new MilestoneGroupParser(posParserData)
+    parser.parse(inputs) match {
+      case Left(_) => false
+      case Right(ctx) =>
+        new ParseTreeConstructor2(ParseForestFunc)(posGrammar)(inputs, parser.kernelsHistory(ctx).map(Kernels))
+          .reconstruct().isDefined
+    }
+  }
+
+  "fn(); where the positive lookahead is satisfied" should "be ACCEPTed in agreement with naive2 (Exists twin pin)" in {
+    val inputs = Inputs.fromString("fn();")
+    assert(posNaive2Accepts(inputs), "naive2 oracle이 ^\"fn\" 문법에서 fn();를 거부 — 테스트 전제가 깨졌다")
+    assert(posMgroup2Accepts(inputs),
+      "mgroup2가 fn();를 오거부했다 — 해소된 Exists 조건이 늦은 배달 사본에 의해 뒤집힌 것")
+  }
+
+  "gn(); where the positive lookahead fails" should "be REJECTed by both parsers" in {
+    val inputs = Inputs.fromString("gn();")
+    assert(!posNaive2Accepts(inputs), "naive2가 ^\"fn\" 문법에서 gn();를 수락 — 문법 전제가 깨졌다")
+    assert(!posMgroup2Accepts(inputs),
+      "mgroup2가 gn();를 오수락했다 — Exists 미충족이 경로에 반영되지 않은 것")
+  }
+
+  // ---- 혼합 문법: lookahead 종류가 다른 RHS + lookahead 없는 RHS 동거 ----
+  // 상세는 milestone2/test의 동명 테스트 주석 참고. milestone2 실측(2026-08-01)과 동일한
+  // RED/GREEN 분포를 기대한다: fn(); 오거부(Exists) + gn()! 오수락(NotExists)이 RED,
+  // gate 없는 chain(.)과 나머지는 GREEN.
+  private val mixGrammarText =
+    """Program = ^"fn" Expression ';' | !"gn" Expression '!' | Expression '.'
+      |Expression = "fn" "()" | "gn" "()"
+      |""".stripMargin
+
+  private lazy val mixGrammar: NGrammar = MetaLanguage3.analyzeGrammar(mixGrammarText, "Testing").ngrammar
+  private lazy val mixParserData = new MilestoneGroupParserGen(mixGrammar).parserData()
+
+  private def mixNaive2Accepts(inputs: List[Inputs.Input]): Boolean = {
+    val parser = new NaiveParser2(mixGrammar)
+    parser.parse(inputs) match {
+      case Left(_) => false
+      case Right(ctx) =>
+        parser.parseTreeReconstructor2(ParseForestFunc, ctx).reconstruct().isDefined
+    }
+  }
+
+  private def mixMgroup2Accepts(inputs: List[Inputs.Input]): Boolean = {
+    val parser = new MilestoneGroupParser(mixParserData)
+    parser.parse(inputs) match {
+      case Left(_) => false
+      case Right(ctx) =>
+        new ParseTreeConstructor2(ParseForestFunc)(mixGrammar)(inputs, parser.kernelsHistory(ctx).map(Kernels))
+          .reconstruct().isDefined
+    }
+  }
+
+  "mixed grammar, lookahead-free alternative (.)" should "ACCEPT both fn(). and gn()." in {
+    val fnInputs = Inputs.fromString("fn().")
+    val gnInputs = Inputs.fromString("gn().")
+    assert(mixNaive2Accepts(fnInputs) && mixNaive2Accepts(gnInputs), "naive2가 gate 없는 alternative를 거부 — 문법 전제가 깨졌다")
+    assert(mixMgroup2Accepts(fnInputs), "mgroup2가 fn().를 거부 — gate 없는 chain이 다른 alternative의 gate에 오염된 것")
+    assert(mixMgroup2Accepts(gnInputs), "mgroup2가 gn().를 거부 — gate 없는 chain이 다른 alternative의 gate에 오염된 것")
+  }
+
+  "mixed grammar, ^fn alternative (;)" should "ACCEPT fn(); and REJECT gn(); in agreement with naive2" in {
+    val fnInputs = Inputs.fromString("fn();")
+    val gnInputs = Inputs.fromString("gn();")
+    assert(mixNaive2Accepts(fnInputs) && !mixNaive2Accepts(gnInputs), "naive2 oracle이 ^fn alternative에서 어긋남 — 문법 전제가 깨졌다")
+    assert(!mixMgroup2Accepts(gnInputs), "mgroup2가 gn();를 오수락 — Exists 미충족이 chain에 반영되지 않은 것")
+    assert(mixMgroup2Accepts(fnInputs),
+      "mgroup2가 fn();를 오거부 — Exists 늦은 물질화 (단독 ^fn 문법의 Exists twin pin과 같은 원인)")
+  }
+
+  "mixed grammar, !gn alternative (!)" should "ACCEPT fn()! and REJECT gn()! in agreement with naive2" in {
+    val fnInputs = Inputs.fromString("fn()!")
+    val gnInputs = Inputs.fromString("gn()!")
+    assert(mixNaive2Accepts(fnInputs) && !mixNaive2Accepts(gnInputs), "naive2 oracle이 !gn alternative에서 어긋남 — 문법 전제가 깨졌다")
+    assert(mixMgroup2Accepts(fnInputs), "mgroup2가 fn()!를 거부 — NotExists의 정상(공허 참) 해소가 깨졌다")
+    assert(!mixMgroup2Accepts(gnInputs),
+      "mgroup2가 gn()!를 오수락 — NotExists 늦은 물질화 (단독 !fn 문법의 bug B pin과 같은 원인)")
+  }
 }

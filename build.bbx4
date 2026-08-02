@@ -1253,7 +1253,9 @@ def runEs5AsiCorpusAccept() {
 }
 
 // bug-B (lookahead outrun) 재현 핀 — 상세는 각 테스트 파일 헤더 주석.
-// cab1092e(11c30887 구계보 revert) 이후 재설계가 랜딩될 때까지 fn(); 케이스는 RED가 의도된 상태다.
+// cab1092e(11c30887 구계보 revert) 이후 재설계가 랜딩될 때까지 스위트당 RED 핀 4건이 의도된 상태다:
+// !"fn" fn();(NotExists 오수락) + ^"fn" fn();(Exists 오거부, 07-31 추가) + 혼합 문법의 fn();/gn()!
+// (같은 두 원인, 08-01 추가). gate 없는 alternative와 gn(); 류는 언제나 GREEN.
 @requires(milestone2.test)
 @action
 def runMilestone2LookaheadReproTest() {
