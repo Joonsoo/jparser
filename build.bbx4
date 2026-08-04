@@ -158,6 +158,44 @@ milestone2(basePath="milestone2") {
   )
 }
 
+milestone3(basePath="milestone3") {
+  proto(basePath="data/proto") {
+    schema = protobuf.schema(
+      srcs = [
+        "Milestone3ParserData.proto",
+      ],
+      deps = [base.proto.schema],
+    )
+
+    javacode = protobuf.java(schema=milestone3.proto.schema)
+    javalib = java.library(
+      srcs = milestone3.proto.javacode.javaFiles,
+      deps = [base.proto.javalib],
+    )
+  }
+
+  data = ktjvm.library(
+    srcs = withBasePath("data/kotlin") {
+      file.glob("**.kt")
+    },
+    deps = [naive.main, proto.javalib],
+  )
+
+  gen = scala2.library(
+    srcs = withBasePath("gen/scala") {
+      file.glob("**.scala")
+    },
+    deps = [naive.main, metalang.main, data, parseutils.main],
+  )
+
+  parser = scala2.library(
+    srcs = withBasePath("parser/kotlin") {
+      file.glob("**.kt")
+    },
+    deps = [base.main, data, parseutils.main],
+  )
+}
+
 mgroup2(basePath="mgroup2") {
   proto(basePath="data/proto") {
     schema = protobuf.schema(

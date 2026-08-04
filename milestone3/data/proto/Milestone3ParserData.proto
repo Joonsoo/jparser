@@ -1,0 +1,108 @@
+syntax = "proto3";
+
+package com.giyeok.jparser.milestone3.proto;
+
+import "google/protobuf/empty.proto";
+import "GrammarProto.proto";
+import "TermGroupProto.proto";
+
+option java_outer_classname = "Milestone3ParserDataProto";
+
+message Milestone3ParserData {
+  com.giyeok.jparser.proto.NGrammar grammar = 1;
+  TaskSummary initial_tasks = 2;
+
+  repeated TermActionPair term_actions = 3;
+  repeated EdgeActionPair edge_actions = 4;
+  repeated WatcherRootPair watcher_root_symbols = 5;
+  // watcher_root_symbols 중 실제 path root로 쓰이는 것들 중, derive와 동시에 progress(& finish)될 수 있는 경우 그 조건
+  // symbol id -> AcceptConditionTemplate. root에서는 pointer가 항상 0이므로 symbol id만 키로 사용.
+  map<int32, AcceptConditionTemplate> watcher_root_nullable_finish_conditions = 6;
+}
+
+message TaskSummary {
+  // TODO
+}
+
+message WatcherRootPair {
+  KernelTemplate kernel_template = 1;
+  // kernel_template가 append되는 시점에(혹은 root인 시점에) 현 시점부터 watch할 필요가 생긴 symbol id들
+  repeated int32 watcher_root_symbols = 2;
+}
+
+message KernelTemplate {
+  int32 symbol_id = 1;
+  int32 pointer = 2;
+}
+
+message TermActionPair {
+  // tip이 tip_kernel_template 인 path에 대해,
+  KernelTemplate tip_kernel_template = 1;
+  repeated TermAction term_actions = 2;
+}
+
+
+message TermAction {
+  // next input이 term_group에 속하면 수행해야 하는 parsing action
+  com.giyeok.jparser.proto.TermGroup term_group = 1;
+  ParsingAction parsing_action = 2;
+}
+
+message ParsingAction {
+  repeated AppendMilestone append_milestones = 1;
+  optional AcceptConditionTemplate tip_progress_condition = 2;
+  TaskSummary task_summary = 3;
+  // append_milestones 의 watcher_roots의 합집합을 사용하면 된다 - watcher_roots를 일일이 볼 필요 없음
+}
+
+// 새 엣지가 만들어진다
+message AppendMilestone {
+  KernelTemplate append_kernel_template = 1;
+  // 새로 append된 accept condition에 붙어야 하는 조건
+  AcceptConditionTemplate append_accept_condition = 2;
+  // 새로 추가된 edge에 붙어야 하는 조건
+  AcceptConditionTemplate edge_accept_condition = 3;
+}
+
+
+message EdgeActionPair {
+  KernelTemplate start = 1;
+  KernelTemplate end = 2;
+  ParsingAction parsing_action = 3;
+}
+
+message AcceptConditionTemplate {
+  message AndTemplate {
+    repeated AcceptConditionTemplate conditions = 1;
+  }
+  message OrTemplate {
+    repeated AcceptConditionTemplate conditions = 1;
+  }
+  message LookaheadTemplate {
+    int32 symbol_id = 1;
+    bool from_next_gen = 2;
+  }
+  message LongestTemplate {
+    int32 symbol_id = 1;
+    bool from_next_gen = 2;
+  }
+  message OnlyIfTemplate {
+    int32 symbol_id = 1;
+    bool from_next_gen = 2;
+  }
+  message UnlessTemplate {
+    int32 symbol_id = 1;
+    bool from_next_gen = 2;
+  }
+  oneof condition {
+    google.protobuf.Empty always = 1;
+    google.protobuf.Empty never = 2;
+    AndTemplate and = 3;
+    OrTemplate or = 4;
+    LookaheadTemplate lookahead_is = 5;
+    LookaheadTemplate lookahead_not = 6;
+    LongestTemplate longest = 7;
+    OnlyIfTemplate only_if = 8;
+    UnlessTemplate unless = 9;
+  }
+}
