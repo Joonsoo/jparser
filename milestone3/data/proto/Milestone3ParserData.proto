@@ -17,6 +17,7 @@ message Milestone3ParserData {
   repeated WatcherRootPair watcher_root_symbols = 5;
   // watcher_root_symbols 중 실제 path root로 쓰이는 것들 중, derive와 동시에 progress(& finish)될 수 있는 경우 그 조건
   // symbol id -> AcceptConditionTemplate. root에서는 pointer가 항상 0이므로 symbol id만 키로 사용.
+  // symbol id에는 start symbol id도 포함될 수 있다.
   map<int32, AcceptConditionTemplate> watcher_root_nullable_finish_conditions = 6;
 }
 
@@ -52,7 +53,6 @@ message ParsingAction {
   repeated AppendMilestone append_milestones = 1;
   optional AcceptConditionTemplate tip_progress_condition = 2;
   TaskSummary task_summary = 3;
-  // append_milestones 의 watcher_roots의 합집합을 사용하면 된다 - watcher_roots를 일일이 볼 필요 없음
 }
 
 // 새 엣지가 만들어진다
